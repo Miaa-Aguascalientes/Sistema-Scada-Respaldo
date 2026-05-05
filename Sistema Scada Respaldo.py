@@ -1860,48 +1860,47 @@ if sectores_data:
     fg_sectores.add_to(m)
     
 
-# 9.6. RENDERIZADO TOTAL DE INFRAESTRUCTURA (VERSIÓN ROBUSTA) ---------------------------------------------------------
+# 9.6. RENDERIZADO TOTAL DE INFRAESTRUCTURA (VERSIÓN ALTO RENDIMIENTO - IFRAME) ---------------------------
 if ver_pozos:
-    # Usamos un contenedor vacío para errores de consola si es necesario
+    import plotly.io as pio
+    import base64
+
     for id_p, info in mapa_pozos_dict.items():
         try:
-            # 1. VALIDACIÓN DE COORDENADAS (Extraídas de Base_macromedidores)
+            # 1. VALIDACIÓN DE COORDENADAS
             coords = info.get('coord')
             if not coords or coords == [0, 0] or str(coords[0]) == 'nan':
-                continue # Si no hay ubicación válida, saltar para no romper el mapa
+                continue 
 
-            # 2. EXTRACCIÓN DE DATOS SCADA
+            # 2. EXTRACCIÓN DE DATOS SCADA (Tiempo Real)
             d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
             is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
             
-            # Captura segura con .get para evitar NameErrors
-            q, f_q = d(info.get('caudal')) if not is_st else (0.0, "N/A")
-            p, f_p = d(info.get('presion')) if not is_st else (0.0, "N/A")
-            dinam, f_d = d(info.get('nivel_dinamico')) if not is_st else (0.0, "N/A")
+            q, _ = d(info.get('caudal')) if not is_st else (0.0, "N/A")
+            p, _ = d(info.get('presion')) if not is_st else (0.0, "N/A")
+            dinam, _ = d(info.get('nivel_dinamico')) if not is_st else (0.0, "N/A")
             
-            # 3. LÓGICA DE GRÁFICO (Bypass de Error 'v1')
+            # 3. LÓGICA DE GRÁFICO (OPCIÓN IFRAME - SIN PNG PESADO)
             grafico_html = ""
             if not is_st:
                 try:
-                    # Intentamos generar la figura
-                    fig_static = generar_grafico_integral_7d(id_p, info)
-                    fig_static.update_layout(
-                        width=350, height=150,
-                        margin=dict(l=5, r=5, t=20, b=5),
-                        paper_bgcolor='black',
-                        plot_bgcolor='black',
-                        font=dict(color='white', size=8)
-                    )
+                    # Generamos el gráfico usando la función con CACHÉ que definimos antes
+                    fig_static = generar_grafico_integral_7d(id_p, info, is_popup=True)
                     
-                    import base64
-                    img_bytes = fig_static.to_image(format="png", engine="kaleido")
-                    encoded = base64.b64encode(img_bytes).decode('utf-8')
-                    grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #444;">'
+                    # Convertimos a HTML base64 (Más rápido que generar PNG con Kaleido)
+                    config_plotly = {'displayModeBar': False, 'staticPlot': True}
+                    raw_plot_html = pio.to_html(fig_static, full_html=False, include_plotlyjs='cdn', config=config_plotly)
+                    b64_plot = base64.b64encode(raw_plot_html.encode('utf-8')).decode('utf-8')
+                    
+                    grafico_html = f"""
+                        <iframe src="data:text/html;base64,{b64_plot}" 
+                                style="width:100%; height:160px; border:none; margin-top:10px; border-radius:5px;">
+                        </iframe>
+                    """
                 except Exception as e:
-                    # Mensaje amigable que no rompe el popup
-                    grafico_html = f'<div style="border: 1px dashed #555; color: #888; font-size: 9px; text-align: center; padding: 15px; margin-top: 10px;">Gráfico histórico temporalmente no disponible para {id_p}</div>'
+                    grafico_html = f'<div style="border: 1px dashed #555; color: #888; font-size: 9px; text-align: center; padding: 15px; margin-top: 10px;">Gráfico histórico no disponible para {id_p}</div>'
 
-            # 4. CONSTRUCCIÓN DEL POPUP (ESTILO FUTURISTA / DARK)
+            # 4. CONSTRUCCIÓN DEL POPUP (ESTILO HUD)
             rol_actual = st.session_state.get('rol', 'usuario')
             url_pozo_graf = f"?graficar_pozo={id_p}&access=granted&role={rol_actual}"
 
@@ -1929,7 +1928,7 @@ if ver_pozos:
             """
 
             # 5. RENDERIZADO EN FOLIUM
-            # Etiqueta de texto (ID del pozo)
+            # Nombre del pozo (Label)
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(
@@ -1938,7 +1937,7 @@ if ver_pozos:
                 )
             ).add_to(m)
 
-            # Marcador interactivo (Círculo o Parpadeo)
+            # Marcador (Blink o Fijo)
             if info.get('blink'):
                 folium.Marker(
                     location=info['coord'],
@@ -1957,7 +1956,6 @@ if ver_pozos:
                 ).add_to(m)
 
         except Exception as e:
-            # Si un pozo específico falla, lo reportamos en la terminal pero NO detenemos el bucle
             print(f"Error en Pozo {id_p}: {e}")
             continue
 
