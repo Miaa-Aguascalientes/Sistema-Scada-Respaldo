@@ -27,17 +27,17 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- INTERCEPTOR PARA EL GRÁFICO DEL POPUP (SIN LOGIN) ---
-import streamlit as st
-
+# --- ESTO VA AL PURO INICIO ---
 if st.query_params.get("grafico_mini") == "true":
     id_p = st.query_params.get("pozo_id")
     tag_q = st.query_params.get("caudal_tag")
     tag_p = st.query_params.get("presion_tag")
     
-    # Consulta rápida solo para este pozo
     try:
-        engine = get_mysql_scada_engine() # Usa tu función de conexión
+        # CONEXIÓN DIRECTA (Asegúrate de que los datos sean los de tu BD)
+        # La metemos aquí para que el interceptor no dependa de nada externo
+        engine_mini = create_engine("mysql+mysqlconnector://USUARIO:PASSWORD@IP_SERVIDOR/NOMBRE_BD")
+        
         query = f"""
             SELECT h.VALUE, h.FECHA, r.NAME as TagName 
             FROM vfitagnumhistory h
@@ -46,25 +46,29 @@ if st.query_params.get("grafico_mini") == "true":
             AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 7 DAY)
             ORDER BY h.FECHA ASC
         """
-        df_mini = pd.read_sql(query, engine)
+        df_mini = pd.read_sql(query, engine_mini)
         
-        fig = go.Figure()
-        # Caudal
-        df_q = df_mini[df_mini['TagName'] == tag_q]
-        fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], line=dict(color='#00d4ff', width=2), fill='tozeroy'))
-        # Presión
-        df_p = df_mini[df_mini['TagName'] == tag_p]
-        fig.add_trace(go.Scatter(x=df_p['FECHA'], y=df_p['VALUE'], line=dict(color='#aaff00', width=2)))
+        if not df_mini.empty:
+            fig = go.Figure()
+            df_q = df_mini[df_mini['TagName'] == tag_q]
+            df_pr = df_mini[df_mini['TagName'] == tag_p]
+            
+            fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], line=dict(color='#00d4ff', width=2), fill='tozeroy', name="Caudal"))
+            fig.add_trace(go.Scatter(x=df_pr['FECHA'], y=df_pr['VALUE'], line=dict(color='#aaff00', width=2), name="Presión"))
 
-        fig.update_layout(
-            template="plotly_dark", height=200, margin=dict(l=0, r=0, t=0, b=0),
-            paper_bgcolor='black', plot_bgcolor='black',
-            showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
-        )
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        st.stop() # DETIENE LA EJECUCIÓN AQUÍ PARA NO CARGAR EL LOGIN
+            fig.update_layout(
+                template="plotly_dark", height=200, margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor='black', plot_bgcolor='black',
+                showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.write("Sin datos históricos para este pozo.")
+            
+        st.stop() 
     except Exception as e:
-        st.write("Error cargando datos")
+        # Esto te dirá exactamente QUÉ falló en el popup
+        st.error(f"Fallo de conexión: {e}")
         st.stop()
 
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
