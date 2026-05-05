@@ -18,16 +18,12 @@ import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 
-
-
 st.set_page_config(
     page_title="Sistema Scada", 
     page_icon="https://www.miaa.mx/favicon.ico", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-
 
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
@@ -1468,18 +1464,30 @@ if sector_seleccionado:
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* Elimina el botón de cerrar/abrir la sidebar */
+        /* 1. Forzar que la sidebar sea visible siempre */
+        [data-testid="stSidebar"] {
+            left: 0 !important;
+            visibility: visible !important;
+            transform: translateX(0%) !important;
+            min-width: 300px !important; /* Ajusta este ancho a tu gusto */
+            max-width: 300px !important;
+        }
+
+        /* 2. Quitar el botón de cerrar (la flechita) para que no la puedan ocultar */
         [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
-        /* Bloquea la sidebar para que siempre esté expandida */
-        [data-testid="stSidebar"] {
-            min-width: 300px !important;
-            max-width: 300px !important;
+
+        /* 3. Empujar el contenido principal (el mapa) para que no tape la barra */
+        [data-testid="stMain"] {
+            margin-left: 300px !important; /* Debe ser igual al ancho de la sidebar */
         }
-        /* Ajusta el margen del contenido principal para que no se encime */
-        .main .block-container {
-            margin-left: 20px;
+
+        /* 4. Ajuste para pantallas pequeñas/móviles */
+        @media (max-width: 768px) {
+            [data-testid="stMain"] {
+                margin-left: 300px !important;
+            }
         }
     </style>
 """, unsafe_allow_html=True)
