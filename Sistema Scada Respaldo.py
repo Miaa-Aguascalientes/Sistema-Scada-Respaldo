@@ -1466,6 +1466,24 @@ if sector_seleccionado:
     st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
+st.markdown("""
+    <style>
+        /* Elimina el botón de cerrar/abrir la sidebar */
+        [data-testid="stSidebarCollapseButton"] {
+            display: none !important;
+        }
+        /* Bloquea la sidebar para que siempre esté expandida */
+        [data-testid="stSidebar"] {
+            min-width: 350px !important;
+            max-width: 350px !important;
+        }
+        /* Ajusta el margen del contenido principal para que no se encime */
+        .main .block-container {
+            margin-left: 20px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
     # 8.1. Contenedor del logo
     st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Lecturas-Hes/c45d926ef0e34215c237cd3c7f71f7b97bf9a784/LogoMIAA-BpcVaQaq.svg"></div>', unsafe_allow_html=True)
@@ -1545,7 +1563,7 @@ with st.sidebar:
         ver_tanques = st.checkbox("Mostrar Tanques", value=False)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False)
     
-    # 8.9, LISTADO DE ESTADOS ---
+    # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
         for p in sorted(pozos_on): 
             st.write(f"🟢 {p}")
