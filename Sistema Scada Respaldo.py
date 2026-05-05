@@ -300,7 +300,7 @@ def generar_grafico_integral_7d(dict_tags):
     df_a3 = obtener_historia_7_dias(dict_tags['a3'])
 
     # 2. Crear figura con 3 ejes Y independientes
-    fig_interactivo = generar_grafico_integral_7d(info)
+    fig_interactivo = generar_grafico_integral_7d(id_p)
 
     # --- LÍNEAS DE VOLTAJE (Eje Y3 - Superior) ---
     for df, name, color in zip([df_v1, df_v2, df_v3], ['V1', 'V2', 'V3'], ['#FF5733', '#C70039', '#900C3F']):
