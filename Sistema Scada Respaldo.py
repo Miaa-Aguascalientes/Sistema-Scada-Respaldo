@@ -27,7 +27,45 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# --- INTERCEPTOR PARA EL GRÁFICO DEL POPUP (SIN LOGIN) ---
+import streamlit as st
 
+if st.query_params.get("grafico_mini") == "true":
+    id_p = st.query_params.get("pozo_id")
+    tag_q = st.query_params.get("caudal_tag")
+    tag_p = st.query_params.get("presion_tag")
+    
+    # Consulta rápida solo para este pozo
+    try:
+        engine = get_mysql_scada_engine() # Usa tu función de conexión
+        query = f"""
+            SELECT h.VALUE, h.FECHA, r.NAME as TagName 
+            FROM vfitagnumhistory h
+            JOIN VfiTagRef r ON h.GATEID = r.GATEID
+            WHERE r.NAME IN ('{tag_q}', '{tag_p}') 
+            AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            ORDER BY h.FECHA ASC
+        """
+        df_mini = pd.read_sql(query, engine)
+        
+        fig = go.Figure()
+        # Caudal
+        df_q = df_mini[df_mini['TagName'] == tag_q]
+        fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], line=dict(color='#00d4ff', width=2), fill='tozeroy'))
+        # Presión
+        df_p = df_mini[df_mini['TagName'] == tag_p]
+        fig.add_trace(go.Scatter(x=df_p['FECHA'], y=df_p['VALUE'], line=dict(color='#aaff00', width=2)))
+
+        fig.update_layout(
+            template="plotly_dark", height=200, margin=dict(l=0, r=0, t=0, b=0),
+            paper_bgcolor='black', plot_bgcolor='black',
+            showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
+        )
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        st.stop() # DETIENE LA EJECUCIÓN AQUÍ PARA NO CARGAR EL LOGIN
+    except Exception as e:
+        st.write("Error cargando datos")
+        st.stop()
 
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
@@ -1666,40 +1704,27 @@ if ver_pozos:
         v = [d(t) for t in info['voltajes_l']]
         a = [d(t) for t in info['amperajes_l']]
 
-        # 2. URL para el IFrame: Esta URL solo ejecutará la consulta SQL cuando abras el popup
-        # Usamos los parámetros para que la app sepa qué pozo graficar
-        url_grafico = f"/?grafico_mini=true&pozo_id={id_p}&caudal_tag={info['caudal']}&presion_tag={info['presion']}"
+        url_grafico = f"./?grafico_mini=true&pozo_id={id_p}&caudal_tag={info['caudal']}&presion_tag={info['presion']}"
 
-        # 3. Diseño del Popup HUD (Optimizado y Ligero)
         html_popup = f"""
         <div style="background:#050a10; color:white; padding:15px; border-radius:5px; width:580px; font-family:sans-serif; border-top: 4px solid {info['color_final']};">
-            <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                <b style="font-size:18px; color:#aaff00;">Pozo: {id_p} - {info['status_label']}</b>
-                <span style="color:#444; font-size:10px;">MIAA SCADA 2026</span>
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <b style="font-size:18px; color:#aaff00;">Pozo: {id_p} - OPERANDO</b>
             </div>
             
-            <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:15px; border-bottom:1px solid #1a2a3a; padding-bottom:10px;">
-                <div>
-                    <p style="color:#00d4ff; margin:4px 0;">Caudal: <b style="font-size:16px;">{q:.2f} l/s</b> <span style="float:right; color:#444; font-size:10px;">{tq}</span></p>
-                    <p style="color:#aaff00; margin:4px 0;">Presión: <b style="font-size:16px;">{p:.2f} Kg/cm²</b> <span style="float:right; color:#444; font-size:10px;">{tp}</span></p>
+            <div style="display:flex; gap:15px; border-bottom:1px solid #1a2a3a; padding-bottom:10px; margin-bottom:10px;">
+                <div style="flex:1;">
+                    <p style="color:#00d4ff; margin:2px 0;">Caudal: <b>{q:.2f} l/s</b></p>
+                    <p style="color:#aaff00; margin:2px 0;">Presión: <b>{p:.2f} Kg</b></p>
                 </div>
-                <div style="border-left:1px solid #1a2a3a; padding-left:15px; font-size:11px;">
-                    <p style="color:#00d4ff; margin-bottom:5px;">Voltajes (V):</p>
-                    <p style="margin:2px 0;">{v[0][0]:.0f} | {v[1][0]:.0f} | {v[2][0]:.0f}</p>
-                    <p style="color:#aaff00; margin:8px 0 2px 0;">Corrientes (A):</p>
-                    <p style="margin:2px 0;">{a[0][0]:.1f} | {a[1][0]:.1f} | {a[2][0]:.1f}</p>
+                <div style="flex:1; border-left:1px solid #1a2a3a; padding-left:15px; font-size:11px;">
+                    <p>Voltajes: {v[0][0]:.0f}|{v[1][0]:.0f}|{v[2][0]:.0f}</p>
+                    <p>Corrientes: {a[0][0]:.1f}|{a[1][0]:.1f}|{a[2][0]:.1f}</p>
                 </div>
             </div>
 
-            <!-- EL GRAFICO SE CARGA AQUÍ SOLO AL ABRIR EL POPUP -->
-            <div style="margin-top:10px; height:220px; background:#000; border-radius:4px; overflow:hidden;">
-                <iframe src="{url_grafico}" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
-            </div>
-
-            <div style="text-align:right; margin-top:10px;">
-                <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted" target="_blank" style="text-decoration:none;">
-                    <button style="background:#00d4ff; color:black; border:none; padding:8px 20px; border-radius:3px; font-weight:bold; cursor:pointer; font-size:11px;">ABRIR HISTÓRICO FULL</button>
-                </a>
+            <div style="height:220px; background:#000; border-radius:4px; overflow:hidden;">
+                <iframe src="{url_grafico}" width="100%" height="100%" frameborder="0"></iframe>
             </div>
         </div>
         """
