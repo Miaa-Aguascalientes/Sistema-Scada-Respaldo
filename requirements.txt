@@ -11,3 +11,4 @@ bcrypt
 shapely
 matplotlib
 SQLAlchemy
+kaleido==0.2.1
