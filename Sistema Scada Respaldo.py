@@ -1817,7 +1817,7 @@ if sectores_data:
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
                         </div>
 
-                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <div style="border-top: 1px solid #333; padding-top: 10px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
                             <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
                                 📊 VER ANÁLISIS HISTÓRICO
