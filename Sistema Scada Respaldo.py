@@ -1890,33 +1890,73 @@ if sectores_data:
 
             # --- CONSTRUCCIÓN DEL POPUP ---
             html_popup = f"""
-                <div style="background: #000000; color: white; padding: 15px; border-radius: 10px; width: 360px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                        <b style="color: #00d4ff; font-size: 18px;">POZO {id_p}</b>
-                        <span style="background: {info['color_final']}; color: black; padding: 2px 10px; border-radius: 5px; font-weight: bold; font-size: 11px;">{info['status_label']}</span>
+                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    
+                    <!-- BLOQUE HIDRÁULICA -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🚀 Presión: <b>{p:.2f} kg</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                        </div>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
-                        <span>💧 Caudal: <b>{q:.2f} L/s</b></span> <span style="color: #cead41; font-size: 9px;">{f_q}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 10px;">
-                        <span>🚀 Presión: <b>{p:.2f} kg</b></span> <span style="color: #cead41; font-size: 9px;">{f_p}</span>
+                    <!-- NUEVO BLOQUE: NIVELES Y POZO -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES Y ESTRUCTURA</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🏗️ Columna: <b>{col:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
+                        </div>
                     </div>
 
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px; border-top: 1px solid #222; padding-top: 5px;">NIVELES Y ELÉCTRICO</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
-                        <span>🔋 Tanque: <b>{tanq:.2f} m</b></span> <span>📈 Dinámico: <b>{dinam:.2f} m</b></span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
-                        <span>⚡ Prom. Voltaje: <b>{(v[0][0]+v[1][0]+v[2][0])/3:.1f}V</b></span> <span>🔌 Amperaje: <b>{a[0][0]:.1f}A</b></span>
+                    <!-- BLOQUE ELÉCTRICO -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
+                            <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                                <th style="padding: 4px;">Fase</th>
+                                <th style="padding: 4px;">Voltaje</th>
+                                <th style="padding: 4px;">Amperaje</th>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #222;">
+                                <td style="padding: 6px 4px;">L1-L2</td>
+                                <td><b>{v[0][0]:.1f}V</b></td>
+                                <td><b>{a[0][0]:.1f}A</b></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #222;">
+                                <td style="padding: 6px 4px;">L2-L3</td>
+                                <td><b>{v[1][0]:.1f}V</b></td>
+                                <td><b>{a[1][0]:.1f}A</b></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px 4px;">L3-L1</td>
+                                <td><b>{v[2][0]:.1f}V</b></td>
+                                <td><b>{a[2][0]:.1f}A</b></td>
+                            </tr>
+                        </table>
                     </div>
 
-                    {grafico_html}
-
-                    <div style="margin-top: 15px;">
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: black; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 12px; letter-spacing: 0.5px;">
-                                📊 ABRIR ANÁLISIS INTERACTIVO (SCADA)
+                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                                📊 VER ANÁLISIS HISTÓRICO
                             </div>
                         </a>
                     </div>
