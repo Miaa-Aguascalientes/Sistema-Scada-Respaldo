@@ -1480,7 +1480,7 @@ st.markdown("""
 
         /* 3. Empujar el contenido principal (el mapa) para que no tape la barra */
         [data-testid="stMain"] {
-            margin-left: 70px !important; /* Debe ser igual al ancho de la sidebar */
+            margin-left: 10px !important; /* Debe ser igual al ancho de la sidebar */
         }
 
         /* 4. Ajuste para pantallas pequeñas/móviles */
