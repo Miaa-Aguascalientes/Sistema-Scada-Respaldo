@@ -280,24 +280,32 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # funcion para el grafico del popup de los pozos
+@st.cache_data(ttl=300) # Caché por 5 minutos para no saturar el servidor
+def obtener_historia_7_dias_cached(tag):
+    if not tag:
+        import pandas as pd
+        return pd.DataFrame(columns=['TIMESTAMP', 'VALUE'])
+    return obtener_historia_7_dias(tag)
+
 def generar_grafico_integral_7d(id_p, info, is_popup=True):
     """
-    Gráfico multivariable: Hidráulica + 3 Fases Eléctricas.
+    Gráfico multivariable con CACHÉ optimizado.
     """
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
 
-    # 1. Extracción de señales usando los nombres de tags del diccionario info
+    # 1. Extracción de señales usando la FUNCIÓN CON CACHÉ
     # Hidráulicos
-    df_q = obtener_historia_7_dias(info.get('caudal'))
-    df_p = obtener_historia_7_dias(info.get('presion'))
+    df_q = obtener_historia_7_dias_cached(info.get('caudal'))
+    df_p = obtener_historia_7_dias_cached(info.get('presion'))
     
     # Eléctricos: Mapeo dinámico de las listas de tags
     v_tags = info.get('voltajes_l', [None, None, None])
     a_tags = info.get('amperajes_l', [None, None, None])
     
-    dfs_v = [obtener_historia_7_dias(t) for t in v_tags]
-    dfs_a = [obtener_historia_7_dias(t) for t in a_tags]
+    # Usamos comprensión de listas con la función cached
+    dfs_v = [obtener_historia_7_dias_cached(t) for t in v_tags]
+    dfs_a = [obtener_historia_7_dias_cached(t) for t in a_tags]
 
     # 2. Crear figura con ejes secundarios
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -329,10 +337,10 @@ def generar_grafico_integral_7d(id_p, info, is_popup=True):
             line=dict(color='#FFFF00', width=1.5)
         ), secondary_y=False)
 
-    # 3. Configuración Visual HUD
+    # 3. Configuración Visual HUD (Optimizada para velocidad)
     fig.update_layout(
         template="plotly_dark",
-        hovermode="x unified",
+        hovermode="x unified" if not is_popup else False, # Desactivar hover en popup mejora fluidez
         showlegend=not is_popup,
         margin=dict(l=5, r=5, t=20, b=5),
         paper_bgcolor='rgba(0,0,0,0)',
