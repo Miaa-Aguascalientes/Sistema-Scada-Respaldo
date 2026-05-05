@@ -1474,8 +1474,8 @@ st.markdown("""
         }
         /* Bloquea la sidebar para que siempre esté expandida */
         [data-testid="stSidebar"] {
-            min-width: 350px !important;
-            max-width: 350px !important;
+            min-width: 300px !important;
+            max-width: 300px !important;
         }
         /* Ajusta el margen del contenido principal para que no se encime */
         .main .block-container {
