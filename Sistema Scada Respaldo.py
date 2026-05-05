@@ -27,49 +27,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- ESTO VA AL PURO INICIO ---
-if st.query_params.get("grafico_mini") == "true":
-    id_p = st.query_params.get("pozo_id")
-    tag_q = st.query_params.get("caudal_tag")
-    tag_p = st.query_params.get("presion_tag")
-    
-    try:
-        # CONEXIÓN DIRECTA (Asegúrate de que los datos sean los de tu BD)
-        # La metemos aquí para que el interceptor no dependa de nada externo
-        engine_mini = create_engine("mysql+mysqlconnector://USUARIO:PASSWORD@IP_SERVIDOR/NOMBRE_BD")
-        
-        query = f"""
-            SELECT h.VALUE, h.FECHA, r.NAME as TagName 
-            FROM vfitagnumhistory h
-            JOIN VfiTagRef r ON h.GATEID = r.GATEID
-            WHERE r.NAME IN ('{tag_q}', '{tag_p}') 
-            AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            ORDER BY h.FECHA ASC
-        """
-        df_mini = pd.read_sql(query, engine_mini)
-        
-        if not df_mini.empty:
-            fig = go.Figure()
-            df_q = df_mini[df_mini['TagName'] == tag_q]
-            df_pr = df_mini[df_mini['TagName'] == tag_p]
-            
-            fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], line=dict(color='#00d4ff', width=2), fill='tozeroy', name="Caudal"))
-            fig.add_trace(go.Scatter(x=df_pr['FECHA'], y=df_pr['VALUE'], line=dict(color='#aaff00', width=2), name="Presión"))
 
-            fig.update_layout(
-                template="plotly_dark", height=200, margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='black', plot_bgcolor='black',
-                showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
-            )
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-        else:
-            st.write("Sin datos históricos para este pozo.")
-            
-        st.stop() 
-    except Exception as e:
-        # Esto te dirá exactamente QUÉ falló en el popup
-        st.error(f"Fallo de conexión: {e}")
-        st.stop()
 
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
@@ -1695,112 +1653,197 @@ with col_mapa:
         </style>
         """
 
-# ======================================================================================================================
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (OPTIMIZADO CON IFRAME HUD)
-# ======================================================================================================================
+# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL   --------------------------------------------
 
-for id_p, info in mapa_pozos_dict.items():
-    if ver_pozos:  # Si el checkbox está activo, dibujamos todo
-        # --- A. EXTRACCIÓN DE DATOS ---
-        d = lambda tag: data_scada.get(tag, (0, "N/A"))
-        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-        
-        q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
-        p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
-        sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
-        dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
-        tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
-        col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-        
-        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
-        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+def get_sector_style(feature, visible):
+    return {
+        'fillColor': '#00d4ff',
+        'color': '#00d4ff' if visible else 'transparent',
+        'weight': 1.5 if visible else 0,
+        'fillOpacity': 0.12 if visible else 0.01,
+    }
 
-        # --- B. CONSTRUCCIÓN DE URLs ---
-        rol_actual = st.session_state.get('rol', 'usuario')
-        nombre_codificado = urllib.parse.quote(id_p)
-        
-        # URL para el Análisis Full (Nueva Pestaña)
-        url_pozo_graf_full = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
-        
-        # URL para el Gráfico HUD en el IFrame (Consulta rápida e individual)
-        url_hud_mini = f"?grafico_mini=true&pozo_id={id_p}&caudal_tag={info['caudal']}&presion_tag={info['presion']}"
+sectores_data = cargar_sectores_poligonos()
 
-        # --- C. DISEÑO DEL POPUP (ESTILO HUD INTEGRADO) ---
-        html_popup = f"""
-            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 420px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+if sectores_data:
+    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
+    
+    for s in sectores_data:
+        try:
+            if not s.get('geo'): continue
+            
+            nombre_sec = s['sector']
+            geo_dict = json.loads(s['geo'])
+            
+            sector_encoded = urllib.parse.quote(nombre_sec)
+            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
+            
+            html_popup = f"""
+            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed #00d4ff;">
+                <h4 style="margin:0 0 8px 0; color:#00d4ff; text-align:center;">{nombre_sec}</h4>
+                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
+                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
+                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
+                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
+                </table>
                 
-                <!-- Encabezado -->
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
-                    <!-- Columna Izquierda: Hidráulica -->
-                    <div>
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
-                        <div style="font-size: 11px; margin-bottom: 3px;">💧 Caudal: <b>{q:.2f} L/s</b></div>
-                        <div style="font-size: 11px; margin-bottom: 3px;">🚀 Presión: <b>{p:.2f} kg</b></div>
-                        <div style="font-size: 10px; color: #888; margin-top: 8px; margin-bottom: 4px;">ELÉCTRICO</div>
-                        <div style="font-size: 10px;">V: <b>{v[0][0]:.0f}|{v[1][0]:.0f}|{v[2][0]:.0f}</b></div>
-                        <div style="font-size: 10px;">A: <b>{a[0][0]:.1f}|{a[1][0]:.1f}|{a[2][0]:.1f}</b></div>
-                    </div>
-                    
-                    <!-- Columna Derecha: Niveles -->
-                    <div style="border-left: 1px solid #222; padding-left: 10px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
-                        <div style="font-size: 10px; margin-bottom: 2px;">🔋 Tanque: <b>{tanq:.2f}m</b></div>
-                        <div style="font-size: 10px; margin-bottom: 2px;">📉 Nivel D/E: <b>{dinam:.2f}m</b></div>
-                        <div style="font-size: 10px; margin-bottom: 2px;">📏 Sumerg.: <b>{sumer:.2f}m</b></div>
-                        <div style="font-size: 10px;">🏗️ Columna: <b>{col:.2f}m</b></div>
-                    </div>
-                </div>
-
-                <!-- D. ESPACIO PARA EL GRÁFICO (Se carga al abrir el popup) -->
-                <div style="margin-top: 10px; height: 180px; background: #000; border: 1px solid #1a1a1a; border-radius: 8px; overflow: hidden;">
-                    <iframe src="{url_hud_mini}" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
-                </div>
-
-                <!-- Botón de Análisis Full -->
-                <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
-                    <a href="{url_pozo_graf_full}" target="_blank" style="text-decoration: none;">
-                        <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 11px;">
-                            📊 VER ANÁLISIS HISTÓRICO COMPLETO
-                        </div>
-                    </a>
-                </div>
+                <a href="{url_acceso}" target="_blank" 
+                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
+                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
+                          border-radius: 5px; transition: 0.3s;">
+                   🚀 ABRIR SECTOR
+                </a>
             </div>
             """
+            estilo = {
+                'fillColor': '#00d4ff',
+                'color': '#00d4ff' if ver_sectores else 'transparent',
+                'weight': 1.5 if ver_sectores else 0,
+                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
+            }
 
-        # --- E. RENDERIZADO DE MARCADORES ---
-        # Etiqueta de Nombre (Siempre visible)
-        folium.Marker(
-            location=info['coord'],
-            icon=folium.DivIcon(
-                icon_size=(150,36),
-                icon_anchor=(75, -10), # Centrado debajo del punto
-                html=f'<div style="font-size: 10px; font-weight: bold; color: white; text-align: center; text-shadow: 1px 1px 2px #000; pointer-events: none;">{id_p}</div>'
-            )
-        ).add_to(m)
+            folium.GeoJson(
+                geo_dict,
+                style_function=lambda x, stl=estilo: stl,
+                highlight_function=lambda x: {
+                    'fillColor': '#00d4ff', 
+                    'color': '#ffffff', 
+                    'weight': 3, 
+                    'fillOpacity': 0.4
+                },
+                tooltip=f"Sector: {nombre_sec}",
+                popup=folium.Popup(html_popup, max_width=260)
+            ).add_to(fg_sectores)
 
-        # Punto de estado con Popup interactivo
-        if info.get('blink'):
+        except Exception:
+            continue
+
+    fg_sectores.add_to(m)
+    
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
+    for id_p, info in mapa_pozos_dict.items():
+        if ver_pozos:  # Si el checkbox está activo, dibujamos todo
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+            q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+            p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+            sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+            dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+            tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+            col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            h_arr_fmt = formato_hora(h_arr_val)
+            h_par_fmt = formato_hora(h_par_val)
+            v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+            a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+
+            # SOLUCIÓN AL LOGIN: Incluimos access=granted y el rol actual en la URL
+            rol_actual = st.session_state.get('rol', 'usuario')
+            nombre_codificado = urllib.parse.quote(id_p)
+            
+            url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+
+            html_popup = f"""
+                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🚀 Presión: <b>{p:.2f} kg</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
+                            <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                                <th style="padding: 4px;">Fase</th>
+                                <th style="padding: 4px;">Voltaje / Act.</th>
+                                <th style="padding: 4px;">Amp / Act.</th>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #222;">
+                                <td style="padding: 6px 4px;">L1-L2</td>
+                                <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
+                                <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid #222;">
+                                <td style="padding: 6px 4px;">L2-L3</td>
+                                <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
+                                <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 6px 4px;">L1-L3</td>
+                                <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
+                                <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                                📊 VER ANÁLISIS HISTÓRICO
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                """
+
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=450)
+                icon=folium.DivIcon(
+                    icon_size=(150,36),
+                    icon_anchor=(-12, 10),
+                    html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+                )
             ).add_to(m)
-        else:
-            folium.CircleMarker(
-                location=info['coord'],
-                radius=5,
-                color="white",
-                weight=1,
-                fill=True,
-                fill_color=info['color_final'],
-                fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=450)
-            ).add_to(m)
+
+            if info.get('blink'):
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                    popup=folium.Popup(html_popup, max_width=450)
+                ).add_to(m)
+            else:
+                folium.CircleMarker(
+                    location=info['coord'],
+                    radius=4,
+                    color=info['color_final'],
+                    fill=True,
+                    fill_color=info['color_final'],
+                    fill_opacity=1,
+                    popup=folium.Popup(html_popup, max_width=450)
+                ).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
