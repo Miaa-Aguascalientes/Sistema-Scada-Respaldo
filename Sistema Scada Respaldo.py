@@ -1803,7 +1803,7 @@ for id_p, info in mapa_pozos_dict.items():
                     </div>
                 </a>
             </div>
-        """
+            """
 
             folium.Marker(
                 location=info['coord'],
