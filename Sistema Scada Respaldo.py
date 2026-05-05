@@ -280,9 +280,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # funcion para el grafico del popup de los pozos
-@st.cache_data(ttl=300) # Caché por 5 minutos para no saturar el servidor
+@st.cache_data(ttl=300)
 def obtener_historia_7_dias_cached(tag):
-    if not tag:
+    if not tag or tag == "N/A":
         import pandas as pd
         return pd.DataFrame(columns=['TIMESTAMP', 'VALUE'])
     return obtener_historia_7_dias(tag)
@@ -1860,19 +1860,16 @@ if sectores_data:
     fg_sectores.add_to(m)
     
 
-# 9.6. RENDERIZADO TOTAL DE INFRAESTRUCTURA (VERSIÓN ALTO RENDIMIENTO - IFRAME) ---------------------------
+# 9.6. RENDERIZADO TOTAL DE INFRAESTRUCTURA (ESTRATEGIA ON-DEMAND) ---------------------------------------------------------
 if ver_pozos:
-    import plotly.io as pio
-    import base64
-
     for id_p, info in mapa_pozos_dict.items():
         try:
-            # 1. VALIDACIÓN DE COORDENADAS
+            # 1. VALIDACIÓN DE COORDENADAS (Desde Base_macromedidores)
             coords = info.get('coord')
             if not coords or coords == [0, 0] or str(coords[0]) == 'nan':
-                continue 
+                continue #
 
-            # 2. EXTRACCIÓN DE DATOS SCADA (Tiempo Real)
+            # 2. EXTRACCIÓN DE DATOS ACTUALES (SCADA)
             d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
             is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
             
@@ -1880,32 +1877,12 @@ if ver_pozos:
             p, _ = d(info.get('presion')) if not is_st else (0.0, "N/A")
             dinam, _ = d(info.get('nivel_dinamico')) if not is_st else (0.0, "N/A")
             
-            # 3. LÓGICA DE GRÁFICO (OPCIÓN IFRAME - SIN PNG PESADO)
-            grafico_html = ""
-            if not is_st:
-                try:
-                    # Generamos el gráfico usando la función con CACHÉ que definimos antes
-                    fig_static = generar_grafico_integral_7d(id_p, info, is_popup=True)
-                    
-                    # Convertimos a HTML base64 (Más rápido que generar PNG con Kaleido)
-                    config_plotly = {'displayModeBar': False, 'staticPlot': True}
-                    raw_plot_html = pio.to_html(fig_static, full_html=False, include_plotlyjs='cdn', config=config_plotly)
-                    b64_plot = base64.b64encode(raw_plot_html.encode('utf-8')).decode('utf-8')
-                    
-                    grafico_html = f"""
-                        <iframe src="data:text/html;base64,{b64_plot}" 
-                                style="width:100%; height:160px; border:none; margin-top:10px; border-radius:5px;">
-                        </iframe>
-                    """
-                except Exception as e:
-                    grafico_html = f'<div style="border: 1px dashed #555; color: #888; font-size: 9px; text-align: center; padding: 15px; margin-top: 10px;">Gráfico histórico no disponible para {id_p}</div>'
-
-            # 4. CONSTRUCCIÓN DEL POPUP (ESTILO HUD)
-            rol_actual = st.session_state.get('rol', 'usuario')
-            url_pozo_graf = f"?graficar_pozo={id_p}&access=granted&role={rol_actual}"
+            # 3. CONSTRUCCIÓN DEL POPUP (ESTILO HUD SIN GRÁFICO INTERNO)
+            # Usamos query_params para avisarle a Streamlit qué pozo queremos ver
+            url_activar = f"?pozo_id={id_p}"
 
             html_popup = f"""
-                <div style="background: #000; color: #fff; padding: 15px; border-radius: 10px; width: 350px; border: 2px solid {info['color_final']}; font-family: 'Consolas', monospace;">
+                <div style="background: #000; color: #fff; padding: 15px; border-radius: 10px; width: 280px; border: 2px solid {info['color_final']}; font-family: 'Consolas', monospace;">
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px;">
                         <span style="color: #00d4ff; font-weight: bold; font-size: 16px;">ID: {id_p}</span>
                         <span style="background: {info['color_final']}; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">{info['status_label']}</span>
@@ -1917,18 +1894,18 @@ if ver_pozos:
                         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 5px;"><span>📉 Nivel Din:</span> <b>{dinam:.2f} m</b></div>
                     </div>
 
-                    {grafico_html}
-
                     <div style="margin-top: 15px;">
-                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: #000; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; font-size: 12px;">📊 VER PANEL DE CONTROL COMPLETO</div>
+                        <a href="{url_activar}" target="_self" style="text-decoration: none;">
+                            <div style="background: {info['color_final']}; color: #000; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; font-size: 11px; cursor: pointer;">
+                                📊 ACTIVAR ANÁLISIS HISTÓRICO
+                            </div>
                         </a>
                     </div>
                 </div>
             """
 
-            # 5. RENDERIZADO EN FOLIUM
-            # Nombre del pozo (Label)
+            # 4. DIBUJAR MARCADORES
+            # Etiqueta ID
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(
@@ -1937,8 +1914,8 @@ if ver_pozos:
                 )
             ).add_to(m)
 
-            # Marcador (Blink o Fijo)
-            if info.get('blink'):
+            # Punto de pozo (Blink para parpadeo en rojos)
+            if info.get('blink'): #
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
@@ -1947,7 +1924,7 @@ if ver_pozos:
             else:
                 folium.CircleMarker(
                     location=info['coord'],
-                    radius=6,
+                    radius=7,
                     color=info['color_final'],
                     fill=True,
                     fill_color=info['color_final'],
@@ -1956,7 +1933,6 @@ if ver_pozos:
                 ).add_to(m)
 
         except Exception as e:
-            print(f"Error en Pozo {id_p}: {e}")
             continue
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
