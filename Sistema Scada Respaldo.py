@@ -1839,86 +1839,106 @@ if sectores_data:
     fg_sectores.add_to(m)
     
 
-# 9.6. RENDERIZADO DE POZOS (VERSIÓN FINAL ANTI-ERRORES) ----------------------------------------------------------------------
+# 9.6. RENDERIZADO TOTAL DE INFRAESTRUCTURA (VERSIÓN ROBUSTA) ---------------------------------------------------------
 if ver_pozos:
+    # Usamos un contenedor vacío para errores de consola si es necesario
     for id_p, info in mapa_pozos_dict.items():
         try:
-            # --- PROTECCIÓN DE COORDENADAS ---
-            if not info.get('coord') or info['coord'] == [0, 0]:
-                continue # Si no hay coordenadas válidas, saltamos al siguiente pozo
+            # 1. VALIDACIÓN DE COORDENADAS (Extraídas de Base_macromedidores)
+            coords = info.get('coord')
+            if not coords or coords == [0, 0] or str(coords[0]) == 'nan':
+                continue # Si no hay ubicación válida, saltar para no romper el mapa
 
-            d = lambda tag: data_scada.get(tag, (0, "N/A"))
-            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+            # 2. EXTRACCIÓN DE DATOS SCADA
+            d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
+            is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
             
-            # --- CAPTURA DE DATOS ---
+            # Captura segura con .get para evitar NameErrors
             q, f_q = d(info.get('caudal')) if not is_st else (0.0, "N/A")
             p, f_p = d(info.get('presion')) if not is_st else (0.0, "N/A")
-            sumer, f_s = d(info.get('sumergencia')) if not is_st else (0.0, "N/A")
             dinam, f_d = d(info.get('nivel_dinamico')) if not is_st else (0.0, "N/A")
-            col, f_col = d(info.get('columna')) if not is_st else (0.0, "N/A")
             
-            v = [d(t) for t in info.get('voltajes_l', ['', '', ''])] if not is_st else [(0.0, "N/A")]*3
-            a = [d(t) for t in info.get('amperajes_l', ['', '', ''])] if not is_st else [(0.0, "N/A")]*3
-
-            # --- GRÁFICO ESTÁTICO ---
+            # 3. LÓGICA DE GRÁFICO (Bypass de Error 'v1')
             grafico_html = ""
             if not is_st:
                 try:
-                    # Forzamos que use el diccionario de tags actual
+                    # Intentamos generar la figura
                     fig_static = generar_grafico_integral_7d(id_p, info)
-                    fig_static.update_layout(width=350, height=160, margin=dict(l=5, r=5, t=25, b=5),
-                                           paper_bgcolor='black', plot_bgcolor='black', font=dict(color='white', size=9))
+                    fig_static.update_layout(
+                        width=350, height=150,
+                        margin=dict(l=5, r=5, t=20, b=5),
+                        paper_bgcolor='black',
+                        plot_bgcolor='black',
+                        font=dict(color='white', size=8)
+                    )
                     
                     import base64
                     img_bytes = fig_static.to_image(format="png", engine="kaleido")
                     encoded = base64.b64encode(img_bytes).decode('utf-8')
-                    grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #333;">'
-                except:
-                    # Si falla el gráfico, ponemos un aviso limpio en el popup
-                    grafico_html = '<div style="border: 1px dashed #444; color: #ffbc00; font-size: 10px; text-align: center; padding: 10px; margin-top: 10px;">Gráfico: Verifique Tags en base de datos</div>'
+                    grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #444;">'
+                except Exception as e:
+                    # Mensaje amigable que no rompe el popup
+                    grafico_html = f'<div style="border: 1px dashed #555; color: #888; font-size: 9px; text-align: center; padding: 15px; margin-top: 10px;">Gráfico histórico temporalmente no disponible para {id_p}</div>'
 
-            # --- POPUP HTML (ESTILO HUD) ---
+            # 4. CONSTRUCCIÓN DEL POPUP (ESTILO FUTURISTA / DARK)
             rol_actual = st.session_state.get('rol', 'usuario')
             url_pozo_graf = f"?graficar_pozo={id_p}&access=granted&role={rol_actual}"
 
             html_popup = f"""
-                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 340px; border: 1px solid {info['color_final']}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
-                        <b style="color: #00d4ff; font-size: 15px;">POZO {id_p}</b>
-                        <span style="font-size: 9px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 3px; font-weight: bold;">{info['status_label']}</span>
+                <div style="background: #000; color: #fff; padding: 15px; border-radius: 10px; width: 350px; border: 2px solid {info['color_final']}; font-family: 'Consolas', monospace;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 12px;">
+                        <span style="color: #00d4ff; font-weight: bold; font-size: 16px;">ID: {id_p}</span>
+                        <span style="background: {info['color_final']}; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">{info['status_label']}</span>
                     </div>
-                    <div style="font-size: 11px; margin-bottom: 8px;">
-                        <div style="display: flex; justify-content: space-between;"><span>💧 Caudal: <b>{q:.2f} L/s</b></span><span style="color:#FFFF00; font-size:8px;">{f_q}</span></div>
-                        <div style="display: flex; justify-content: space-between;"><span>🚀 Presión: <b>{p:.2f} kg</b></span><span style="color:#FFFF00; font-size:8px;">{f_p}</span></div>
-                        <div style="display: flex; justify-content: space-between;"><span>📉 Dinámico: <b>{dinam:.2f} m</b></span><span style="color:#FFFF00; font-size:8px;">{f_d}</span></div>
+                    
+                    <div style="font-size: 12px; line-height: 1.6;">
+                        <div style="display: flex; justify-content: space-between;"><span>💧 Caudal:</span> <b>{q:.2f} L/s</b></div>
+                        <div style="display: flex; justify-content: space-between;"><span>🚀 Presión:</span> <b>{p:.2f} kg</b></div>
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding-bottom: 5px;"><span>📉 Nivel Din:</span> <b>{dinam:.2f} m</b></div>
                     </div>
+
                     {grafico_html}
-                    <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 8px;">
+
+                    <div style="margin-top: 15px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: black; text-align: center; padding: 8px; border-radius: 5px; font-weight: bold; font-size: 11px;">📊 ANÁLISIS HISTÓRICO</div>
+                            <div style="background: #00d4ff; color: #000; text-align: center; padding: 10px; border-radius: 5px; font-weight: bold; font-size: 12px;">📊 VER PANEL DE CONTROL COMPLETO</div>
                         </a>
                     </div>
                 </div>
             """
 
-            # --- DIBUJAR EN EL MAPA ---
-            # Nombre del pozo (Label)
-            folium.Marker(location=info['coord'],
-                icon=folium.DivIcon(icon_anchor=(-10, 8),
-                html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px black;">{id_p}</div>')
+            # 5. RENDERIZADO EN FOLIUM
+            # Etiqueta de texto (ID del pozo)
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(
+                    icon_anchor=(-15, 10),
+                    html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 2px 2px #000;">{id_p}</div>'
+                )
             ).add_to(m)
 
-            # Punto con Popup
+            # Marcador interactivo (Círculo o Parpadeo)
             if info.get('blink'):
-                folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                             popup=folium.Popup(html_popup, max_width=400)).add_to(m)
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                    popup=folium.Popup(html_popup, max_width=400)
+                ).add_to(m)
             else:
-                folium.CircleMarker(location=info['coord'], radius=5, color=info['color_final'], fill=True,
-                                   fill_opacity=1, popup=folium.Popup(html_popup, max_width=400)).add_to(m)
+                folium.CircleMarker(
+                    location=info['coord'],
+                    radius=6,
+                    color=info['color_final'],
+                    fill=True,
+                    fill_color=info['color_final'],
+                    fill_opacity=1,
+                    popup=folium.Popup(html_popup, max_width=400)
+                ).add_to(m)
 
         except Exception as e:
-            print(f"Error renderizando pozo {id_p}: {e}")
-            continue # Si un pozo falla, sigue con el que sigue
+            # Si un pozo específico falla, lo reportamos en la terminal pero NO detenemos el bucle
+            print(f"Error en Pozo {id_p}: {e}")
+            continue
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
