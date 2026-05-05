@@ -1929,35 +1929,18 @@ if sectores_data:
                     </a>
                 </div>
             """
-
-            # --- RENDERIZADO DE MARCADORES EN MAPA ---
-            # Etiqueta con el nombre del pozo
+            
+            # --- RENDERIZADO FINAL EN EL MAPA ---
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(
-                    icon_size=(150,36),
-                    icon_anchor=(-12, 10),
-                    html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
-                )
+                icon=folium.DivIcon(html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]};">{id_p}</div>')
             ).add_to(m)
 
-            # Punto con efecto de parpadeo (Blink) o Círculo estático
-            if info.get('blink'):
-                folium.Marker(
-                    location=info['coord'],
-                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                    popup=folium.Popup(html_popup, max_width=450)
-                ).add_to(m)
-            else:
-                folium.CircleMarker(
-                    location=info['coord'],
-                    radius=4,
-                    color=info['color_final'],
-                    fill=True,
-                    fill_color=info['color_final'],
-                    fill_opacity=1,
-                    popup=folium.Popup(html_popup, max_width=450)
-                ).add_to(m)
+            marker_class = folium.Marker if info.get('blink') else folium.CircleMarker
+            marker_args = {'location': info['coord'], 'icon': folium.DivIcon(html=get_blink_icon(info['color_final']))} if info.get('blink') \
+                          else {'location': info['coord'], 'radius': 4, 'color': info['color_final'], 'fill': True}
+            
+            marker_class(**marker_args).add_child(folium.Popup(html_popup, max_width=400)).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
