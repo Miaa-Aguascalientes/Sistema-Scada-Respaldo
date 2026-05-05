@@ -1653,195 +1653,96 @@ with col_mapa:
         </style>
         """
 
-# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL   --------------------------------------------
+# 9.1. DETECTAR SI HAY UN POZO SELECCIONADO EN LA URL (Para carga bajo demanda)
+# Esto permite que solo se consulte la DB para el pozo que te interesa
+query_params = st.query_params
+pozo_activo = query_params.get("pozo_id", None)
 
-def get_sector_style(feature, visible):
-    return {
-        'fillColor': '#00d4ff',
-        'color': '#00d4ff' if visible else 'transparent',
-        'weight': 1.5 if visible else 0,
-        'fillOpacity': 0.12 if visible else 0.01,
-    }
-
-sectores_data = cargar_sectores_poligonos()
-
-if sectores_data:
-    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
-    
-    for s in sectores_data:
-        try:
-            if not s.get('geo'): continue
-            
-            nombre_sec = s['sector']
-            geo_dict = json.loads(s['geo'])
-            
-            sector_encoded = urllib.parse.quote(nombre_sec)
-            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
-            
-            html_popup = f"""
-            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed #00d4ff;">
-                <h4 style="margin:0 0 8px 0; color:#00d4ff; text-align:center;">{nombre_sec}</h4>
-                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
-                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
-                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
-                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
-                </table>
-                
-                <a href="{url_acceso}" target="_blank" 
-                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
-                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
-                          border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
-                </a>
-            </div>
-            """
-            estilo = {
-                'fillColor': '#00d4ff',
-                'color': '#00d4ff' if ver_sectores else 'transparent',
-                'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
-            }
-
-            folium.GeoJson(
-                geo_dict,
-                style_function=lambda x, stl=estilo: stl,
-                highlight_function=lambda x: {
-                    'fillColor': '#00d4ff', 
-                    'color': '#ffffff', 
-                    'weight': 3, 
-                    'fillOpacity': 0.4
-                },
-                tooltip=f"Sector: {nombre_sec}",
-                popup=folium.Popup(html_popup, max_width=260)
-            ).add_to(fg_sectores)
-
-        except Exception:
-            continue
-
-    fg_sectores.add_to(m)
-    
-# 9.1. CONTROL DE VISIBILIDAD DE POZOS
 if ver_pozos:
-    # --- A. PRE-CARGA DE DATOS HISTÓRICOS (EFICIENCIA SQL) ---
-    # Traemos 7 días de historial para todos los tags de una sola vez
-    f_fin_p = datetime.now()
-    f_ini_p = f_fin_p - timedelta(days=7)
-    
-    # Recopilar todos los nombres de variables de caudal y presión
-    lista_tags_hist = []
-    for info in mapa_pozos_dict.values():
-        lista_tags_hist.extend([info['caudal'], info['presion']])
-    
-    try:
-        # Consulta masiva para evitar 200 conexiones individuales
-        query_masiva = f"""
-            SELECT h.VALUE, h.FECHA, r.NAME as TagName 
-            FROM vfitagnumhistory h
-            JOIN VfiTagRef r ON h.GATEID = r.GATEID
-            WHERE r.NAME IN ({str(lista_tags_hist)[1:-1]}) 
-            AND h.FECHA BETWEEN '{f_ini_p}' AND '{f_fin_p}' 
-            ORDER BY h.FECHA ASC
-        """
-        df_historico_todos = pd.read_sql(query_masiva, get_mysql_scada_engine())
-    except Exception as e:
-        st.error(f"Error al cargar históricos para popups: {e}")
-        df_historico_todos = pd.DataFrame()
+    # --- A. CONSULTA SQL INDIVIDUAL (SOLO SI HAY SELECCIÓN) ---
+    df_historico_individual = pd.DataFrame()
+    if pozo_activo and pozo_activo in mapa_pozos_dict:
+        info_p = mapa_pozos_dict[pozo_activo]
+        f_fin_p = datetime.now()
+        f_ini_p = f_fin_p - timedelta(days=7)
+        
+        try:
+            query_ind = f"""
+                SELECT h.VALUE, h.FECHA, r.NAME as TagName 
+                FROM vfitagnumhistory h
+                JOIN VfiTagRef r ON h.GATEID = r.GATEID
+                WHERE r.NAME IN ('{info_p['caudal']}', '{info_p['presion']}') 
+                AND h.FECHA BETWEEN '{f_ini_p.strftime('%Y-%m-%d %H:%M:%S')}' AND '{f_fin_p.strftime('%Y-%m-%d %H:%M:%S')}' 
+                ORDER BY h.FECHA ASC
+            """
+            df_historico_individual = pd.read_sql(query_ind, get_mysql_scada_engine())
+        except Exception as e:
+            st.error(f"Error al cargar historial de {pozo_activo}: {e}")
 
-    # --- B. BUCLE PRINCIPAL DE POZOS ---
+    # --- B. BUCLE DE RENDERIZADO ---
     for id_p, info in mapa_pozos_dict.items():
-        # Extracción de datos actuales desde el diccionario de tiempo real (data_scada)
         d = lambda tag: data_scada.get(tag, (0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
+        # Datos de tiempo real (Siempre disponibles)
         q, _ = d(info['caudal']) if not is_st else (0.0, "N/A")
         p, _ = d(info['presion']) if not is_st else (0.0, "N/A")
         v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
         a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        # --- C. GENERACIÓN DEL GRÁFICO EN BASE64 ---
+        # --- C. GENERAR GRÁFICO SOLO SI ES EL POZO ACTIVO ---
         img_base64 = ""
-        if not is_st and not df_historico_todos.empty:
-            # Filtrar el dataframe masivo para este pozo específico
-            df_p = df_historico_todos[df_historico_todos['TagName'].isin([info['caudal'], info['presion']])]
+        if id_p == pozo_activo and not df_historico_individual.empty:
+            fig_mini = go.Figure()
+            for tag, color in [(info['caudal'], '#00d4ff'), (info['presion'], '#00ff00')]:
+                df_tag = df_historico_individual[df_historico_individual['TagName'] == tag]
+                if not df_tag.empty:
+                    fig_mini.add_trace(go.Scatter(x=df_tag['FECHA'], y=df_tag['VALUE'], line=dict(color=color, width=2), mode='lines'))
             
-            if not df_p.empty:
-                fig_mini = go.Figure()
-                # Trazar Caudal (Azul Vivo) y Presión (Verde)
-                for tag, color in [(info['caudal'], '#00d4ff'), (info['presion'], '#00ff00')]:
-                    df_tag = df_p[df_p['TagName'] == tag]
-                    if not df_tag.empty:
-                        fig_mini.add_trace(go.Scatter(
-                            x=df_tag['FECHA'], y=df_tag['VALUE'], 
-                            line=dict(color=color, width=2), mode='lines'
-                        ))
-                
-                # Estilo HUD/Futurista para el gráfico
-                fig_mini.update_layout(
-                    margin=dict(l=0, r=0, t=0, b=0), height=110, width=330,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    showlegend=False, 
-                    xaxis=dict(visible=False), yaxis=dict(visible=False)
-                )
-                
-                # Convertir a imagen PNG y luego a Base64 para el HTML del popup
-                img_bytes = fig_mini.to_image(format="png", engine="kaleido")
-                img_base64 = base64.b64encode(img_bytes).decode()
+            fig_mini.update_layout(
+                margin=dict(l=0, r=0, t=0, b=0), height=110, width=330,
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
+            )
+            img_bytes = fig_mini.to_image(format="png", engine="kaleido")
+            img_base64 = base64.b64encode(img_bytes).decode()
 
-        # --- D. CONSTRUCCIÓN DEL POPUP HTML ---
-        rol_actual = st.session_state.get('rol', 'usuario')
-        url_pozo_graf = f"?graficar_pozo={id_p}&nombre={id_p}&access=granted&role={rol_actual}"
+        # --- D. HTML DEL POPUP ---
+        # El botón de "CARGAR GRÁFICO" recarga la página con el parámetro del pozo
+        # El botón de "HISTÓRICO COMPLETO" abre la otra pestaña
+        url_cargar = f"?pozo_id={id_p}"
+        url_analisis = f"?graficar_pozo={id_p}&nombre={id_p}&access=granted"
 
         html_popup = f"""
-            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 345px; border: 2px solid {info['color_final']}; font-family: 'Segoe UI', sans-serif; box-shadow: 0 0 15px {info['color_final']}55;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <b style="color: #00d4ff; font-size: 16px; letter-spacing: 1px;">POZO {id_p}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;">{info['status_label']}</span>
-                </div>
-                
-                <div style="font-size: 13px; margin-bottom: 10px; border-bottom: 1px solid #222; padding-bottom: 8px;">
-                    💧 <b>{q:.2f} L/s</b> &nbsp;&nbsp; | &nbsp;&nbsp; 🚀 <b>{p:.2f} kg/cm²</b>
+            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 340px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                <hr style="border: 0.5px solid #222;">
+                <div style="font-size: 12px; margin-bottom: 10px;">
+                    Caudal: <b>{q:.2f} L/s</b> | Presión: <b>{p:.2f} kg</b>
                 </div>
 
-                <div style="background: #0a0a0a; border-radius: 8px; margin-bottom: 12px; border: 1px solid #333; overflow: hidden;">
-                    {f'<img src="data:image/png;base64,{img_base64}" width="100%">' if img_base64 else '<div style="height:110px; display:flex; align-items:center; justify-content:center; color:#444; font-size:10px;">HISTORIAL NO DISPONIBLE</div>'}
-                </div>
+                {f'<img src="data:image/png;base64,{img_base64}" width="100%">' if img_base64 else 
+                 f'<a href="{url_cargar}" target="_self" style="text-decoration:none;"><div style="background:#111; color:#00d4ff; text-align:center; padding:20px; border-radius:8px; border:1px dashed #444; font-size:11px;">VER TENDENCIA AQUÍ</div></a>'}
 
-                <div style="display: flex; justify-content: space-between; font-size: 10px; color: #aaa; margin-bottom: 15px;">
-                    <span>⚡ V: {v[0][0]:.0f}/{v[1][0]:.0f}/{v[2][0]:.0f} V</span>
-                    <span>📈 A: {a[0][0]:.1f}/{a[1][0]:.1f}/{a[2][0]:.1f} A</span>
+                <div style="margin-top: 10px;">
+                    <a href="{url_analisis}" target="_blank" style="text-decoration: none;">
+                        <div style="background: #00d4ff; color: #000; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px;">📊 ANÁLISIS COMPLETO (Nueva Pestaña)</div>
+                    </a>
                 </div>
-
-                <a href="{url_pozo_graf}" target="_self" style="text-decoration: none;">
-                    <div style="background: #00d4ff; color: #000; text-align: center; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 13px; transition: 0.3s; box-shadow: 0 4px 10px rgba(0,212,255,0.2);">
-                        📊 VER ANÁLISIS HISTÓRICO
-                    </div>
-                </a>
             </div>
         """
 
-        # --- E. AGREGAR ELEMENTOS AL MAPA ---
-        # 1. Etiqueta de nombre permanente (ID del pozo)
+        # --- E. MARCADORES ---
         folium.Marker(
             location=info['coord'],
-            icon=folium.DivIcon(
-                icon_size=(150,36), icon_anchor=(-15, 12),
-                html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 2px 2px #000; font-family: sans-serif;">{id_p}</div>'
-            )
+            icon=folium.DivIcon(html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 2px 2px #000;">{id_p}</div>', icon_anchor=(-15, 12))
         ).add_to(m)
 
-        # 2. Marcador (Blinking si es rojo/0, Fijo si es verde/1)
-        if info.get('blink'): # Lógica de parpadeo definida en la sección de procesamiento
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=400)
-            ).add_to(m)
+        icon_html = get_blink_icon(info['color_final']) if info.get('blink') else None
+        if icon_html:
+            folium.Marker(location=info['coord'], icon=folium.DivIcon(html=icon_html), popup=folium.Popup(html_popup, max_width=400)).add_to(m)
         else:
-            folium.CircleMarker(
-                location=info['coord'], radius=5, color=info['color_final'],
-                fill=True, fill_color=info['color_final'], fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=400)
-            ).add_to(m)
+            folium.CircleMarker(location=info['coord'], radius=5, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=400)).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
