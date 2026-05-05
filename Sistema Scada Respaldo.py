@@ -1865,17 +1865,15 @@ for id_p, info in mapa_pozos_dict.items():
         grafico_html = ""
         if not is_st:
             try:
-                try:
-                    fig_static = generar_grafico_integral_7d(id_p, info)
-                except:
-                    fig_static = generar_grafico_integral_7d(info)
                 
+                fig_static = generar_grafico_integral_7d(id_p, info)
+              
                 fig_static.update_layout(
-                    width=350, height=180,
+                    width=350, height=160,
                     margin=dict(l=10, r=10, t=30, b=10),
-                    showlegend=False,
                     paper_bgcolor='black',
-                    plot_bgcolor='black'
+                    plot_bgcolor='black',
+                    font=dict(color='white', size=8)
                 )
                 
                 import base64
@@ -1884,7 +1882,7 @@ for id_p, info in mapa_pozos_dict.items():
                 grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #333;">'
             
             except Exception as e:
-                grafico_html = f'<div style="color: #444; font-size: 8px; text-align: center; padding: 10px;">Error Gráfico: {str(e)}</div>'
+                grafico_html = f'<div style="color: #ff4b4b; font-size: 10px; text-align: center; padding: 10px; border: 1px dashed #444;">Gráfico no disponible: Revise Tags de telemetría</div>'
 
         # --- URL PARA EL GRÁFICO INTERACTIVO ---
         rol_actual = st.session_state.get('rol', 'usuario')
