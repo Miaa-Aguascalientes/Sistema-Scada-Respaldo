@@ -1859,26 +1859,29 @@ if sectores_data:
             grafico_html = ""
             if not is_st:
                 try:
-                    # Llamada limpia a la función original
-                    fig_static = generar_grafico_integral_7d(id_p, info)
+                    # Intentamos la llamada que sea compatible con tu función
+                    try:
+                        fig_static = generar_grafico_integral_7d(id_p, info)
+                    except:
+                        fig_static = generar_grafico_integral_7d(info)
                     
-                    # Ajuste de estilo HUD para la imagen
                     fig_static.update_layout(
                         width=350, height=180,
                         margin=dict(l=10, r=10, t=30, b=10),
                         showlegend=False,
                         paper_bgcolor='black',
-                        plot_bgcolor='black',
-                        font=dict(color='gray', size=8)
+                        plot_bgcolor='black'
                     )
                     
-                    # Conversión a imagen Base64
                     import base64
+                    # Si esto falla, es por falta de Kaleido
                     img_bytes = fig_static.to_image(format="png", engine="kaleido")
                     encoded = base64.b64encode(img_bytes).decode('utf-8')
                     grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #333;">'
-                except:
-                    grafico_html = '<div style="color: #444; font-size: 9px; text-align: center; padding: 10px;">Tendencia visual no disponible</div>'
+                
+                except Exception as e:
+                    # Esto te dirá en el popup exactamente qué falta (quítalo cuando funcione)
+                    grafico_html = f'<div style="color: #444; font-size: 8px; text-align: center; padding: 10px;">Error: {str(e)}</div>'
 
             # --- URL PARA EL GRÁFICO INTERACTIVO (AFUERA) ---
             rol_actual = st.session_state.get('rol', 'usuario')
