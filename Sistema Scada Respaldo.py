@@ -1464,30 +1464,36 @@ if sector_seleccionado:
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* 1. Forzar que la sidebar sea visible siempre */
+        /* 1. Sidebar Fija y con ancho controlado */
         [data-testid="stSidebar"] {
             left: 0 !important;
             visibility: visible !important;
             transform: translateX(0%) !important;
-            min-width: 300px !important; /* Ajusta este ancho a tu gusto */
-            max-width: 300px !important;
+            min-width: 330px !important; 
+            max-width: 330px !important;
         }
 
-        /* 2. Quitar el botón de cerrar (la flechita) para que no la puedan ocultar */
+        /* 2. Quitar el botón de cerrar */
         [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
 
-        /* 3. Empujar el contenido principal (el mapa) para que no tape la barra */
+        /* 3. ELIMINAR EL HUECO NEGRO: Ajustamos el contenedor principal */
+        /* Quitamos el margen excesivo y dejamos que Streamlit gestione el padding */
         [data-testid="stMain"] {
-            margin-left: 10px !important; /* Debe ser igual al ancho de la sidebar */
+            margin-left: 0px !important; 
         }
 
-        /* 4. Ajuste para pantallas pequeñas/móviles */
-        @media (max-width: 768px) {
-            [data-testid="stMain"] {
-                margin-left: 300px !important;
-            }
+        /* Ajustamos la caja que contiene el mapa para que no se desplace a la derecha */
+        .block-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            max-width: 100% !important;
+        }
+        
+        /* 4. Forzar que el mapa use el ancho disponible real */
+        iframe {
+            width: 100% !important;
         }
     </style>
 """, unsafe_allow_html=True)
