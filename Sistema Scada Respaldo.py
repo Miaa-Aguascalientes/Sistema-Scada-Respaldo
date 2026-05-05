@@ -1988,4 +1988,4 @@ if sectores_data:
                 MousePosition().add_to(m_sec)
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
-    folium_static(m, width=None, height=500)
+    folium_static(m, width=500, height=700)
