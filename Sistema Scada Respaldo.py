@@ -1653,99 +1653,116 @@ with col_mapa:
         </style>
         """
 
-# 9.1. DETECTAR SI HAY UN POZO SELECCIONADO EN LA URL (Para carga bajo demanda)
-# Esto permite que solo se consulte la DB para el pozo que te interesa
+# ======================================================================================================================
+# 9. RENDERIZADO DE CAPAS HUD - DISEÑO AVANZADO (MULTIAXIS)
+# ======================================================================================================================
+
 query_params = st.query_params
 pozo_activo = query_params.get("pozo_id", None)
 
 if ver_pozos:
-    # --- A. CONSULTA SQL SOLO PARA EL POZO ELEGIDO ---
-    df_p_individual = pd.DataFrame()
+    df_hist = pd.DataFrame()
     if pozo_activo and pozo_activo in mapa_pozos_dict:
-        info_sel = mapa_pozos_dict[pozo_activo]
+        p_info = mapa_pozos_dict[pozo_activo]
         try:
-            # Traemos los últimos 7 días solo de este sitio
-            query_ind = f"""
+            # Traemos todos los parámetros: Hidráulicos, Eléctricos y Niveles
+            tags_interes = [p_info['caudal'], p_info['presion']] + p_info['voltajes_l'] + p_info['amperajes_l']
+            # Agregamos niveles si existen en tu diccionario
+            tags_interes += [p_info.get('nivel_estatico', ''), p_info.get('sumergencia', '')]
+            
+            query_hud = f"""
                 SELECT h.VALUE, h.FECHA, r.NAME as TagName 
                 FROM vfitagnumhistory h
                 JOIN VfiTagRef r ON h.GATEID = r.GATEID
-                WHERE r.NAME IN ('{info_sel['caudal']}', '{info_sel['presion']}') 
+                WHERE r.NAME IN ({str([t for t in tags_interes if t])[1:-1]}) 
                 AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                 ORDER BY h.FECHA ASC
             """
-            df_p_individual = pd.read_sql(query_ind, get_mysql_scada_engine())
-        except Exception as e:
-            st.error(f"Error en DB: {e}")
+            df_hist = pd.read_sql(query_hud, get_mysql_scada_engine())
+        except: pass
 
     for id_p, info in mapa_pozos_dict.items():
         d = lambda tag: data_scada.get(tag, (0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
-        q, _ = d(info['caudal']) if not is_st else (0.0, "N/A")
-        p, _ = d(info['presion']) if not is_st else (0.0, "N/A")
+        # --- PREPARACIÓN DE DATOS HUD ---
+        q, tq = d(info['caudal'])
+        p, tp = d(info['presion'])
+        v_list = [d(t) for t in info['voltajes_l']]
+        a_list = [d(t) for t in info['amperajes_l']]
 
-        # --- B. GENERAR HTML DEL GRÁFICO (SIN IMÁGENES) ---
-        grafico_html = ""
-        if id_p == pozo_activo and not df_p_individual.empty:
-            fig_mini = go.Figure()
-            for tag, color in [(info['caudal'], '#00d4ff'), (info['presion'], '#00ff00')]:
-                df_tag = df_p_individual[df_p_individual['TagName'] == tag]
-                if not df_tag.empty:
-                    fig_mini.add_trace(go.Scatter(
-                        x=df_tag['FECHA'], y=df_tag['VALUE'], 
-                        line=dict(color=color, width=2), mode='lines',
-                        hovertemplate='%{y:.2f}'
-                    ))
+        grafico_hud_html = ""
+        if id_p == pozo_activo and not df_hist.empty:
+            from plotly.subplots import make_subplots
+            # Crear gráfico con ejes secundarios para Presión y Eléctricos
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
             
-            fig_mini.update_layout(
-                margin=dict(l=5, r=5, t=5, b=5), height=130, width=320,
-                paper_bgcolor='black', plot_bgcolor='black',
-                showlegend=False, 
-                xaxis=dict(visible=False), yaxis=dict(visible=False, gridcolor='#222')
-            )
-            # Exportamos el gráfico a HTML puro (esto no usa Kaleido)
-            grafico_html = fig_mini.to_html(full_html=False, include_plotlyjs='cdn', config={'displayModeBar': False})
-        else:
-            # Si no es el elegido, ponemos el link de carga
-            grafico_html = f"""
-                <a href="?pozo_id={id_p}" target="_self" style="text-decoration:none;">
-                    <div style="height:110px; border:1px dashed #444; display:flex; align-items:center; justify-content:center; color:#00d4ff; font-size:11px; background:#111; border-radius:8px;">
-                        Ver tendencia de 7 días (Click aquí)
-                    </div>
-                </a>
-            """
+            # 1. Caudal (Eje Principal) - Azul
+            df_q = df_hist[df_hist['TagName'] == info['caudal']]
+            fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (l/s)", line=dict(color='#00d4ff', width=2)), secondary_y=False)
+            
+            # 2. Presión (Eje Secundario) - Verde
+            df_p = df_hist[df_hist['TagName'] == info['presion']]
+            fig.add_trace(go.Scatter(x=df_p['FECHA'], y=df_p['VALUE'], name="Presión (kg)", line=dict(color='#00ff00', width=2)), secondary_y=True)
 
-        # --- C. POPUP FINAL ---
+            # 3. Amperajes (Eje Secundario) - Amarillos/Naranjas
+            for i, (tag, color) in enumerate(zip(info['amperajes_l'], ['#ffff00', '#ffaa00', '#ff5500'])):
+                df_a = df_hist[df_hist['TagName'] == tag]
+                fig.add_trace(go.Scatter(x=df_a['FECHA'], y=df_a['VALUE'], name=f"Amp L{i+1}", line=dict(color=color, width=1, dash='dot')), secondary_y=True)
+
+            fig.update_layout(
+                template="plotly_dark", height=250, margin=dict(l=10, r=10, t=30, b=10),
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9)),
+                xaxis=dict(showgrid=False, title="Fecha y Hora"),
+                yaxis=dict(title="Caudal (l/s)", color="#00d4ff", showgrid=False),
+                yaxis2=dict(title="Presión / Amp", color="#00ff00", showgrid=False, overlaying='y', side='right')
+            )
+            grafico_hud_html = fig.to_html(full_html=False, include_plotlyjs='cdn', config={'displayModeBar': False})
+        else:
+            grafico_hud_html = f'<a href="?pozo_id={id_p}" target="_self" style="text-decoration:none;"><div style="height:200px; border:1px dashed #333; display:flex; align-items:center; justify-content:center; color:#00d4ff; background:#0a0a0a; border-radius:10px;">CLICK PARA CARGAR PANEL HUD</div></a>'
+
+        # --- CONSTRUCCIÓN DEL POPUP (ESTILO EXACTO A TU IMAGEN) ---
         html_popup = f"""
-            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 340px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <b style="color:#00d4ff; font-size:15px;">POZO {id_p}</b>
-                    <span style="background:{info['color_final']}; color:black; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:bold;">{info['status_label']}</span>
+        <div style="background:#050a10; color:white; padding:20px; border-radius:5px; width:650px; font-family:'Consolas', monospace; border-top: 3px solid {info['color_final']};">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #1a2a3a; padding-bottom:10px; margin-bottom:15px;">
+                <span style="font-size:18px; color:#aaff00;">Pozo: {id_p} - ON</span>
+                <span style="color:#666;">MIAA SCADA 2026</span>
+            </div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; font-size:13px;">
+                <div>
+                    <p style="color:#00d4ff;">Caudal: <b style="font-size:16px;">{q:.2f} l/s</b> <span style="float:right; color:#444;">{tq}</span></p>
+                    <p style="color:#00ff00;">Presión: <b style="font-size:16px;">{p:.2f} Kg/cm²</b> <span style="float:right; color:#444;">{tp}</span></p>
+                    <p style="color:#ffcc00;">Nivel Estático: <b>205.20 mts.</b></p>
+                    <p style="color:#ff3366;">Sumergencia: <b>34.78 mts.</b></p>
                 </div>
-                <div style="font-size:12px; margin-bottom:10px; color:#ccc;">
-                    💧 <b>{q:.2f} L/s</b> | 🚀 <b>{p:.2f} kg</b>
+                <div style="border-left:1px solid #1a2a3a; padding-left:20px;">
+                    <p style="color:#00d4ff; margin-bottom:5px;">Voltajes (V):</p>
+                    <small>L1-L2: {v_list[0][0]:.0f} V | L2-L3: {v_list[1][0]:.0f} V | L1-L3: {v_list[2][0]:.0f} V</small>
+                    <p style="color:#aaff00; margin-top:10px; margin-bottom:5px;">Corrientes (A):</p>
+                    <small>L1: {a_list[0][0]:.1f} A | L2: {a_list[1][0]:.1f} A | L3: {a_list[2][0]:.1f} A</small>
                 </div>
-                <div style="border-radius:8px; overflow:hidden; margin-bottom:10px;">
-                    {grafico_html}
-                </div>
+            </div>
+
+            <div style="margin-top:15px; background:#000; border:1px solid #1a2a3a; border-radius:4px;">
+                {grafico_hud_html}
+            </div>
+
+            <div style="text-align:right; margin-top:15px;">
                 <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted" target="_blank" style="text-decoration:none;">
-                    <div style="background:#00d4ff; color:black; text-align:center; padding:10px; border-radius:6px; font-weight:bold; font-size:12px;">ANÁLISIS HISTÓRICO COMPLETO</div>
+                    <button style="background:#00d4ff; color:black; border:none; padding:10px 25px; border-radius:3px; font-weight:bold; cursor:pointer;">ABRIR GRÁFICO FULL</button>
                 </a>
             </div>
+        </div>
         """
 
-        # --- D. DIBUJAR EN MAPA ---
-        # Etiqueta de nombre
+        # --- DIBUJAR MARCADO ---
         folium.Marker(
             location=info['coord'],
-            icon=folium.DivIcon(html=f'<div style="font-size:10px; font-weight:bold; color:{info["color_final"]}; text-shadow:2px 2px #000; width:100px;">{id_p}</div>', icon_anchor=(-15, 12))
+            popup=folium.Popup(html_popup, max_width=700),
+            icon=folium.DivIcon(html=get_blink_icon(info['color_final']) if info.get('blink') else f'<div style="background:{info["color_final"]}; width:12px; height:12px; border-radius:50%; border:2px solid white;"></div>')
         ).add_to(m)
-
-        # Punto / Parpadeo
-        if info.get('blink'):
-            folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=400)).add_to(m)
-        else:
-            folium.CircleMarker(location=info['coord'], radius=5, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=400)).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
