@@ -1820,7 +1820,7 @@ for id_p, info in mapa_pozos_dict.items():
                     icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
                     popup=folium.Popup(html_popup, max_width=450)
                 ).add_to(m)
-            else:
+        else:
         folium.CircleMarker(
                     location=info['coord'],
                     radius=4,
