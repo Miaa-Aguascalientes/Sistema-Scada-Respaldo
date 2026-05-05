@@ -280,53 +280,66 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # funcion para el grafico del popup de los pozos
-def generar_grafico_integral_7d(dict_tags):
+def generar_grafico_integral_7d(id_p, info, is_popup=True):
     """
     Gráfico multivariable: Hidráulica + 3 Fases Eléctricas.
     """
-    # 1. Extracción de señales (7 días)
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+
+    # 1. Extracción de señales usando los nombres de tags del diccionario info
     # Hidráulicos
-    df_q = obtener_historia_7_dias(dict_tags['caudal'])
-    df_p = obtener_historia_7_dias(dict_tags['presion'])
+    df_q = obtener_historia_7_dias(info.get('caudal'))
+    df_p = obtener_historia_7_dias(info.get('presion'))
     
-    # Eléctricos: Voltajes
-    df_v1 = obtener_historia_7_dias(dict_tags['v1'])
-    df_v2 = obtener_historia_7_dias(dict_tags['v2'])
-    df_v3 = obtener_historia_7_dias(dict_tags['v3'])
+    # Eléctricos: Mapeo dinámico de las listas de tags
+    v_tags = info.get('voltajes_l', [None, None, None])
+    a_tags = info.get('amperajes_l', [None, None, None])
     
-    # Eléctricos: Amperajes
-    df_a1 = obtener_historia_7_dias(dict_tags['a1'])
-    df_a2 = obtener_historia_7_dias(dict_tags['a2'])
-    df_a3 = obtener_historia_7_dias(dict_tags['a3'])
+    dfs_v = [obtener_historia_7_dias(t) for t in v_tags]
+    dfs_a = [obtener_historia_7_dias(t) for t in a_tags]
 
-    # 2. Crear figura con 3 ejes Y independientes
-    fig_interactivo = generar_grafico_integral_7d(id_p)
+    # 2. Crear figura con ejes secundarios
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-    # --- LÍNEAS DE VOLTAJE (Eje Y3 - Superior) ---
-    for df, name, color in zip([df_v1, df_v2, df_v3], ['V1', 'V2', 'V3'], ['#FF5733', '#C70039', '#900C3F']):
-        fig.add_trace(go.Scatter(x=df['TIMESTAMP'], y=df['VALUE'], name=f"{name} (V)", 
-                                 line=dict(color=color, width=1, dash='dot'), yaxis="y3"))
+    # --- LÍNEAS DE AMPERAJE (Eje Secundario) ---
+    colors_a = ['#33FF57', '#28B463', '#1D8348']
+    for i, df in enumerate(dfs_a):
+        if not df.empty:
+            fig.add_trace(go.Scatter(
+                x=df['TIMESTAMP'], y=df['VALUE'], 
+                name=f"A{i+1}", 
+                line=dict(color=colors_a[i], width=1),
+                opacity=0.6
+            ), secondary_y=True)
 
-    # --- LÍNEAS DE AMPERAJE (Eje Y2 - Secundario) ---
-    for df, name, color in zip([df_a1, df_a2, df_a3], ['A1', 'A2', 'A3'], ['#33FF57', '#28B463', '#1D8348']):
-        fig.add_trace(go.Scatter(x=df['TIMESTAMP'], y=df['VALUE'], name=f"{name} (A)", 
-                                 line=dict(color=color, width=1.5), yaxis="y2"))
-
-    # --- CAUDAL Y PRESIÓN (Eje Y1 - Principal) ---
-    fig.add_trace(go.Scatter(x=df_q['TIMESTAMP'], y=df_q['VALUE'], name="Caudal (L/s)",
-                             line=dict(color='#00d4ff', width=3), fill='tozeroy', yaxis="y1"))
+    # --- CAUDAL Y PRESIÓN (Eje Principal) ---
+    if not df_q.empty:
+        fig.add_trace(go.Scatter(
+            x=df_q['TIMESTAMP'], y=df_q['VALUE'], 
+            name="Caudal",
+            line=dict(color='#00d4ff', width=2),
+            fill='tozeroy'
+        ), secondary_y=False)
     
-    fig.add_trace(go.Scatter(x=df_p['TIMESTAMP'], y=df_p['VALUE'], name="Presión (kg)",
-                             line=dict(color='#FFFF00', width=2), yaxis="y1"))
+    if not df_p.empty:
+        fig.add_trace(go.Scatter(
+            x=df_p['TIMESTAMP'], y=df_p['VALUE'], 
+            name="Presión",
+            line=dict(color='#FFFF00', width=1.5)
+        ), secondary_y=False)
 
-    # 3. Configuración de Triple Eje "HUD Style"
+    # 3. Configuración Visual HUD
     fig.update_layout(
-        width=width,
-        height=height,
-        margin=dict(l=10, r=10, t=30, b=10) if is_popup else dict(l=50, r=50, t=50, b=50),
-        showlegend=not is_popup, # Quitamos la leyenda si es para el popup para ganar espacio
+        template="plotly_dark",
+        hovermode="x unified",
+        showlegend=not is_popup,
+        margin=dict(l=5, r=5, t=20, b=5),
         paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(showgrid=False, zeroline=False, showticklabels=not is_popup),
+        yaxis=dict(showgrid=False, zeroline=False),
+        yaxis2=dict(showgrid=False, zeroline=False)
     )
     
     return fig
