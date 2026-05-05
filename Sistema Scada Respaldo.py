@@ -1657,118 +1657,108 @@ with col_mapa:
 # 9. RENDERIZADO DE CAPAS HUD - DIRECTO (SIN CLIC PARA CARGAR)
 # ======================================================================================================================
 
+import io
+import base64
+import matplotlib.pyplot as plt
+
 if ver_pozos:
-    # --- A. CONSULTA MASIVA OPTIMIZADA (Para 200+ pozos sin trabar el servidor) ---
-    f_fin_p = datetime.now()
-    f_ini_p = f_fin_p - timedelta(days=7)
-    
-    # Traemos solo los tags de Caudal y Presión para los gráficos del popup para no saturar
-    # Los datos eléctricos y niveles se leen del diccionario de tiempo real (data_scada)
+    # 9.1. CONSULTA SQL RÁPIDA (Solo tags necesarios)
+    f_ini_p = datetime.now() - timedelta(days=7)
     try:
         query_masiva = f"""
             SELECT h.VALUE, h.FECHA, r.NAME as TagName 
             FROM vfitagnumhistory h
             JOIN VfiTagRef r ON h.GATEID = r.GATEID
             WHERE (r.NAME LIKE 'PZ_%_CAU_INS' OR r.NAME LIKE 'PZ_%_PRES_INS')
-            AND h.FECHA BETWEEN '{f_ini_p.strftime('%Y-%m-%d %H:%M:%S')}' AND '{f_fin_p.strftime('%Y-%m-%d %H:%M:%S')}' 
-            ORDER BY h.FECHA ASC
+            AND h.FECHA >= '{f_ini_p.strftime('%Y-%m-%d %H:%M:%S')}'
         """
         df_hist_todos = pd.read_sql(query_masiva, get_mysql_scada_engine())
-    except Exception:
+        df_hist_todos['FECHA'] = pd.to_datetime(df_hist_todos['FECHA'])
+    except:
         df_hist_todos = pd.DataFrame()
 
     for id_p, info in mapa_pozos_dict.items():
-        # Extracción de datos de tiempo real para el encabezado del popup
-        d = lambda tag: data_scada.get(tag, (0, "00/00 00:00"))
-        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-        
+        d = lambda tag: data_scada.get(tag, (0, "N/A"))
         q, tq = d(info['caudal'])
         p, tp = d(info['presion'])
         v = [d(t) for t in info['voltajes_l']]
         a = [d(t) for t in info['amperajes_l']]
 
-        # --- B. GENERACIÓN DEL GRÁFICO HUD (Incrustado directamente) ---
-        grafico_html = ""
+        # --- GENERAR IMAGEN DEL GRÁFICO (MATPLOTLIB ES MUCHO MÁS LIGERO) ---
+        img_base64 = ""
         df_p = df_hist_todos[df_hist_todos['TagName'].isin([info['caudal'], info['presion']])]
         
-        if not df_p.empty and not is_st:
-            fig = go.Figure()
-            # Caudal - Azul Vivo
-            df_q = df_p[df_p['TagName'] == info['caudal']]
-            fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], line=dict(color='#00d4ff', width=2), fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.1)'))
-            # Presión - Verde Neón
-            df_p_val = df_p[df_p['TagName'] == info['presion']]
-            fig.add_trace(go.Scatter(x=df_p_val['FECHA'], y=df_p_val['VALUE'], line=dict(color='#aaff00', width=2)))
+        if not df_p.empty:
+            plt.style.use('dark_background')
+            fig, ax1 = plt.subplots(figsize=(5, 2))
+            ax2 = ax1.twinx()
+            
+            df_q = df_p[df_p['TagName'] == info['caudal']].sort_values('FECHA')
+            df_pr = df_p[df_p['TagName'] == info['presion']].sort_values('FECHA')
+            
+            if not df_q.empty:
+                ax1.plot(df_q['FECHA'], df_q['VALUE'], color='#00d4ff', linewidth=1.5, label='Caudal')
+                ax1.fill_between(df_q['FECHA'], df_q['VALUE'], color='#00d4ff', alpha=0.1)
+            if not df_pr.empty:
+                ax2.plot(df_pr['FECHA'], df_pr['VALUE'], color='#aaff00', linewidth=1.5, label='Presión')
 
-            fig.update_layout(
-                template="plotly_dark", height=200, margin=dict(l=0, r=0, t=0, b=0),
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
-            )
-            # Usamos to_html para que sea interactivo y no necesite Kaleido
-            grafico_html = fig.to_html(full_html=False, include_plotlyjs='cdn', config={'displayModeBar': False})
-        else:
-            grafico_html = '<div style="height:200px; display:flex; align-items:center; justify-content:center; color:#444;">SIN DATOS HISTÓRICOS</div>'
+            ax1.axis('off')
+            ax2.axis('off')
+            fig.patch.set_facecolor('None') # Transparente
+            fig.tight_layout(pad=0)
+            
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', transparent=True, dpi=80)
+            img_base64 = base64.b64encode(buf.getvalue()).decode()
+            plt.close(fig)
 
-        # --- C. DISEÑO DEL POPUP (Calco de tu imagen) ---
+        # --- POPUP HUD (ESTILO CORREGIDO) ---
         html_popup = f"""
-        <div style="background:#050a10; color:white; padding:15px; border-radius:5px; width:600px; font-family:sans-serif; border-top: 4px solid {info['color_final']};">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-                <b style="font-size:18px; color:#aaff00;">Pozo: {id_p} - {info['status_label']}</b>
-                <span style="color:#555; font-size:10px;">MIAA SCADA 2026</span>
+        <div style="background:#050a10; color:white; padding:15px; border-radius:5px; width:550px; font-family:sans-serif; border-top: 4px solid {info['color_final']};">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid #1a2a3a; padding-bottom:5px;">
+                <b style="font-size:16px; color:#aaff00;">Pozo: {id_p} - {info['status_label']}</b>
+                <span style="color:#444; font-size:10px;">MIAA SCADA</span>
             </div>
             
-            <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:15px; border-bottom:1px solid #1a2a3a; padding-bottom:15px;">
-                <div>
-                    <p style="color:#00d4ff; margin:5px 0;">Caudal: <b style="font-size:16px;">{q:.2f} l/s</b> <span style="float:right; color:#444; font-size:10px;">{tq}</span></p>
-                    <p style="color:#aaff00; margin:5px 0;">Presión: <b style="font-size:16px;">{p:.2f} Kg/cm²</b> <span style="float:right; color:#444; font-size:10px;">{tp}</span></p>
-                    <p style="color:#ffcc00; margin:5px 0;">Nivel Estático: <b>205.20 mts.</b></p>
-                    <p style="color:#ff3366; margin:5px 0;">Sumergencia: <b>34.78 mts.</b></p>
+            <div style="display:flex; gap:20px;">
+                <div style="flex:1;">
+                    <p style="color:#00d4ff; margin:2px 0;">Caudal: <b>{q:.2f} l/s</b></p>
+                    <p style="color:#aaff00; margin:2px 0;">Presión: <b>{p:.2f} Kg</b></p>
+                    <p style="color:#ffcc00; margin:2px 0; font-size:11px;">Nivel Estático: 205.20m</p>
                 </div>
-                <div style="border-left:1px solid #1a2a3a; padding-left:15px; font-size:12px;">
-                    <p style="color:#00d4ff; margin-bottom:5px;">Voltajes (V):</p>
-                    <p style="margin:2px 0;">L1-L2: {v[0][0]:.0f} | L2-L3: {v[1][0]:.0f} | L1-L3: {v[2][0]:.0f}</p>
-                    <p style="color:#aaff00; margin:10px 0 5px 0;">Corrientes (A):</p>
-                    <p style="margin:2px 0;">L1: {a[0][0]:.1f} | L2: {a[1][0]:.1f} | L3: {a[2][0]:.1f}</p>
+                <div style="flex:1; border-left:1px solid #1a2a3a; padding-left:15px; font-size:11px;">
+                    <span style="color:#00d4ff;">V:</span> {v[0][0]:.0f}|{v[1][0]:.0f}|{v[2][0]:.0f} <br>
+                    <span style="color:#aaff00;">A:</span> {a[0][0]:.1f}|{a[1][0]:.1f}|{a[2][0]:.1f}
                 </div>
             </div>
 
-            <div style="margin-top:10px; background:rgba(0,0,0,0.3); border-radius:4px;">
-                {grafico_html}
+            <div style="margin-top:10px; background:rgba(0,0,0,0.5); border:1px solid #1a2a3a;">
+                <img src="data:image/png;base64,{img_base64}" style="width:100%;">
             </div>
 
             <div style="text-align:right; margin-top:10px;">
-                <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted" target="_blank" style="text-decoration:none;">
-                    <button style="background:#00d4ff; color:black; border:none; padding:8px 20px; border-radius:3px; font-weight:bold; cursor:pointer;">ABRIR GRÁFICO FULL</button>
-                </a>
+                <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted" target="_blank" 
+                   style="background:#00d4ff; color:black; padding:5px 15px; border-radius:3px; text-decoration:none; font-weight:bold; font-size:11px;">VER FULL</a>
             </div>
         </div>
         """
 
-        # --- D. MARCADORES Y ETIQUETAS VISIBLES ---
-        # Etiqueta del nombre (Ajustada para que no estorbe al punto)
+        # --- ETIQUETAS Y MARCADORES ---
+        # Nombre del pozo siempre visible debajo del punto
         folium.Marker(
             location=info['coord'],
             icon=folium.DivIcon(
-                icon_size=(100,20),
-                icon_anchor=(50, -10), # Posiciona el texto debajo del punto
-                html=f'<div style="font-size:11px; font-weight:bold; color:white; text-align:center; text-shadow:1px 1px 2px black;">{id_p}</div>'
+                icon_anchor=(25, -10),
+                html=f'<div style="font-size:9pt; font-weight:bold; color:white; text-shadow:1px 1px 2px black; width:50px; text-align:center;">{id_p}</div>'
             )
         ).add_to(m)
 
-        # Punto de estado (Con parpadeo si es necesario)
-        if info.get('blink'):
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=650)
-            ).add_to(m)
-        else:
-            folium.CircleMarker(
-                location=info['coord'], radius=6, color="white", weight=1,
-                fill=True, fill_color=info['color_final'], fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=650)
-            ).add_to(m)
+        # Punto de color con popup
+        folium.CircleMarker(
+            location=info['coord'], radius=6, color="white", weight=0.5,
+            fill=True, fill_color=info['color_final'], fill_opacity=1,
+            popup=folium.Popup(html_popup, max_width=600)
+        ).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
