@@ -1844,7 +1844,7 @@ if sectores_data:
             d = lambda tag: data_scada.get(tag, (0, "N/A"))
             is_st = (info['status_label'] == 'SIN TELEMETRÍA')
             
-            # --- CAPTURA DE DATOS (HIDRÁULICA, NIVELES, ELÉCTRICO, HORARIOS) ---
+            # --- CAPTURA DE DATOS ---
             q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
             p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
             sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
@@ -1856,16 +1856,12 @@ if sectores_data:
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-            # --- GENERACIÓN DEL GRÁFICO INTERACTIVO ---
+            # --- GENERACIÓN DEL GRÁFICO INTERACTIVO (CORRECCIÓN FINAL) ---
             try:
-                # Intentamos pasar ambos (por si acaso)
-                try:
-                    fig_interactivo = generar_grafico_integral_7d(id_p, info)
-                except TypeError:
-                    # Si falla, intentamos pasar solo el ID
-                    fig_interactivo = generar_grafico_integral_7d(id_p)
+                # El error indica que la función espera el DICCIONARIO 'info' para poder sacar los tags
+                # pero probablemente solo acepta 1 argumento.
+                fig_interactivo = generar_grafico_integral_7d(info)
                 
-                # Ajustes de estilo HUD
                 fig_interactivo.update_layout(
                     width=340, height=220,
                     margin=dict(l=5, r=5, t=25, b=5),
@@ -1885,7 +1881,14 @@ if sectores_data:
                     </div>
                 """
             except Exception as e:
-                interactivo_bloque = f'<div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">Error de parámetros: {str(e)}</div>'
+                # Si lo anterior falla, intentamos con el id_p como último recurso
+                try:
+                    fig_interactivo = generar_grafico_integral_7d(id_p)
+                    fig_interactivo.update_layout(width=340, height=220, paper_bgcolor='black', plot_bgcolor='black', showlegend=False)
+                    graf_html_string = pio.to_html(fig_interactivo, full_html=False, include_plotlyjs='cdn')
+                    interactivo_bloque = f'<div style="width:100%; height:230px; margin-top:10px;">{graf_html_string}</div>'
+                except:
+                    interactivo_bloque = f'<div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">Datos insuficientes para el gráfico interactivo</div>'
 
             # --- URL Y POPUP ---
             rol_actual = st.session_state.get('rol', 'usuario')
@@ -1909,34 +1912,26 @@ if sectores_data:
 
                     <div style="font-size: 10px; color: #666; margin-bottom: 5px;">NIVELES</div>
                     <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
-                        <span>🔋 Nivel de Tanque: <b>{tanq:.2f} mts</b></span> <span>{f_t}</span>
+                        <span>🔋 Tanque: <b>{tanq:.2f} mts</b></span> <span>{f_t}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
-                        <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span> <span>{f_d}</span>
+                        <span>📉 Dinámico: <b>{dinam:.2f} m</b></span> <span>{f_d}</span>
                     </div>
 
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">ELÉCTRICO (MONITOREO DE FASES)</div>
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">ELÉCTRICO (FASES)</div>
                     <table style="width: 100%; font-size: 10px; margin-bottom: 10px;">
-                        <tr style="color: #00d4ff; text-align: left;"><th style="padding-bottom:5px;">Fase</th><th>Voltaje / Act.</th><th>Amp / Act.</th></tr>
-                        <tr><td>L1-L2</td><td><b>{v[0][0]:.1f}V</b> <small style="color:#cead41;">{v[0][1]}</small></td><td><b>{a[0][0]:.1f}A</b> <small style="color:#cead41;">{a[0][1]}</small></td></tr>
-                        <tr><td>L2-L3</td><td><b>{v[1][0]:.1f}V</b> <small style="color:#cead41;">{v[1][1]}</small></td><td><b>{a[1][0]:.1f}A</b> <small style="color:#cead41;">{a[1][1]}</small></td></tr>
-                        <tr><td>L1-L3</td><td><b>{v[2][0]:.1f}V</b> <small style="color:#cead41;">{v[2][1]}</small></td><td><b>{a[2][0]:.1f}A</b> <small style="color:#cead41;">{a[2][1]}</small></td></tr>
+                        <tr style="color: #00d4ff; text-align: left;"><th style="padding-bottom:5px;">Fase</th><th>Voltaje</th><th>Amp</th></tr>
+                        <tr><td>L1-L2</td><td><b>{v[0][0]:.1f}V</b></td><td><b>{a[0][0]:.1f}A</b></td></tr>
+                        <tr><td>L2-L3</td><td><b>{v[1][0]:.1f}V</b></td><td><b>{a[1][0]:.1f}A</b></td></tr>
+                        <tr><td>L1-L3</td><td><b>{v[2][0]:.1f}V</b></td><td><b>{a[2][0]:.1f}A</b></td></tr>
                     </table>
-
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">HORARIOS DE OPERACIÓN</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                        <span>▶️ Arranque: <b>{formato_hora(h_arr_val)}</b></span> <span>{f_h_arr}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
-                        <span>⏹️ Paro: <b>{formato_hora(h_par_val)}</b></span> <span>{f_h_par}</span>
-                    </div>
 
                     {interactivo_bloque}
 
                     <div style="margin-top: 15px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
                             <div style="background: #00d4ff; color: black; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                📊 VER GRÁFICO INTEGRAL (8 VARIABLES)
+                                📊 ANÁLISIS COMPLETO (SCADA)
                             </div>
                         </a>
                     </div>
