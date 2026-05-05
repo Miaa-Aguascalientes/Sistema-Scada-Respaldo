@@ -321,18 +321,14 @@ def generar_grafico_integral_7d(dict_tags):
 
     # 3. Configuración de Triple Eje "HUD Style"
     fig.update_layout(
-        template="plotly_dark",
-        hovermode="x unified",
-        xaxis=dict(domain=[0.1, 0.9], gridcolor='#222'),
-        yaxis=dict(title="Caudal / Presión", titlefont=dict(color="#00d4ff"), gridcolor='#333'),
-        yaxis2=dict(title="Amperaje (L1, L2, L3)", titlefont=dict(color="#33FF57"),
-                    anchor="free", overlaying="y", side="right", position=0.95),
-        yaxis3=dict(title="Voltaje (L1, L2, L3)", titlefont=dict(color="#FF5733"),
-                    anchor="free", overlaying="y", side="left", position=0.05),
-        legend=dict(orientation="h", y=-0.2),
-        margin=dict(l=50, r=50, t=50, b=50)
+        width=width,
+        height=height,
+        margin=dict(l=10, r=10, t=30, b=10) if is_popup else dict(l=50, r=50, t=50, b=50),
+        showlegend=not is_popup, # Quitamos la leyenda si es para el popup para ganar espacio
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
     )
-
+    
     return fig
         
 # 2.6. Funcion para optener los poligonos de los sectores y sus demas campos
