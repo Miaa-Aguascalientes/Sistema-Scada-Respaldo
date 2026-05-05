@@ -1839,159 +1839,86 @@ if sectores_data:
     fg_sectores.add_to(m)
     
 
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (OPTIMIZADO Y CORREGIDO) ----------------------------------------------------------------------
-for id_p, info in mapa_pozos_dict.items():
-    if ver_pozos:
-        d = lambda tag: data_scada.get(tag, (0, "N/A"))
-        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-        
-        # --- CAPTURA DE DATOS ACTUALES ---
-        q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
-        p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
-        sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
-        dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
-        
-        # CORRECCIÓN AQUÍ: Definición de la variable 'col' que faltaba
-        # Se intenta obtener de info['columna'], si no existe o es ST, va a 0.0
-        col, f_col = d(info.get('columna', '')) if not is_st else (0.0, "N/A")
-        
-        tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
-        h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
-        h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
-        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
-        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+# 9.6. RENDERIZADO DE POZOS (VERSIÓN FINAL ANTI-ERRORES) ----------------------------------------------------------------------
+if ver_pozos:
+    for id_p, info in mapa_pozos_dict.items():
+        try:
+            # --- PROTECCIÓN DE COORDENADAS ---
+            if not info.get('coord') or info['coord'] == [0, 0]:
+                continue # Si no hay coordenadas válidas, saltamos al siguiente pozo
 
-        # --- GENERACIÓN DE GRÁFICO ESTÁTICO (RÁPIDO) ---
-        grafico_html = ""
-        if not is_st:
-            try:
-                
-                fig_static = generar_grafico_integral_7d(id_p, info)
-              
-                fig_static.update_layout(
-                    width=350, height=160,
-                    margin=dict(l=10, r=10, t=30, b=10),
-                    paper_bgcolor='black',
-                    plot_bgcolor='black',
-                    font=dict(color='white', size=8)
-                )
-                
-                import base64
-                img_bytes = fig_static.to_image(format="png", engine="kaleido")
-                encoded = base64.b64encode(img_bytes).decode('utf-8')
-                grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #333;">'
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
             
-            except Exception as e:
-                grafico_html = f'<div style="color: #ff4b4b; font-size: 10px; text-align: center; padding: 10px; border: 1px dashed #444;">Gráfico no disponible: Revise Tags de telemetría</div>'
+            # --- CAPTURA DE DATOS ---
+            q, f_q = d(info.get('caudal')) if not is_st else (0.0, "N/A")
+            p, f_p = d(info.get('presion')) if not is_st else (0.0, "N/A")
+            sumer, f_s = d(info.get('sumergencia')) if not is_st else (0.0, "N/A")
+            dinam, f_d = d(info.get('nivel_dinamico')) if not is_st else (0.0, "N/A")
+            col, f_col = d(info.get('columna')) if not is_st else (0.0, "N/A")
+            
+            v = [d(t) for t in info.get('voltajes_l', ['', '', ''])] if not is_st else [(0.0, "N/A")]*3
+            a = [d(t) for t in info.get('amperajes_l', ['', '', ''])] if not is_st else [(0.0, "N/A")]*3
 
-        # --- URL PARA EL GRÁFICO INTERACTIVO ---
-        rol_actual = st.session_state.get('rol', 'usuario')
-        nombre_codificado = urllib.parse.quote(id_p)
-        url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+            # --- GRÁFICO ESTÁTICO ---
+            grafico_html = ""
+            if not is_st:
+                try:
+                    # Forzamos que use el diccionario de tags actual
+                    fig_static = generar_grafico_integral_7d(id_p, info)
+                    fig_static.update_layout(width=350, height=160, margin=dict(l=5, r=5, t=25, b=5),
+                                           paper_bgcolor='black', plot_bgcolor='black', font=dict(color='white', size=9))
+                    
+                    import base64
+                    img_bytes = fig_static.to_image(format="png", engine="kaleido")
+                    encoded = base64.b64encode(img_bytes).decode('utf-8')
+                    grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #333;">'
+                except:
+                    # Si falla el gráfico, ponemos un aviso limpio en el popup
+                    grafico_html = '<div style="border: 1px dashed #444; color: #ffbc00; font-size: 10px; text-align: center; padding: 10px; margin-top: 10px;">Gráfico: Verifique Tags en base de datos</div>'
 
-        # --- CONSTRUCCIÓN DEL POPUP ---
-        html_popup = f"""
-            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
-                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                </div>
-                
-                <!-- BLOQUE HIDRÁULICA -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
+            # --- POPUP HTML (ESTILO HUD) ---
+            rol_actual = st.session_state.get('rol', 'usuario')
+            url_pozo_graf = f"?graficar_pozo={id_p}&access=granted&role={rol_actual}"
+
+            html_popup = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 340px; border: 1px solid {info['color_final']}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 5px; margin-bottom: 10px;">
+                        <b style="color: #00d4ff; font-size: 15px;">POZO {id_p}</b>
+                        <span style="font-size: 9px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 3px; font-weight: bold;">{info['status_label']}</span>
                     </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px;">
-                        <span>🚀 Presión: <b>{p:.2f} kg</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                    <div style="font-size: 11px; margin-bottom: 8px;">
+                        <div style="display: flex; justify-content: space-between;"><span>💧 Caudal: <b>{q:.2f} L/s</b></span><span style="color:#FFFF00; font-size:8px;">{f_q}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>🚀 Presión: <b>{p:.2f} kg</b></span><span style="color:#FFFF00; font-size:8px;">{f_p}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span>📉 Dinámico: <b>{dinam:.2f} m</b></span><span style="color:#FFFF00; font-size:8px;">{f_d}</span></div>
+                    </div>
+                    {grafico_html}
+                    <div style="margin-top: 10px; border-top: 1px solid #333; padding-top: 8px;">
+                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                            <div style="background: #00d4ff; color: black; text-align: center; padding: 8px; border-radius: 5px; font-weight: bold; font-size: 11px;">📊 ANÁLISIS HISTÓRICO</div>
+                        </a>
                     </div>
                 </div>
+            """
 
-                <!-- BLOQUE NIVELES (Aquí se usaba 'col' que causaba el error) -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES Y ESTRUCTURA</div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px;">
-                        <span>🏗️ Columna: <b>{col:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
-                    </div>
-                </div>
-
-                <!-- BLOQUE ELÉCTRICO -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
-                    <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
-                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                            <th style="padding: 4px;">Fase</th>
-                            <th style="padding: 4px;">Voltaje</th>
-                            <th style="padding: 4px;">Amperaje</th>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 6px 4px;">L1-L2</td>
-                            <td><b>{v[0][0]:.1f}V</b></td>
-                            <td><b>{a[0][0]:.1f}A</b></td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 6px 4px;">L2-L3</td>
-                            <td><b>{v[1][0]:.1f}V</b></td>
-                            <td><b>{a[1][0]:.1f}A</b></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 6px 4px;">L3-L1</td>
-                            <td><b>{v[2][0]:.1f}V</b></td>
-                            <td><b>{a[2][0]:.1f}A</b></td>
-                        </tr>
-                    </table>
-                </div>
-
-                {grafico_html}
-
-                <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
-                    <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                        <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                            📊 VER ANÁLISIS HISTÓRICO
-                        </div>
-                    </a>
-                </div>
-            </div>
-        """
-        
-        # --- RENDERIZADO EN FOLIUM ---
-        folium.Marker(
-            location=info['coord'],
-            icon=folium.DivIcon(
-                icon_size=(150,36),
-                icon_anchor=(-12, 10),
-                html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
-            )
-        ).add_to(m)
-
-        if info.get('blink'):
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=450)
+            # --- DIBUJAR EN EL MAPA ---
+            # Nombre del pozo (Label)
+            folium.Marker(location=info['coord'],
+                icon=folium.DivIcon(icon_anchor=(-10, 8),
+                html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px black;">{id_p}</div>')
             ).add_to(m)
-        else:
-            folium.CircleMarker(
-                location=info['coord'],
-                radius=4,
-                color=info['color_final'],
-                fill=True,
-                fill_color=info['color_final'],
-                fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=450)
-            ).add_to(m)
+
+            # Punto con Popup
+            if info.get('blink'):
+                folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                             popup=folium.Popup(html_popup, max_width=400)).add_to(m)
+            else:
+                folium.CircleMarker(location=info['coord'], radius=5, color=info['color_final'], fill=True,
+                                   fill_opacity=1, popup=folium.Popup(html_popup, max_width=400)).add_to(m)
+
+        except Exception as e:
+            print(f"Error renderizando pozo {id_p}: {e}")
+            continue # Si un pozo falla, sigue con el que sigue
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
