@@ -300,7 +300,7 @@ def generar_grafico_integral_7d(dict_tags):
     df_a3 = obtener_historia_7_dias(dict_tags['a3'])
 
     # 2. Crear figura con 3 ejes Y independientes
-    fig = go.Figure()
+    fig_interactivo = generar_grafico_integral_7d(info)
 
     # --- LÍNEAS DE VOLTAJE (Eje Y3 - Superior) ---
     for df, name, color in zip([df_v1, df_v2, df_v3], ['V1', 'V2', 'V3'], ['#FF5733', '#C70039', '#900C3F']):
@@ -1858,31 +1858,34 @@ if sectores_data:
 
             # --- GENERACIÓN DEL GRÁFICO INTERACTIVO ---
             try:
-                fig_interactivo = generar_grafico_integral_7d(id_p, info)
+                # Intentamos pasar ambos (por si acaso)
+                try:
+                    fig_interactivo = generar_grafico_integral_7d(id_p, info)
+                except TypeError:
+                    # Si falla, intentamos pasar solo el ID
+                    fig_interactivo = generar_grafico_integral_7d(id_p)
                 
-                # Ajustes de estilo HUD para el mini-gráfico interactivo
+                # Ajustes de estilo HUD
                 fig_interactivo.update_layout(
                     width=340, height=220,
                     margin=dict(l=5, r=5, t=25, b=5),
-                    showlegend=False, # Leyenda desactivada para ahorrar espacio, pero los datos se ven al pasar el mouse
+                    showlegend=False,
                     paper_bgcolor='black',
                     plot_bgcolor='black',
                     xaxis=dict(gridcolor='#222', tickfont=dict(size=8, color='gray')),
                     yaxis=dict(gridcolor='#222', tickfont=dict(size=8, color='gray'))
                 )
                 
-                # Convertimos el gráfico a un string de HTML completo
                 import plotly.io as pio
                 graf_html_string = pio.to_html(fig_interactivo, full_html=False, include_plotlyjs='cdn')
                 
-                # Lo metemos en un iframe para que Folium lo renderice como objeto vivo
                 interactivo_bloque = f"""
                     <div style="width:100%; height:230px; margin-top:10px; border-radius:5px; overflow:hidden; border: 1px solid #333;">
                         {graf_html_string}
                     </div>
                 """
             except Exception as e:
-                interactivo_bloque = f'<div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">Error en interactividad: {str(e)}</div>'
+                interactivo_bloque = f'<div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">Error de parámetros: {str(e)}</div>'
 
             # --- URL Y POPUP ---
             rol_actual = st.session_state.get('rol', 'usuario')
