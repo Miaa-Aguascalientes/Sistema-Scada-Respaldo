@@ -1838,100 +1838,82 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------------
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (OPTIMIZADO CON IMAGEN) ----------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
         if ver_pozos:
             d = lambda tag: data_scada.get(tag, (0, "N/A"))
             is_st = (info['status_label'] == 'SIN TELEMETRÍA')
             
-            # --- CAPTURA DE DATOS ---
+            # --- CAPTURA DE DATOS ACTUALES ---
             q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
             p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
             sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
-            col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
             h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-            # --- GENERACIÓN DEL GRÁFICO INTERACTIVO (CORRECCIÓN FINAL) ---
-            try:
-                # El error indica que la función espera el DICCIONARIO 'info' para poder sacar los tags
-                # pero probablemente solo acepta 1 argumento.
-                fig_interactivo = generar_grafico_integral_7d(info)
-                
-                fig_interactivo.update_layout(
-                    width=340, height=220,
-                    margin=dict(l=5, r=5, t=25, b=5),
-                    showlegend=False,
-                    paper_bgcolor='black',
-                    plot_bgcolor='black',
-                    xaxis=dict(gridcolor='#222', tickfont=dict(size=8, color='gray')),
-                    yaxis=dict(gridcolor='#222', tickfont=dict(size=8, color='gray'))
-                )
-                
-                import plotly.io as pio
-                graf_html_string = pio.to_html(fig_interactivo, full_html=False, include_plotlyjs='cdn')
-                
-                interactivo_bloque = f"""
-                    <div style="width:100%; height:230px; margin-top:10px; border-radius:5px; overflow:hidden; border: 1px solid #333;">
-                        {graf_html_string}
-                    </div>
-                """
-            except Exception as e:
-                # Si lo anterior falla, intentamos con el id_p como último recurso
+            # --- GENERACIÓN DE GRÁFICO ESTÁTICO (RÁPIDO) ---
+            grafico_html = ""
+            if not is_st:
                 try:
-                    fig_interactivo = generar_grafico_integral_7d(id_p)
-                    fig_interactivo.update_layout(width=340, height=220, paper_bgcolor='black', plot_bgcolor='black', showlegend=False)
-                    graf_html_string = pio.to_html(fig_interactivo, full_html=False, include_plotlyjs='cdn')
-                    interactivo_bloque = f'<div style="width:100%; height:230px; margin-top:10px;">{graf_html_string}</div>'
+                    # Llamada limpia a la función original
+                    fig_static = generar_grafico_integral_7d(id_p, info)
+                    
+                    # Ajuste de estilo HUD para la imagen
+                    fig_static.update_layout(
+                        width=350, height=180,
+                        margin=dict(l=10, r=10, t=30, b=10),
+                        showlegend=False,
+                        paper_bgcolor='black',
+                        plot_bgcolor='black',
+                        font=dict(color='gray', size=8)
+                    )
+                    
+                    # Conversión a imagen Base64
+                    import base64
+                    img_bytes = fig_static.to_image(format="png", engine="kaleido")
+                    encoded = base64.b64encode(img_bytes).decode('utf-8')
+                    grafico_html = f'<img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 5px; margin-top: 10px; border: 1px solid #333;">'
                 except:
-                    interactivo_bloque = f'<div style="color: #666; font-size: 10px; text-align: center; padding: 20px;">Datos insuficientes para el gráfico interactivo</div>'
+                    grafico_html = '<div style="color: #444; font-size: 9px; text-align: center; padding: 10px;">Tendencia visual no disponible</div>'
 
-            # --- URL Y POPUP ---
+            # --- URL PARA EL GRÁFICO INTERACTIVO (AFUERA) ---
             rol_actual = st.session_state.get('rol', 'usuario')
             nombre_codificado = urllib.parse.quote(id_p)
             url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
+            # --- CONSTRUCCIÓN DEL POPUP ---
             html_popup = f"""
                 <div style="background: #000000; color: white; padding: 15px; border-radius: 10px; width: 360px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
                         <b style="color: #00d4ff; font-size: 18px;">POZO {id_p}</b>
-                        <span style="background: {info['color_final']}; color: black; padding: 2px 10px; border-radius: 5px; font-weight: bold; font-size: 12px;">{info['status_label']}</span>
+                        <span style="background: {info['color_final']}; color: black; padding: 2px 10px; border-radius: 5px; font-weight: bold; font-size: 11px;">{info['status_label']}</span>
                     </div>
 
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">HIDRÁULICA</div>
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px;">
-                        <span>💧 <b>Caudal: {q:.2f} L/s</b></span> <span style="color: #cead41;">{f_q}</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px;">
+                        <span>💧 Caudal: <b>{q:.2f} L/s</b></span> <span style="color: #cead41; font-size: 9px;">{f_q}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 10px;">
-                        <span>🚀 <b>Presión: {p:.2f} kg</b></span> <span style="color: #cead41;">{f_p}</span>
+                        <span>🚀 Presión: <b>{p:.2f} kg</b></span> <span style="color: #cead41; font-size: 9px;">{f_p}</span>
                     </div>
 
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">NIVELES</div>
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px; border-top: 1px solid #222; padding-top: 5px;">NIVELES Y ELÉCTRICO</div>
                     <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
-                        <span>🔋 Tanque: <b>{tanq:.2f} mts</b></span> <span>{f_t}</span>
+                        <span>🔋 Tanque: <b>{tanq:.2f} m</b></span> <span>📈 Dinámico: <b>{dinam:.2f} m</b></span>
                     </div>
                     <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
-                        <span>📉 Dinámico: <b>{dinam:.2f} m</b></span> <span>{f_d}</span>
+                        <span>⚡ Prom. Voltaje: <b>{(v[0][0]+v[1][0]+v[2][0])/3:.1f}V</b></span> <span>🔌 Amperaje: <b>{a[0][0]:.1f}A</b></span>
                     </div>
 
-                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">ELÉCTRICO (FASES)</div>
-                    <table style="width: 100%; font-size: 10px; margin-bottom: 10px;">
-                        <tr style="color: #00d4ff; text-align: left;"><th style="padding-bottom:5px;">Fase</th><th>Voltaje</th><th>Amp</th></tr>
-                        <tr><td>L1-L2</td><td><b>{v[0][0]:.1f}V</b></td><td><b>{a[0][0]:.1f}A</b></td></tr>
-                        <tr><td>L2-L3</td><td><b>{v[1][0]:.1f}V</b></td><td><b>{a[1][0]:.1f}A</b></td></tr>
-                        <tr><td>L1-L3</td><td><b>{v[2][0]:.1f}V</b></td><td><b>{a[2][0]:.1f}A</b></td></tr>
-                    </table>
-
-                    {interactivo_bloque}
+                    {grafico_html}
 
                     <div style="margin-top: 15px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: black; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                📊 ANÁLISIS COMPLETO (SCADA)
+                            <div style="background: #00d4ff; color: black; text-align: center; padding: 12px; border-radius: 6px; font-weight: bold; font-size: 12px; letter-spacing: 0.5px;">
+                                📊 ABRIR ANÁLISIS INTERACTIVO (SCADA)
                             </div>
                         </a>
                     </div>
