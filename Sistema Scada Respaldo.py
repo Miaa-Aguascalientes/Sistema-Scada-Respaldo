@@ -1467,43 +1467,64 @@ if sector_seleccionado:
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
-        /* 1. FORZAR VISIBILIDAD SIEMPRE (Anula el auto-hide de Streamlit) */
-        section[data-testid="stSidebar"] {
-            left: 0 !important;
-            visibility: visible !important;
-            display: block !important;
-            transform: none !important; /* Evita que se desplace a la izquierda */
-            width: 300px !important;
-            position: fixed !important;
-        }
-
-        /* 2. MATAR EL BOTÓN DE COLAPSAR */
-        [data-testid="stSidebarCollapseButton"] {
+        /* 1. ELIMINAR EL TIRADOR DE REDIMENSIÓN */
+        /* Buscamos el elemento que permite arrastrar la barra y lo desactivamos */
+        [data-testid="stSidebarResizer"] {
             display: none !important;
-        }
-
-        /* 3. AJUSTE DE CUERPO PRINCIPAL */
-        /* Obligamos al mapa a empezar después de los 350px de la barra */
-        [data-testid="stMain"] {
-            margin-left: 300px !important;
-        }
-
-        /* 4. REGLA PARA PANTALLAS CHICAS O ZOOM ALTO */
-        /* Esto anula la configuración de Streamlit para móviles/laptops */
-        @media (max-width: 991px) {
-            section[data-testid="stSidebar"] {
-                left: 0 !important;
-                min-width: 350px !important;
-            }
-            [data-testid="stMain"] {
-                margin-left: 350px !important;
-            }
+            pointer-events: none !important;
         }
         
-        /* 5. ELIMINAR EL ESPACIO SUPERIOR (Para que el header azul pegue arriba) */
+        /* 2. FORZAR ANCHO ESTÁTICO E INAMOVIBLE */
+        section[data-testid="stSidebar"] {
+            width: 300px !important;
+            min-width: 300px !important;
+            max-width: 300px !important;
+            /* Evita que el usuario seleccione texto o interactúe con el borde */
+            user-select: none; 
+        }
+
+        /* 3. BLOQUEAR EL CURSOR DE REDIMENSIÓN */
+        /* A veces el cursor cambia a flechas laterales; esto lo devuelve a la normalidad */
+        html, body {
+            cursor: default !important;
+        }
+
+    
+        /* 1. AJUSTE DINÁMICO DEL MAPA AL MARGEN DERECHO */
+        [data-testid="stMain"] {
+            margin-left: 0px !important;
+            /* Restamos el ancho de la barra para que el contenido no desborde */
+            width: calc(100% - 0px) !important; 
+            padding-right: 2rem !important; /* Espacio de seguridad a la derecha */
+        }
+
+        /* 2. ASEGURAR QUE EL CONTENEDOR DE STREAMLIT USE TODO EL ANCHO DISPONIBLE */
         .block-container {
-            padding-top: 1rem !important;
             max-width: 100% !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+
+        /* 3. ARREGLAR EL CONTROL DE CAPAS (LayerControl) */
+        /* Forzamos que el cuadro de capas de Folium siempre esté visible y no se desborde */
+        .leaflet-control-layers {
+            margin-right: 20px !important; /* Separa el cuadro del borde derecho de la pantalla */
+            border: 2px solid rgba(0,255,255,0.5) !important; /* Opcional: Estilo futurista */
+            background: rgba(0, 0, 0, 0.8) !important; /* Fondo oscuro para que combine con tu HUD */
+            color: white !important;
+        }
+
+        /* Cambiar color de los textos dentro del selector de capas para que se vean en fondo oscuro */
+        .leaflet-control-layers-list, .leaflet-control-layers-base, .leaflet-control-layers-overlays {
+            color: white !important;
+        }
+        
+        /* 4. RESPONSIVIDAD PARA PANTALLAS PEQUEÑAS */
+        @media (max-width: 991px) {
+            [data-testid="stMain"] {
+                margin-left: 350px !important;
+                width: calc(100% - 350px) !important;
+            }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -1597,7 +1618,7 @@ with st.sidebar:
             st.write(f"🔴 {p}")
 
     if pozos_falla_com:
-        with st.expander(f"⚠️ Falla de Comu. ({len(pozos_falla_com)})", expanded=False):
+        with st.expander(f"⚠️ Falla de Com. ({len(pozos_falla_com)})", expanded=False):
             for p in sorted(pozos_falla_com):
                 st.write(f"🟠 {p}")
     
@@ -1988,4 +2009,4 @@ if sectores_data:
                 MousePosition().add_to(m_sec)
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
-    folium_static(m, width=1600, height=750)
+    folium_static(m, width=None, height=750)
