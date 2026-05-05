@@ -1696,57 +1696,111 @@ with col_mapa:
         """
 
 # ======================================================================================================================
-# 9. RENDERIZADO HUD - CONSULTA BAJO DEMANDA (SISTEMA IFRAME)
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (OPTIMIZADO CON IFRAME HUD)
 # ======================================================================================================================
 
-if ver_pozos:
-    for id_p, info in mapa_pozos_dict.items():
-        # 1. Extraemos datos actuales del diccionario de tiempo real (data_scada)
-        d = lambda tag: data_scada.get(tag, (0, "00/00 00:00"))
-        q, tq = d(info['caudal'])
-        p, tp = d(info['presion'])
-        v = [d(t) for t in info['voltajes_l']]
-        a = [d(t) for t in info['amperajes_l']]
+for id_p, info in mapa_pozos_dict.items():
+    if ver_pozos:  # Si el checkbox está activo, dibujamos todo
+        # --- A. EXTRACCIÓN DE DATOS ---
+        d = lambda tag: data_scada.get(tag, (0, "N/A"))
+        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+        
+        q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+        p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+        sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+        dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+        tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+        col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+        
+        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        url_grafico = f"./?grafico_mini=true&pozo_id={id_p}&caudal_tag={info['caudal']}&presion_tag={info['presion']}"
+        # --- B. CONSTRUCCIÓN DE URLs ---
+        rol_actual = st.session_state.get('rol', 'usuario')
+        nombre_codificado = urllib.parse.quote(id_p)
+        
+        # URL para el Análisis Full (Nueva Pestaña)
+        url_pozo_graf_full = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+        
+        # URL para el Gráfico HUD en el IFrame (Consulta rápida e individual)
+        url_hud_mini = f"?grafico_mini=true&pozo_id={id_p}&caudal_tag={info['caudal']}&presion_tag={info['presion']}"
 
+        # --- C. DISEÑO DEL POPUP (ESTILO HUD INTEGRADO) ---
         html_popup = f"""
-        <div style="background:#050a10; color:white; padding:15px; border-radius:5px; width:580px; font-family:sans-serif; border-top: 4px solid {info['color_final']};">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                <b style="font-size:18px; color:#aaff00;">Pozo: {id_p} - OPERANDO</b>
-            </div>
-            
-            <div style="display:flex; gap:15px; border-bottom:1px solid #1a2a3a; padding-bottom:10px; margin-bottom:10px;">
-                <div style="flex:1;">
-                    <p style="color:#00d4ff; margin:2px 0;">Caudal: <b>{q:.2f} l/s</b></p>
-                    <p style="color:#aaff00; margin:2px 0;">Presión: <b>{p:.2f} Kg</b></p>
+            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 420px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                
+                <!-- Encabezado -->
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                <div style="flex:1; border-left:1px solid #1a2a3a; padding-left:15px; font-size:11px;">
-                    <p>Voltajes: {v[0][0]:.0f}|{v[1][0]:.0f}|{v[2][0]:.0f}</p>
-                    <p>Corrientes: {a[0][0]:.1f}|{a[1][0]:.1f}|{a[2][0]:.1f}</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                    <!-- Columna Izquierda: Hidráulica -->
+                    <div>
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="font-size: 11px; margin-bottom: 3px;">💧 Caudal: <b>{q:.2f} L/s</b></div>
+                        <div style="font-size: 11px; margin-bottom: 3px;">🚀 Presión: <b>{p:.2f} kg</b></div>
+                        <div style="font-size: 10px; color: #888; margin-top: 8px; margin-bottom: 4px;">ELÉCTRICO</div>
+                        <div style="font-size: 10px;">V: <b>{v[0][0]:.0f}|{v[1][0]:.0f}|{v[2][0]:.0f}</b></div>
+                        <div style="font-size: 10px;">A: <b>{a[0][0]:.1f}|{a[1][0]:.1f}|{a[2][0]:.1f}</b></div>
+                    </div>
+                    
+                    <!-- Columna Derecha: Niveles -->
+                    <div style="border-left: 1px solid #222; padding-left: 10px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">🔋 Tanque: <b>{tanq:.2f}m</b></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">📉 Nivel D/E: <b>{dinam:.2f}m</b></div>
+                        <div style="font-size: 10px; margin-bottom: 2px;">📏 Sumerg.: <b>{sumer:.2f}m</b></div>
+                        <div style="font-size: 10px;">🏗️ Columna: <b>{col:.2f}m</b></div>
+                    </div>
+                </div>
+
+                <!-- D. ESPACIO PARA EL GRÁFICO (Se carga al abrir el popup) -->
+                <div style="margin-top: 10px; height: 180px; background: #000; border: 1px solid #1a1a1a; border-radius: 8px; overflow: hidden;">
+                    <iframe src="{url_hud_mini}" width="100%" height="100%" frameborder="0" scrolling="no"></iframe>
+                </div>
+
+                <!-- Botón de Análisis Full -->
+                <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 10px;">
+                    <a href="{url_pozo_graf_full}" target="_blank" style="text-decoration: none;">
+                        <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 8px; border-radius: 6px; font-weight: bold; font-size: 11px;">
+                            📊 VER ANÁLISIS HISTÓRICO COMPLETO
+                        </div>
+                    </a>
                 </div>
             </div>
+            """
 
-            <div style="height:220px; background:#000; border-radius:4px; overflow:hidden;">
-                <iframe src="{url_grafico}" width="100%" height="100%" frameborder="0"></iframe>
-            </div>
-        </div>
-        """
-
-        # 4. Marcadores en el mapa (Nombres siempre visibles)
+        # --- E. RENDERIZADO DE MARCADORES ---
+        # Etiqueta de Nombre (Siempre visible)
         folium.Marker(
             location=info['coord'],
             icon=folium.DivIcon(
-                icon_anchor=(50, -12),
-                html=f'<div style="font-size:11px; font-weight:bold; color:white; text-shadow:1px 1px 2px black; width:100px; text-align:center;">{id_p}</div>'
+                icon_size=(150,36),
+                icon_anchor=(75, -10), # Centrado debajo del punto
+                html=f'<div style="font-size: 10px; font-weight: bold; color: white; text-align: center; text-shadow: 1px 1px 2px #000; pointer-events: none;">{id_p}</div>'
             )
         ).add_to(m)
 
-        folium.CircleMarker(
-            location=info['coord'], radius=6, color="white", weight=1,
-            fill=True, fill_color=info['color_final'], fill_opacity=1,
-            popup=folium.Popup(html_popup, max_width=620)
-        ).add_to(m)
+        # Punto de estado con Popup interactivo
+        if info.get('blink'):
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                popup=folium.Popup(html_popup, max_width=450)
+            ).add_to(m)
+        else:
+            folium.CircleMarker(
+                location=info['coord'],
+                radius=5,
+                color="white",
+                weight=1,
+                fill=True,
+                fill_color=info['color_final'],
+                fill_opacity=1,
+                popup=folium.Popup(html_popup, max_width=450)
+            ).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
