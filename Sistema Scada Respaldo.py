@@ -18,6 +18,8 @@ import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 
+
+
 st.set_page_config(
     page_title="Sistema Scada", 
     page_icon="https://www.miaa.mx/favicon.ico", 
@@ -1462,38 +1464,46 @@ if sector_seleccionado:
     st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
+st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
-        /* 1. Sidebar Fija y con ancho controlado */
-        [data-testid="stSidebar"] {
+        /* 1. FORZAR VISIBILIDAD SIEMPRE (Anula el auto-hide de Streamlit) */
+        section[data-testid="stSidebar"] {
             left: 0 !important;
             visibility: visible !important;
-            transform: translateX(0%) !important;
-            min-width: 330px !important; 
-            max-width: 330px !important;
+            display: block !important;
+            transform: none !important; /* Evita que se desplace a la izquierda */
+            width: 300px !important;
+            position: fixed !important;
         }
 
-        /* 2. Quitar el botón de cerrar */
+        /* 2. MATAR EL BOTÓN DE COLAPSAR */
         [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
 
-        /* 3. ELIMINAR EL HUECO NEGRO: Ajustamos el contenedor principal */
-        /* Quitamos el margen excesivo y dejamos que Streamlit gestione el padding */
+        /* 3. AJUSTE DE CUERPO PRINCIPAL */
+        /* Obligamos al mapa a empezar después de los 350px de la barra */
         [data-testid="stMain"] {
-            margin-left: 0px !important; 
+            margin-left: 300px !important;
         }
 
-        /* Ajustamos la caja que contiene el mapa para que no se desplace a la derecha */
-        .block-container {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            max-width: 100% !important;
+        /* 4. REGLA PARA PANTALLAS CHICAS O ZOOM ALTO */
+        /* Esto anula la configuración de Streamlit para móviles/laptops */
+        @media (max-width: 991px) {
+            section[data-testid="stSidebar"] {
+                left: 0 !important;
+                min-width: 350px !important;
+            }
+            [data-testid="stMain"] {
+                margin-left: 350px !important;
+            }
         }
         
-        /* 4. Forzar que el mapa use el ancho disponible real */
-        iframe {
-            width: 100% !important;
+        /* 5. ELIMINAR EL ESPACIO SUPERIOR (Para que el header azul pegue arriba) */
+        .block-container {
+            padding-top: 1rem !important;
+            max-width: 100% !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -1587,7 +1597,7 @@ with st.sidebar:
             st.write(f"🔴 {p}")
 
     if pozos_falla_com:
-        with st.expander(f"⚠️ Falla de Com. ({len(pozos_falla_com)})", expanded=False):
+        with st.expander(f"⚠️ Falla de Comu. ({len(pozos_falla_com)})", expanded=False):
             for p in sorted(pozos_falla_com):
                 st.write(f"🟠 {p}")
     
