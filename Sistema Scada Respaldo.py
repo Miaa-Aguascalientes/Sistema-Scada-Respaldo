@@ -1659,88 +1659,91 @@ query_params = st.query_params
 pozo_activo = query_params.get("pozo_id", None)
 
 if ver_pozos:
-    # --- A. CONSULTA SQL INDIVIDUAL (SOLO SI HAY SELECCIÓN) ---
-    df_historico_individual = pd.DataFrame()
+    # --- A. CONSULTA SQL SOLO PARA EL POZO ELEGIDO ---
+    df_p_individual = pd.DataFrame()
     if pozo_activo and pozo_activo in mapa_pozos_dict:
-        info_p = mapa_pozos_dict[pozo_activo]
-        f_fin_p = datetime.now()
-        f_ini_p = f_fin_p - timedelta(days=7)
-        
+        info_sel = mapa_pozos_dict[pozo_activo]
         try:
+            # Traemos los últimos 7 días solo de este sitio
             query_ind = f"""
                 SELECT h.VALUE, h.FECHA, r.NAME as TagName 
                 FROM vfitagnumhistory h
                 JOIN VfiTagRef r ON h.GATEID = r.GATEID
-                WHERE r.NAME IN ('{info_p['caudal']}', '{info_p['presion']}') 
-                AND h.FECHA BETWEEN '{f_ini_p.strftime('%Y-%m-%d %H:%M:%S')}' AND '{f_fin_p.strftime('%Y-%m-%d %H:%M:%S')}' 
+                WHERE r.NAME IN ('{info_sel['caudal']}', '{info_sel['presion']}') 
+                AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                 ORDER BY h.FECHA ASC
             """
-            df_historico_individual = pd.read_sql(query_ind, get_mysql_scada_engine())
+            df_p_individual = pd.read_sql(query_ind, get_mysql_scada_engine())
         except Exception as e:
-            st.error(f"Error al cargar historial de {pozo_activo}: {e}")
+            st.error(f"Error en DB: {e}")
 
-    # --- B. BUCLE DE RENDERIZADO ---
     for id_p, info in mapa_pozos_dict.items():
         d = lambda tag: data_scada.get(tag, (0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
-        # Datos de tiempo real (Siempre disponibles)
         q, _ = d(info['caudal']) if not is_st else (0.0, "N/A")
         p, _ = d(info['presion']) if not is_st else (0.0, "N/A")
-        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
-        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        # --- C. GENERAR GRÁFICO SOLO SI ES EL POZO ACTIVO ---
-        img_base64 = ""
-        if id_p == pozo_activo and not df_historico_individual.empty:
+        # --- B. GENERAR HTML DEL GRÁFICO (SIN IMÁGENES) ---
+        grafico_html = ""
+        if id_p == pozo_activo and not df_p_individual.empty:
             fig_mini = go.Figure()
             for tag, color in [(info['caudal'], '#00d4ff'), (info['presion'], '#00ff00')]:
-                df_tag = df_historico_individual[df_historico_individual['TagName'] == tag]
+                df_tag = df_p_individual[df_p_individual['TagName'] == tag]
                 if not df_tag.empty:
-                    fig_mini.add_trace(go.Scatter(x=df_tag['FECHA'], y=df_tag['VALUE'], line=dict(color=color, width=2), mode='lines'))
+                    fig_mini.add_trace(go.Scatter(
+                        x=df_tag['FECHA'], y=df_tag['VALUE'], 
+                        line=dict(color=color, width=2), mode='lines',
+                        hovertemplate='%{y:.2f}'
+                    ))
             
             fig_mini.update_layout(
-                margin=dict(l=0, r=0, t=0, b=0), height=110, width=330,
-                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                showlegend=False, xaxis=dict(visible=False), yaxis=dict(visible=False)
+                margin=dict(l=5, r=5, t=5, b=5), height=130, width=320,
+                paper_bgcolor='black', plot_bgcolor='black',
+                showlegend=False, 
+                xaxis=dict(visible=False), yaxis=dict(visible=False, gridcolor='#222')
             )
-            img_bytes = fig_mini.to_image(format="png", engine="kaleido")
-            img_base64 = base64.b64encode(img_bytes).decode()
+            # Exportamos el gráfico a HTML puro (esto no usa Kaleido)
+            grafico_html = fig_mini.to_html(full_html=False, include_plotlyjs='cdn', config={'displayModeBar': False})
+        else:
+            # Si no es el elegido, ponemos el link de carga
+            grafico_html = f"""
+                <a href="?pozo_id={id_p}" target="_self" style="text-decoration:none;">
+                    <div style="height:110px; border:1px dashed #444; display:flex; align-items:center; justify-content:center; color:#00d4ff; font-size:11px; background:#111; border-radius:8px;">
+                        Ver tendencia de 7 días (Click aquí)
+                    </div>
+                </a>
+            """
 
-        # --- D. HTML DEL POPUP ---
-        # El botón de "CARGAR GRÁFICO" recarga la página con el parámetro del pozo
-        # El botón de "HISTÓRICO COMPLETO" abre la otra pestaña
-        url_cargar = f"?pozo_id={id_p}"
-        url_analisis = f"?graficar_pozo={id_p}&nombre={id_p}&access=granted"
-
+        # --- C. POPUP FINAL ---
         html_popup = f"""
             <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 340px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                <hr style="border: 0.5px solid #222;">
-                <div style="font-size: 12px; margin-bottom: 10px;">
-                    Caudal: <b>{q:.2f} L/s</b> | Presión: <b>{p:.2f} kg</b>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <b style="color:#00d4ff; font-size:15px;">POZO {id_p}</b>
+                    <span style="background:{info['color_final']}; color:black; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:bold;">{info['status_label']}</span>
                 </div>
-
-                {f'<img src="data:image/png;base64,{img_base64}" width="100%">' if img_base64 else 
-                 f'<a href="{url_cargar}" target="_self" style="text-decoration:none;"><div style="background:#111; color:#00d4ff; text-align:center; padding:20px; border-radius:8px; border:1px dashed #444; font-size:11px;">VER TENDENCIA AQUÍ</div></a>'}
-
-                <div style="margin-top: 10px;">
-                    <a href="{url_analisis}" target="_blank" style="text-decoration: none;">
-                        <div style="background: #00d4ff; color: #000; text-align: center; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 12px;">📊 ANÁLISIS COMPLETO (Nueva Pestaña)</div>
-                    </a>
+                <div style="font-size:12px; margin-bottom:10px; color:#ccc;">
+                    💧 <b>{q:.2f} L/s</b> | 🚀 <b>{p:.2f} kg</b>
                 </div>
+                <div style="border-radius:8px; overflow:hidden; margin-bottom:10px;">
+                    {grafico_html}
+                </div>
+                <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted" target="_blank" style="text-decoration:none;">
+                    <div style="background:#00d4ff; color:black; text-align:center; padding:10px; border-radius:6px; font-weight:bold; font-size:12px;">ANÁLISIS HISTÓRICO COMPLETO</div>
+                </a>
             </div>
         """
 
-        # --- E. MARCADORES ---
+        # --- D. DIBUJAR EN MAPA ---
+        # Etiqueta de nombre
         folium.Marker(
             location=info['coord'],
-            icon=folium.DivIcon(html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 2px 2px #000;">{id_p}</div>', icon_anchor=(-15, 12))
+            icon=folium.DivIcon(html=f'<div style="font-size:10px; font-weight:bold; color:{info["color_final"]}; text-shadow:2px 2px #000; width:100px;">{id_p}</div>', icon_anchor=(-15, 12))
         ).add_to(m)
 
-        icon_html = get_blink_icon(info['color_final']) if info.get('blink') else None
-        if icon_html:
-            folium.Marker(location=info['coord'], icon=folium.DivIcon(html=icon_html), popup=folium.Popup(html_popup, max_width=400)).add_to(m)
+        # Punto / Parpadeo
+        if info.get('blink'):
+            folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=400)).add_to(m)
         else:
             folium.CircleMarker(location=info['coord'], radius=5, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=400)).add_to(m)
 
