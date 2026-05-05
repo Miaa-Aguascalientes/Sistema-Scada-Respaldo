@@ -1844,122 +1844,91 @@ if sectores_data:
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
-        if ver_pozos:  # Si el checkbox está activo, dibujamos todo
+        if ver_pozos:
             d = lambda tag: data_scada.get(tag, (0, "N/A"))
             is_st = (info['status_label'] == 'SIN TELEMETRÍA')
             
-            # --- CAPTURA DE DATOS HIDRÁULICOS Y NIVELES ---
+            # --- CAPTURA DE DATOS ---
             q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
             p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
             sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-            
-            # --- CAPTURA DE HORARIOS ---
             h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
-            h_arr_fmt = formato_hora(h_arr_val)
-            h_par_fmt = formato_hora(h_par_val)
-            
-            # --- CAPTURA DE DATOS ELÉCTRICOS (8 VARIABLES PARA EL GRÁFICO) ---
-            # Extraemos voltajes y amperajes usando la lista de tags definida en info
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-            # --- LÓGICA DE URL PARA ANÁLISIS INTEGRAL ---
+            # --- GENERACIÓN DEL GRÁFICO BASE64 PARA HTML ---
+            # Llamamos a la función que creamos antes para obtener el objeto Plotly
+            fig_mini = generar_grafico_integral_7d(id_p, info, width=350, height=200, is_popup=True)
+            # Convertimos a imagen base64 para que Folium pueda renderizarlo dentro del popup
+            img_base64 = fig_mini.to_image(format="png", engine="kaleido")
+            import base64
+            encoded = base64.b64encode(img_base64).decode('utf-8')
+
+            # --- URL Y ESTILOS ---
             rol_actual = st.session_state.get('rol', 'usuario')
-            nombre_codificado = urllib.parse.quote(id_p)
-            # La URL ahora apunta al disparador del gráfico integral de 8 variables
-            url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+            url_pozo_graf = f"?graficar_pozo={id_p}&access=granted&role={rol_actual}"
 
-            # --- CONSTRUCCIÓN DEL POPUP (MANTENIENDO TODOS LOS DATOS) ---
             html_popup = f"""
-                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                    </div>
-                    
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>🚀 Presión: <b>{p:.2f} kg</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
-                        </div>
+                <div style="background: #000000; color: white; padding: 15px; border-radius: 10px; width: 360px; border: 2px solid {info['color_final']}; font-family: 'Arial', sans-serif;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <b style="color: #00d4ff; font-size: 18px;">POZO {id_p}</b>
+                        <span style="background: {info['color_final']}; color: black; padding: 2px 10px; border-radius: 5px; font-weight: bold; font-size: 12px;">{info['status_label']}</span>
                     </div>
 
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>🔋 Nivel de Tanque: <b>{tanq:.2f} mts</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>🏗️ Longitud Columna: <b>{col:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
-                        </div>
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">HIDRÁULICA</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px;">
+                        <span>💧 <b>Caudal: {q:.2f} L/s</b></span> <span style="color: #cead41;">{f_q}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 10px;">
+                        <span>🚀 <b>Presión: {p:.2f} kg</b></span> <span style="color: #cead41;">{f_p}</span>
                     </div>
 
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO (MONITOREO DE FASES)</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
-                            <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                                <th style="padding: 4px;">Fase</th>
-                                <th style="padding: 4px;">Voltaje / Act.</th>
-                                <th style="padding: 4px;">Amp / Act.</th>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #222;">
-                                <td style="padding: 6px 4px;">L1-L2</td>
-                                <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
-                                <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #222;">
-                                <td style="padding: 6px 4px;">L2-L3</td>
-                                <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
-                                <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 4px;">L1-L3</td>
-                                <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
-                                <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
-                            </tr>
-                        </table>
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">NIVELES</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>🔋 Nivel de Tanque: <b>{tanq:.2f} mts</b></span> <span>{f_t}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span> <span>{f_d}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span> <span>{f_s}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
+                        <span>🏗️ Longitud Columna: <b>{col:.2f} m</b></span> <span>{f_col}</span>
                     </div>
 
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS DE OPERACIÓN</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
-                        </div>
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">ELÉCTRICO (MONITOREO DE FASES)</div>
+                    <table style="width: 100%; font-size: 10px; margin-bottom: 10px; color: #00d4ff;">
+                        <tr><th align="left">Fase</th><th align="left">Voltaje / Act.</th><th align="left">Amp / Act.</th></tr>
+                        <tr style="color: white;"><td>L1-L2</td><td><b>{v[0][0]:.1f}V</b> <small style="color:#cead41;">{v[0][1]}</small></td><td><b>{a[0][0]:.1f}A</b> <small style="color:#cead41;">{a[0][1]}</small></td></tr>
+                        <tr style="color: white;"><td>L2-L3</td><td><b>{v[1][0]:.1f}V</b> <small style="color:#cead41;">{v[1][1]}</small></td><td><b>{a[1][0]:.1f}A</b> <small style="color:#cead41;">{a[1][1]}</small></td></tr>
+                        <tr style="color: white;"><td>L1-L3</td><td><b>{v[2][0]:.1f}V</b> <small style="color:#cead41;">{v[2][1]}</small></td><td><b>{a[2][0]:.1f}A</b> <small style="color:#cead41;">{a[2][1]}</small></td></tr>
+                    </table>
+
+                    <div style="font-size: 10px; color: #666; margin-bottom: 5px;">HORARIOS DE OPERACIÓN</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>▶️ Arranque: <b>{formato_hora(h_arr_val)}</b></span> <span>{f_h_arr}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
+                        <span>⏹️ Paro: <b>{formato_hora(h_par_val)}</b></span> <span>{f_h_par}</span>
                     </div>
 
-                    <div style="border-top: 1px solid #333; padding-top: 10px;">
-                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                📊 VER GRÁFICO INTEGRAL (8 VARIABLES)
-                            </div>
-                        </a>
+                    <!-- GRÁFICO INTEGRAL INCRUSTADO -->
+                    <div style="text-align: center; background: #050505; border-radius: 5px; padding: 5px; margin-bottom: 10px;">
+                        <img src="data:image/png;base64,{encoded}" style="width: 100%; border-radius: 3px;">
                     </div>
+
+                    <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                        <div style="background: #00d4ff; color: black; text-align: center; padding: 8px; border-radius: 5px; font-weight: bold; font-size: 12px;">
+                            📊 VER GRÁFICO INTEGRAL (8 VARIABLES)
+                        </div>
+                    </a>
                 </div>
-                """
+            """
 
             # --- RENDERIZADO DE MARCADORES EN MAPA ---
             # Etiqueta con el nombre del pozo
