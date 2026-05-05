@@ -1838,11 +1838,7 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-El error que experimentabas (el NameError: col is not defined) se debe a que en tu bloque de CAPTURA DE DATOS ACTUALES, no habías definido la variable col, pero luego intentabas usarla dentro de html_popup.
 
-Aquí tienes el código de la Sección 9.6 corregido, integrado y con una protección para que, si el dato no existe, el programa no se rompa y muestre 0.00.
-
-Python
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (OPTIMIZADO Y CORREGIDO) ----------------------------------------------------------------------
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:
