@@ -275,6 +275,65 @@ def obtener_historia_7_dias(tag_name):
         return df
     except:
         return pd.DataFrame()
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+# funcion para el grafico del popup de los pozos
+def generar_grafico_integral_7d(dict_tags):
+    """
+    Gráfico multivariable: Hidráulica + 3 Fases Eléctricas.
+    """
+    # 1. Extracción de señales (7 días)
+    # Hidráulicos
+    df_q = obtener_historia_7_dias(dict_tags['caudal'])
+    df_p = obtener_historia_7_dias(dict_tags['presion'])
+    
+    # Eléctricos: Voltajes
+    df_v1 = obtener_historia_7_dias(dict_tags['v1'])
+    df_v2 = obtener_historia_7_dias(dict_tags['v2'])
+    df_v3 = obtener_historia_7_dias(dict_tags['v3'])
+    
+    # Eléctricos: Amperajes
+    df_a1 = obtener_historia_7_dias(dict_tags['a1'])
+    df_a2 = obtener_historia_7_dias(dict_tags['a2'])
+    df_a3 = obtener_historia_7_dias(dict_tags['a3'])
+
+    # 2. Crear figura con 3 ejes Y independientes
+    fig = go.Figure()
+
+    # --- LÍNEAS DE VOLTAJE (Eje Y3 - Superior) ---
+    for df, name, color in zip([df_v1, df_v2, df_v3], ['V1', 'V2', 'V3'], ['#FF5733', '#C70039', '#900C3F']):
+        fig.add_trace(go.Scatter(x=df['TIMESTAMP'], y=df['VALUE'], name=f"{name} (V)", 
+                                 line=dict(color=color, width=1, dash='dot'), yaxis="y3"))
+
+    # --- LÍNEAS DE AMPERAJE (Eje Y2 - Secundario) ---
+    for df, name, color in zip([df_a1, df_a2, df_a3], ['A1', 'A2', 'A3'], ['#33FF57', '#28B463', '#1D8348']):
+        fig.add_trace(go.Scatter(x=df['TIMESTAMP'], y=df['VALUE'], name=f"{name} (A)", 
+                                 line=dict(color=color, width=1.5), yaxis="y2"))
+
+    # --- CAUDAL Y PRESIÓN (Eje Y1 - Principal) ---
+    fig.add_trace(go.Scatter(x=df_q['TIMESTAMP'], y=df_q['VALUE'], name="Caudal (L/s)",
+                             line=dict(color='#00d4ff', width=3), fill='tozeroy', yaxis="y1"))
+    
+    fig.add_trace(go.Scatter(x=df_p['TIMESTAMP'], y=df_p['VALUE'], name="Presión (kg)",
+                             line=dict(color='#FFFF00', width=2), yaxis="y1"))
+
+    # 3. Configuración de Triple Eje "HUD Style"
+    fig.update_layout(
+        template="plotly_dark",
+        hovermode="x unified",
+        xaxis=dict(domain=[0.1, 0.9], gridcolor='#222'),
+        yaxis=dict(title="Caudal / Presión", titlefont=dict(color="#00d4ff"), gridcolor='#333'),
+        yaxis2=dict(title="Amperaje (L1, L2, L3)", titlefont=dict(color="#33FF57"),
+                    anchor="free", overlaying="y", side="right", position=0.95),
+        yaxis3=dict(title="Voltaje (L1, L2, L3)", titlefont=dict(color="#FF5733"),
+                    anchor="free", overlaying="y", side="left", position=0.05),
+        legend=dict(orientation="h", y=-0.2),
+        margin=dict(l=50, r=50, t=50, b=50)
+    )
+
+    return fig
         
 # 2.6. Funcion para optener los poligonos de los sectores y sus demas campos
 @st.cache_data(ttl=3600)
@@ -1783,30 +1842,38 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
         if ver_pozos:  # Si el checkbox está activo, dibujamos todo
             d = lambda tag: data_scada.get(tag, (0, "N/A"))
             is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+            
+            # --- CAPTURA DE DATOS HIDRÁULICOS Y NIVELES ---
             q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
             p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
             sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+            
+            # --- CAPTURA DE HORARIOS ---
             h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
             h_arr_fmt = formato_hora(h_arr_val)
             h_par_fmt = formato_hora(h_par_val)
+            
+            # --- CAPTURA DE DATOS ELÉCTRICOS (8 VARIABLES PARA EL GRÁFICO) ---
+            # Extraemos voltajes y amperajes usando la lista de tags definida en info
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-            # SOLUCIÓN AL LOGIN: Incluimos access=granted y el rol actual en la URL
+            # --- LÓGICA DE URL PARA ANÁLISIS INTEGRAL ---
             rol_actual = st.session_state.get('rol', 'usuario')
             nombre_codificado = urllib.parse.quote(id_p)
-            
+            # La URL ahora apunta al disparador del gráfico integral de 8 variables
             url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
+            # --- CONSTRUCCIÓN DEL POPUP (MANTENIENDO TODOS LOS DATOS) ---
             html_popup = f"""
                 <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
                     <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
@@ -1829,11 +1896,11 @@ if sectores_data:
                     <div style="margin-bottom: 12px;">
                         <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
+                            <span>🔋 Nivel de Tanque: <b>{tanq:.2f} mts</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
+                            <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
@@ -1841,13 +1908,13 @@ if sectores_data:
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
+                            <span>🏗️ Longitud Columna: <b>{col:.2f} m</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
                         </div>
                     </div>
 
                     <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO (MONITOREO DE FASES)</div>
                         <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
                             <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
                                 <th style="padding: 4px;">Fase</th>
@@ -1870,7 +1937,10 @@ if sectores_data:
                                 <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
                             </tr>
                         </table>
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS DE OPERACIÓN</div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
                             <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
@@ -1879,17 +1949,20 @@ if sectores_data:
                             <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
                         </div>
+                    </div>
 
-                        <div style="border-top: 1px solid #333; padding-top: 10px;">
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
                         <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
                             <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                📊 VER ANÁLISIS HISTÓRICO
+                                📊 VER GRÁFICO INTEGRAL (8 VARIABLES)
                             </div>
                         </a>
                     </div>
                 </div>
                 """
 
+            # --- RENDERIZADO DE MARCADORES EN MAPA ---
+            # Etiqueta con el nombre del pozo
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(
@@ -1899,6 +1972,7 @@ if sectores_data:
                 )
             ).add_to(m)
 
+            # Punto con efecto de parpadeo (Blink) o Círculo estático
             if info.get('blink'):
                 folium.Marker(
                     location=info['coord'],
