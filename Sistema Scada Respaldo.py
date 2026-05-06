@@ -1921,19 +1921,18 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (CORREGIDO)
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:
+        # Extracción de datos actuales para el encabezado del popup
         d = lambda tag: data_scada.get(tag, (0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-        
         q, _ = d(info['caudal']) if not is_st else (0.0, "N/A")
         p, _ = d(info['presion']) if not is_st else (0.0, "N/A")
 
+        # Configuración de URL para carga bajo demanda (Sección 4.5)
         rol_actual = st.session_state.get('rol', 'usuario')
         nombre_codificado = urllib.parse.quote(id_p)
-        
-        # AGREGAMOS ?embed=true para que no se vea el botón de "Gestionar" ni menús
         url_iframe = (
             f"/?graficar_pozo={nombre_codificado}"
             f"&ejecutar_analisis=True"
@@ -1942,52 +1941,70 @@ for id_p, info in mapa_pozos_dict.items():
             f"&role={rol_actual}"
         )
 
+        # Diseño del HTML del Popup optimizado para tus dimensiones
         html_popup = f"""
-            <div style="background: #060606; color: white; padding: 15px; border-radius: 12px; width: 450px; border: 2px solid {info['color_final']}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 12px;">
-                    <b style="color: #00fbff; font-size: 16px;">POZO {id_p}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 3px 10px; border-radius: 5px; font-weight: bold;">{info['status_label']}</span>
+            <div style="background: #060606; color: white; padding: 12px; border-radius: 10px; width: 440px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                    <b style="color: #00fbff; font-size: 14px;">ESTACIÓN: {id_p}</b>
+                    <span style="font-size: 9px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">
+                        {info['status_label']}
+                    </span>
                 </div>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div style="flex: 1; background: #111; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #222;">
-                        <div style="font-size: 9px; color: #777;">CAUDAL</div>
-                        <div style="font-size: 16px; color: #00fbff; font-weight: bold;">{q:.2f} <small>L/s</small></div>
+                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <div style="flex: 1; background: #111; padding: 6px; border-radius: 6px; text-align: center; border: 1px solid #222;">
+                        <div style="font-size: 8px; color: #888;">CAUDAL ACTUAL</div>
+                        <div style="font-size: 15px; color: #00fbff; font-weight: bold;">{q:.2f} <small style="font-size: 9px;">L/s</small></div>
                     </div>
-                    <div style="flex: 1; background: #111; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #222;">
-                        <div style="font-size: 9px; color: #777;">PRESIÓN</div>
-                        <div style="font-size: 16px; color: #00ff41; font-weight: bold;">{p:.2f} <small>kg/cm²</small></div>
+                    <div style="flex: 1; background: #111; padding: 6px; border-radius: 6px; text-align: center; border: 1px solid #222;">
+                        <div style="font-size: 8px; color: #888;">PRESIÓN RED</div>
+                        <div style="font-size: 15px; color: #00ff41; font-weight: bold;">{p:.2f} <small style="font-size: 9px;">kg/cm²</small></div>
                     </div>
                 </div>
 
-                <div style="border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #333;">
-                    <iframe src="{url_iframe}" width="100%" height="320" frameborder="0" loading="lazy" style="background: black; border: none;"></iframe>
+                <div style="border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #222;">
+                    <iframe src="{url_iframe}" width="100%" height="280" frameborder="0" loading="lazy" style="background: black;"></iframe>
                 </div>
-                
-                <div style="margin-top: 12px; display: flex; justify-content: space-between;">
-                     <small style="color: #444; font-size: 9px;">MIAA TELEMETRÍA</small>
-                     <a href="/?graficar_pozo={nombre_codificado}&access=granted" target="_blank" style="color: #00fbff; font-size: 11px; font-weight: bold; text-decoration: none;">DETALLES COMPLETOS ↗</a>
+
+                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <small style="color: #444; font-size: 8px;">ID: {info.get('GATEID', 'N/A')}</small>
+                    <a href="/?graficar_pozo={nombre_codificado}&access=granted" target="_blank" style="text-decoration: none; color: #00fbff; font-size: 10px; font-weight: bold;">
+                        ABRIR ANÁLISIS COMPLETO ↗
+                    </a>
                 </div>
             </div>
         """
 
-        # Configuramos el popup con un ancho mínimo y máximo mayor
-        popup_obj = folium.Popup(html_popup, min_width=470, max_width=470)
+        # --- RENDERIZADO DE LOS PUNTOS CON TUS ESTILOS ---
         
+        # 1. Etiqueta de texto (ID del Pozo)
+        folium.Marker(
+            location=info['coord'],
+            icon=folium.DivIcon(
+                icon_size=(150,36),
+                icon_anchor=(-12, 10),
+                html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+            )
+        ).add_to(m)
+
+        # 2. Punto del Pozo (Blink o Círculo) con el Popup dinámico
+        popup_final = folium.Popup(html_popup, max_width=470, min_width=470)
+
         if info.get('blink'):
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=popup_obj
+                popup=popup_final
             ).add_to(m)
         else:
             folium.CircleMarker(
                 location=info['coord'],
-                radius=8,
+                radius=4,
                 color=info['color_final'],
                 fill=True,
+                fill_color=info['color_final'],
                 fill_opacity=1,
-                popup=popup_obj
+                popup=popup_final
             ).add_to(m)
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
