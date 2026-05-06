@@ -18,10 +18,7 @@ import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 
-if "graficar_pozo" in st.query_params and "ejecutar_analisis" in st.query_params:
-    # Si la URL trae estos parámetros, solo ejecuta el gráfico y se detiene
-    graficar_pozo_popup()
-    st.stop()
+
 
 st.set_page_config(
     page_title="Sistema Scada", 
