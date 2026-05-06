@@ -750,67 +750,55 @@ if "graficar_pozo" in params:
 
 def graficar_pozo_popup():
     """
-    Renderiza únicamente el gráfico histórico de 5 días para el popup, 
-    sin elementos de interfaz de Streamlit ni selectores.
+    Función optimizada para el popup del mapa. 
+    Muestra solo el gráfico de 5 días en modo dark.
     """
+    # 1. Verificación de parámetros en la URL
     params = st.query_params
-
-    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
-        # 1. INYECCIÓN DE CSS PARA LIMPIAR TODO EL CONTENEDOR
+    id_pozo_graf = params.get("graficar_pozo")
+    
+    # Solo se ejecuta si explícitamente se pide el análisis del popup
+    if id_pozo_graf and params.get("ejecutar_analisis") == "True":
+        
+        # 2. Inyección de CSS para ocultar menús de Streamlit y forzar fondo negro
         st.markdown("""
             <style>
                 #MainMenu {visibility: hidden;}
                 footer {visibility: hidden;}
                 header {visibility: hidden;}
                 div[data-testid="stToolbar"] {visibility: hidden;}
-                .block-container {
-                    padding: 0rem !important;
-                }
-                body {
-                    background-color: black;
-                    overflow: hidden;
-                }
+                .block-container { padding: 0rem !important; }
+                body { background-color: black; overflow: hidden; }
             </style>
         """, unsafe_allow_html=True)
 
-        id_pozo_graf = params["graficar_pozo"]
-        
-        # Recuperar configuración de señales del pozo
-        mapa_pozos_dict = cargar_mapa_pozos_desde_db()
-        pozo_info = mapa_pozos_dict.get(id_pozo_graf)
+        try:
+            # Recuperar configuración del pozo
+            mapa_pozos_dict = cargar_mapa_pozos_desde_db()
+            pozo_info = mapa_pozos_dict.get(id_pozo_graf)
 
-        if not pozo_info:
-            st.stop()
+            if not pozo_info:
+                st.error(f"Pozo {id_pozo_graf} no configurado.")
+                st.stop()
 
-        # 2. RANGO FIJO DE 5 DÍAS
-        f_fin = datetime.now()
-        f_ini = f_fin - timedelta(days=5) 
+            # 3. Definir ventana de tiempo: Últimos 5 días fijos
+            f_fin = datetime.now()
+            f_ini = f_fin - timedelta(days=5)[cite: 1]
 
-        # Configuración de señales (Caudal y Presión como base)
-        config_visual = [
-            ('caudal', "Q (Lps)", False, '#00d4ff'),
-            ('presion', "P (Kg)", True, '#00ff00')
-        ]
-        
-        # Agregar voltajes y amperajes si existen en la configuración
-        for i, t in enumerate(pozo_info.get('voltajes_l', [])):
-            if t and t != 'N/A': config_visual.append((t, f"V{i+1}", True, '#fffb00'))
-        for i, t in enumerate(pozo_info.get('amperajes_l', [])):
-            if t and t != 'N/A': config_visual.append((t, f"A{i+1}", True, '#ff8000'))
+            # Configuración de tags a graficar (Caudal y Presión)
+            tags_finales = [
+                {'tag': pozo_info.get('caudal'), 'label': "Q (Lps)", 'side': False, 'color': '#00d4ff'},
+                {'tag': pozo_info.get('presion'), 'label': "P (Kg)", 'side': True, 'color': '#00ff00'}
+            ]
 
-        tags_finales = []
-        for item in config_visual:
-            tag_key, label, side, color = item
-            real_tag = pozo_info.get(tag_key, tag_key)
-            if real_tag and real_tag != 'N/A':
-                tags_finales.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
+            # Limpiar tags 'N/A' o vacíos
+            tags_finales = [t for t in tags_finales if t['tag'] and t['tag'] != 'N/A']
 
-        if tags_finales:
-            try:
+            if tags_finales:
                 engine_scada = get_mysql_scada_engine()
                 lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
                 
-                # Query directo con los 5 días filtrados desde SQL para mayor velocidad
+                # Query directo de 5 días
                 query = f"""
                     SELECT r.NAME as TagName, h.VALUE, h.FECHA 
                     FROM vfitagnumhistory h
@@ -822,7 +810,6 @@ def graficar_pozo_popup():
                 df = pd.read_sql(query, engine_scada)
                 
                 if not df.empty:
-                    # 3. CREACIÓN DEL GRÁFICO SIN TÍTULOS
                     fig = make_subplots(specs=[[{"secondary_y": True}]])
                     
                     for t_info in tags_finales:
@@ -833,44 +820,39 @@ def graficar_pozo_popup():
                                     x=df_tag['FECHA'], 
                                     y=df_tag['VALUE'], 
                                     name=t_info['label'],
-                                    line=dict(color=t_info['color'], width=1.5),
+                                    line=dict(color=t_info['color'], width=1.8),
                                     mode='lines'
                                 ),
                                 secondary_y=t_info['side']
                             )
 
-                    # Ajuste de layout para aprovechar el 100% del espacio del popup
+                    # Estilo limpio: Sin títulos, márgenes mínimos
                     fig.update_layout(
                         template="plotly_dark",
-                        height=280, 
-                        margin=dict(l=5, r=5, t=5, b=5), # Margen mínimo sin títulos
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
+                        height=240, 
+                        margin=dict(l=5, r=5, t=5, b=5), 
+                        paper_bgcolor='black',
+                        plot_bgcolor='black',
                         showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=0.01,
-                            xanchor="right",
-                            x=1,
-                            font=dict(size=8)
-                        )
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
                     )
                     
-                    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(size=8))
-                    fig.update_yaxes(showgrid=True, gridcolor='#111', zeroline=False, tickfont=dict(size=8))
+                    fig.update_xaxes(showgrid=False, tickfont=dict(size=8))
+                    fig.update_yaxes(showgrid=True, gridcolor='#222', tickfont=dict(size=8))
                     
-                    # Mostrar gráfico sin barra de herramientas (displayModeBar=False)
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 else:
-                    st.caption("No hay datos históricos (5d)")
-            except Exception:
-                pass 
+                    st.warning("Sin datos (5 días)")
+            
+        except Exception as e:
+            st.error(f"Error: {e}")
         
-        # Finaliza la ejecución para que no cargue el resto del dashboard
-        st.stop()
+        # 4. EL PASO MÁS IMPORTANTE:
+        # Esto mata la ejecución aquí para que Streamlit NO llegue al código del mapa.
+        st.stop()[cite: 1]
 
-# Invocación al inicio del script principal
+# --- UBICACIÓN CORRECTA ---
+# Pon esto justo después de st.set_page_config()
 graficar_pozo_popup()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
