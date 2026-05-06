@@ -1816,7 +1816,7 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---
+# --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:  # Solo si el checkbox está activo
         d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
@@ -1923,6 +1923,7 @@ for id_p, info in mapa_pozos_dict.items():
                 </a>
             </div>
         """
+        popup_obj = folium.Popup(folium.Html(html_popup, script=True), max_width=450, lazy=True)
 
         # Agregar Etiqueta de Texto ID
         folium.Marker(
@@ -1939,7 +1940,7 @@ for id_p, info in mapa_pozos_dict.items():
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=450)
+                popup=popup_obj # <--- Usamos el objeto lazy
             ).add_to(m)
         else:
             folium.CircleMarker(
@@ -1949,7 +1950,7 @@ for id_p, info in mapa_pozos_dict.items():
                 fill=True,
                 fill_color=info['color_final'],
                 fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=450)
+                popup=popup_obj # <--- Usamos el objeto lazy
             ).add_to(m)
 
 
