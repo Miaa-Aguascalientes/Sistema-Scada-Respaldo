@@ -2021,98 +2021,53 @@ for id_p, info in mapa_pozos_dict.items():
             except: continue
             
 # ==============================================================================
-# 9.8. RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL
-# ==============================================================================
-if ver_rebombeos:
-    for id_rb, info in mapa_rebombeos_dict.items():
-        try:
-            # Extracción de datos del SCADA con lambda para manejo de N/A
-            d = lambda tag: data_scada.get(tag, (0, "N/A"))
-            
-            pres, f_p = d(info['presion'])
-            ntq, f_t = d(info['nivel_tanque'])
-            
-            # Voltajes y Amperajes (Listas de tuplas)
-            v_rb = [d(t) for t in info['voltajes_l']]
-            a_rb = [d(t) for t in info['amperajes_l']]
+# --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---
+from folium.plugins import MarkerCluster
 
-            # Construcción del HTML para el Popup de Rebombeo
-            html_popup_rb = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+# Definir clúster FUERA del bucle
+cluster_pozos = MarkerCluster(name="Red de Pozos", disableClusteringAtZoom=14).add_to(m)
+
+for id_p, info in mapa_pozos_dict.items():
+    if ver_pozos:
+        d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
+        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+        
+        # Generar Sparkline (con el caché del punto 1 esto será instantáneo)
+        spark_base64 = generar_sparkline_base64(info['caudal'])
+        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:50px; border-radius:5px;">' if spark_base64 else ""
+
+        # HTML ultra-compacto (menos texto = carga más rápida)
+        html_popup = f"""
+            <div style="background:#050505; color:white; padding:12px; border-radius:10px; width:350px; border:1px solid {info['color_final']}; font-family:sans-serif;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <b style="color:#00d4ff;">POZO {id_p}</b>
+                    <span style="font-size:9px; background:{info['color_final']}; color:black; padding:2px 5px; border-radius:3px; font-weight:bold;">{info['status_label']}</span>
                 </div>
-                <hr style="border: 0.5px solid #333; margin: 8px 0;">
-                <div style="font-size: 11px; margin-bottom: 8px;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>🚀 Presión: <b>{pres:.2f} kg</b></span>
-                        <span style="color:#FFFF00; font-size:8px;">{f_p}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 4px;">
-                        <span>🔋 Nivel Tanque: <b>{ntq:.2f} m</b></span>
-                        <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
-                    </div>
+                {spark_html}
+                <div style="font-size:11px; margin-top:8px;">
+                    💧 {d(info['caudal'])[0]:.2f} L/s | 🚀 {d(info['presion'])[0]:.2f} kg
                 </div>
-                <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
-                    <thead>
-                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                            <th style="padding-bottom: 4px;">Fase</th>
-                            <th style="padding-bottom: 4px;">Voltaje</th>
-                            <th style="padding-bottom: 4px;">Amp</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 3px 0;">L1-L2</td>
-                            <td><b>{v_rb[0][0]:.0f}V</b></td>
-                            <td><b>{a_rb[0][0]:.1f}A</b></td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 3px 0;">L2-L3</td>
-                            <td><b>{v_rb[1][0]:.0f}V</b></td>
-                            <td><b>{a_rb[1][0]:.1f}A</b></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 3px 0;">L1-L3</td>
-                            <td><b>{v_rb[2][0]:.0f}V</b></td>
-                            <td><b>{a_rb[2][0]:.1f}A</b></td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="margin-top:10px; border-top:1px solid #333; padding-top:8px; text-align:center;">
+                    <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted&role={st.session_state.rol}" target="_blank" style="color:#00d4ff; text-decoration:none; font-size:11px; font-weight:bold;">📊 VER HISTORIAL</a>
+                </div>
             </div>
-            """
-            popup_obj_rb = folium.Popup(folium.Html(html_popup_rb, script=True), max_width=350, lazy=True)
+        """
 
-            # Marcador Geométrico o Animado (Blink)
-            if info.get('blink'):
-                folium.Marker(
-                    location=info['coord'],
-                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                    popup=popup_obj_rb # <--- Usamos el objeto lazy
-                ).add_to(m)
-            else:
-                folium.RegularPolygonMarker(
-                    location=info['coord'],
-                    number_of_sides=4,
-                    radius=6,
-                    color=info['color_final'],
-                    fill=True,
-                    fill_color=info['color_final'],
-                    popup=popup_obj_rb # <--- Usamos el objeto lazy
-                ).add_to(m)
-            
-            # Etiqueta de ID del Rebombeo
+        # Objeto Lazy (Solo se procesa al hacer clic)
+        popup_obj = folium.Popup(folium.Html(html_popup, script=True), max_width=400, lazy=True)
+
+        # Marcador al clúster
+        if info.get('blink'):
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(
-                    icon_anchor=(-15, 15),
-                    html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000; pointer-events: none;">{id_rb}</div>'
-                )
-            ).add_to(m)
-
-        except Exception as e:
-            continue
+                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                popup=popup_obj
+            ).add_to(cluster_pozos)
+        else:
+            folium.CircleMarker(
+                location=info['coord'], radius=5, color=info['color_final'],
+                fill=True, fill_opacity=1, popup=popup_obj
+            ).add_to(cluster_pozos)
 
 # ==============================================================================
 # 9.9. FINALIZACIÓN Y RENDERIZADO ÚNICO DEL MAPA (FUERA DE BUCLES)
