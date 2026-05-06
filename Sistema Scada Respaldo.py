@@ -1913,7 +1913,7 @@ for id_p, info in mapa_pozos_dict.items():
                         <tr>
                             <td style="padding: 4px;">L1-L3</td>
                             <td><b>{v[2][0]:.1f}V</b> <small style="color:#FFFF00;">{v[2][1]}</small></td>
-                            <td><b>{a[2][0]:.1f}A</b> <small style="color:#FFFF00;">{a[2][1]}</small></td>
+                            <td><b>{a[2][0]:.1f}A</b> <small style="color:#FFFF00;">{a[2][1]}</small></td> 
                         </tr>
                     </table>
                 </div>
