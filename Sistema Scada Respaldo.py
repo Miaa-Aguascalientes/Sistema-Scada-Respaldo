@@ -617,7 +617,12 @@ if "graficar_pozo" in params:
         st.error(f"❌ No se encontró configuración para el pozo: {id_pozo_graf}")
         st.stop()
 
-    st.title(f"📈 Análisis Integral: {nombre_pozo}")
+    # --- TÍTULO E INDICADOR DE VOLUMEN TOTALIZADO ---
+    col_t1, col_t2 = st.columns([0.7, 0.3])
+    with col_t1:
+        st.title(f"📈 Análisis Integral: {nombre_pozo}")
+    
+    totalizador_placeholder = st.empty() # Espacio para el valor calculado después de la consulta
     
     # 5.1. FILTRO DE TIEMPO
     col_f1, col_f2 = st.columns([2, 2])
@@ -652,22 +657,23 @@ if "graficar_pozo" in params:
             rango = st.date_input("Selecciona el periodo:", 
                                  value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()),
                                  max_value=hoy_dt.date())
-        # Validación crítica para el selector personalizado
         if isinstance(rango, (list, tuple)) and len(rango) == 2:
             f_ini = datetime.combine(rango[0], datetime.min.time())
             f_fin = datetime.combine(rango[1], datetime.max.time())
         else:
-            # Mientras el usuario elige la segunda fecha, evitamos que el código truene
             st.info("Selecciona la fecha de inicio y fin en el calendario.")
             st.stop()
     else:
         f_ini = hoy_dt - timedelta(days=7)
 
-    # 5.2. CONFIGURACIÓN DE VARIABLES
+    # 5.2. CONFIGURACIÓN DE VARIABLES (Incluimos caudal_total para cálculo)
     config_visual = [
         ('caudal', "Caudal (Lps)", False, '#00d4ff'),
         ('presion', "Presión (Kg/cm²)", True, '#00ff00')
     ]
+    
+    # Extraemos el tag del totalizador si existe en el diccionario
+    tag_totalizador = pozo_info.get('caudal_total') or pozo_info.get('totalizado')
     
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", True, '#fffb00'))
@@ -682,10 +688,15 @@ if "graficar_pozo" in params:
         if real_tag and real_tag != 'N/A':
             tags_finales.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
 
-    if tags_finales:
+    # Añadimos el tag de totalizado a la consulta SQL pero no necesariamente al gráfico de líneas
+    tags_consulta = [t['tag'] for t in tags_finales]
+    if tag_totalizador and tag_totalizador != 'N/A':
+        tags_consulta.append(tag_totalizador)
+
+    if tags_consulta:
         try:
             engine_scada = get_mysql_scada_engine()
-            lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
+            lista_tags_sql = "', '".join(list(set(tags_consulta)))
             
             query = f"""
                 SELECT r.NAME as TagName, h.VALUE, h.FECHA 
@@ -698,21 +709,38 @@ if "graficar_pozo" in params:
             df = pd.read_sql(query, engine_scada)
             
             if not df.empty:
+                # --- CÁLCULO DEL VOLUMEN EXTRAÍDO (DELTA TOTALIZADO) ---
+                if tag_totalizador and tag_totalizador in df['TagName'].values:
+                    df_tot = df[df['TagName'] == tag_totalizador].sort_values('FECHA')
+                    if len(df_tot) >= 2:
+                        val_inicial = df_tot['VALUE'].iloc[0]
+                        val_final = df_tot['VALUE'].iloc[-1]
+                        volumen_m3 = val_final - val_inicial
+                        
+                        # Renderizar el indicador arriba a la derecha
+                        with totalizador_placeholder:
+                            st.markdown(f"""
+                                <div style="background: rgba(0, 212, 255, 0.1); border: 1px solid #00d4ff; padding: 10px; border-radius: 10px; text-align: center;">
+                                    <p style="margin:0; color:#888; font-size:12px; text-transform:uppercase;">Volumen Extraído en Periodo</p>
+                                    <p style="margin:0; color:#00d4ff; font-size:24px; font-weight:bold;">{volumen_m3:,.2f} m³</p>
+                                </div>
+                            """, unsafe_allow_html=True)
+                    else:
+                        totalizador_placeholder.info("Datos de totalizado insuficientes para calcular delta.")
+
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 
                 for t_info in tags_finales:
                     df_tag = df[df['TagName'] == t_info['tag']]
                     if not df_tag.empty:
-                        # Estilos diferenciados
                         is_amp = "Amp" in t_info['label']
-                        
                         fig.add_trace(
                             go.Scatter(
                                 x=df_tag['FECHA'], 
                                 y=df_tag['VALUE'], 
                                 name=t_info['label'],
                                 line=dict(color=t_info['color'], width=1.5 if is_amp else 2),
-                                mode='lines+markers' if is_amp else 'lines', # Amperajes con puntos
+                                mode='lines+markers' if is_amp else 'lines',
                                 marker=dict(size=4) if is_amp else None
                             ),
                             secondary_y=t_info['side']
@@ -724,13 +752,7 @@ if "graficar_pozo" in params:
                     height=700,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    # LEYENDA A LA IZQUIERDA
-                    legend=dict(
-                        orientation="h", 
-                        y=1.05, 
-                        x=0,          # Alineado al inicio (izquierda)
-                        xanchor="left" # El punto de anclaje es la izquierda de la leyenda
-                    )
+                    legend=dict(orientation="h", y=1.05, x=0, xanchor="left")
                 )
                 
                 fig.update_yaxes(title_text="<b>Caudal (Lps)</b>", secondary_y=False, color='#00d4ff')
