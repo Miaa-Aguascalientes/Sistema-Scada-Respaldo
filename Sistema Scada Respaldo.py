@@ -27,6 +27,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+graficar_pozo_popup()
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
 # 0.1. INICIALIZACIÓN DE ESTADOS 
