@@ -489,7 +489,7 @@ if tag_a_graficar:
     
     st.title(f"📊 Análisis de Nivel: {nombre_tq}")
     
-    # 4.1. FILTROS DE FECHA ---
+   
     col_f1, col_f2 = st.columns([1, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -501,7 +501,7 @@ if tag_a_graficar:
 
     hoy = datetime.date.today()
     
-    # 4.2. Lógica de selección de fechas
+   
     if opcion_fecha == "Hoy":
         fecha_inicio = hoy
         fecha_fin = hoy
@@ -519,7 +519,6 @@ if tag_a_graficar:
             rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="pop_cal_v8")
             fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-    # 4.3. CONSULTA A LA BASE DE DATOS
     try:
         engine = get_mysql_scada_engine()
         f_desde = f"{fecha_inicio} 00:00:00"
@@ -540,7 +539,7 @@ if tag_a_graficar:
             df_hist['FECHA'] = pd.to_datetime(df_hist['FECHA'])
             df_hist['VALUE'] = df_hist['VALUE'].round(2)
             
-            # 4.4. CREACIÓN DEL GRÁFICO DE ÁREA DESVANECIDA
+          
             fig = go.Figure()
 
             fig.add_trace(go.Scatter(
@@ -554,7 +553,7 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
             
-            # 4.5. CONFIGURACIÓN DE LA LÍNEA GUÍA (PUNTEADA GRIS)
+          
             fig.update_xaxes(
                 showspikes=True, 
                 spikecolor="gray", 
@@ -598,145 +597,7 @@ if tag_a_graficar:
     
     st.stop()
 
-# --------------------------------------------------------------------------------
-# 4.5. SECCIÓN: FUNCIÓN ESPECIAL PARA GRÁFICO EN POPUP (BAJO DEMANDA)
-# --------------------------------------------------------------------------------
-
-def graficar_pozo_popup():
-    """
-    Renderiza un análisis histórico optimizado para ser mostrado dentro de un IFrame 
-    en el popup del mapa, activándose solo bajo demanda y eliminando la interfaz de Streamlit.
-    """
-    params = st.query_params
-
-    # SOLO SE EJECUTA SI VIENE DEL CLIC EN EL MAPA (Evita carga innecesaria)
-    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
-        
-        # 1. INYECCIÓN DE CSS PARA OCULTAR INTERFAZ (Elimina el botón "Gestionar" y barras)
-        st.markdown("""
-            <style>
-                #MainMenu {visibility: hidden;}
-                footer {visibility: hidden;}
-                header {visibility: hidden;}
-                div[data-testid="stToolbar"] {visibility: hidden;}
-                .block-container {
-                    padding-top: 0rem; 
-                    padding-bottom: 0rem; 
-                    padding-left: 0rem; 
-                    padding-right: 0rem;
-                }
-                /* Eliminar scroll lateral innecesario */
-                body {
-                    overflow: hidden;
-                    background-color: black;
-                }
-            </style>
-        """, unsafe_allow_html=True)
-
-        id_pozo_graf = params["graficar_pozo"]
-        
-        # 2. CARGA DE CONFIGURACIÓN TÉCNICA
-        # Se asume que 'mapa_pozos_dict' está disponible o se recupera de la DB
-        mapa_pozos_dict = cargar_mapa_pozos_desde_db()
-        pozo_info = mapa_pozos_dict.get(id_pozo_graf)
-
-        if not pozo_info:
-            st.error(f"Pozo {id_pozo_graf} no encontrado.")
-            st.stop()
-
-        # 3. RANGO DE DATOS (Optimizado para rapidez en el popup: 24 horas)
-        f_fin = datetime.now()
-        f_ini = f_fin - timedelta(days=1) 
-
-        # Configuración de señales a graficar
-        config_visual = [
-            ('caudal', "Q (Lps)", False, '#00d4ff'),
-            ('presion', "P (Kg)", True, '#00ff00')
-        ]
-        
-        # Inclusión dinámica de voltajes y amperajes si están definidos
-        for i, t in enumerate(pozo_info.get('voltajes_l', [])):
-            if t and t != 'N/A': config_visual.append((t, f"V{i+1}", True, '#fffb00'))
-        for i, t in enumerate(pozo_info.get('amperajes_l', [])):
-            if t and t != 'N/A': config_visual.append((t, f"A{i+1}", True, '#ff8000'))
-
-        tags_finales = []
-        for item in config_visual:
-            tag_key, label, side, color = item
-            real_tag = pozo_info.get(tag_key, tag_key)
-            if real_tag and real_tag != 'N/A':
-                tags_finales.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
-
-        if tags_finales:
-            try:
-                engine_scada = get_mysql_scada_engine()
-                lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
-                
-                query = f"""
-                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                    FROM vfitagnumhistory h
-                    JOIN VfiTagRef r ON h.GATEID = r.GATEID
-                    WHERE r.NAME IN ('{lista_tags_sql}') 
-                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
-                    ORDER BY h.FECHA ASC
-                """
-                df = pd.read_sql(query, engine_scada)
-                
-                if not df.empty:
-                    # 4. CREACIÓN DEL GRÁFICO (Estilo Dark / MIAA)
-                    fig = make_subplots(specs=[[{"secondary_y": True}]])
-                    
-                    for t_info in tags_finales:
-                        df_tag = df[df['TagName'] == t_info['tag']]
-                        if not df_tag.empty:
-                            fig.add_trace(
-                                go.Scatter(
-                                    x=df_tag['FECHA'], 
-                                    y=df_tag['VALUE'], 
-                                    name=t_info['label'],
-                                    line=dict(color=t_info['color'], width=1.5),
-                                    mode='lines',
-                                    hovertemplate='%{y:.2f}'
-                                ),
-                                secondary_y=t_info['side']
-                            )
-
-                    # Estética HUD para el Popup
-                    fig.update_layout(
-                        template="plotly_dark",
-                        hovermode="x unified",
-                        height=280, # Ajustado al tamaño del iframe en 9.6
-                        margin=dict(l=5, r=5, t=25, b=5),
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        showlegend=True,
-                        legend=dict(
-                            orientation="h",
-                            yanchor="bottom",
-                            y=1.02,
-                            xanchor="right",
-                            x=1,
-                            font=dict(size=8)
-                        )
-                    )
-                    
-                    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(size=8))
-                    fig.update_yaxes(showgrid=True, gridcolor='#111', zeroline=False, tickfont=dict(size=8))
-                    
-                    # Renderizado sin barra de herramientas
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                else:
-                    st.warning("⚠️ Sin registros en las últimas 24h.")
-            except Exception as e:
-                st.error(f"Error SCADA: {str(e)}")
-        
-        # CRÍTICO: Detener el resto de la aplicación para que solo se vea el gráfico
-        st.stop()
-
-# ESTA FUNCIÓN DEBE LLAMARSE AL INICIO DEL SCRIPT PRINCIPAL
-graficar_pozo_popup()
-
-# 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
+# 4.1. SECCION -------------------------------------------------------------------------------- 4.1. GRAFICAR LOS POZOS --------------------------------------------------------------------
 
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
@@ -757,7 +618,6 @@ if "graficar_pozo" in params:
 
     st.title(f"📈 Análisis Integral: {nombre_pozo}")
     
-    # 5.1. FILTRO DE TIEMPO
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -767,7 +627,6 @@ if "graficar_pozo" in params:
             key="fecha_pozo_v8"
         )
 
-    # --- LÓGICA DE FECHAS REFORZADA ---
     hoy_dt = datetime.now()
     f_fin = hoy_dt
     
@@ -790,18 +649,18 @@ if "graficar_pozo" in params:
             rango = st.date_input("Selecciona el periodo:", 
                                  value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()),
                                  max_value=hoy_dt.date())
-        # Validación crítica para el selector personalizado
+      
         if isinstance(rango, (list, tuple)) and len(rango) == 2:
             f_ini = datetime.combine(rango[0], datetime.min.time())
             f_fin = datetime.combine(rango[1], datetime.max.time())
         else:
-            # Mientras el usuario elige la segunda fecha, evitamos que el código truene
+      
             st.info("Selecciona la fecha de inicio y fin en el calendario.")
             st.stop()
     else:
         f_ini = hoy_dt - timedelta(days=7)
 
-    # 5.2. CONFIGURACIÓN DE VARIABLES
+    
     config_visual = [
         ('caudal', "Caudal (Lps)", False, '#00d4ff'),
         ('presion', "Presión (Kg/cm²)", True, '#00ff00')
@@ -812,7 +671,6 @@ if "graficar_pozo" in params:
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
 
-    # 5.3. PROCESAMIENTO Y GRÁFICO
     tags_finales = []
     for item in config_visual:
         tag_key, label, side, color = item
@@ -841,7 +699,7 @@ if "graficar_pozo" in params:
                 for t_info in tags_finales:
                     df_tag = df[df['TagName'] == t_info['tag']]
                     if not df_tag.empty:
-                        # Estilos diferenciados
+                       
                         is_amp = "Amp" in t_info['label']
                         
                         fig.add_trace(
@@ -862,12 +720,12 @@ if "graficar_pozo" in params:
                     height=700,
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    # LEYENDA A LA IZQUIERDA
+                    
                     legend=dict(
                         orientation="h", 
                         y=1.05, 
-                        x=0,          # Alineado al inicio (izquierda)
-                        xanchor="left" # El punto de anclaje es la izquierda de la leyenda
+                        x=0,         
+                        xanchor="left" 
                     )
                 )
                 
@@ -881,6 +739,131 @@ if "graficar_pozo" in params:
             st.error(f"Error en consulta SQL: {e}")
     
     st.stop()
+
+# --------------------------------------------------------------------------------
+# 4.2. SECCIÓN: FUNCIÓN ESPECIAL PARA GRÁFICO EN POPUP (SOLO GRÁFICO)
+# --------------------------------------------------------------------------------
+
+def graficar_pozo_popup():
+    """
+    Renderiza únicamente el gráfico histórico de 5 días para el popup, 
+    sin elementos de interfaz de Streamlit ni selectores.
+    """
+    params = st.query_params
+
+    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
+        
+        st.markdown("""
+            <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                header {visibility: hidden;}
+                div[data-testid="stToolbar"] {visibility: hidden;}
+                .block-container {
+                    padding: 0rem !important;
+                }
+                body {
+                    background-color: black;
+                    overflow: hidden;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        id_pozo_graf = params["graficar_pozo"]
+        
+        # Recuperar configuración de señales del pozo
+        mapa_pozos_dict = cargar_mapa_pozos_desde_db()
+        pozo_info = mapa_pozos_dict.get(id_pozo_graf)
+
+        if not pozo_info:
+            st.stop()
+
+        f_fin = datetime.now()
+        f_ini = f_fin - timedelta(days=5) 
+
+        config_visual = [
+            ('caudal', "Q (Lps)", False, '#00d4ff'),
+            ('presion', "P (Kg)", True, '#00ff00')
+        ]
+    
+        for i, t in enumerate(pozo_info.get('voltajes_l', [])):
+            if t and t != 'N/A': config_visual.append((t, f"V{i+1}", True, '#fffb00'))
+        for i, t in enumerate(pozo_info.get('amperajes_l', [])):
+            if t and t != 'N/A': config_visual.append((t, f"A{i+1}", True, '#ff8000'))
+
+        tags_finales = []
+        for item in config_visual:
+            tag_key, label, side, color = item
+            real_tag = pozo_info.get(tag_key, tag_key)
+            if real_tag and real_tag != 'N/A':
+                tags_finales.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
+
+        if tags_finales:
+            try:
+                engine_scada = get_mysql_scada_engine()
+                lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
+                
+                query = f"""
+                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                    FROM vfitagnumhistory h
+                    JOIN VfiTagRef r ON h.GATEID = r.GATEID
+                    WHERE r.NAME IN ('{lista_tags_sql}') 
+                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
+                    ORDER BY h.FECHA ASC
+                """
+                df = pd.read_sql(query, engine_scada)
+                
+                if not df.empty:
+               
+                    fig = make_subplots(specs=[[{"secondary_y": True}]])
+                    
+                    for t_info in tags_finales:
+                        df_tag = df[df['TagName'] == t_info['tag']]
+                        if not df_tag.empty:
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df_tag['FECHA'], 
+                                    y=df_tag['VALUE'], 
+                                    name=t_info['label'],
+                                    line=dict(color=t_info['color'], width=1.5),
+                                    mode='lines'
+                                ),
+                                secondary_y=t_info['side']
+                            )
+
+                  
+                    fig.update_layout(
+                        template="plotly_dark",
+                        height=280, 
+                        margin=dict(l=5, r=5, t=5, b=5), # Margen mínimo sin títulos
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=0.01,
+                            xanchor="right",
+                            x=1,
+                            font=dict(size=8)
+                        )
+                    )
+                    
+                    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(size=8))
+                    fig.update_yaxes(showgrid=True, gridcolor='#111', zeroline=False, tickfont=dict(size=8))
+                    
+                    # Mostrar gráfico sin barra de herramientas (displayModeBar=False)
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.caption("No hay datos históricos (5d)")
+            except Exception:
+                pass 
+        
+        # Finaliza la ejecución para que no cargue el resto del dashboard
+        st.stop()
+
+# Invocación al inicio del script principal
+graficar_pozo_popup()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
