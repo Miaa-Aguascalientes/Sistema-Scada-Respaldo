@@ -259,6 +259,7 @@ def cargar_datos_scada(lista_tags):
         return {}
 
 # --- FUNCIÓN PARA SPARKLINE (GRÁFICO POPUP) ---
+@st.cache_data(ttl=600)
 def generar_sparkline_base64(tag_name):
     engine = get_mysql_scada_engine()
     if not engine or not tag_name or tag_name == 'N/A': return None
