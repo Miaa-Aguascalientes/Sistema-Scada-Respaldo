@@ -1849,6 +1849,9 @@ for id_p, info in mapa_pozos_dict.items():
         nombre_codificado = urllib.parse.quote(id_p)
         url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
+        spark_base64 = generar_sparkline_base64(info['caudal'])
+        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:50px;">' if spark_base64 else ""
+
         # HTML del Popup Integrado
         html_popup = f"""
             <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
@@ -1923,6 +1926,7 @@ for id_p, info in mapa_pozos_dict.items():
                 </a>
             </div>
         """
+
         popup_obj = folium.Popup(folium.Html(html_popup, script=True), max_width=450, lazy=True)
 
         # Agregar Etiqueta de Texto ID
@@ -1941,7 +1945,7 @@ for id_p, info in mapa_pozos_dict.items():
                 location=info['coord'],
                 icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
                 popup=popup_obj # <--- Usamos el objeto lazy
-            ).add_to(m)
+            ).add_to(cluster_pozos)
         else:
             folium.CircleMarker(
                 location=info['coord'],
