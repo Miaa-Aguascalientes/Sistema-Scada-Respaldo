@@ -1851,7 +1851,7 @@ for id_p, info in mapa_pozos_dict.items():
         popup=folium.Popup(html_popup, max_width=350)
     ).add_to(m)
 
-st_folium(m, width="100%", height=700)
+
 
 
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
