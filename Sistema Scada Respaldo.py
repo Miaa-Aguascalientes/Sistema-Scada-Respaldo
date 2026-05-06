@@ -2006,48 +2006,124 @@ for id_p, info in mapa_pozos_dict.items():
                 ).add_to(m)
             except: continue
             
-# 9.8.  RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL --------------------------------------------------------------------------------------
-    if ver_rebombeos:
-        for id_rb, info in mapa_rebombeos_dict.items():
-            try:
-                d = lambda tag: data_scada.get(tag, (0, "N/A"))
-                pres, f_p = d(info['presion'])
-                ntq, f_t = d(info['nivel_tanque'])
-                v_rb = [d(t) for t in info['voltajes_l']]
-                a_rb = [d(t) for t in info['amperajes_l']]
+# ==============================================================================
+# 9.8. RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL
+# ==============================================================================
+if ver_rebombeos:
+    for id_rb, info in mapa_rebombeos_dict.items():
+        try:
+            # Extracción de datos del SCADA con lambda para manejo de N/A
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            
+            pres, f_p = d(info['presion'])
+            ntq, f_t = d(info['nivel_tanque'])
+            
+            # Voltajes y Amperajes (Listas de tuplas)
+            v_rb = [d(t) for t in info['voltajes_l']]
+            a_rb = [d(t) for t in info['amperajes_l']]
 
-                html_popup_rb = f"""
-                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
-                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                    </div>
-                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
-                    <div style="font-size: 11px; margin-bottom: 5px;">
-                        🚀 Presión: <b>{pres:.2f} kg</b> <span style="color:#FFFF00; font-size:8px;">{f_p}</span><br>
-                        🔋 Nivel Tanque: <b>{ntq:.2f} m</b> <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
-                    </div>
-                    <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
-                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                            <th>Fase</th><th>Voltaje</th><th>Amp</th>
-                        </tr>
-                        <tr><td>L1-L2</td><td>{v_rb[0][0]:.0f}V</td><td>{a_rb[0][0]:.1f}A</td></tr>
-                        <tr><td>L2-L3</td><td>{v_rb[1][0]:.0f}V</td><td>{a_rb[1][0]:.1f}A</td></tr>
-                        <tr><td>L1-L3</td><td>{v_rb[2][0]:.0f}V</td><td>{a_rb[2][0]:.1f}A</td></tr>
-                    </table>
+            # Construcción del HTML para el Popup de Rebombeo
+            html_popup_rb = f"""
+            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                """
-                if info.get('blink'):
-                    folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
-                else:
-                    folium.RegularPolygonMarker(location=info['coord'], number_of_sides=4, radius=6, color=info['color_final'], fill=True, fill_color=info['color_final'], popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
-                
-                folium.Marker(location=info['coord'], icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000;">{id_rb}</div>')).add_to(m)
-            except:
-                continue
-                MousePosition().add_to(m_sec)
-                
-    st_folium(m, width="100%", height=700)       
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)          
+                <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                <div style="font-size: 11px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>🚀 Presión: <b>{pres:.2f} kg</b></span>
+                        <span style="color:#FFFF00; font-size:8px;">{f_p}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                        <span>🔋 Nivel Tanque: <b>{ntq:.2f} m</b></span>
+                        <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
+                    </div>
+                </div>
+                <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
+                    <thead>
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding-bottom: 4px;">Fase</th>
+                            <th style="padding-bottom: 4px;">Voltaje</th>
+                            <th style="padding-bottom: 4px;">Amp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 3px 0;">L1-L2</td>
+                            <td><b>{v_rb[0][0]:.0f}V</b></td>
+                            <td><b>{a_rb[0][0]:.1f}A</b></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 3px 0;">L2-L3</td>
+                            <td><b>{v_rb[1][0]:.0f}V</b></td>
+                            <td><b>{a_rb[1][0]:.1f}A</b></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0;">L1-L3</td>
+                            <td><b>{v_rb[2][0]:.0f}V</b></td>
+                            <td><b>{a_rb[2][0]:.1f}A</b></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            """
+
+            # Marcador Geométrico o Animado (Blink)
+            if info.get('blink'):
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                    popup=folium.Popup(html_popup_rb, max_width=350)
+                ).add_to(m)
+            else:
+                folium.RegularPolygonMarker(
+                    location=info['coord'],
+                    number_of_sides=4,
+                    radius=6,
+                    color=info['color_final'],
+                    fill=True,
+                    fill_color=info['color_final'],
+                    popup=folium.Popup(html_popup_rb, max_width=350)
+                ).add_to(m)
+            
+            # Etiqueta de ID del Rebombeo
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(
+                    icon_anchor=(-15, 15),
+                    html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000; pointer-events: none;">{id_rb}</div>'
+                )
+            ).add_to(m)
+
+        except Exception as e:
+            continue
+
+# ==============================================================================
+# 9.9. FINALIZACIÓN Y RENDERIZADO ÚNICO DEL MAPA (FUERA DE BUCLES)
+# ==============================================================================
+
+# 1. Herramientas adicionales de UI
+from folium.plugins import MousePosition
+MousePosition(
+    position="bottomright",
+    separator=" | ",
+    empty_string="NaN",
+    lng_first=True,
+    prefix="Coord:"
+).add_to(m)
+
+# 2. Control de Capas (DEBE SER LO ÚLTIMO ANTES DE RENDERIZAR)
+folium.LayerControl(position='topright', collapsed=False).add_to(m)
+
+# 3. RENDERIZADO FINAL - UNA SOLA VEZ EN TODO EL SCRIPT
+# Se usa use_container_width=True para que se ajuste al layout de Streamlit
+st_folium(
+    m,
+    width=None,
+    height=750,
+    use_container_width=True,
+    returned_objects=[] # Optimización de rendimiento (evita re-ejecución al mover mapa)
+)      
 
     
