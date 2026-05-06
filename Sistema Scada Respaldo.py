@@ -743,6 +743,135 @@ if "graficar_pozo" in params:
             st.error(f"Error en consulta SQL: {e}")
     
     st.stop()
+
+# --------------------------------------------------------------------------------
+# 4.7. SECCIÓN: FUNCIÓN ESPECIAL PARA GRÁFICO EN POPUP (SOLO GRÁFICO)
+# --------------------------------------------------------------------------------
+
+def graficar_pozo_popup():
+    """
+    Renderiza únicamente el gráfico histórico de 5 días para el popup, 
+    sin elementos de interfaz de Streamlit ni selectores.
+    """
+    params = st.query_params
+
+    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
+        # 1. INYECCIÓN DE CSS PARA LIMPIAR TODO EL CONTENEDOR
+        st.markdown("""
+            <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                header {visibility: hidden;}
+                div[data-testid="stToolbar"] {visibility: hidden;}
+                .block-container {
+                    padding: 0rem !important;
+                }
+                body {
+                    background-color: black;
+                    overflow: hidden;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        id_pozo_graf = params["graficar_pozo"]
+        
+        # Recuperar configuración de señales del pozo
+        mapa_pozos_dict = cargar_mapa_pozos_desde_db()
+        pozo_info = mapa_pozos_dict.get(id_pozo_graf)
+
+        if not pozo_info:
+            st.stop()
+
+        # 2. RANGO FIJO DE 5 DÍAS
+        f_fin = datetime.now()
+        f_ini = f_fin - timedelta(days=5) 
+
+        # Configuración de señales (Caudal y Presión como base)
+        config_visual = [
+            ('caudal', "Q (Lps)", False, '#00d4ff'),
+            ('presion', "P (Kg)", True, '#00ff00')
+        ]
+        
+        # Agregar voltajes y amperajes si existen en la configuración
+        for i, t in enumerate(pozo_info.get('voltajes_l', [])):
+            if t and t != 'N/A': config_visual.append((t, f"V{i+1}", True, '#fffb00'))
+        for i, t in enumerate(pozo_info.get('amperajes_l', [])):
+            if t and t != 'N/A': config_visual.append((t, f"A{i+1}", True, '#ff8000'))
+
+        tags_finales = []
+        for item in config_visual:
+            tag_key, label, side, color = item
+            real_tag = pozo_info.get(tag_key, tag_key)
+            if real_tag and real_tag != 'N/A':
+                tags_finales.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
+
+        if tags_finales:
+            try:
+                engine_scada = get_mysql_scada_engine()
+                lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
+                
+                # Query directo con los 5 días filtrados desde SQL para mayor velocidad
+                query = f"""
+                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                    FROM vfitagnumhistory h
+                    JOIN VfiTagRef r ON h.GATEID = r.GATEID
+                    WHERE r.NAME IN ('{lista_tags_sql}') 
+                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
+                    ORDER BY h.FECHA ASC
+                """
+                df = pd.read_sql(query, engine_scada)
+                
+                if not df.empty:
+                    # 3. CREACIÓN DEL GRÁFICO SIN TÍTULOS
+                    fig = make_subplots(specs=[[{"secondary_y": True}]])
+                    
+                    for t_info in tags_finales:
+                        df_tag = df[df['TagName'] == t_info['tag']]
+                        if not df_tag.empty:
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df_tag['FECHA'], 
+                                    y=df_tag['VALUE'], 
+                                    name=t_info['label'],
+                                    line=dict(color=t_info['color'], width=1.5),
+                                    mode='lines'
+                                ),
+                                secondary_y=t_info['side']
+                            )
+
+                    # Ajuste de layout para aprovechar el 100% del espacio del popup
+                    fig.update_layout(
+                        template="plotly_dark",
+                        height=280, 
+                        margin=dict(l=5, r=5, t=5, b=5), # Margen mínimo sin títulos
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        showlegend=True,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=0.01,
+                            xanchor="right",
+                            x=1,
+                            font=dict(size=8)
+                        )
+                    )
+                    
+                    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(size=8))
+                    fig.update_yaxes(showgrid=True, gridcolor='#111', zeroline=False, tickfont=dict(size=8))
+                    
+                    # Mostrar gráfico sin barra de herramientas (displayModeBar=False)
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.caption("No hay datos históricos (5d)")
+            except Exception:
+                pass 
+        
+        # Finaliza la ejecución para que no cargue el resto del dashboard
+        st.stop()
+
+# Invocación al inicio del script principal
+graficar_pozo_popup()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
@@ -1783,139 +1912,158 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
-    for id_p, info in mapa_pozos_dict.items():
-        if ver_pozos:  # Si el checkbox está activo, dibujamos todo
-            d = lambda tag: data_scada.get(tag, (0, "N/A"))
-            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-            q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
-            p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
-            sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
-            dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
-            tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
-            col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
-            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
-            h_arr_fmt = formato_hora(h_arr_val)
-            h_par_fmt = formato_hora(h_par_val)
-            v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
-            a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------------
+for id_p, info in mapa_pozos_dict.items():
+    if ver_pozos:  # Si el checkbox está activo, dibujamos todo
+        d = lambda tag: data_scada.get(tag, (0, "N/A"))
+        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+        
+        # Extracción de datos (Tus variables originales)
+        q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+        p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+        sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+        dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+        tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+        col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+        h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+        h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+        h_arr_fmt = formato_hora(h_arr_val)
+        h_par_fmt = formato_hora(h_par_val)
+        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-            # SOLUCIÓN AL LOGIN: Incluimos access=granted y el rol actual en la URL
-            rol_actual = st.session_state.get('rol', 'usuario')
-            nombre_codificado = urllib.parse.quote(id_p)
-            
-            url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+        # Configuración de URLs (Nueva lógica para IFrame + Botón)
+        rol_actual = st.session_state.get('rol', 'usuario')
+        nombre_codificado = urllib.parse.quote(id_p)
+        
+        # URL para el IFrame (Activa la función 4.5 con embed y 5 días)
+        url_iframe = f"/?graficar_pozo={nombre_codificado}&ejecutar_analisis=True&embed=true&access=granted&role={rol_actual}"
+        
+        # URL para el botón (Análisis completo)
+        url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
-            html_popup = f"""
-                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+        html_popup = f"""
+            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 420px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                </div>
+                
+                <!-- SECCIÓN HIDRÁULICA -->
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
                     </div>
-                    
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>🚀 Presión: <b>{p:.2f} kg</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 12px;">
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
-                        <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
-                            <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                                <th style="padding: 4px;">Fase</th>
-                                <th style="padding: 4px;">Voltaje / Act.</th>
-                                <th style="padding: 4px;">Amp / Act.</th>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #222;">
-                                <td style="padding: 6px 4px;">L1-L2</td>
-                                <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
-                                <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
-                            </tr>
-                            <tr style="border-bottom: 1px solid #222;">
-                                <td style="padding: 6px 4px;">L2-L3</td>
-                                <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
-                                <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
-                            </tr>
-                            <tr>
-                                <td style="padding: 6px 4px;">L1-L3</td>
-                                <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
-                                <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
-                            </tr>
-                        </table>
-                        <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
-                        </div>
-                        <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
-                        </div>
-
-                        <div style="border-top: 1px solid #333; padding-top: 10px;">
-                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                📊 VER ANÁLISIS HISTÓRICO
-                            </div>
-                        </a>
+                    <div style="display: flex; align-items: baseline; font-size: 11px;">
+                        <span>🚀 Presión: <b>{p:.2f} kg</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
                     </div>
                 </div>
-                """
 
+                <!-- SECCIÓN NIVELES -->
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px;">
+                        <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN ELÉCTRICO -->
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                    <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding: 4px;">Fase</th>
+                            <th style="padding: 4px;">Voltaje / Act.</th>
+                            <th style="padding: 4px;">Amp / Act.</th>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 6px 4px;">L1-L2</td>
+                            <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
+                            <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 6px 4px;">L2-L3</td>
+                            <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
+                            <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 6px 4px;">L1-L3</td>
+                            <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
+                            <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
+                        </tr>
+                    </table>
+                    
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 10px;">
+                        <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
+                    </div>
+                </div>
+
+                <!-- INTEGRACIÓN DEL GRÁFICO (Sección 4.5) -->
+                <div style="border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #222; margin-bottom: 10px;">
+                    <iframe src="{url_iframe}" width="100%" height="240" frameborder="0" loading="lazy" style="background: black;"></iframe>
+                </div>
+
+                <!-- BOTÓN FINAL -->
+                <div style="border-top: 1px solid #333; padding-top: 10px;">
+                    <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                        <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                            📊 VER ANÁLISIS HISTÓRICO COMPLETO
+                        </div>
+                    </a>
+                </div>
+            </div>
+            """
+
+        # --- TUS ESTILOS DE PUNTOS ORIGINALES ---
+        folium.Marker(
+            location=info['coord'],
+            icon=folium.DivIcon(
+                icon_size=(150,36),
+                icon_anchor=(-12, 10),
+                html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+            )
+        ).add_to(m)
+
+        popup_obj = folium.Popup(html_popup, max_width=450, min_width=450)
+
+        if info.get('blink'):
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(
-                    icon_size=(150,36),
-                    icon_anchor=(-12, 10),
-                    html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
-                )
+                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                popup=popup_obj
             ).add_to(m)
-
-            if info.get('blink'):
-                folium.Marker(
-                    location=info['coord'],
-                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                    popup=folium.Popup(html_popup, max_width=450)
-                ).add_to(m)
-            else:
-                folium.CircleMarker(
-                    location=info['coord'],
-                    radius=4,
-                    color=info['color_final'],
-                    fill=True,
-                    fill_color=info['color_final'],
-                    fill_opacity=1,
-                    popup=folium.Popup(html_popup, max_width=450)
-                ).add_to(m)
-
+        else:
+            folium.CircleMarker(
+                location=info['coord'],
+                radius=4,
+                color=info['color_final'],
+                fill=True,
+                fill_color=info['color_final'],
+                fill_opacity=1,
+                popup=popup_obj
+            ).add_to(m)
 # 9.7. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------------------
     if ver_tanques:
         for id_tq, info in mapa_tanques_dict.items():
