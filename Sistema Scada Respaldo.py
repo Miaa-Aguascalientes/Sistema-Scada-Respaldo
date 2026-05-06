@@ -1464,62 +1464,47 @@ if sector_seleccionado:
     st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
-st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
-        /* 1. ELIMINAR EL TIRADOR DE REDIMENSIÓN */
-        /* Buscamos el elemento que permite arrastrar la barra y lo desactivamos */
         [data-testid="stSidebarResizer"] {
             display: none !important;
             pointer-events: none !important;
         }
         
-        /* 2. FORZAR ANCHO ESTÁTICO E INAMOVIBLE */
         section[data-testid="stSidebar"] {
             width: 300px !important;
             min-width: 300px !important;
             max-width: 300px !important;
-            /* Evita que el usuario seleccione texto o interactúe con el borde */
             user-select: none; 
         }
 
-        /* 3. BLOQUEAR EL CURSOR DE REDIMENSIÓN */
-        /* A veces el cursor cambia a flechas laterales; esto lo devuelve a la normalidad */
         html, body {
             cursor: default !important;
         }
 
-    
-        /* 1. AJUSTE DINÁMICO DEL MAPA AL MARGEN DERECHO */
         [data-testid="stMain"] {
             margin-left: 0px !important;
-            /* Restamos el ancho de la barra para que el contenido no desborde */
             width: calc(100% - 0px) !important; 
-            padding-right: 2rem !important; /* Espacio de seguridad a la derecha */
+            padding-right: 2rem !important; 
         }
 
-        /* 2. ASEGURAR QUE EL CONTENEDOR DE STREAMLIT USE TODO EL ANCHO DISPONIBLE */
         .block-container {
             max-width: 100% !important;
             padding-left: 1rem !important;
             padding-right: 1rem !important;
         }
 
-        /* 3. ARREGLAR EL CONTROL DE CAPAS (LayerControl) */
-        /* Forzamos que el cuadro de capas de Folium siempre esté visible y no se desborde */
         .leaflet-control-layers {
-            margin-right: 20px !important; /* Separa el cuadro del borde derecho de la pantalla */
-            border: 2px solid rgba(0,255,255,0.5) !important; /* Opcional: Estilo futurista */
-            background: rgba(0, 0, 0, 0.8) !important; /* Fondo oscuro para que combine con tu HUD */
+            margin-right: 20px !important; 
+            border: 2px solid rgba(0,255,255,0.5) !important; 
+            background: rgba(0, 0, 0, 0.8) !important; 
             color: white !important;
         }
 
-        /* Cambiar color de los textos dentro del selector de capas para que se vean en fondo oscuro */
         .leaflet-control-layers-list, .leaflet-control-layers-base, .leaflet-control-layers-overlays {
             color: white !important;
         }
         
-        /* 4. RESPONSIVIDAD PARA PANTALLAS PEQUEÑAS */
         @media (max-width: 991px) {
             [data-testid="stMain"] {
                 margin-left: 350px !important;
@@ -1558,12 +1543,14 @@ with st.sidebar:
         render_status_line("BD-Diccionarios:", status_mysql_tele)
         render_status_line("BD-PostgreSQL:", status_postgres)
     
+    # --- BUSCADORES ---
+    
     # 8.4. Buscador de Pozos
     lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
     pozo_buscado = st.selectbox(
-        "🔍 Localizar Sitio",
+        "🔍 Localizar Pozo",
         options=[""] + lista_pozos_nombres,
-        format_func=lambda x: "Seleccionar Sitio..." if x == "" else f" {x}"
+        format_func=lambda x: "Seleccionar Pozo..." if x == "" else f"📍 {x}"
     )
 
     # 8.4.1 Buscador de Tanques
@@ -1593,8 +1580,15 @@ with st.sidebar:
 
     # 8.6. ASIGNACIÓN DE POSICIÓN Y PRIORIDAD
     datos_sector_resaltado = None
+    
     if pozo_buscado:
         st.session_state.centro_mapa = mapa_pozos_dict[pozo_buscado]['coord']
+        st.session_state.zoom_inicial = 18
+    elif tanque_buscado:
+        st.session_state.centro_mapa = mapa_tanques_dict[tanque_buscado]['coord']
+        st.session_state.zoom_inicial = 18
+    elif rebombeo_buscado:
+        st.session_state.centro_mapa = mapa_rebombeos_dict[rebombeo_buscado]['coord']
         st.session_state.zoom_inicial = 18
     elif sector_buscado:
         datos_s = next((s for s in sectores if s['sector'] == sector_buscado), None)
@@ -1608,6 +1602,7 @@ with st.sidebar:
             except:
                 pass
     else:
+        # Si no hay nada seleccionado, mantener vista general
         st.session_state.centro_mapa = [21.8820, -102.2800]
         st.session_state.zoom_inicial = 12.5
         
@@ -1621,8 +1616,8 @@ with st.sidebar:
     with st.expander("🗺️ Control de Capas", expanded=False):
         ver_sectores = st.checkbox("Mostrar Sectores", value=True)
         ver_pozos = st.checkbox("Mostrar Pozos", value=True)
-        ver_tanques = st.checkbox("Mostrar Tanques", value=False)
-        ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False)
+        ver_tanques = st.checkbox("Mostrar Tanques", value=True)
+        ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=True) # Activado por defecto para facilitar localización
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
