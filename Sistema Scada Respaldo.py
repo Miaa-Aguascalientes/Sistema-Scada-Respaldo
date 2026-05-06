@@ -1817,6 +1817,10 @@ if sectores_data:
     fg_sectores.add_to(m)
     
 # --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------
+from folium.plugins import MarkerCluster
+
+cluster_pozos = MarkerCluster(name="Red de Pozos", disableClusteringAtZoom=14).add_to(m)
+
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:  # Solo si el checkbox está activo
         d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
@@ -1842,15 +1846,14 @@ for id_p, info in mapa_pozos_dict.items():
 
         # Generación de Sparkline (Tendencia)
         spark_base64 = generar_sparkline_base64(info['caudal'])
-        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:60px; margin-top:5px; border-radius:5px; border:1px solid #222;">' if spark_base64 else '<p style="color:#444; font-size:10px; text-align:center;">Gráfico no disponible</p>'
+        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:50px; border-radius:5px;">' if spark_base64 else '<p style="color:#444; font-size:10px; text-align:center;">Gráfico no disponible</p>'
 
         # URL para el análisis histórico
         rol_actual = st.session_state.get('rol', 'usuario')
         nombre_codificado = urllib.parse.quote(id_p)
         url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
-        spark_base64 = generar_sparkline_base64(info['caudal'])
-        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:50px;">' if spark_base64 else ""
+
 
         # HTML del Popup Integrado
         html_popup = f"""
@@ -1955,7 +1958,7 @@ for id_p, info in mapa_pozos_dict.items():
                 fill_color=info['color_final'],
                 fill_opacity=1,
                 popup=popup_obj # <--- Usamos el objeto lazy
-            ).add_to(m)
+            ).add_to(cluster_pozos)
 
 
             
