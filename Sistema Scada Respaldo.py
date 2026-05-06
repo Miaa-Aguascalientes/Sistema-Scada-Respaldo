@@ -605,25 +605,46 @@ if tag_a_graficar:
 def graficar_pozo_popup():
     """
     Renderiza un análisis histórico optimizado para ser mostrado dentro de un IFrame 
-    en el popup del mapa, activándose solo bajo demanda.
+    en el popup del mapa, activándose solo bajo demanda y eliminando la interfaz de Streamlit.
     """
     params = st.query_params
 
-    # SOLO SE EJECUTA SI VIENE DEL CLIC EN EL MAPA (Evita cuello de botella)
+    # SOLO SE EJECUTA SI VIENE DEL CLIC EN EL MAPA (Evita carga innecesaria)
     if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
-        id_pozo_graf = params["graficar_pozo"]
-        nombre_pozo = params.get("nombre", id_pozo_graf)
         
-        # Carga de configuración técnica del pozo
+        # 1. INYECCIÓN DE CSS PARA OCULTAR INTERFAZ (Elimina el botón "Gestionar" y barras)
+        st.markdown("""
+            <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                header {visibility: hidden;}
+                div[data-testid="stToolbar"] {visibility: hidden;}
+                .block-container {
+                    padding-top: 0rem; 
+                    padding-bottom: 0rem; 
+                    padding-left: 0rem; 
+                    padding-right: 0rem;
+                }
+                /* Eliminar scroll lateral innecesario */
+                body {
+                    overflow: hidden;
+                    background-color: black;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        id_pozo_graf = params["graficar_pozo"]
+        
+        # 2. CARGA DE CONFIGURACIÓN TÉCNICA
+        # Se asume que 'mapa_pozos_dict' está disponible o se recupera de la DB
         mapa_pozos_dict = cargar_mapa_pozos_desde_db()
         pozo_info = mapa_pozos_dict.get(id_pozo_graf)
 
         if not pozo_info:
-            st.error(f"Pozo {id_pozo_graf} no configurado.")
+            st.error(f"Pozo {id_pozo_graf} no encontrado.")
             st.stop()
 
-        # Rango por defecto para popup: Últimas 24 horas para rapidez de carga
-        # Puedes cambiarlo a 7 días si la DB es rápida
+        # 3. RANGO DE DATOS (Optimizado para rapidez en el popup: 24 horas)
         f_fin = datetime.now()
         f_ini = f_fin - timedelta(days=1) 
 
@@ -633,7 +654,7 @@ def graficar_pozo_popup():
             ('presion', "P (Kg)", True, '#00ff00')
         ]
         
-        # Agregar señales eléctricas si existen
+        # Inclusión dinámica de voltajes y amperajes si están definidos
         for i, t in enumerate(pozo_info.get('voltajes_l', [])):
             if t and t != 'N/A': config_visual.append((t, f"V{i+1}", True, '#fffb00'))
         for i, t in enumerate(pozo_info.get('amperajes_l', [])):
@@ -662,7 +683,7 @@ def graficar_pozo_popup():
                 df = pd.read_sql(query, engine_scada)
                 
                 if not df.empty:
-                    # Crear gráfico minimalista para Popup
+                    # 4. CREACIÓN DEL GRÁFICO (Estilo Dark / MIAA)
                     fig = make_subplots(specs=[[{"secondary_y": True}]])
                     
                     for t_info in tags_finales:
@@ -680,12 +701,12 @@ def graficar_pozo_popup():
                                 secondary_y=t_info['side']
                             )
 
-                    # Estilo Futurista / Minimalista para el Popup
+                    # Estética HUD para el Popup
                     fig.update_layout(
                         template="plotly_dark",
                         hovermode="x unified",
-                        height=250, # Altura ajustada para el iframe
-                        margin=dict(l=10, r=10, t=30, b=10),
+                        height=280, # Ajustado al tamaño del iframe en 9.6
+                        margin=dict(l=5, r=5, t=25, b=5),
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         showlegend=True,
@@ -695,24 +716,24 @@ def graficar_pozo_popup():
                             y=1.02,
                             xanchor="right",
                             x=1,
-                            font=dict(size=9)
+                            font=dict(size=8)
                         )
                     )
                     
-                    fig.update_xaxes(showgrid=False, zeroline=False, size=8)
-                    fig.update_yaxes(showgrid=True, gridcolor='#222', zeroline=False, size=8)
+                    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(size=8))
+                    fig.update_yaxes(showgrid=True, gridcolor='#111', zeroline=False, tickfont=dict(size=8))
                     
-                    # Renderizado directo
+                    # Renderizado sin barra de herramientas
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
                 else:
-                    st.caption("⏳ Sin datos recientes...")
+                    st.warning("⚠️ Sin registros en las últimas 24h.")
             except Exception as e:
-                st.error(f"Error SQL: {e}")
+                st.error(f"Error SCADA: {str(e)}")
         
-        # Detenemos la ejecución del resto de la app para que solo se vea el gráfico en el iframe
+        # CRÍTICO: Detener el resto de la aplicación para que solo se vea el gráfico
         st.stop()
 
-# EJECUCIÓN AL INICIO DE LA APP
+# ESTA FUNCIÓN DEBE LLAMARSE AL INICIO DEL SCRIPT PRINCIPAL
 graficar_pozo_popup()
 
 # 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
@@ -1900,70 +1921,58 @@ if sectores_data:
 
     fg_sectores.add_to(m)
     
-# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL
+# 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL (CORREGIDO)
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:
-        # Función auxiliar para obtener datos de telemetría actual
         d = lambda tag: data_scada.get(tag, (0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
-        # Extracción de valores actuales para el encabezado del popup
         q, _ = d(info['caudal']) if not is_st else (0.0, "N/A")
         p, _ = d(info['presion']) if not is_st else (0.0, "N/A")
 
-        # --- CONFIGURACIÓN DE CARGA BAJO DEMANDA (SECCIÓN 4.5) ---
         rol_actual = st.session_state.get('rol', 'usuario')
         nombre_codificado = urllib.parse.quote(id_p)
         
-        # La URL incluye 'ejecutar_analisis=True' para disparar la función graficar_pozo_popup
+        # AGREGAMOS ?embed=true para que no se vea el botón de "Gestionar" ni menús
         url_iframe = (
             f"/?graficar_pozo={nombre_codificado}"
             f"&ejecutar_analisis=True"
+            f"&embed=true"
             f"&access=granted"
             f"&role={rol_actual}"
         )
 
-        # Diseño del HTML del Popup (Estilo HUD / Futurista)
         html_popup = f"""
-            <div style="background: #060606; color: white; padding: 12px; border-radius: 10px; width: 420px; border: 1px solid {info['color_final']}; font-family: sans-serif; box-shadow: 0 0 15px rgba(0,0,0,0.5);">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                    <b style="color: #00fbff; font-size: 14px; letter-spacing: 1px;">ESTACIÓN: {id_p}</b>
-                    <span style="font-size: 9px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;">
-                        {info['status_label']}
-                    </span>
+            <div style="background: #060606; color: white; padding: 15px; border-radius: 12px; width: 450px; border: 2px solid {info['color_final']}; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 12px;">
+                    <b style="color: #00fbff; font-size: 16px;">POZO {id_p}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 3px 10px; border-radius: 5px; font-weight: bold;">{info['status_label']}</span>
                 </div>
                 
-                <!-- Indicadores Rápidos -->
-                <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <div style="flex: 1; background: #111; padding: 6px; border-radius: 6px; text-align: center; border: 1px solid #222;">
-                        <div style="font-size: 8px; color: #888; margin-bottom: 2px;">CAUDAL ACTUAL</div>
-                        <div style="font-size: 15px; color: #00fbff; font-weight: bold;">{q:.2f} <small style="font-size: 9px;">L/s</small></div>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div style="flex: 1; background: #111; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #222;">
+                        <div style="font-size: 9px; color: #777;">CAUDAL</div>
+                        <div style="font-size: 16px; color: #00fbff; font-weight: bold;">{q:.2f} <small>L/s</small></div>
                     </div>
-                    <div style="flex: 1; background: #111; padding: 6px; border-radius: 6px; text-align: center; border: 1px solid #222;">
-                        <div style="font-size: 8px; color: #888; margin-bottom: 2px;">PRESIÓN RED</div>
-                        <div style="font-size: 15px; color: #00ff41; font-weight: bold;">{p:.2f} <small style="font-size: 9px;">kg/cm²</small></div>
+                    <div style="flex: 1; background: #111; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #222;">
+                        <div style="font-size: 9px; color: #777;">PRESIÓN</div>
+                        <div style="font-size: 16px; color: #00ff41; font-weight: bold;">{p:.2f} <small>kg/cm²</small></div>
                     </div>
                 </div>
 
-                <!-- CONTENEDOR DEL GRÁFICO (Carga al hacer clic) -->
-                <div style="border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #222;">
-                    <div style="font-size: 9px; color: #555; background: #0a0a0a; padding: 4px 10px; border-bottom: 1px solid #111;">
-                        ANALÍTICA HISTÓRICA (24H)
-                    </div>
-                    <iframe src="{url_iframe}" width="100%" height="280" frameborder="0" loading="lazy" style="background: black;"></iframe>
+                <div style="border-radius: 8px; overflow: hidden; background: #000; border: 1px solid #333;">
+                    <iframe src="{url_iframe}" width="100%" height="320" frameborder="0" loading="lazy" style="background: black; border: none;"></iframe>
                 </div>
-
-                <div style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-                    <small style="color: #444; font-size: 8px;">ID: {info.get('GATEID', 'N/A')}</small>
-                    <a href="/?graficar_pozo={nombre_codificado}&access=granted" target="_blank" style="text-decoration: none; color: #00fbff; font-size: 10px; font-weight: bold;">
-                        ABRIR ANÁLISIS COMPLETO ↗
-                    </a>
+                
+                <div style="margin-top: 12px; display: flex; justify-content: space-between;">
+                     <small style="color: #444; font-size: 9px;">MIAA TELEMETRÍA</small>
+                     <a href="/?graficar_pozo={nombre_codificado}&access=granted" target="_blank" style="color: #00fbff; font-size: 11px; font-weight: bold; text-decoration: none;">DETALLES COMPLETOS ↗</a>
                 </div>
             </div>
         """
 
-        # Renderizado de marcadores según estado (Blink o Círculo)
-        popup_obj = folium.Popup(html_popup, max_width=450)
+        # Configuramos el popup con un ancho mínimo y máximo mayor
+        popup_obj = folium.Popup(html_popup, min_width=470, max_width=470)
         
         if info.get('blink'):
             folium.Marker(
@@ -1974,7 +1983,7 @@ for id_p, info in mapa_pozos_dict.items():
         else:
             folium.CircleMarker(
                 location=info['coord'],
-                radius=7,
+                radius=8,
                 color=info['color_final'],
                 fill=True,
                 fill_opacity=1,
