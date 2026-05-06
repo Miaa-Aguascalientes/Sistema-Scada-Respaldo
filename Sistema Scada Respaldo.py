@@ -18,105 +18,7 @@ import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 
-def graficar_pozo_popup():
-    """
-    Renderiza únicamente el gráfico histórico de 5 días para el popup.
-    Usa st.stop() para evitar que se cargue el resto del dashboard.
-    """
-    params = st.query_params
-    
-    # Solo se activa si detecta los parámetros específicos del popup
-    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
-        
-        # 1. LIMPIEZA TOTAL DE INTERFAZ (CSS)
-        st.markdown("""
-            <style>
-                #MainMenu {visibility: hidden;}
-                footer {visibility: hidden;}
-                header {visibility: hidden;}
-                div[data-testid="stToolbar"] {visibility: hidden;}
-                .block-container { padding: 0rem !important; }
-                body { background-color: black; overflow: hidden; }
-            </style>
-        """, unsafe_allow_html=True)
 
-        id_pozo_graf = params["graficar_pozo"]
-
-        try:
-            # Recuperar configuración de señales
-            mapa_pozos_dict = cargar_mapa_pozos_desde_db()
-            pozo_info = mapa_pozos_dict.get(id_pozo_graf)
-
-            if not pozo_info:
-                st.stop()
-
-            # 2. RANGO DE 5 DÍAS
-            f_fin = datetime.now()
-            f_ini = f_fin - timedelta(days=5)
-
-            # Configuración de señales a graficar
-            tags_finales = [
-                {'tag': pozo_info.get('caudal'), 'label': "Q (Lps)", 'side': False, 'color': '#00d4ff'},
-                {'tag': pozo_info.get('presion'), 'label': "P (Kg)", 'side': True, 'color': '#00ff00'}
-            ]
-            
-            # Filtrar tags válidos
-            tags_finales = [t for t in tags_finales if t['tag'] and t['tag'] != 'N/A']
-
-            if tags_finales:
-                engine_scada = get_mysql_scada_engine()
-                lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
-                
-                query = f"""
-                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                    FROM vfitagnumhistory h
-                    JOIN VfiTagRef r ON h.GATEID = r.GATEID
-                    WHERE r.NAME IN ('{lista_tags_sql}') 
-                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
-                    ORDER BY h.FECHA ASC
-                """
-                df = pd.read_sql(query, engine_scada)
-                
-                if not df.empty:
-                    fig = make_subplots(specs=[[{"secondary_y": True}]])
-                    
-                    for t_info in tags_finales:
-                        df_tag = df[df['TagName'] == t_info['tag']]
-                        if not df_tag.empty:
-                            fig.add_trace(
-                                go.Scatter(
-                                    x=df_tag['FECHA'], 
-                                    y=df_tag['VALUE'], 
-                                    name=t_info['label'],
-                                    line=dict(color=t_info['color'], width=1.5),
-                                    mode='lines'
-                                ),
-                                secondary_y=t_info['side']
-                            )
-
-                    fig.update_layout(
-                        template="plotly_dark",
-                        height=240, 
-                        margin=dict(l=5, r=5, t=5, b=5),
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        showlegend=True,
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
-                    )
-                    
-                    fig.update_xaxes(showgrid=False, tickfont=dict(size=8))
-                    fig.update_yaxes(showgrid=True, gridcolor='#222', tickfont=dict(size=8))
-                    
-                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                else:
-                    st.caption("No hay datos históricos (5 días)")
-                    
-        except Exception:
-            pass
-        
-        # 3. EL BLOQUEO MAESTRO
-        # Esto evita que Streamlit siga bajando y dibuje el mapa general
-        st.stop()
 
 st.set_page_config(
     page_title="Sistema Scada", 
@@ -125,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-graficar_pozo_popup()
+
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
 # 0.1. INICIALIZACIÓN DE ESTADOS 
@@ -846,7 +748,105 @@ if "graficar_pozo" in params:
 # --------------------------------------------------------------------------------
 # 4.7. SECCIÓN: FUNCIÓN ESPECIAL PARA GRÁFICO EN POPUP (SOLO GRÁFICO)
 # --------------------------------------------------------------------------------
+def graficar_pozo_popup():
+    """
+    Renderiza únicamente el gráfico histórico de 5 días para el popup.
+    Usa st.stop() para evitar que se cargue el resto del dashboard.
+    """
+    params = st.query_params
+    
+    # Solo se activa si detecta los parámetros específicos del popup
+    if "graficar_pozo" in params and params.get("ejecutar_analisis") == "True":
+        
+        # 1. LIMPIEZA TOTAL DE INTERFAZ (CSS)
+        st.markdown("""
+            <style>
+                #MainMenu {visibility: hidden;}
+                footer {visibility: hidden;}
+                header {visibility: hidden;}
+                div[data-testid="stToolbar"] {visibility: hidden;}
+                .block-container { padding: 0rem !important; }
+                body { background-color: black; overflow: hidden; }
+            </style>
+        """, unsafe_allow_html=True)
 
+        id_pozo_graf = params["graficar_pozo"]
+
+        try:
+            # Recuperar configuración de señales
+            mapa_pozos_dict = cargar_mapa_pozos_desde_db()
+            pozo_info = mapa_pozos_dict.get(id_pozo_graf)
+
+            if not pozo_info:
+                st.stop()
+
+            # 2. RANGO DE 5 DÍAS
+            f_fin = datetime.now()
+            f_ini = f_fin - timedelta(days=5)
+
+            # Configuración de señales a graficar
+            tags_finales = [
+                {'tag': pozo_info.get('caudal'), 'label': "Q (Lps)", 'side': False, 'color': '#00d4ff'},
+                {'tag': pozo_info.get('presion'), 'label': "P (Kg)", 'side': True, 'color': '#00ff00'}
+            ]
+            
+            # Filtrar tags válidos
+            tags_finales = [t for t in tags_finales if t['tag'] and t['tag'] != 'N/A']
+
+            if tags_finales:
+                engine_scada = get_mysql_scada_engine()
+                lista_tags_sql = "', '".join([t['tag'] for t in tags_finales])
+                
+                query = f"""
+                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                    FROM vfitagnumhistory h
+                    JOIN VfiTagRef r ON h.GATEID = r.GATEID
+                    WHERE r.NAME IN ('{lista_tags_sql}') 
+                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
+                    ORDER BY h.FECHA ASC
+                """
+                df = pd.read_sql(query, engine_scada)
+                
+                if not df.empty:
+                    fig = make_subplots(specs=[[{"secondary_y": True}]])
+                    
+                    for t_info in tags_finales:
+                        df_tag = df[df['TagName'] == t_info['tag']]
+                        if not df_tag.empty:
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=df_tag['FECHA'], 
+                                    y=df_tag['VALUE'], 
+                                    name=t_info['label'],
+                                    line=dict(color=t_info['color'], width=1.5),
+                                    mode='lines'
+                                ),
+                                secondary_y=t_info['side']
+                            )
+
+                    fig.update_layout(
+                        template="plotly_dark",
+                        height=240, 
+                        margin=dict(l=5, r=5, t=5, b=5),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        showlegend=True,
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9))
+                    )
+                    
+                    fig.update_xaxes(showgrid=False, tickfont=dict(size=8))
+                    fig.update_yaxes(showgrid=True, gridcolor='#222', tickfont=dict(size=8))
+                    
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                else:
+                    st.caption("No hay datos históricos (5 días)")
+                    
+        except Exception:
+            pass
+        
+        # 3. EL BLOQUEO MAESTRO
+        # Esto evita que Streamlit siga bajando y dibuje el mapa general
+        st.stop()
 
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
