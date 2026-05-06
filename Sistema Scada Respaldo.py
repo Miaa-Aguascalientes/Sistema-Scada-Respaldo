@@ -259,7 +259,6 @@ def cargar_datos_scada(lista_tags):
         return {}
 
 # --- FUNCIÓN PARA SPARKLINE (GRÁFICO POPUP) ---
-@st.cache_data(ttl=600)
 def generar_sparkline_base64(tag_name):
     engine = get_mysql_scada_engine()
     if not engine or not tag_name or tag_name == 'N/A': return None
@@ -1819,41 +1818,128 @@ if sectores_data:
     
 # --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---------------------------------------------------------------------------
 for id_p, info in mapa_pozos_dict.items():
-    if ver_pozos:
+    if ver_pozos:  # Solo si el checkbox está activo
         d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
-        # Generar Sparkline (con @st.cache_data esto no consumirá tiempo)
-        spark_base64 = generar_sparkline_base64(info['caudal'])
-        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:45px; border-radius:4px;">' if spark_base64 else ""
+        # Extracción de variables hidráulicas y niveles
+        q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+        p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+        sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+        dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+        tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+        col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+        
+        # Horarios
+        h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+        h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+        h_arr_fmt = formato_hora(h_arr_val)
+        h_par_fmt = formato_hora(h_par_val)
+        
+        # Eléctricos
+        v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+        a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        # HTML del Popup: He eliminado espacios y simplificado el CSS para reducir bytes
+        # Generación de Sparkline (Tendencia)
+        spark_base64 = generar_sparkline_base64(info['caudal'])
+        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:60px; margin-top:5px; border-radius:5px; border:1px solid #222;">' if spark_base64 else '<p style="color:#444; font-size:10px; text-align:center;">Gráfico no disponible</p>'
+
+        # URL para el análisis histórico
+        rol_actual = st.session_state.get('rol', 'usuario')
+        nombre_codificado = urllib.parse.quote(id_p)
+        url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+
+        # HTML del Popup Integrado
         html_popup = f"""
-            <div style="background:#050505;color:white;padding:10px;border-radius:10px;width:320px;border:1px solid {info['color_final']};font-family:sans-serif;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
-                    <b style="color:#00d4ff;">POZO {id_p}</b>
-                    <span style="font-size:9px;background:{info['color_final']};color:black;padding:1px 4px;border-radius:3px;font-weight:bold;">{info['status_label']}</span>
+            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                {spark_html}
-                <div style="font-size:11px;margin-top:5px;line-height:1.4;">
-                    💧 <b>{d(info['caudal'])[0]:.2f}</b> L/s | 🚀 <b>{d(info['presion'])[0]:.2f}</b> kg<br>
-                    🔋 TQ: <b>{d(info['nivel_tanque'])[0]:.2f}</b> m | 📏 SUM: <b>{d(info['sumergencia'])[0]:.2f}</b> m
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="font-size: 11px; margin-bottom: 3px;">💧 Caudal: <b>{q:.2f} L/s</b></div>
+                        <div style="font-size: 11px;">🚀 Presión: <b>{p:.2f} kg</b></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">TENDENCIA (7D)</div>
+                        {spark_html}
+                    </div>
                 </div>
-                <div style="margin-top:8px;border-top:1px solid #333;padding-top:8px;text-align:center;">
-                    <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted&role={st.session_state.rol}" target="_blank" style="color:#00d4ff;text-decoration:none;font-size:10px;font-weight:bold;">ANALIZAR HISTORIAL</a>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>🔋 Nivel Tanque: <b>{tanq:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px;">{f_t}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px;">
+                        <span>📉 Nivel Dinámico: <b>{dinam:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px;">{f_d}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px;">{f_s}</span>
+                    </div>
                 </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                    <table style="width: 100%; font-size: 10px; border-collapse: collapse;">
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding: 4px;">Fase</th>
+                            <th style="padding: 4px;">Voltaje</th>
+                            <th style="padding: 4px;">Amperaje</th>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 4px;">L1-L2</td>
+                            <td><b>{v[0][0]:.1f}V</b> <small style="color:#FFFF00;">{v[0][1]}</small></td>
+                            <td><b>{a[0][0]:.1f}A</b> <small style="color:#FFFF00;">{a[0][1]}</small></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 4px;">L2-L3</td>
+                            <td><b>{v[1][0]:.1f}V</b> <small style="color:#FFFF00;">{v[1][1]}</small></td>
+                            <td><b>{a[1][0]:.1f}A</b> <small style="color:#FFFF00;">{a[1][1]}</small></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 4px;">L1-L3</td>
+                            <td><b>{v[2][0]:.1f}V</b> <small style="color:#FFFF00;">{v[2][1]}</small></td>
+                            <td><b>{a[2][0]:.1f}A</b> <small style="color:#FFFF00;">{a[2][1]}</small></td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 11px; background: #111; padding: 8px; border-radius: 6px; margin-bottom: 12px;">
+                    <span>▶️ {h_arr_fmt} <small style="color:#FFFF00;">{f_h_arr}</small></span>
+                    <span>⏹️ {h_par_fmt} <small style="color:#FFFF00;">{f_h_par}</small></span>
+                </div>
+
+                <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                    <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                        📊 VER ANÁLISIS HISTÓRICO
+                    </div>
+                </a>
             </div>
         """
 
-        # Objeto Lazy (CRÍTICO: Sin esto el mapa no cargará)
-        popup_obj = folium.Popup(folium.Html(html_popup, script=True), max_width=350, lazy=True)
+        # Agregar Etiqueta de Texto ID
+        folium.Marker(
+            location=info['coord'],
+            icon=folium.DivIcon(
+                icon_size=(150,36),
+                icon_anchor=(-12, 10),
+                html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+            )
+        ).add_to(m)
 
-        # 2. RENDERIZADO DIRECTO AL MAPA 'm' (SIN CLUSTERS)
+        # Agregar Marcador (Blink o Fijo)
         if info.get('blink'):
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=popup_obj
+                popup=folium.Popup(html_popup, max_width=450)
             ).add_to(m)
         else:
             folium.CircleMarker(
@@ -1861,8 +1947,9 @@ for id_p, info in mapa_pozos_dict.items():
                 radius=5,
                 color=info['color_final'],
                 fill=True,
+                fill_color=info['color_final'],
                 fill_opacity=1,
-                popup=popup_obj
+                popup=folium.Popup(html_popup, max_width=450)
             ).add_to(m)
 
 
@@ -1902,16 +1989,11 @@ for id_p, info in mapa_pozos_dict.items():
                     <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
                 </div>
                 """
-                popup_obj_tq = folium.Popup(folium.Html(html_popup_tq, script=True), max_width=300, lazy=True)
                 
                 folium.RegularPolygonMarker(
                     location=info['coord'],
-                    number_of_sides=6,
-                    radius=5,
-                    color="#00d4ff",
-                    fill=True,
-                    fill_color="#00d4ff",
-                    popup=popup_obj_tq, # <--- Usamos el objeto lazy
+                    number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
+                    popup=folium.Popup(html_popup_tq, max_width=300),
                     tooltip=f"Tanque: {info['nombre']}"
                 ).add_to(m)
 
@@ -1925,53 +2007,97 @@ for id_p, info in mapa_pozos_dict.items():
             except: continue
             
 # ==============================================================================
-# --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---
-from folium.plugins import MarkerCluster
+# 9.8. RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL
+# ==============================================================================
+if ver_rebombeos:
+    for id_rb, info in mapa_rebombeos_dict.items():
+        try:
+            # Extracción de datos del SCADA con lambda para manejo de N/A
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            
+            pres, f_p = d(info['presion'])
+            ntq, f_t = d(info['nivel_tanque'])
+            
+            # Voltajes y Amperajes (Listas de tuplas)
+            v_rb = [d(t) for t in info['voltajes_l']]
+            a_rb = [d(t) for t in info['amperajes_l']]
 
-# Definir clúster FUERA del bucle
-cluster_pozos = MarkerCluster(name="Red de Pozos", disableClusteringAtZoom=14).add_to(m)
-
-for id_p, info in mapa_pozos_dict.items():
-    if ver_pozos:
-        d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
-        is_st = (info['status_label'] == 'SIN TELEMETRÍA')
-        
-        # Generar Sparkline (con el caché del punto 1 esto será instantáneo)
-        spark_base64 = generar_sparkline_base64(info['caudal'])
-        spark_html = f'<img src="data:image/png;base64,{spark_base64}" style="width:100%; height:50px; border-radius:5px;">' if spark_base64 else ""
-
-        # HTML ultra-compacto (menos texto = carga más rápida)
-        html_popup = f"""
-            <div style="background:#050505; color:white; padding:12px; border-radius:10px; width:350px; border:1px solid {info['color_final']}; font-family:sans-serif;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                    <b style="color:#00d4ff;">POZO {id_p}</b>
-                    <span style="font-size:9px; background:{info['color_final']}; color:black; padding:2px 5px; border-radius:3px; font-weight:bold;">{info['status_label']}</span>
+            # Construcción del HTML para el Popup de Rebombeo
+            html_popup_rb = f"""
+            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                {spark_html}
-                <div style="font-size:11px; margin-top:8px;">
-                    💧 {d(info['caudal'])[0]:.2f} L/s | 🚀 {d(info['presion'])[0]:.2f} kg
+                <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                <div style="font-size: 11px; margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>🚀 Presión: <b>{pres:.2f} kg</b></span>
+                        <span style="color:#FFFF00; font-size:8px;">{f_p}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+                        <span>🔋 Nivel Tanque: <b>{ntq:.2f} m</b></span>
+                        <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
+                    </div>
                 </div>
-                <div style="margin-top:10px; border-top:1px solid #333; padding-top:8px; text-align:center;">
-                    <a href="?graficar_pozo={id_p}&nombre={id_p}&access=granted&role={st.session_state.rol}" target="_blank" style="color:#00d4ff; text-decoration:none; font-size:11px; font-weight:bold;">📊 VER HISTORIAL</a>
-                </div>
+                <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
+                    <thead>
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding-bottom: 4px;">Fase</th>
+                            <th style="padding-bottom: 4px;">Voltaje</th>
+                            <th style="padding-bottom: 4px;">Amp</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 3px 0;">L1-L2</td>
+                            <td><b>{v_rb[0][0]:.0f}V</b></td>
+                            <td><b>{a_rb[0][0]:.1f}A</b></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 3px 0;">L2-L3</td>
+                            <td><b>{v_rb[1][0]:.0f}V</b></td>
+                            <td><b>{a_rb[1][0]:.1f}A</b></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 3px 0;">L1-L3</td>
+                            <td><b>{v_rb[2][0]:.0f}V</b></td>
+                            <td><b>{a_rb[2][0]:.1f}A</b></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        """
+            """
 
-        # Objeto Lazy (Solo se procesa al hacer clic)
-        popup_obj = folium.Popup(folium.Html(html_popup, script=True), max_width=400, lazy=True)
-
-        # Marcador al clúster
-        if info.get('blink'):
+            # Marcador Geométrico o Animado (Blink)
+            if info.get('blink'):
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                    popup=folium.Popup(html_popup_rb, max_width=350)
+                ).add_to(m)
+            else:
+                folium.RegularPolygonMarker(
+                    location=info['coord'],
+                    number_of_sides=4,
+                    radius=6,
+                    color=info['color_final'],
+                    fill=True,
+                    fill_color=info['color_final'],
+                    popup=folium.Popup(html_popup_rb, max_width=350)
+                ).add_to(m)
+            
+            # Etiqueta de ID del Rebombeo
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=popup_obj
-            ).add_to(cluster_pozos)
-        else:
-            folium.CircleMarker(
-                location=info['coord'], radius=5, color=info['color_final'],
-                fill=True, fill_opacity=1, popup=popup_obj
-            ).add_to(cluster_pozos)
+                icon=folium.DivIcon(
+                    icon_anchor=(-15, 15),
+                    html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000; pointer-events: none;">{id_rb}</div>'
+                )
+            ).add_to(m)
+
+        except Exception as e:
+            continue
 
 # ==============================================================================
 # 9.9. FINALIZACIÓN Y RENDERIZADO ÚNICO DEL MAPA (FUERA DE BUCLES)
