@@ -1990,11 +1990,16 @@ for id_p, info in mapa_pozos_dict.items():
                     <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
                 </div>
                 """
+                popup_obj_tq = folium.Popup(folium.Html(html_popup_tq, script=True), max_width=300, lazy=True)
                 
                 folium.RegularPolygonMarker(
                     location=info['coord'],
-                    number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
-                    popup=folium.Popup(html_popup_tq, max_width=300),
+                    number_of_sides=6,
+                    radius=5,
+                    color="#00d4ff",
+                    fill=True,
+                    fill_color="#00d4ff",
+                    popup=popup_obj_tq, # <--- Usamos el objeto lazy
                     tooltip=f"Tanque: {info['nombre']}"
                 ).add_to(m)
 
@@ -2069,13 +2074,14 @@ if ver_rebombeos:
                 </table>
             </div>
             """
+            popup_obj_rb = folium.Popup(folium.Html(html_popup_rb, script=True), max_width=350, lazy=True)
 
             # Marcador Geométrico o Animado (Blink)
             if info.get('blink'):
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                    popup=folium.Popup(html_popup_rb, max_width=350)
+                    popup=popup_obj_rb # <--- Usamos el objeto lazy
                 ).add_to(m)
             else:
                 folium.RegularPolygonMarker(
@@ -2085,7 +2091,7 @@ if ver_rebombeos:
                     color=info['color_final'],
                     fill=True,
                     fill_color=info['color_final'],
-                    popup=folium.Popup(html_popup_rb, max_width=350)
+                    popup=popup_obj_rb # <--- Usamos el objeto lazy
                 ).add_to(m)
             
             # Etiqueta de ID del Rebombeo
