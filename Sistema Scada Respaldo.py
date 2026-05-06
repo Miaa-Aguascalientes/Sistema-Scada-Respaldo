@@ -2049,5 +2049,5 @@ for id_p, info in mapa_pozos_dict.items():
                 
     st_folium(m, width="100%", height=700)       
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
-    folium_static(m, width=None, height=750)
+
     
