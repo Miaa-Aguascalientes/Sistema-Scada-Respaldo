@@ -1819,7 +1819,7 @@ if sectores_data:
 # --- 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL ---
 for id_p, info in mapa_pozos_dict.items():
     if ver_pozos:  # Solo si el checkbox está activo
-        d = lambda tag: data_scada.get(tag, (0, "N/A"))
+        d = lambda tag: data_scada.get(tag, (0.0, "N/A"))
         is_st = (info['status_label'] == 'SIN TELEMETRÍA')
         
         # Extracción de variables hidráulicas y niveles
@@ -1849,6 +1849,7 @@ for id_p, info in mapa_pozos_dict.items():
         nombre_codificado = urllib.parse.quote(id_p)
         url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
+        # HTML del Popup Integrado
         html_popup = f"""
             <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
                 <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
