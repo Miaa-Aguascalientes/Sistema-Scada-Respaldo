@@ -686,25 +686,24 @@ if "graficar_pozo" in params:
                     msg = "LECTURAS INSUFICIENTES"
                     col_ui = "#ffaa00"
 
-            # RENDER CABECERA
+            # RENDER CABECERA (CORREGIDO SIN TEXTO BASURA)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
                     <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 200px;">
-                        <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block;">Volumen Extraído</span>
-                        <span style="color: white; font-size: 26px; font-weight: bold;">{val_vol} <small style="font-size: 14px; color: {col_ui};">m³</small></span>
+                        <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Volumen Extraído</span>
+                        <span style="color: white; font-size: 26px; font-weight: bold; display: block;">{val_vol} <small style="font-size: 14px; color: {col_ui};">m³</small></span>
                         {f'<div style="color: {col_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg}</div>' if msg else ''}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY CON VALORES EN HOVER ---
+            # --- GRÁFICO PLOTLY ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
                     dft = df[df['TagName'] == t['tag']]
                     if not dft.empty:
-                        # RESTAURADO: Configuración de hover detallado
                         fig.add_trace(
                             go.Scatter(
                                 x=dft['FECHA'], 
@@ -712,7 +711,7 @@ if "graficar_pozo" in params:
                                 name=t['label'], 
                                 mode='lines+markers' if "Amp" in t['label'] else 'lines',
                                 line=dict(color=t['color'], width=2),
-                                hovertemplate='%{x|%b %d, %Y, %H:%M}, %{y:.3f}' # <--- ESTO MUESTRA FECHA Y VALOR
+                                hovertemplate='%{x|%b %d, %Y, %H:%M}, %{y:.3f}'
                             ), 
                             secondary_y=t['side']
                         )
@@ -722,7 +721,7 @@ if "graficar_pozo" in params:
                     height=600, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified", # <--- ESTO ACTIVA LA LÍNEA VERTICAL CON TODOS LOS VALORES
+                    hovermode="x unified",
                     legend=dict(orientation="h", y=1.1, x=0)
                 )
                 
