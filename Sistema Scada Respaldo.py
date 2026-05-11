@@ -620,7 +620,7 @@ if "graficar_pozo" in params:
 
     cabecera_placeholder = st.empty()
     
-    # 5.1. FILTRO DE TIEMPO (RESTABLECIDO COMPLETAMENTE)
+    # 5.1. FILTRO DE TIEMPO
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -630,7 +630,6 @@ if "graficar_pozo" in params:
             key="fecha_pozo_v8"
         )
 
-    # --- LÓGICA DE FECHAS ---
     hoy_dt = datetime.now()
     f_fin = hoy_dt
     
@@ -665,6 +664,8 @@ if "graficar_pozo" in params:
 
     # 5.2. CONFIGURACIÓN Y CONSULTA
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
+    tag_caudal_real = pozo_info.get('caudal', '')
+    tag_presion_real = pozo_info.get('presion', '')
     
     config_visual = [('caudal', "Caudal (Lps)", False, '#00d4ff'), ('presion', "Presión (Kg/cm²)", True, '#00ff00')]
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
@@ -687,39 +688,54 @@ if "graficar_pozo" in params:
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
-            # --- LÓGICA DE RESTA DEL VOLUMEN ---
+            # --- LÓGICA DE INDICADORES ---
             val_vol = "0.00"
+            val_cau_prom = "0.00"
+            val_pre_prom = "0.00"
             msg = ""
             col_ui = "#00d4ff"
 
-            if df.empty:
+            if not df.empty:
+                # 1. Volumen (Resta)
+                if tag_totalizado in df['TagName'].values:
+                    df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
+                    if len(df_tot) >= 2:
+                        delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
+                        val_vol = f"{delta:,.2f}"
+                    else: msg = "LECTURAS INSUFICIENTES"
+                
+                # 2. Promedios
+                if tag_caudal_real in df['TagName'].values:
+                    val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
+                if tag_presion_real in df['TagName'].values:
+                    val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
+            else:
                 msg = "SIN DATOS"
                 col_ui = "#666"
-            elif tag_totalizado not in df['TagName'].values:
-                msg = f"TAG '{tag_totalizado}' NO ENCONTRADO"
-                col_ui = "#ff4b4b"
-            else:
-                df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
-                if len(df_tot) >= 2:
-                    delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                    val_vol = f"{delta:,.2f}"
-                else:
-                    msg = "LECTURAS INSUFICIENTES"
-                    col_ui = "#ffaa00"
 
-            # RENDER CABECERA
+            # RENDER CABECERA CON NUEVOS INDICADORES
             cabecera_placeholder.markdown(f"""
-                <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 200px;">
-                        <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Volumen Extraído</span>
-                        <span style="color: white; font-size: 26px; font-weight: bold; display: block;">{val_vol} <small style="font-size: 14px; color: {col_ui};">m³</small></span>
-                        <div style="color: {col_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg}</div>
+                    <div style="display: flex; gap: 15px;">
+                        <div style="padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 160px;">
+                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Volumen Extraído</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: {col_ui};">m³</small></span>
+                        </div>
+                        <div style="padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 140px;">
+                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Promedio</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
+                        </div>
+                        <div style="padding: 10px 20px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 140px;">
+                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Presión Promedio</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
+                        </div>
                     </div>
                 </div>
+                {f'<div style="color: {col_ui}; font-size: 11px; font-weight: bold; margin-bottom: 15px;">⚠️ {msg}</div>' if msg else ''}
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY (FORMATO DE ETIQUETAS RESTAURADO) ---
+            # --- GRÁFICO ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -727,29 +743,17 @@ if "graficar_pozo" in params:
                     if not dft.empty:
                         fig.add_trace(
                             go.Scatter(
-                                x=dft['FECHA'], 
-                                y=dft['VALUE'], 
-                                name=t['label'], 
+                                x=dft['FECHA'], y=dft['VALUE'], name=t['label'], 
                                 mode='lines+markers' if "Amp" in t['label'] else 'lines',
                                 line=dict(color=t['color'], width=2)
-                                # SE ELIMINA HOVERTEMPLATE PARA DEJAR EL FORMATO ORIGINAL POR DEFECTO
                             ), 
                             secondary_y=t['side']
                         )
-                
                 fig.update_layout(
-                    template="plotly_dark", 
-                    height=600, 
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified",
+                    template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', 
+                    plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified",
                     legend=dict(orientation="h", y=1.1, x=0)
                 )
-                
-                fig.update_xaxes(showspikes=True, spikecolor="white", spikesnap="cursor", spikemode="across", spikedash="dash")
-                fig.update_yaxes(title_text="<b>Caudal (Lps)</b>", secondary_y=False, color='#00d4ff')
-                fig.update_yaxes(title_text="<b>Presión / Eléctricos</b>", secondary_y=True, gridcolor='#333')
-                
                 st.plotly_chart(fig, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
