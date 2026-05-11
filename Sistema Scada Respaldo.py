@@ -666,6 +666,8 @@ if "graficar_pozo" in params:
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
     tag_caudal_real = pozo_info.get('caudal', '')
     tag_presion_real = pozo_info.get('presion', '')
+    tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
+    tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
     config_visual = [('caudal', "Caudal (Lps)", False, '#00d4ff'), ('presion', "Presión (Kg/cm²)", True, '#00ff00')]
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
@@ -690,38 +692,57 @@ if "graficar_pozo" in params:
             
             # --- LÓGICA DE INDICADORES ---
             val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
+            val_v_prom, val_a_prom = "0.00", "0.00"
             msg = ""
             col_ui = "#00d4ff"
 
             if not df.empty:
+                # Volumen (Resta)
                 if tag_totalizado in df['TagName'].values:
                     df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                     if len(df_tot) >= 2:
                         val_vol = f"{(float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])):,.2f}"
+                
+                # Promedios Hidráulicos
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
+                
+                # Promedios Eléctricos (3 Fases)
+                if tags_voltaje:
+                    val_v_prom = f"{df[df['TagName'].isin(tags_voltaje)]['VALUE'].mean():,.1f}"
+                if tags_amperaje:
+                    val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
             else:
                 msg = "SIN DATOS"
                 col_ui = "#666"
 
-            # RENDER CABECERA (TÍTULO COMPLETO + INDICADORES)
+            # RENDER CABECERA (INDICADORES CENTRADOS Y TÍTULOS GRANDES)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    <div style="display: flex; gap: 10px;">
-                        <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 10px; min-width: 140px;">
-                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Volumen</span>
-                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_vol} <small style="font-size: 10px; color: {col_ui};">m³</small></span>
+                    
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="padding: 10px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 10px; min-width: 140px; text-align: center;">
+                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Volumen</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_vol} <small style="font-size: 11px; color: {col_ui};">m³</small></span>
                         </div>
-                        <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 10px; min-width: 130px;">
-                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Promedio</span>
-                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_cau_prom} <small style="font-size: 10px; color: #00d4ff;">Lps</small></span>
+                        <div style="padding: 10px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 10px; min-width: 140px; text-align: center;">
+                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Caudal Prom</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_cau_prom} <small style="font-size: 11px; color: #00d4ff;">Lps</small></span>
                         </div>
-                        <div style="padding: 8px 15px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 10px; min-width: 130px;">
-                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Presión Promedio</span>
-                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_pre_prom} <small style="font-size: 10px; color: #00ff00;">Kg</small></span>
+                        <div style="padding: 10px 15px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 10px; min-width: 140px; text-align: center;">
+                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Presión Prom</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_pre_prom} <small style="font-size: 11px; color: #00ff00;">Kg</small></span>
+                        </div>
+                        <div style="padding: 10px 15px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 10px; min-width: 140px; text-align: center;">
+                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Voltaje Prom</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_v_prom} <small style="font-size: 11px; color: #fffb00;">V</small></span>
+                        </div>
+                        <div style="padding: 10px 15px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 10px; min-width: 140px; text-align: center;">
+                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Amperaje Prom</span>
+                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_a_prom} <small style="font-size: 11px; color: #ff8000;">A</small></span>
                         </div>
                     </div>
                 </div>
