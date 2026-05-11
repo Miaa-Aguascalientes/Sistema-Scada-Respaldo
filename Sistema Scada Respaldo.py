@@ -620,17 +620,34 @@ if "graficar_pozo" in params:
 
     cabecera_placeholder = st.empty()
     
-    # 5.1. FILTRO DE TIEMPO (Lógica de f_ini y f_fin)
+    # 5.1. FILTRO DE TIEMPO (RESTABLECIDO COMPLETAMENTE)
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
-        opcion_fecha = st.selectbox("Rango de tiempo:", ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Personalizado"], index=1, key="fecha_pozo_v8")
+        opcion_fecha = st.selectbox(
+            "Rango de tiempo:", 
+            ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
+            index=1, 
+            key="fecha_pozo_v8"
+        )
 
+    # --- LÓGICA DE FECHAS REFORZADA ---
     hoy_dt = datetime.now()
     f_fin = hoy_dt
-    if opcion_fecha == "Hoy": f_ini = hoy_dt.replace(hour=0, minute=0, second=0)
-    elif opcion_fecha == "Últimos 7 días": f_ini = hoy_dt - timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": f_ini = hoy_dt - timedelta(days=14)
-    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0)
+    
+    if opcion_fecha == "Hoy":
+        f_ini = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Últimos 7 días":
+        f_ini = hoy_dt - timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días":
+        f_ini = hoy_dt - timedelta(days=14)
+    elif opcion_fecha == "Este Mes":
+        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0)
+    elif opcion_fecha == "Último Mes":
+        primero_este_mes = hoy_dt.replace(day=1, hour=0, minute=0, second=0)
+        f_fin = primero_este_mes - timedelta(seconds=1)
+        f_ini = (primero_este_mes - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0)
+    elif opcion_fecha == "Últimos 6 meses":
+        f_ini = hoy_dt - timedelta(days=180)
     elif opcion_fecha == "Personalizado":
         with col_f2:
             rango = st.date_input("Selecciona el periodo:", value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()), max_value=hoy_dt.date())
@@ -640,7 +657,8 @@ if "graficar_pozo" in params:
         else:
             st.info("Selecciona el rango en el calendario.")
             st.stop()
-    else: f_ini = hoy_dt - timedelta(days=7) 
+    else:
+        f_ini = hoy_dt - timedelta(days=7) 
 
     # 5.2. CONFIGURACIÓN Y CONSULTA
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
@@ -686,19 +704,19 @@ if "graficar_pozo" in params:
                     msg = "LECTURAS INSUFICIENTES"
                     col_ui = "#ffaa00"
 
-            # RENDER CABECERA (CORREGIDO SIN TEXTO BASURA)
+            # RENDER CABECERA (LIMPIO SIN ETIQUETAS BASURA)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
                     <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 200px;">
                         <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Volumen Extraído</span>
                         <span style="color: white; font-size: 26px; font-weight: bold; display: block;">{val_vol} <small style="font-size: 14px; color: {col_ui};">m³</small></span>
-                        {f'<div style="color: {col_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg}</div>' if msg else ''}
+                        <div style="color: {col_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg}</div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY ---
+            # --- GRÁFICO PLOTLY CON HOVER RESTAURADO ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -711,7 +729,7 @@ if "graficar_pozo" in params:
                                 name=t['label'], 
                                 mode='lines+markers' if "Amp" in t['label'] else 'lines',
                                 line=dict(color=t['color'], width=2),
-                                hovertemplate='%{x|%b %d, %Y, %H:%M}, %{y:.3f}'
+                                hovertemplate='%{{x|%b %d, %Y, %H:%M}}, %{{y:.3f}}'
                             ), 
                             secondary_y=t['side']
                         )
