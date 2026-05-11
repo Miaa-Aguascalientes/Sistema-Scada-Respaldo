@@ -681,8 +681,6 @@ if "graficar_pozo" in params:
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
 
-    tags_query = [t['tag'] for t in tags_grafico] if 'tags_grafico' in locals() else []
-    # Reconstruir tags_grafico si no existe
     tags_grafico = []
     for item in config_visual:
         real_t = pozo_info.get(item[0], item[0])
@@ -706,8 +704,8 @@ if "graficar_pozo" in params:
                 if tag_totalizado in df['TagName'].values:
                     df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                     if len(df_tot) >= 2:
-                        consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                        val_vol = f"{consumo_neta:,.2f}"
+                        consumo_periodo = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
+                        val_vol = f"{consumo_periodo:,.2f}"
                 
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
@@ -718,13 +716,13 @@ if "graficar_pozo" in params:
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
-            # --- 5.4. RENDER CABECERA (RESTAURADA) ---
+            # --- 5.4. RENDER CABECERA ---
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
-            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción</span>
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción Periodo</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: #00d4ff;">m³</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
@@ -733,25 +731,24 @@ if "graficar_pozo" in params:
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm²</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">Volt</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">Amp</small></span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES (CON FIX DE MILLONES) ---
+            # --- 5.5. PESTAÑA DE VOLÚMENES (CÁLCULO EXTREMO A EXTREMO) ---
             with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
-                    # Traemos todas las lecturas de los dos años para calcular por fuera el delta real por mes
                     q_hist = f"""
                         SELECT YEAR(FECHA) as anio, MONTH(FECHA) as mes, VALUE, FECHA
                         FROM vfitagnumhistory h
@@ -763,7 +760,7 @@ if "graficar_pozo" in params:
                     df_h = pd.read_sql(q_hist, engine)
 
                     if not df_h.empty:
-                        # Agrupamos por año y mes para obtener (Última lectura - Primera lectura) de cada mes
+                        # Obtenemos estrictamente la primera y última lectura disponible en cada mes
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].agg(['first', 'last']).reset_index()
                         res_meses['produccion_neta'] = res_meses['last'] - res_meses['first']
                         
@@ -774,24 +771,24 @@ if "graficar_pozo" in params:
                         with col_g:
                             fig_hist = go.Figure()
                             for anio in sorted(res_meses['anio'].unique()):
-                                df_a = res_meses[res_meses['anio'] == anio]
+                                df_a = res_meses[res_meses['anio'] == anio].sort_values('mes')
                                 fig_hist.add_trace(go.Bar(
                                     x=df_a['Mes_Txt'], y=df_a['produccion_neta'],
                                     name=f'Año {anio}',
-                                    marker_color='#00d4ff' if anio == curr_year else 'rgba(150,150,150,0.4)'
+                                    marker_color='#00d4ff' if anio == curr_year else 'rgba(120,120,120,0.4)'
                                 ))
                             fig_hist.update_layout(template="plotly_dark", barmode='group', height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                             st.plotly_chart(fig_hist, use_container_width=True)
 
                         with col_t:
                             st.markdown("<h6 style='color:#888;'>m³ Producidos por Mes</h6>", unsafe_allow_html=True)
-                            tabla = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=False)
-                            tabla.index = [nombres_meses[m] for m in tabla.index]
-                            st.dataframe(tabla.style.format("{:,.2f}"), use_container_width=True)
+                            pivot = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=False)
+                            pivot.index = [nombres_meses[m] for m in pivot.index]
+                            st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else:
                         st.info("Datos insuficientes en el totalizador.")
 
-            # --- 5.6. GRÁFICO PLOTLY DE LÍNEAS (COMPLETO) ---
+            # --- 5.6. GRÁFICO PLOTLY DE LÍNEAS ---
             if not df.empty:
                 fig_line = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -802,7 +799,8 @@ if "graficar_pozo" in params:
                 fig_line.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified", legend=dict(orientation="h", y=1.05))
                 st.plotly_chart(fig_line, use_container_width=True)
 
-        except Exception as e: st.error(f"Error: {e}")
+        except Exception as e: 
+            st.error(f"Error: {e}")
             
     st.stop()
     
