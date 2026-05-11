@@ -231,10 +231,11 @@ def get_mysql_telemetria_engine():
 @st.cache_resource
 def get_postgres_conn():
     try: 
+        # Simplemente crea y retorna el objeto de conexión
         conn = psycopg2.connect(**st.secrets["postgres"])
-        conn.close() 
-        return psycopg2.connect(**st.secrets["postgres"])
-    except: 
+        return conn
+    except Exception as e: 
+        st.error(f"Error de conexión Postgres: {e}")
         return None
         
  # 2.4. Funcion para cargar el ultimo dato de SCADA
@@ -279,7 +280,8 @@ def obtener_historia_7_dias(tag_name):
 # 2.6. Funcion para optener los poligonos de los sectores y sus demas campos
 @st.cache_data(ttl=3600)
 def cargar_sectores_poligonos():
-    conn = get_postgres_conn()
+    # Obtenemos una conexión fresca
+    conn = psycopg2.connect(**st.secrets["postgres"])
     if not conn: return []
     try:
         query = """
@@ -292,12 +294,17 @@ def cargar_sectores_poligonos():
                    ST_AsGeoJSON(ST_Transform(geom, 4326)) as geo 
             FROM "Sectorizacion"."Sectores_hidr"
         """
+        # Leemos los datos
         df = pd.read_sql(query, conn)
-        conn.close()
         return df.to_dict('records')
     except Exception as e:
         st.error(f"Error al cargar sectores: {e}")
         return []
+    finally:
+        # El bloque finally asegura que la conexión se cierre SIEMPRE
+        # al terminar la función, exitosa o fallida.
+        if conn:
+            conn.close()
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
