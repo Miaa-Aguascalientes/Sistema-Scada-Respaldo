@@ -706,21 +706,21 @@ if "graficar_pozo" in params:
                 msg = "SIN DATOS"
                 col_ui = "#666"
 
-            # RENDER CABECERA
+            # RENDER CABECERA (TÍTULO COMPLETO + INDICADORES)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
+                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
                     <div style="display: flex; gap: 10px;">
                         <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 10px; min-width: 140px;">
                             <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Volumen</span>
                             <span style="color: white; font-size: 18px; font-weight: bold;">{val_vol} <small style="font-size: 10px; color: {col_ui};">m³</small></span>
                         </div>
                         <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 10px; min-width: 130px;">
-                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Prom</span>
+                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Promedio</span>
                             <span style="color: white; font-size: 18px; font-weight: bold;">{val_cau_prom} <small style="font-size: 10px; color: #00d4ff;">Lps</small></span>
                         </div>
                         <div style="padding: 8px 15px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 10px; min-width: 130px;">
-                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Presión Prom</span>
+                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Presión Promedio</span>
                             <span style="color: white; font-size: 18px; font-weight: bold;">{val_pre_prom} <small style="font-size: 10px; color: #00ff00;">Kg</small></span>
                         </div>
                     </div>
@@ -728,7 +728,7 @@ if "graficar_pozo" in params:
                 {f'<div style="color: {col_ui}; font-size: 11px; font-weight: bold; margin-bottom: 15px;">⚠️ {msg}</div>' if msg else ''}
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY CON TÍTULOS DE EJE RESTAURADOS ---
+            # --- GRÁFICO PLOTLY ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -747,10 +747,9 @@ if "graficar_pozo" in params:
                     template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified",
                     legend=dict(orientation="h", y=1.1, x=0),
-                    margin=dict(l=50, r=50, t=100, b=50) # Margen para asegurar visibilidad de títulos
+                    margin=dict(l=60, r=60, t=100, b=50)
                 )
                 
-                # Restauración explícita de títulos
                 fig.update_yaxes(title_text="<b>Caudal (Lps)</b>", secondary_y=False, color='#00d4ff', showgrid=True, gridcolor='#333')
                 fig.update_yaxes(title_text="<b>Presión / Eléctricos</b>", secondary_y=True, color='#00ff00', showgrid=False)
                 fig.update_xaxes(title_text="Tiempo", showgrid=True, gridcolor='#333')
