@@ -692,49 +692,14 @@ if "graficar_pozo" in params:
             # ... (Resto del código de Plotly) ...
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                
-                for t_info in tags_finales:
-                    df_tag = df[df['TagName'] == t_info['tag']]
-                    if not df_tag.empty:
-                        # Estilos diferenciados
-                        is_amp = "Amp" in t_info['label']
-                        
-                        fig.add_trace(
-                            go.Scatter(
-                                x=df_tag['FECHA'], 
-                                y=df_tag['VALUE'], 
-                                name=t_info['label'],
-                                line=dict(color=t_info['color'], width=1.5 if is_amp else 2),
-                                mode='lines+markers' if is_amp else 'lines', # Amperajes con puntos
-                                marker=dict(size=4) if is_amp else None
-                            ),
-                            secondary_y=t_info['side']
-                        )
-
-                fig.update_layout(
-                    template="plotly_dark",
-                    hovermode="x unified",
-                    height=700,
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    # LEYENDA A LA IZQUIERDA
-                    legend=dict(
-                        orientation="h", 
-                        y=1.05, 
-                        x=0,          # Alineado al inicio (izquierda)
-                        xanchor="left" # El punto de anclaje es la izquierda de la leyenda
-                    )
-                )
-                
-                fig.update_yaxes(title_text="<b>Caudal (Lps)</b>", secondary_y=False, color='#00d4ff')
-                fig.update_yaxes(title_text="<b>Presión / Parámetros Eléctricos</b>", secondary_y=True, gridcolor='#333')
-                
+                for t in tags_grafico:
+                    dft = df[df['TagName'] == t['tag']]
+                    if not dft.empty:
+                        fig.add_trace(go.Scatter(x=dft['FECHA'], y=dft['VALUE'], name=t['label'], line=dict(color=t['color'], width=2)), secondary_y=t['side'])
+                fig.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning(f"Sin datos en el rango: {f_ini.strftime('%d/%m %H:%M')} - {f_fin.strftime('%d/%m %H:%M')}")
-        except Exception as e:
-            st.error(f"Error en consulta SQL: {e}")
-    
+
+        except Exception as e: st.error(f"Error: {e}")
     st.stop()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
