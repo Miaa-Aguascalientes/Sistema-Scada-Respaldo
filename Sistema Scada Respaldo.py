@@ -611,6 +611,7 @@ if "graficar_pozo" in params:
     id_pozo_graf = params["graficar_pozo"]
     nombre_pozo = params.get("nombre", id_pozo_graf)
     
+    # Cargar diccionarios actualizados
     mapa_pozos_dict = cargar_mapa_pozos_desde_db()
     pozo_info = mapa_pozos_dict.get(id_pozo_graf)
 
@@ -618,7 +619,7 @@ if "graficar_pozo" in params:
         st.error(f"❌ No se encontró configuración para el pozo: {id_pozo_graf}")
         st.stop()
 
-    # --- CONTENEDOR PARA TÍTULO E INDICADOR PERSISTENTE ---
+    # Contenedor para el título y el indicador
     cabecera_placeholder = st.empty()
     
     # 5.1. FILTRO DE TIEMPO
@@ -626,76 +627,55 @@ if "graficar_pozo" in params:
     with col_f1:
         opcion_fecha = st.selectbox(
             "Rango de tiempo:", 
-            ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
+            ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Personalizado"], 
             index=1, 
             key="fecha_pozo_v8"
         )
 
-    # --- LÓGICA DE FECHAS ---
+    # Lógica de fechas para la consulta
     hoy_dt = datetime.now()
     f_fin = hoy_dt
-    
     if opcion_fecha == "Hoy":
-        f_ini = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        f_ini = hoy_dt.replace(hour=0, minute=0, second=0)
     elif opcion_fecha == "Últimos 7 días":
         f_ini = hoy_dt - timedelta(days=7)
     elif opcion_fecha == "Últimos 14 días":
         f_ini = hoy_dt - timedelta(days=14)
     elif opcion_fecha == "Este Mes":
-        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0)
-    elif opcion_fecha == "Último Mes":
-        primero_este_mes = hoy_dt.replace(day=1, hour=0, minute=0, second=0)
-        f_fin = primero_este_mes - timedelta(seconds=1)
-        f_ini = (primero_este_mes - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0)
-    elif opcion_fecha == "Últimos 6 meses":
-        f_ini = hoy_dt - timedelta(days=180)
-    elif opcion_fecha == "Personalizado":
-        with col_f2:
-            rango = st.date_input("Selecciona el periodo:", 
-                                 value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()),
-                                 max_value=hoy_dt.date())
-        if isinstance(rango, (list, tuple)) and len(rango) == 2:
-            f_ini = datetime.combine(rango[0], datetime.min.time())
-            f_fin = datetime.combine(rango[1], datetime.max.time())
-        else:
-            st.info("Selecciona la fecha de inicio y fin.")
-            st.stop()
+        f_ini = hoy_dt.replace(day=1, hour=0, minute=0)
     else:
         f_ini = hoy_dt - timedelta(days=7)
 
-    # 5.2. CONFIGURACIÓN DE VARIABLES
+    # 5.2. CONFIGURACIÓN DE TAGS
+    tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
+    
     config_visual = [
         ('caudal', "Caudal (Lps)", False, '#00d4ff'),
         ('presion', "Presión (Kg/cm²)", True, '#00ff00')
     ]
     
-    # Identificar el tag de totalizado desde el diccionario
-    tag_totalizado = str(pozo_info.get('totalizado', '')).strip() 
-    
+    # Agregar parámetros eléctricos si existen
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", True, '#fffb00'))
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
 
-    # PREPARACIÓN DE TAGS PARA LA CONSULTA SQL
-    tags_finales_grafico = []
+    # Preparar lista para el query SQL
+    tags_grafico = []
     for item in config_visual:
-        tag_key, label, side, color = item
-        real_tag = pozo_info.get(tag_key, tag_key)
-        if real_tag and real_tag != 'N/A':
-            tags_finales_grafico.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
+        real_t = pozo_info.get(item[0], item[0])
+        if real_t and real_t != 'N/A':
+            tags_grafico.append({'tag': real_t, 'label': item[1], 'side': item[2], 'color': item[3]})
 
-    # Lista consolidada para el query
-    tags_consulta_sql = [t['tag'] for t in tags_finales_grafico]
+    tags_query = [t['tag'] for t in tags_grafico]
     if tag_totalizado and tag_totalizado != 'N/A':
-        tags_consulta_sql.append(tag_totalizado)
+        tags_query.append(tag_totalizado)
 
-    if tags_consulta_sql:
+    if tags_query:
         try:
-            engine_scada = get_mysql_scada_engine()
-            lista_tags_str = "', '".join(list(set(tags_consulta_sql)))
-            
-            query = f"""
+            engine = get_mysql_scada_engine()
+            lista_tags_str = "', '".join(list(set(tags_query)))
+            q = f"""
                 SELECT r.NAME as TagName, h.VALUE, h.FECHA 
                 FROM vfitagnumhistory h
                 JOIN VfiTagRef r ON h.GATEID = r.GATEID
@@ -703,39 +683,37 @@ if "graficar_pozo" in params:
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
                 ORDER BY h.FECHA ASC
             """
-            df = pd.read_sql(query, engine_scada)
+            df = pd.read_sql(q, engine)
             
-            # --- LÓGICA DE INDICADOR TOTALIZADO ---
-            valor_m3 = "0.00"
-            msg_status = ""
-            color_ui = "#00d4ff" 
+            # --- CÁLCULO DEL DELTA (VOLUMEN) ---
+            val_vol = "0.00"
+            msg = ""
+            col_ui = "#00d4ff"
 
             if df.empty:
-                msg_status = "SIN DATOS EN EL RANGO"
-                color_ui = "#666"
-            elif not tag_totalizado or tag_totalizado == 'N/A':
-                msg_status = "ETIQUETA NO CONFIGURADA"
-                color_ui = "#ff4b4b"
+                msg = "SIN DATOS"
+                col_ui = "#666"
             elif tag_totalizado not in df['TagName'].values:
-                msg_status = f"TAG '{tag_totalizado}' NO ENCONTRADO"
-                color_ui = "#ff4b4b"
+                msg = "TAG NO ENCONTRADO"
+                col_ui = "#ff4b4b"
             else:
                 df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                 if len(df_tot) >= 2:
+                    # RESTA: Valor final menos valor inicial del periodo
                     delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                    valor_m3 = f"{delta:,.2f}"
+                    val_vol = f"{delta:,.2f}"
                 else:
-                    msg_status = "LECTURAS INSUFICIENTES"
-                    color_ui = "#ffaa00"
+                    msg = "DATOS INSUFICIENTES"
+                    col_ui = "#ffaa00"
 
-            # RENDERIZADO DE CABECERA HUD
+            # RENDERIZADO DE CABECERA (HTML CORREGIDO)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {color_ui}; border-radius: 12px; min-width: 200px;">
+                    <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 200px;">
                         <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block;">Volumen Extraído</span>
-                        <span style="color: white; font-size: 26px; font-weight: bold; line-height: 1.2;">{valor_m3} <small style="font-size: 14px; color: {color_ui};">m³</small></span>
-                        {f'<div style="color: {color_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg_status}</div>' if msg_status else ''}
+                        <span style="color: white; font-size: 26px; font-weight: bold;">{val_vol} <small style="font-size: 14px; color: {col_ui};">m³</small></span>
+                        {f'<div style="color: {col_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg}</div>' if msg else ''}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -743,33 +721,19 @@ if "graficar_pozo" in params:
             # --- GRÁFICO PLOTLY ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                for t_info in tags_finales_grafico:
-                    df_tag = df[df['TagName'] == t_info['tag']]
-                    if not df_tag.empty:
-                        is_amp = "Amp" in t_info['label']
+                for t in tags_grafico:
+                    dft = df[df['TagName'] == t['tag']]
+                    if not dft.empty:
                         fig.add_trace(
-                            go.Scatter(
-                                x=df_tag['FECHA'], y=df_tag['VALUE'], name=t_info['label'],
-                                line=dict(color=t_info['color'], width=1.5 if is_amp else 2.5),
-                                mode='lines+markers' if is_amp else 'lines',
-                                marker=dict(size=4) if is_amp else None
-                            ),
-                            secondary_y=t_info['side']
+                            go.Scatter(x=dft['FECHA'], y=dft['VALUE'], name=t['label'], 
+                                       line=dict(color=t['color'], width=2)), 
+                            secondary_y=t['side']
                         )
-
-                fig.update_layout(
-                    template="plotly_dark", hovermode="x unified", height=650,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                    legend=dict(orientation="h", y=1.08, x=0, xanchor="left"),
-                    yaxis=dict(title="<b>Caudal (Lps)</b>", color='#00d4ff', gridcolor='#222'),
-                    yaxis2=dict(title="<b>Presión / Eléctricos</b>", side="right", gridcolor='#333')
-                )
+                fig.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("No se encontraron datos para graficar.")
 
         except Exception as e:
-            st.error(f"Error en el procesamiento de datos: {e}")
+            st.error(f"Error: {e}")
     
     st.stop()
     
