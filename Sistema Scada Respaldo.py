@@ -745,7 +745,7 @@ if "graficar_pozo" in params:
 """, unsafe_allow_html=True)
 
             # --- 5.5. PESTAÑA DE VOLÚMENES ---
-            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
+            with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
                     q_hist = f"SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{tag_totalizado}' AND YEAR(h.FECHA) IN ({curr_year}, {curr_year - 1}) ORDER BY h.FECHA ASC"
