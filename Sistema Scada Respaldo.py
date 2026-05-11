@@ -697,19 +697,14 @@ if "graficar_pozo" in params:
             col_ui = "#00d4ff"
 
             if not df.empty:
-                # Volumen (Resta)
                 if tag_totalizado in df['TagName'].values:
                     df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                     if len(df_tot) >= 2:
                         val_vol = f"{(float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])):,.2f}"
-                
-                # Promedios Hidráulicos
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
-                
-                # Promedios Eléctricos (3 Fases)
                 if tags_voltaje:
                     val_v_prom = f"{df[df['TagName'].isin(tags_voltaje)]['VALUE'].mean():,.1f}"
                 if tags_amperaje:
@@ -718,36 +713,34 @@ if "graficar_pozo" in params:
                 msg = "SIN DATOS"
                 col_ui = "#666"
 
-            # RENDER CABECERA (INDICADORES CENTRADOS Y TÍTULOS GRANDES)
+            # RENDER CABECERA CORREGIDO (SIN FORMATO DE CÓDIGO)
             cabecera_placeholder.markdown(f"""
-                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <div style="padding: 10px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 10px; min-width: 140px; text-align: center;">
-                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Volumen</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_vol} <small style="font-size: 11px; color: {col_ui};">m³</small></span>
-                        </div>
-                        <div style="padding: 10px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 10px; min-width: 140px; text-align: center;">
-                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Caudal Prom</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_cau_prom} <small style="font-size: 11px; color: #00d4ff;">Lps</small></span>
-                        </div>
-                        <div style="padding: 10px 15px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 10px; min-width: 140px; text-align: center;">
-                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Presión Prom</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_pre_prom} <small style="font-size: 11px; color: #00ff00;">Kg</small></span>
-                        </div>
-                        <div style="padding: 10px 15px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 10px; min-width: 140px; text-align: center;">
-                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Voltaje Prom</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_v_prom} <small style="font-size: 11px; color: #fffb00;">V</small></span>
-                        </div>
-                        <div style="padding: 10px 15px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 10px; min-width: 140px; text-align: center;">
-                            <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px;">Amperaje Prom</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_a_prom} <small style="font-size: 11px; color: #ff8000;">A</small></span>
-                        </div>
-                    </div>
-                </div>
-                {f'<div style="color: {col_ui}; font-size: 11px; font-weight: bold; margin-bottom: 15px;">⚠️ {msg}</div>' if msg else ''}
-            """, unsafe_allow_html=True)
+<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+    <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Volumen</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: #00d4ff;">m³</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Caudal Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
             # --- GRÁFICO PLOTLY ---
             if not df.empty:
@@ -759,15 +752,15 @@ if "graficar_pozo" in params:
                             go.Scatter(
                                 x=dft['FECHA'], y=dft['VALUE'], name=t['label'], 
                                 mode='lines+markers' if "Amp" in t['label'] else 'lines',
-                                line=dict(color=t['color'], width=2)
+                                line=dict(color=t['color'], width=2.5)
                             ), 
                             secondary_y=t['side']
                         )
                 
                 fig.update_layout(
-                    template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', 
+                    template="plotly_dark", height=650, paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified",
-                    legend=dict(orientation="h", y=1.1, x=0),
+                    legend=dict(orientation="h", y=1.08, x=0, xanchor="left"),
                     margin=dict(l=60, r=60, t=100, b=50)
                 )
                 
