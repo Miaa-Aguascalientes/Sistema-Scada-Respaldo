@@ -693,6 +693,7 @@ if "graficar_pozo" in params:
         try:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
+            # Especificamos h.FECHA para evitar ambigüedad
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
@@ -731,36 +732,36 @@ if "graficar_pozo" in params:
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm²</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">Volt</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">Amp</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES (CÁLCULO EXTREMO A EXTREMO) ---
+            # --- 5.5. PESTAÑA DE VOLÚMENES ---
             with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
+                    # Query corregido con h.FECHA
                     q_hist = f"""
-                        SELECT YEAR(FECHA) as anio, MONTH(FECHA) as mes, VALUE, FECHA
+                        SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA
                         FROM vfitagnumhistory h
                         JOIN VfiTagRef r ON h.GATEID = r.GATEID
                         WHERE r.NAME = '{tag_totalizado}'
-                        AND YEAR(FECHA) IN ({curr_year}, {curr_year - 1})
-                        ORDER BY FECHA ASC
+                        AND YEAR(h.FECHA) IN ({curr_year}, {curr_year - 1})
+                        ORDER BY h.FECHA ASC
                     """
                     df_h = pd.read_sql(q_hist, engine)
 
                     if not df_h.empty:
-                        # Obtenemos estrictamente la primera y última lectura disponible en cada mes
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].agg(['first', 'last']).reset_index()
                         res_meses['produccion_neta'] = res_meses['last'] - res_meses['first']
                         
@@ -800,7 +801,7 @@ if "graficar_pozo" in params:
                 st.plotly_chart(fig_line, use_container_width=True)
 
         except Exception as e: 
-            st.error(f"Error: {e}")
+            st.error(f"Error SQL: {e}")
             
     st.stop()
     
