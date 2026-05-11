@@ -715,13 +715,13 @@ if "graficar_pozo" in params:
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
-            # --- 5.4. RENDER CABECERA ---
+            # --- 5.4. RENDER CABECERA (CON ELÉCTRICOS RESTAURADOS) ---
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
-            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción Periodo</span>
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: #00d4ff;">m³</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
@@ -732,11 +732,19 @@ if "graficar_pozo" in params:
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
         </div>
+        <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES (SINCRONIZACIÓN CORREGIDA) ---
+            # --- 5.5. PESTAÑA DE VOLÚMENES ---
             with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
@@ -744,11 +752,8 @@ if "graficar_pozo" in params:
                     df_h = pd.read_sql(q_hist, engine)
 
                     if not df_h.empty:
-                        # Obtenemos la última lectura por mes para un delta sin huecos
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].last().reset_index()
                         res_meses['produccion_neta'] = res_meses['VALUE'].diff()
-                        
-                        # Fix para el primer registro de la serie histórica
                         idx0 = res_meses.index[0]
                         v0 = df_h[(df_h['anio']==res_meses.loc[idx0,'anio']) & (df_h['mes']==res_meses.loc[idx0,'mes'])]['VALUE'].iloc[0]
                         res_meses.loc[idx0, 'produccion_neta'] = res_meses.loc[idx0, 'VALUE'] - v0
@@ -771,28 +776,27 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- 5.6. GRÁFICO PLOTLY DE LÍNEAS (CON EJES CORREGIDOS) ---
+            # --- 5.6. GRÁFICO DE LÍNEAS (EJES FIX CON DICCIONARIOS) ---
             if not df.empty:
                 fig_line = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
-                        fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=2)), secondary_y=t['side'])
+                        fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=2.5)), secondary_y=t['side'])
                 
-                # CORRECCIÓN DE TITLEFONT -> Usando estructura 'title': {'text': ...}
                 fig_line.update_layout(
                     template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
                     hovermode="x unified", legend=dict(orientation="h", y=1.05),
                     yaxis=dict(
-                        title={'text': "<b>Caudal (Lps)</b>", 'font': {'color': "#00d4ff"}}, 
-                        tickfont={'color': "#00d4ff"}
+                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
+                        tickfont=dict(color="#00d4ff")
                     ),
                     yaxis2=dict(
-                        title={'text': "<b>Presión / Eléctricos</b>", 'font': {'color': "#00ff00"}}, 
-                        tickfont={'color': "#00ff00"}, 
+                        title=dict(text="<b>Presión / Eléctricos</b>", font=dict(color="#00ff00")), 
+                        tickfont=dict(color="#00ff00"), 
                         anchor="x", overlaying="y", side="right"
                     ),
-                    xaxis=dict(title={'text': "<b>Línea de Tiempo</b>"})
+                    xaxis=dict(title=dict(text="<b>Línea de Tiempo</b>"))
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
