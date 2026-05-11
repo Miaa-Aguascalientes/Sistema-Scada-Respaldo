@@ -689,22 +689,15 @@ if "graficar_pozo" in params:
             df = pd.read_sql(q, engine)
             
             # --- LÓGICA DE INDICADORES ---
-            val_vol = "0.00"
-            val_cau_prom = "0.00"
-            val_pre_prom = "0.00"
+            val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
             msg = ""
             col_ui = "#00d4ff"
 
             if not df.empty:
-                # 1. Volumen (Resta)
                 if tag_totalizado in df['TagName'].values:
                     df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                     if len(df_tot) >= 2:
-                        delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                        val_vol = f"{delta:,.2f}"
-                    else: msg = "LECTURAS INSUFICIENTES"
-                
-                # 2. Promedios
+                        val_vol = f"{(float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])):,.2f}"
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_presion_real in df['TagName'].values:
@@ -713,29 +706,29 @@ if "graficar_pozo" in params:
                 msg = "SIN DATOS"
                 col_ui = "#666"
 
-            # RENDER CABECERA CON NUEVOS INDICADORES
+            # RENDER CABECERA
             cabecera_placeholder.markdown(f"""
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
-                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    <div style="display: flex; gap: 15px;">
-                        <div style="padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 12px; min-width: 160px;">
-                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Volumen Extraído</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: {col_ui};">m³</small></span>
+                <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
+                    <div style="display: flex; gap: 10px;">
+                        <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid {col_ui}; border-radius: 10px; min-width: 140px;">
+                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Volumen</span>
+                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_vol} <small style="font-size: 10px; color: {col_ui};">m³</small></span>
                         </div>
-                        <div style="padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 140px;">
-                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Promedio</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
+                        <div style="padding: 8px 15px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 10px; min-width: 130px;">
+                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Caudal Prom</span>
+                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_cau_prom} <small style="font-size: 10px; color: #00d4ff;">Lps</small></span>
                         </div>
-                        <div style="padding: 10px 20px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 140px;">
-                            <span style="color: #888; font-size: 10px; font-weight: bold; text-transform: uppercase; display: block;">Presión Promedio</span>
-                            <span style="color: white; font-size: 22px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
+                        <div style="padding: 8px 15px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 10px; min-width: 130px;">
+                            <span style="color: #888; font-size: 9px; font-weight: bold; text-transform: uppercase; display: block;">Presión Prom</span>
+                            <span style="color: white; font-size: 18px; font-weight: bold;">{val_pre_prom} <small style="font-size: 10px; color: #00ff00;">Kg</small></span>
                         </div>
                     </div>
                 </div>
                 {f'<div style="color: {col_ui}; font-size: 11px; font-weight: bold; margin-bottom: 15px;">⚠️ {msg}</div>' if msg else ''}
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO ---
+            # --- GRÁFICO PLOTLY CON TÍTULOS DE EJE RESTAURADOS ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -749,11 +742,19 @@ if "graficar_pozo" in params:
                             ), 
                             secondary_y=t['side']
                         )
+                
                 fig.update_layout(
                     template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified",
-                    legend=dict(orientation="h", y=1.1, x=0)
+                    legend=dict(orientation="h", y=1.1, x=0),
+                    margin=dict(l=50, r=50, t=100, b=50) # Margen para asegurar visibilidad de títulos
                 )
+                
+                # Restauración explícita de títulos
+                fig.update_yaxes(title_text="<b>Caudal (Lps)</b>", secondary_y=False, color='#00d4ff', showgrid=True, gridcolor='#333')
+                fig.update_yaxes(title_text="<b>Presión / Eléctricos</b>", secondary_y=True, color='#00ff00', showgrid=False)
+                fig.update_xaxes(title_text="Tiempo", showgrid=True, gridcolor='#333')
+                
                 st.plotly_chart(fig, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
