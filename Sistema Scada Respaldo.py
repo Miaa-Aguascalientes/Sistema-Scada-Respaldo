@@ -668,46 +668,55 @@ if "graficar_pozo" in params:
         ('presion', "Presión (Kg/cm²)", True, '#00ff00')
     ]
     
-    # Identificar el tag de totalizado (Debe estar en tu Diccionario de Pozos)
-    tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
+    # Identificar el tag de totalizado desde el diccionario
+    tag_totalizado = str(pozo_info.get('totalizado', '')).strip() 
     
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", True, '#fffb00'))
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
 
-    tags_consulta = [pozo_info.get(t[0], t[0]) for t in config_visual if pozo_info.get(t[0])]
-    if tag_totalizado and tag_totalizado != 'N/A':
-        tags_consulta.append(tag_totalizado)
+    # PREPARACIÓN DE TAGS PARA LA CONSULTA SQL
+    tags_finales_grafico = []
+    for item in config_visual:
+        tag_key, label, side, color = item
+        real_tag = pozo_info.get(tag_key, tag_key)
+        if real_tag and real_tag != 'N/A':
+            tags_finales_grafico.append({'tag': real_tag, 'label': label, 'side': side, 'color': color})
 
-    if tags_consulta:
+    # Lista consolidada para el query
+    tags_consulta_sql = [t['tag'] for t in tags_finales_grafico]
+    if tag_totalizado and tag_totalizado != 'N/A':
+        tags_consulta_sql.append(tag_totalizado)
+
+    if tags_consulta_sql:
         try:
             engine_scada = get_mysql_scada_engine()
-            lista_tags_sql = "', '".join(list(set(tags_consulta)))
+            lista_tags_str = "', '".join(list(set(tags_consulta_sql)))
             
             query = f"""
                 SELECT r.NAME as TagName, h.VALUE, h.FECHA 
                 FROM vfitagnumhistory h
                 JOIN VfiTagRef r ON h.GATEID = r.GATEID
-                WHERE r.NAME IN ('{lista_tags_sql}') 
+                WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
                 ORDER BY h.FECHA ASC
             """
             df = pd.read_sql(query, engine_scada)
             
-            # --- LÓGICA DE INDICADOR TOTALIZADO (ESTADO POR DEFECTO) ---
+            # --- LÓGICA DE INDICADOR TOTALIZADO ---
             valor_m3 = "0.00"
             msg_status = ""
-            color_ui = "#00d4ff" # Celeste HUD por defecto
+            color_ui = "#00d4ff" 
 
             if df.empty:
-                msg_status = "SIN DATOS EN PERIODO"
+                msg_status = "SIN DATOS EN EL RANGO"
                 color_ui = "#666"
             elif not tag_totalizado or tag_totalizado == 'N/A':
-                msg_status = "TAG NO CONFIGURADO"
+                msg_status = "ETIQUETA NO CONFIGURADA"
                 color_ui = "#ff4b4b"
             elif tag_totalizado not in df['TagName'].values:
-                msg_status = f"TAG '{tag_totalizado}' NO ENCONTRADO EN DB"
+                msg_status = f"TAG '{tag_totalizado}' NO ENCONTRADO"
                 color_ui = "#ff4b4b"
             else:
                 df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
@@ -715,37 +724,25 @@ if "graficar_pozo" in params:
                     delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
                     valor_m3 = f"{delta:,.2f}"
                 else:
-                    msg_status = "LECTURAS INSUFICIENTES PARA CÁLCULO"
+                    msg_status = "LECTURAS INSUFICIENTES"
                     color_ui = "#ffaa00"
 
-            # HTML DEL INDICADOR (SIEMPRE SE RENDERIZA)
-            html_indicador = f"""
-                <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; 
-                            background: rgba(0, 212, 255, 0.05); border: 2px solid {color_ui}; 
-                            border-radius: 12px; vertical-align: middle; min-width: 200px;
-                            box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);">
-                    <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block; letter-spacing: 1px;">
-                        Volumen Extraído
-                    </span>
-                    <span style="color: white; font-size: 28px; font-weight: bold; line-height: 1.1;">
-                        {valor_m3} <small style="font-size: 14px; color: {color_ui};">m³</small>
-                    </span>
-                    {f'<div style="color: {color_ui}; font-size: 9px; font-weight: bold; margin-top: 4px; text-transform: uppercase;">{msg_status}</div>' if msg_status else ''}
-                </div>
-            """
-
-            # Actualizar la Cabecera en el Placeholder
+            # RENDERIZADO DE CABECERA HUD
             cabecera_placeholder.markdown(f"""
-                <div style="display: flex; align-items: center; margin-bottom: 30px; border-bottom: 1px solid #333; padding-bottom: 20px;">
-                    <h1 style="margin: 0; color: white; font-size: 30px; font-weight: 800;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
-                    {html_indicador}
+                <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+                    <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
+                    <div style="display: inline-block; margin-left: 25px; padding: 10px 20px; background: rgba(0, 212, 255, 0.05); border: 2px solid {color_ui}; border-radius: 12px; min-width: 200px;">
+                        <span style="color: #888; font-size: 11px; font-weight: bold; text-transform: uppercase; display: block;">Volumen Extraído</span>
+                        <span style="color: white; font-size: 26px; font-weight: bold; line-height: 1.2;">{valor_m3} <small style="font-size: 14px; color: {color_ui};">m³</small></span>
+                        {f'<div style="color: {color_ui}; font-size: 9px; font-weight: bold; margin-top: 4px;">{msg_status}</div>' if msg_status else ''}
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
 
             # --- GRÁFICO PLOTLY ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
-                for t_info in tags_finales:
+                for t_info in tags_finales_grafico:
                     df_tag = df[df['TagName'] == t_info['tag']]
                     if not df_tag.empty:
                         is_amp = "Amp" in t_info['label']
@@ -763,13 +760,12 @@ if "graficar_pozo" in params:
                     template="plotly_dark", hovermode="x unified", height=650,
                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                     legend=dict(orientation="h", y=1.08, x=0, xanchor="left"),
-                    xaxis=dict(gridcolor='#222'),
                     yaxis=dict(title="<b>Caudal (Lps)</b>", color='#00d4ff', gridcolor='#222'),
                     yaxis2=dict(title="<b>Presión / Eléctricos</b>", side="right", gridcolor='#333')
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning("No se encontraron datos para graficar en el periodo seleccionado.")
+                st.warning("No se encontraron datos para graficar.")
 
         except Exception as e:
             st.error(f"Error en el procesamiento de datos: {e}")
