@@ -715,7 +715,7 @@ if "graficar_pozo" in params:
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
-            # RENDER CABECERA CORREGIDO
+            # RENDER CABECERA
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -730,21 +730,80 @@ if "graficar_pozo" in params:
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm2</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">Volt</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">Amp</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY ---
+            # --- NUEVA SECCIÓN: ANÁLISIS DE VOLÚMENES MENSUALES ---
+            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Histórico Totalizado)", expanded=False):
+                if tag_totalizado and tag_totalizado != 'N/A':
+                    try:
+                        current_year = datetime.now().year
+                        q_vol = f"""
+                            SELECT 
+                                MONTH(h.FECHA) as mes, 
+                                YEAR(h.FECHA) as anio,
+                                MIN(h.VALUE) as lectura_min,
+                                MAX(h.VALUE) as lectura_max
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME = '{tag_totalizado}' 
+                            AND YEAR(h.FECHA) IN ({current_year}, {current_year - 1})
+                            GROUP BY anio, mes
+                            ORDER BY anio DESC, mes DESC
+                        """
+                        df_vol_raw = pd.read_sql(q_vol, engine)
+
+                        if not df_vol_raw.empty:
+                            df_vol_raw['Consumo'] = df_vol_raw['lectura_max'] - df_vol_raw['lectura_min']
+                            nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 
+                                             7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
+                            df_vol_raw['Mes_Txt'] = df_vol_raw['mes'].map(nombres_meses)
+
+                            df_actual = df_vol_raw[df_vol_raw['anio'] == current_year]
+                            df_pasado = df_vol_raw[df_vol_raw['anio'] == current_year - 1]
+
+                            col_graf, col_tbl = st.columns([2, 1])
+                            with col_graf:
+                                fig_mes = go.Figure()
+                                fig_mes.add_trace(go.Bar(
+                                    x=df_pasado['Mes_Txt'], y=df_pasado['Consumo'],
+                                    name=f'Volumen {current_year - 1}', marker_color='rgba(100, 100, 100, 0.5)'
+                                ))
+                                fig_mes.add_trace(go.Bar(
+                                    x=df_actual['Mes_Txt'], y=df_actual['Consumo'],
+                                    name=f'Volumen {current_year}', marker_color='#00d4ff'
+                                ))
+                                fig_mes.update_layout(
+                                    template="plotly_dark", height=350, margin=dict(t=20, b=20, l=20, r=20),
+                                    barmode='group', paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                                )
+                                st.plotly_chart(fig_mes, use_container_width=True)
+
+                            with col_tbl:
+                                st.markdown(f"<h6 style='color:#888;'>Consumo mensual (m³)</h6>", unsafe_allow_html=True)
+                                tabla_comp = df_vol_raw.pivot(index='mes', columns='anio', values='Consumo').sort_index()
+                                tabla_comp.index = [nombres_meses[m] for m in tabla_comp.index]
+                                st.dataframe(tabla_comp.style.format("{:,.2f}"), use_container_width=True)
+                        else:
+                            st.info("No hay suficientes datos del totalizador para este pozo.")
+                    except Exception as e:
+                        st.error(f"Error en volúmenes: {e}")
+                else:
+                    st.warning("Este pozo no tiene tag de totalizado configurado.")
+
+            # --- GRÁFICO PLOTLY ORIGINAL ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
