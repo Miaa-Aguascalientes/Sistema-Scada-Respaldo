@@ -693,7 +693,7 @@ if "graficar_pozo" in params:
         try:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
-            # Especificamos h.FECHA para evitar ambigüedad
+            # h.FECHA para evitar ambigüedad SQL
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
@@ -746,11 +746,10 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES ---
-            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
+            # --- 5.5. PESTAÑA DE VOLÚMENES (ORDEN CRONOLÓGICO ENE-DIC) ---
+            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Producción Real)", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
-                    # Query corregido con h.FECHA
                     q_hist = f"""
                         SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA
                         FROM vfitagnumhistory h
@@ -762,15 +761,18 @@ if "graficar_pozo" in params:
                     df_h = pd.read_sql(q_hist, engine)
 
                     if not df_h.empty:
+                        # Cálculo del consumo real (Last - First)
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].agg(['first', 'last']).reset_index()
                         res_meses['produccion_neta'] = res_meses['last'] - res_meses['first']
                         
+                        # Definir nombres de meses
                         nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
                         res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
 
                         col_g, col_t = st.columns([2, 1])
                         with col_g:
                             fig_hist = go.Figure()
+                            # Ordenamos por mes (numérico) para que el gráfico sea cronológico
                             for anio in sorted(res_meses['anio'].unique()):
                                 df_a = res_meses[res_meses['anio'] == anio].sort_values('mes')
                                 fig_hist.add_trace(go.Bar(
@@ -783,7 +785,9 @@ if "graficar_pozo" in params:
 
                         with col_t:
                             st.markdown("<h6 style='color:#888;'>m³ Producidos por Mes</h6>", unsafe_allow_html=True)
-                            pivot = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=False)
+                            # Pivotar y ordenar el índice (mes) de 1 a 12
+                            pivot = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=True)
+                            # Cambiar los números por nombres después de ordenar
                             pivot.index = [nombres_meses[m] for m in pivot.index]
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else:
@@ -801,7 +805,7 @@ if "graficar_pozo" in params:
                 st.plotly_chart(fig_line, use_container_width=True)
 
         except Exception as e: 
-            st.error(f"Error SQL: {e}")
+            st.error(f"Error General: {e}")
             
     st.stop()
     
