@@ -620,7 +620,7 @@ if "graficar_pozo" in params:
 
     cabecera_placeholder = st.empty()
     
-    # 5.1. FILTRO DE TIEMPO (TODAS LAS OPCIONES RESTAURADAS)
+    # 5.1. FILTRO DE TIEMPO (RESTABLECIDO COMPLETAMENTE)
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -630,6 +630,7 @@ if "graficar_pozo" in params:
             key="fecha_pozo_v8"
         )
 
+    # --- LÓGICA DE FECHAS ---
     hoy_dt = datetime.now()
     f_fin = hoy_dt
     
@@ -706,7 +707,7 @@ if "graficar_pozo" in params:
                     msg = "LECTURAS INSUFICIENTES"
                     col_ui = "#ffaa00"
 
-            # RENDER CABECERA (LIMPIO Y CORREGIDO)
+            # RENDER CABECERA
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -718,7 +719,7 @@ if "graficar_pozo" in params:
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY (CORRECCIÓN DE ESCAPE DE LLAVES) ---
+            # --- GRÁFICO PLOTLY (FORMATO DE ETIQUETAS RESTAURADO) ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -730,9 +731,8 @@ if "graficar_pozo" in params:
                                 y=dft['VALUE'], 
                                 name=t['label'], 
                                 mode='lines+markers' if "Amp" in t['label'] else 'lines',
-                                line=dict(color=t['color'], width=2),
-                                # Usamos doble llave para que el f-string de Python lo interprete como una sola llave para Plotly
-                                hovertemplate='Value: %{y:.3f}<extra></extra>'
+                                line=dict(color=t['color'], width=2)
+                                # SE ELIMINA HOVERTEMPLATE PARA DEJAR EL FORMATO ORIGINAL POR DEFECTO
                             ), 
                             secondary_y=t['side']
                         )
