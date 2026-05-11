@@ -667,13 +667,13 @@ if "graficar_pozo" in params:
         else:
             st.info("Selecciona el rango en el calendario.")
             st.stop()
-    else:
-        f_ini = hoy_dt - timedelta(days=7) 
 
     # --- 5.2. CONFIGURACIÓN DE TAGS Y CONSULTA ---
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
     tag_caudal_real = pozo_info.get('caudal', '')
     tag_presion_real = pozo_info.get('presion', '')
+    tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
+    tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
     config_visual = [('caudal', "Caudal (Lps)", False, '#00d4ff'), ('presion', "Presión (Kg/cm²)", True, '#00ff00')]
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
@@ -681,11 +681,13 @@ if "graficar_pozo" in params:
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
 
+    tags_query = [t['tag'] for t in tags_grafico] if 'tags_grafico' in locals() else []
+    # Reconstruir tags_grafico si no existe
     tags_grafico = []
     for item in config_visual:
         real_t = pozo_info.get(item[0], item[0])
         if real_t and real_t != 'N/A': tags_grafico.append({'tag': real_t, 'label': item[1], 'side': item[2], 'color': item[3]})
-
+    
     tags_query = [t['tag'] for t in tags_grafico]
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
 
@@ -696,85 +698,111 @@ if "graficar_pozo" in params:
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
-            # --- 5.3. LÓGICA DE INDICADORES (CONSUMO REAL DEL FILTRO) ---
-            val_vol = "0.00"
-            if not df.empty and tag_totalizado in df['TagName'].values:
-                df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
-                if len(df_tot) >= 2:
-                    consumo_real = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                    val_vol = f"{consumo_real:,.2f}"
+            # --- 5.3. LÓGICA DE INDICADORES ---
+            val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
+            val_v_prom, val_a_prom = "0.00", "0.00"
 
-            # --- 5.4. RENDER CABECERA ---
+            if not df.empty:
+                if tag_totalizado in df['TagName'].values:
+                    df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
+                    if len(df_tot) >= 2:
+                        consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
+                        val_vol = f"{consumo_neta:,.2f}"
+                
+                if tag_caudal_real in df['TagName'].values:
+                    val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
+                if tag_presion_real in df['TagName'].values:
+                    val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
+                if tags_voltaje:
+                    val_v_prom = f"{df[df['TagName'].isin(tags_voltaje)]['VALUE'].mean():,.1f}"
+                if tags_amperaje:
+                    val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
+
+            # --- 5.4. RENDER CABECERA (RESTAURADA) ---
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
         <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
-            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción en Filtro</span>
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Producción</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: #00d4ff;">m³</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Caudal Promedio</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">V</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">A</small></span>
         </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES MENSUALES (CORRECCIÓN DE MILLONES) ---
-            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Producción Real)", expanded=False):
+            # --- 5.5. PESTAÑA DE VOLÚMENES (CON FIX DE MILLONES) ---
+            with st.expander("📅 ANÁLISIS DE VOLÚMENES MENSUALES (Diferencia Real)", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
+                    # Traemos todas las lecturas de los dos años para calcular por fuera el delta real por mes
                     q_hist = f"""
-                        SELECT 
-                            YEAR(h.FECHA) as anio,
-                            MONTH(h.FECHA) as mes_num,
-                            MAX(h.VALUE) - MIN(h.VALUE) as produccion_neta
+                        SELECT YEAR(FECHA) as anio, MONTH(FECHA) as mes, VALUE, FECHA
                         FROM vfitagnumhistory h
                         JOIN VfiTagRef r ON h.GATEID = r.GATEID
                         WHERE r.NAME = '{tag_totalizado}'
-                        AND YEAR(h.FECHA) IN ({curr_year}, {curr_year - 1})
-                        GROUP BY anio, mes_num
-                        ORDER BY anio DESC, mes_num ASC
+                        AND YEAR(FECHA) IN ({curr_year}, {curr_year - 1})
+                        ORDER BY FECHA ASC
                     """
-                    df_meses = pd.read_sql(q_hist, engine)
+                    df_h = pd.read_sql(q_hist, engine)
 
-                    if not df_meses.empty:
+                    if not df_h.empty:
+                        # Agrupamos por año y mes para obtener (Última lectura - Primera lectura) de cada mes
+                        res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].agg(['first', 'last']).reset_index()
+                        res_meses['produccion_neta'] = res_meses['last'] - res_meses['first']
+                        
                         nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
-                        df_meses['Mes'] = df_meses['mes_num'].map(nombres_meses)
+                        res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
 
                         col_g, col_t = st.columns([2, 1])
                         with col_g:
                             fig_hist = go.Figure()
-                            for anio in sorted(df_meses['anio'].unique()):
-                                df_a = df_meses[df_meses['anio'] == anio]
+                            for anio in sorted(res_meses['anio'].unique()):
+                                df_a = res_meses[res_meses['anio'] == anio]
                                 fig_hist.add_trace(go.Bar(
-                                    x=df_a['Mes'], y=df_a['produccion_neta'],
-                                    name=f'Producción {anio}',
-                                    marker_color='#00d4ff' if anio == curr_year else 'rgba(120,120,120,0.4)'
+                                    x=df_a['Mes_Txt'], y=df_a['produccion_neta'],
+                                    name=f'Año {anio}',
+                                    marker_color='#00d4ff' if anio == curr_year else 'rgba(150,150,150,0.4)'
                                 ))
                             fig_hist.update_layout(template="plotly_dark", barmode='group', height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                             st.plotly_chart(fig_hist, use_container_width=True)
 
                         with col_t:
                             st.markdown("<h6 style='color:#888;'>m³ Producidos por Mes</h6>", unsafe_allow_html=True)
-                            resumen = df_meses.pivot(index='mes_num', columns='anio', values='produccion_neta').sort_index(ascending=False)
-                            resumen.index = [nombres_meses[m] for m in resumen.index]
-                            st.dataframe(resumen.style.format("{:,.2f}"), use_container_width=True)
+                            tabla = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=False)
+                            tabla.index = [nombres_meses[m] for m in tabla.index]
+                            st.dataframe(tabla.style.format("{:,.2f}"), use_container_width=True)
                     else:
-                        st.info("Datos de historial insuficientes para el cálculo de deltas.")
-                else:
-                    st.warning("Tag de totalizado no disponible.")
+                        st.info("Datos insuficientes en el totalizador.")
 
-            # --- 5.6. GRÁFICO DE LÍNEAS (TIEMPO REAL) ---
+            # --- 5.6. GRÁFICO PLOTLY DE LÍNEAS (COMPLETO) ---
             if not df.empty:
-                fig_main = make_subplots(specs=[[{"secondary_y": True}]])
+                fig_line = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
-                    dft_line = df[df['TagName'] == t['tag']]
-                    if not dft_line.empty:
-                        fig_main.add_trace(go.Scatter(x=dft_line['FECHA'], y=dft_line['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=2)), secondary_y=t['side'])
+                    dft_l = df[df['TagName'] == t['tag']]
+                    if not dft_l.empty:
+                        fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=2)), secondary_y=t['side'])
                 
-                fig_main.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified")
-                st.plotly_chart(fig_main, use_container_width=True)
+                fig_line.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', hovermode="x unified", legend=dict(orientation="h", y=1.05))
+                st.plotly_chart(fig_line, use_container_width=True)
 
-        except Exception as e: 
-            st.error(f"Error en procesamiento: {e}")
+        except Exception as e: st.error(f"Error: {e}")
             
     st.stop()
     
