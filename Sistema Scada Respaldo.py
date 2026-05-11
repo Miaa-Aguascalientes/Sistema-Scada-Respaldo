@@ -355,7 +355,8 @@ def cargar_mapa_pozos_desde_db():
                 "h_arranque": row['H_arranque'],
                 "h_paro": row['H_paro'],
                 "voltajes_l": [row['voltaje_L1'], row['voltaje_L2'], row['voltaje_L3']],
-                "amperajes_l": [row['amperaje_L1'], row['amperaje_L2'], row['amperaje_L3']]
+                "amperajes_l": [row['amperaje_L1'], row['amperaje_L2'], row['amperaje_L3']],
+                "totalizado": row['totalizado']
             }
         return nuevo_mapa
     except:
