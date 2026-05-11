@@ -620,13 +620,13 @@ if "graficar_pozo" in params:
 
     cabecera_placeholder = st.empty()
     
-    # 5.1. FILTRO DE TIEMPO (RESTABLECIDO COMPLETAMENTE)
+    # 5.1. FILTRO DE TIEMPO (RESTABLECIDO CON HOY Y AYER)
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
             "Rango de tiempo:", 
-            ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
-            index=1, 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
+            index=2, 
             key="fecha_pozo_v8"
         )
 
@@ -636,6 +636,9 @@ if "graficar_pozo" in params:
     
     if opcion_fecha == "Hoy":
         f_ini = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Ayer":
+        f_ini = (hoy_dt - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        f_fin = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(seconds=1)
     elif opcion_fecha == "Últimos 7 días":
         f_ini = hoy_dt - timedelta(days=7)
     elif opcion_fecha == "Últimos 14 días":
@@ -704,7 +707,7 @@ if "graficar_pozo" in params:
                     msg = "LECTURAS INSUFICIENTES"
                     col_ui = "#ffaa00"
 
-            # RENDER CABECERA (LIMPIO SIN ETIQUETAS BASURA)
+            # RENDER CABECERA (CORREGIDO SIN ETIQUETAS BASURA)
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -716,7 +719,7 @@ if "graficar_pozo" in params:
                 </div>
             """, unsafe_allow_html=True)
 
-            # --- GRÁFICO PLOTLY CON HOVER RESTAURADO ---
+            # --- GRÁFICO PLOTLY ---
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
