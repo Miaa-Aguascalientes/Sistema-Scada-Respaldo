@@ -631,16 +631,7 @@ if "graficar_pozo" in params:
     elif opcion_fecha == "Últimos 7 días": f_ini = hoy_dt - timedelta(days=7)
     elif opcion_fecha == "Últimos 14 días": f_ini = hoy_dt - timedelta(days=14)
     elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0)
-    elif opcion_fecha == "Personalizado":
-        with col_f2:
-            rango = st.date_input("Selecciona el periodo:", value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()), max_value=hoy_dt.date())
-        if isinstance(rango, (list, tuple)) and len(rango) == 2:
-            f_ini = datetime.combine(rango[0], datetime.min.time())
-            f_fin = datetime.combine(rango[1], datetime.max.time())
-        else:
-            st.info("Selecciona el rango en el calendario.")
-            st.stop()
-    else: f_ini = hoy_dt - timedelta(days=7) 
+    else: f_ini = hoy_dt - timedelta(days=7) # Por defecto
 
     # 5.2. CONFIGURACIÓN Y CONSULTA
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
@@ -662,8 +653,7 @@ if "graficar_pozo" in params:
     if tags_query:
         try:
             engine = get_mysql_scada_engine()
-            lista_tags_str = f"','".join(list(set(tags_query)))
-            q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
+            q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{f"','".join(list(set(tags_query)))} ') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
             # --- LÓGICA DE RESTA DEL VOLUMEN ---
@@ -680,13 +670,14 @@ if "graficar_pozo" in params:
             else:
                 df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
                 if len(df_tot) >= 2:
+                    # RESTA: ULTIMO VALOR - PRIMER VALOR DEL RANGO
                     delta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
                     val_vol = f"{delta:,.2f}"
                 else:
                     msg = "LECTURAS INSUFICIENTES"
                     col_ui = "#ffaa00"
 
-            # RENDER CABECERA (Corregida sin etiquetas basura)
+            # RENDER CABECERA
             cabecera_placeholder.markdown(f"""
                 <div style="display: flex; align-items: center; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
                     <h1 style="margin: 0; font-size: 28px; color: white;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -698,14 +689,14 @@ if "graficar_pozo" in params:
                 </div>
             """, unsafe_allow_html=True)
 
-            # Resto del código de Plotly (Mantenido íntegro)
+            # ... (Resto del código de Plotly) ...
             if not df.empty:
                 fig = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
                     dft = df[df['TagName'] == t['tag']]
                     if not dft.empty:
                         fig.add_trace(go.Scatter(x=dft['FECHA'], y=dft['VALUE'], name=t['label'], line=dict(color=t['color'], width=2)), secondary_y=t['side'])
-                fig.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", y=1.1, x=0))
+                fig.update_layout(template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                 st.plotly_chart(fig, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
