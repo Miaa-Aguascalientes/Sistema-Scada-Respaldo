@@ -911,8 +911,8 @@ st.markdown("""
            position: fixed; 
            top: 20px; 
            left: 40px; 
-           width: 250px;  /* <--- REDUCE ESTE VALOR (ej. 200px) */
-           height: 80px;  /* <--- REDUCE ESTE VALOR (ej. 60px) para que sea menos alto */
+           width: 200px;  /* <--- REDUCE ESTE VALOR (ej. 200px) */
+           height: 00px;  /* <--- REDUCE ESTE VALOR (ej. 60px) para que sea menos alto */
            z-index: 999999; 
            display: flex; 
            justify-content: center; 
@@ -1599,7 +1599,7 @@ with st.sidebar:
         st.session_state.zoom_inicial = 12.5
     
     # 8.3. ESTADO DE LAS CONEXIONES
-    with st.expander("🔌 Estado de las Conexiones", expanded=True):
+    with st.expander("🔌 Estado de las Conexiones", expanded=False):
         status_mysql_scada = "OK" if get_mysql_scada_engine() else "ERROR"
         status_mysql_tele = "OK" if get_mysql_telemetria_engine() else "ERROR"
         status_postgres = "OK" if get_postgres_conn() else "ERROR"
