@@ -1346,7 +1346,8 @@ if sector_seleccionado:
                                 fig.add_trace(go.Scatter(
                                 x=df_q['FECHA'], 
                                 y=df_q['VALUE'], 
-                                name="Caudal (lps)", 
+                                name="Caudal (lps)",
+                                yaxis="y2",
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>' # <-- Integrado correctamente
                                 ))
