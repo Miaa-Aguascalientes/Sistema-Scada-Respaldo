@@ -1347,7 +1347,7 @@ if sector_seleccionado:
                                 x=df_q['FECHA'], 
                                 y=df_q['VALUE'], 
                                 name="Caudal (lps)",
-                                yaxis="y2",
+                                yaxis="y1",
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>' # <-- Integrado correctamente
                                 ))
