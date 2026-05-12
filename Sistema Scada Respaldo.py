@@ -1304,8 +1304,8 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
+# 7.10. ----------------------------------------- Sección de Gráficos Históricos puntos de control -------------------------------------------------------------------------------------------------
         with col_der:
-            # 7.10. Histórico Puntos de Control
             hoy = datetime.now().date()
             if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
             elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
@@ -1315,28 +1315,69 @@ if sector_seleccionado:
                 rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
                 f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
+            # --- OBTENCIÓN DE DATOS REGISTRADOR (Punto de Control) ---
+            # Verificamos que sel_r sea válido y exista en nuestro diccionario filtrado
             if sel_r and sel_r in reg_nombres:
                 r_info = dict_reg[reg_nombres[sel_r]]
-                tags_grafico = [t for t in [r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')] if t]
+                t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
+                tags_grafico = [t for t in [t_q, t_p1, t_p2] if t]
+
                 if tags_grafico:
                     try:
                         engine_h = get_mysql_scada_engine()
                         tags_in = "', '".join(tags_grafico)
-                        q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
+                        q_hist = f"""
+                            SELECT h.FECHA, h.VALUE, r.NAME as TAG 
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME IN ('{tags_in}') 
+                            AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' 
+                            ORDER BY h.FECHA ASC
+                        """
                         df_h = pd.read_sql(q_hist, engine_h)
+                        
                         if not df_h.empty:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Gráfico punto de Control:</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
-                            df_q = df_h[df_h['TAG'] == r_info.get('tag_q')]
-                            if not df_q.empty: fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", line=dict(color='#00d4ff')))
-                            df_p1 = df_h[df_h['TAG'] == r_info.get('tag_p1')]
-                            if not df_p1.empty: fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="P1", yaxis="y2", line=dict(color='#ff00ff')))
-                            fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, hovermode="x unified", yaxis2=dict(side="right", overlaying="y"))
-                            st.plotly_chart(fig, use_container_width=True)
-                    except: pass
-            else: st.info("Seleccione un equipo para ver histórico.")
+                            
+                            # Línea de Caudal
+                            if t_q and not df_h[df_h['TAG'] == t_q].empty:
+                                df_q = df_h[df_h['TAG'] == t_q]
+                                fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", 
+                                                       line=dict(color='#00d4ff', width=2), hovertemplate='%{y:.2f} L/s'))
+                            
+                            # Línea de Presión P1
+                            if t_p1 and not df_h[df_h['TAG'] == t_p1].empty:
+                                df_p1 = df_h[df_h['TAG'] == t_p1]
+                                fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", 
+                                                       yaxis="y2", line=dict(color='#ff00ff', width=2), hovertemplate='%{y:.2f} kg'))
+                            
+                            # Línea de Presión P2
+                            if t_p2 and not df_h[df_h['TAG'] == t_p2].empty:
+                                df_p2 = df_h[df_h['TAG'] == t_p2]
+                                fig.add_trace(go.Scatter(x=df_p2['FECHA'], y=df_p2['VALUE'], name="Presión P2", 
+                                                       yaxis="y2", line=dict(color='#00ff00', width=2), hovertemplate='%{y:.2f} kg'))
 
-        # --- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS ---
+                            fig.update_layout(
+                                paper_bgcolor='black', plot_bgcolor='black', height=300,
+                                margin=dict(l=50, r=50, t=30, b=10),
+                                hovermode="x unified",
+                                hoverlabel=dict(bgcolor="rgba(30, 30, 30, 0.8)", font_size=12, font_color="white"),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, font=dict(color="white", size=10)),
+                                xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
+                                yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)'),
+                                yaxis2=dict(title="Presión (kg)", side="right", color="#ff00ff", overlaying="y", showgrid=False)
+                            )
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.warning(f"No hay datos históricos para {sel_r} en el periodo seleccionado.")
+
+                    except Exception as e: 
+                        st.error(f"Error en Histórico de Control: {e}")
+            else:
+                st.info("Seleccione un equipo del sector actual para ver el gráfico histórico.")
+
+        # --- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS --------------------------------------------------------------------------------------------------------------------------
         st.markdown("<br>", unsafe_allow_html=True)
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
