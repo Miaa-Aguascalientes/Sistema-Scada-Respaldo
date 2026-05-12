@@ -1377,42 +1377,91 @@ if sector_seleccionado:
             else:
                 st.info("Seleccione un equipo del sector actual para ver el gráfico histórico.")
 
-        # --- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS --------------------------------------------------------------------------------------------------------------------------
-        st.markdown("<br>", unsafe_allow_html=True)
+# 7.11. ------------------ GRÁFICO: HISTÓRICO VRP -----------------------------------------------------------------------------------------------------------------------------------
+st.markdown("<br>", unsafe_allow_html=True)
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
-            # 7.10.1 GRÁFICO HISTÓRICO VRP
-            if dict_vrp_sec:
-                tags_vrp = []
-                for v in dict_vrp_sec.values():
-                    if v.get('tag_p1'): tags_vrp.append(v['tag_p1'])
-                    if v.get('tag_p2'): tags_vrp.append(v['tag_p2'])
-                
-                if tags_vrp:
-                    try:
-                        tags_vrp_in = "', '".join(tags_vrp)
-                        q_vrp = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_vrp_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
-                        df_vrp_h = pd.read_sql(q_vrp, engine_h)
+            # 7.10.1 GRÁFICO VRP (DISEÑO UNIFICADO CON PUNTOS DE CONTROL)
+            if sel_v_id:
+                v_info = dict_vrp_sec[sel_v_id]
+                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+                try:
+                    tags_in_v = "', '".join(tags_v)
+                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                    
+                    if not df_v.empty:
+                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                        fig_v = go.Figure()
 
-                        if not df_vrp_h.empty:
-                            st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Histórico VRP (Entrada/Salida):</h3>", unsafe_allow_html=True)
-                            fig_vrp = go.Figure()
-                            for id_v, info_v in dict_vrp_sec.items():
-                                # Entrada
-                                df_ent = df_vrp_h[df_vrp_h['TAG'] == info_v['tag_p1']]
-                                if not df_ent.empty: fig_vrp.add_trace(go.Scatter(x=df_ent['FECHA'], y=df_ent['VALUE'], name=f"{info_v['nombre']} (Ent)", line=dict(width=1.5, dash='dash')))
-                                # Salida
-                                df_sal = df_vrp_h[df_vrp_h['TAG'] == info_v['tag_p2']]
-                                if not df_sal.empty: fig_vrp.add_trace(go.Scatter(x=df_sal['FECHA'], y=df_sal['VALUE'], name=f"{info_v['nombre']} (Sal)", line=dict(width=2.5, color='#00ffcc')))
+                        # Caudal VRP (Cyan - Eje Izquierdo)
+                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                        if not dq.empty: 
+                            fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP", line=dict(color='#00d4ff', width=2)))
 
-                            fig_vrp.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, hovermode="x unified", legend=dict(orientation="h", y=1.1))
-                            st.plotly_chart(fig_vrp, use_container_width=True)
-                    except: pass
-            else: st.info("Sin válvulas VRP en este sector.")
+                        # P. Entrada (Fucsia - Eje Derecho)
+                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
+                        if not dp1.empty: 
+                            fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+
+                        # P. Salida (Verde Lima - Eje Derecho)
+                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
+                        if not dp2.empty: 
+                            fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida", yaxis="y2", line=dict(color='#00ff00', width=2)))
+
+                        # Layout idéntico al de Puntos de Control
+                        fig_v.update_layout(
+                            paper_bgcolor='black', 
+                            plot_bgcolor='black', 
+                            height=300, 
+                            margin=dict(l=50, r=50, t=10, b=10), 
+                            hovermode="x unified", 
+                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")),
+                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
+                            yaxis=dict(title="Caudal (L/s)", color="white", side="left"),
+                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white")
+                        )
+                        st.plotly_chart(fig_v, use_container_width=True)
+                    else:
+                        st.warning("No hay datos históricos para esta VRP.")
+                except Exception as e:
+                    st.error(f"Error en VRP: {e}")
+            else:
+                st.info("Seleccione una VRP para ver el gráfico.")
 
         with col_pc:
-# 7.11. ------------------ GRÁFICO 2: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
+            # 7.11. PUNTOS CRÍTICOS (MANTIENE EL DISEÑO DE LÍNEAS AZULES)
+            if dict_pc_sec:
+                tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                if tags_pc:
+                    try:
+                        tags_in_pc = "', '".join(tags_pc)
+                        df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_pc}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                        
+                        if not df_pc_h.empty:
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
+                            fig_pc = go.Figure()
+                            for i, (tag_id, pc_data) in enumerate(dict_pc_sec.items()):
+                                df_temp = df_pc_h[df_pc_h['TAG'] == pc_data['tag_p1']]
+                                if not df_temp.empty:
+                                    fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=pc_data['nombre'], line=dict(width=2)))
+                            
+                            fig_pc.update_layout(
+                                paper_bgcolor='black', 
+                                plot_bgcolor='black', 
+                                height=300, 
+                                margin=dict(l=50, r=50, t=10, b=10),
+                                hovermode="x unified", 
+                                legend=dict(orientation="h", y=1.1, font=dict(color="white", size=8)),
+                                xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
+                                yaxis=dict(title="Presión PC (kg)", color="white")
+                            )
+                            st.plotly_chart(fig_pc, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error en Puntos Críticos: {e}")
+            
+# 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
+        with col_pc:
             if dict_pc_sec:
                 tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
                 
