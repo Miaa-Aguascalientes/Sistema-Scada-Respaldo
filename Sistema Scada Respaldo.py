@@ -1621,11 +1621,20 @@ with st.sidebar:
     # --- BUSCADORES ---
     
     # 8.4. Buscador de Pozos
+# La primera columna es para el texto, la segunda para el buscador
+col1, col2 = st.columns([1, 2]) 
+
+with col1:
+    # Alineamos el texto verticalmente usando un poco de padding si es necesario
+    st.markdown("### 🔍 Localizar Pozo")
+
+with col2:
     lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
     pozo_buscado = st.selectbox(
-        "🔍 Localizar Pozo",
+        "Localizar Pozo", # Este label es necesario para accesibilidad, pero lo ocultaremos
         options=[""] + lista_pozos_nombres,
-        format_func=lambda x: "Seleccionar Pozo..." if x == "" else f"📍 {x}"
+        format_func=lambda x: "Seleccionar" if x == "" else f"📍 {x}",
+        label_visibility="collapsed" # Esto quita el espacio superior del widget
     )
 
     # 8.4.1 Buscador de Tanques
@@ -1633,7 +1642,7 @@ with st.sidebar:
     tanque_buscado = st.selectbox(
         "💧 Localizar Tanque",
         options=[""] + lista_tanques_nombres,
-        format_func=lambda x: "Seleccionar Tanque..." if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
+        format_func=lambda x: "Seleccionar" if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
     )
 
     # 8.4.2 Buscador de Rebombeos
@@ -1641,7 +1650,7 @@ with st.sidebar:
     rebombeo_buscado = st.selectbox(
         "🚀 Localizar Rebombeo",
         options=[""] + lista_rebombeos_nombres,
-        format_func=lambda x: "Seleccionar Rebombeo..." if x == "" else f"🔄 {x}"
+        format_func=lambda x: "Seleccionar" if x == "" else f"🔄 {x}"
     )
 
     # 8.5. Buscador de Sectores
@@ -1649,7 +1658,7 @@ with st.sidebar:
     sector_buscado = st.selectbox(
         "🏘️ Localizar Sector",
         options=[""] + lista_sectores,
-        format_func=lambda x: "Seleccionar Sector..." if x == "" else f" {x}",
+        format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
         key="busqueda_sectores"
     )
 
