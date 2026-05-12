@@ -1412,24 +1412,50 @@ if sector_seleccionado:
             else: st.info("Sin válvulas VRP en este sector.")
 
         with col_pc:
-            # 7.11. Histórico Puntos Críticos (Movido aquí para el layout)
+# 7.11. ------------------ GRÁFICO 2: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
             if dict_pc_sec:
                 tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                
                 if tags_pc:
                     try:
                         tags_pc_in = "', '".join(tags_pc)
                         q_hist_pc = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
                         df_pc_h = pd.read_sql(q_hist_pc, engine_h)
+
                         if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#ff00ff; font-size:16px; margin-bottom:0;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
                             tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
+
                             for tag in tags_pc:
                                 df_temp = df_pc_h[df_pc_h['TAG'] == tag]
-                                if not df_temp.empty: fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=tag_to_name.get(tag, tag)))
-                            fig_pc.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, hovermode="x unified", legend=dict(orientation="h", y=1.1))
+                                if not df_temp.empty:
+                                    fig_pc.add_trace(go.Scatter(
+                                        x=df_temp['FECHA'], 
+                                        y=df_temp['VALUE'], 
+                                        name=tag_to_name.get(tag, tag),
+                                        mode='lines',
+                                        line=dict(width=2),
+                                        hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} kg<extra></extra>'
+                                    ))
+
+                            fig_pc.update_layout(
+                                paper_bgcolor='black', plot_bgcolor='black', height=300,
+                                margin=dict(l=50, r=50, t=40, b=10),
+                                hovermode="x unified",
+                                hoverlabel=dict(bgcolor="rgba(30, 30, 30, 0.8)", font_size=12, font_color="white"),
+                                legend=dict(
+                                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
+                                    font=dict(color="white", size=9),
+                                    itemclick="toggle", 
+                                    itemdoubleclick="toggleothers"
+                                ),
+                                xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
+                                yaxis=dict(title="Presión PC (kg)", color="#FF00FF", showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)')
+                            )
                             st.plotly_chart(fig_pc, use_container_width=True)
-                    except: pass
+                    except Exception as e: 
+                        st.error(f"Error en Puntos Críticos: {e}")
 
     st.stop()
     
