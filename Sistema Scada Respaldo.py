@@ -1358,28 +1358,57 @@ if sector_seleccionado:
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
       
-        col_vrp, col_pc = st.columns([1.0, 1.0])
+col_vrp, col_pc = st.columns([1.0, 1.0])
 
-        with col_vrp:
-            if sel_v_id:
-                v_info = dict_vrp_sec[sel_v_id]
-                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_in_v = "', '".join(tags_v)
-                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-                    
-                    if not df_v.empty:
-                        
-                        fig_v = go.Figure()
-                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)", line=dict(color='#00d4ff', width=2)))
-                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                        if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada (kg/cm2)", yaxis="y2", line=dict(color='#ff00ff', width=2)))
-                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                        if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida (kg/cm2)", yaxis="y2", line=dict(color='#00ff00', width=2)))
-                        
-# 2. Configuración de Layout (Título Adentro y Estética)
+with col_vrp:
+    if sel_v_id:
+        v_info = dict_vrp_sec[sel_v_id]
+        tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+        
+        try:
+            engine_h = get_mysql_scada_engine()
+            tags_in_v = "', '".join(tags_v)
+            query_vrp = f"""
+                SELECT h.FECHA, h.VALUE, r.NAME as TAG 
+                FROM vfitagnumhistory h 
+                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                WHERE r.NAME IN ('{tags_in_v}') 
+                AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' 
+                ORDER BY h.FECHA ASC
+            """
+            df_v = pd.read_sql(query_vrp, engine_h)
+            
+            if not df_v.empty:
+                fig_v = go.Figure()
+                
+                # 1. Trazado de líneas (Data)
+                dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                if not dq.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dq['FECHA'], y=dq['VALUE'], 
+                        name="Caudal VRP (Lps)", 
+                        line=dict(color='#00d4ff', width=2)
+                    ))
+                
+                dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
+                if not dp1.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dp1['FECHA'], y=dp1['VALUE'], 
+                        name="P. Entrada (kg/cm2)", 
+                        yaxis="y2", 
+                        line=dict(color='#ff00ff', width=2)
+                    ))
+                
+                dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
+                if not dp2.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dp2['FECHA'], y=dp2['VALUE'], 
+                        name="P. Salida (kg/cm2)", 
+                        yaxis="y2", 
+                        line=dict(color='#00ff00', width=2)
+                    ))
+
+                # 2. Configuración de Layout (Título Interno y Estética HUD)
                 fig_v.update_layout(
                     title=dict(
                         text="Gráfico VRP",
@@ -1387,23 +1416,43 @@ if sector_seleccionado:
                         y=0.93,
                         font=dict(color="#00ffcc", size=16)
                     ),
-                    paper_bgcolor='black', 
-                    plot_bgcolor='black', 
-                    height=300, 
-                    margin=dict(l=50, r=50, t=30, b=10), # t=30 da espacio al título interno
-                    hovermode="x unified", 
-                    legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white", size=10)), 
-                    xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), 
-                    yaxis=dict(title="Caudal (L/s)", color="white"), 
-                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
+                    paper_bgcolor='black',
+                    plot_bgcolor='black',
+                    height=300,
+                    margin=dict(l=50, r=50, t=30, b=10),
+                    hovermode="x unified",
+                    legend=dict(
+                        orientation="h", 
+                        y=1.1, 
+                        x=0.1, 
+                        font=dict(color="white", size=10)
+                    ),
+                    xaxis=dict(
+                        showgrid=True, 
+                        gridcolor='rgba(255,255,255,0.1)', 
+                        color="white"
+                    ),
+                    yaxis=dict(
+                        title="Caudal (L/s)", 
+                        color="white"
+                    ),
+                    yaxis2=dict(
+                        title="Presión (kg)", 
+                        side="right", 
+                        overlaying="y", 
+                        color="white", 
+                        showgrid=False
+                    )
                 )
                 
                 st.plotly_chart(fig_v, use_container_width=True)
-            else: 
+                
+            else:
                 st.warning("No hay datos para esta VRP.")
-        except Exception as e: 
+                
+        except Exception as e:
             st.error(f"Error VRP: {e}")
-    else: 
+    else:
         st.info("Seleccione una VRP.")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
