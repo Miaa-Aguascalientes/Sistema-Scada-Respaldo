@@ -1536,9 +1536,9 @@ st.markdown("""
         
         /* 2. FORZAR ANCHO ESTÁTICO E INAMOVIBLE */
         section[data-testid="stSidebar"] {
-            width: 290px !important;
-            min-width: 290px !important;
-            max-width: 290px !important;
+            width: 250px !important;
+            min-width: 250px !important;
+            max-width: 250px !important;
             /* Evita que el usuario seleccione texto o interactúe con el borde */
             user-select: none; 
         }
