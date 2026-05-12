@@ -1378,7 +1378,7 @@ if sector_seleccionado:
                 st.info("Seleccione un equipo del sector actual para ver el gráfico histórico.")
 
 # 7.11. ------------------ GRÁFICO: HISTÓRICO VRP -----------------------------------------------------------------------------------------------------------------------------------
-st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
