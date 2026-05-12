@@ -1078,7 +1078,7 @@ for id_rb, info in mapa_rebombeos_dict.items():
 
 # 7. SECCION ------------------------------------------------------------------7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------
 if sector_seleccionado:
-    # 7.1. Estilos CSS: Optimización de HUD y márgenes
+    # 7.1. Estilos CSS: HUD Reforzado
     st.markdown(
         f"""
         <style>
@@ -1144,7 +1144,7 @@ if sector_seleccionado:
         st.markdown('</div>', unsafe_allow_html=True)
         st.divider()
 
-        # 7.3. Selectores superiores con carga por defecto
+        # --- PREPARACIÓN DE DATOS (Solución al NameError) ---
         dict_reg_all = cargar_puntos_de_control_desde_db() 
         dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
         reg_nombres = {v['nombre']: k for k, v in dict_reg.items()}
@@ -1153,6 +1153,10 @@ if sector_seleccionado:
         dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
         vrp_nombres = {v['nombre']: k for k, v in dict_vrp_sec.items()}
 
+        mapa_pc_all = cargar_puntos_criticos_desde_db()
+        dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+
+        # 7.3. Selectores superiores
         c_sel_f, c_sel_reg, c_sel_vrp = st.columns([1.2, 1.2, 1.2])
         
         with c_sel_f:
@@ -1160,7 +1164,6 @@ if sector_seleccionado:
         
         with c_sel_reg:
             opc_reg = list(reg_nombres.keys())
-            # Toma el primer domicilio por defecto si existe
             sel_r = st.selectbox("Equipo punto de control:", opc_reg if opc_reg else ["Sin equipos"], key="sel_reg_full")
             sel_r_id = reg_nombres.get(sel_r)
 
@@ -1169,7 +1172,7 @@ if sector_seleccionado:
             sel_v = st.selectbox("Válvula VRP (Domicilio):", opc_vrp if opc_vrp else ["Sin VRP"], key="sel_vrp_full")
             sel_v_id = vrp_nombres.get(sel_v)
 
-        # 7.4. Layout Superior: Mapa
+        # 7.4. Layout Superior: Mapa e Histórico Puntos de Control
         col_izq, col_der = st.columns([1.0, 1.0])
         
         with col_izq:
@@ -1185,35 +1188,49 @@ if sector_seleccionado:
                     m_sec.fit_bounds(folium_geo.get_bounds())
                 except: pass
 
-            st_folium(m_sec, width="100%", height=330, key="mapa_miaa_sec_final")
+            # Marcadores
+            for r in dict_reg.values(): folium.Marker(location=r['coord'], icon=folium.Icon(color='cadetblue', icon='star', prefix='fa')).add_to(m_sec)
+            for pc in dict_pc_sec.values(): folium.RegularPolygonMarker(location=pc['coord'], number_of_sides=3, radius=7, color='#FF00FF', fill=True).add_to(m_sec)
+            for vrp in dict_vrp_sec.values(): folium.Marker(location=vrp['coord'], icon=folium.Icon(color='green', icon='cog', prefix='fa')).add_to(m_sec)
+
+            st_folium(m_sec, width="100%", height=330, key="mapa_miaa_sec_vFinal")
             st.markdown('</div>', unsafe_allow_html=True)
 
         with col_der:
-            # 7.10. GRÁFICO PUNTO DE CONTROL (Estética Restaurada)
+            # 7.10. GRÁFICO PUNTO DE CONTROL (DISEÑO RESTAURADO)
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 tags_g = [t for t in [r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')] if t]
-                if tags_g:
-                    try:
-                        engine_h = get_mysql_scada_engine()
-                        tags_in = "', '".join(tags_g)
-                        df_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                try:
+                    engine_h = get_mysql_scada_engine()
+                    tags_in = "', '".join(tags_g)
+                    df_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                    
+                    if not df_h.empty:
+                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Gráfico punto de Control:</h3>", unsafe_allow_html=True)
+                        fig = go.Figure()
                         
-                        if not df_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Gráfico punto de Control:</h3>", unsafe_allow_html=True)
-                            fig = go.Figure()
-                            # Caudal (Cyan)
-                            df_q = df_h[df_h['TAG'] == r_info.get('tag_q')]
-                            if not df_q.empty: fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", line=dict(color='#00d4ff', width=2)))
-                            # Presiones (Magenta y Verde)
-                            df_p1 = df_h[df_h['TAG'] == r_info.get('tag_p1')]
-                            if not df_p1.empty: fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", yaxis="y2", line=dict(color='#e100ff', width=2)))
-                            df_p2 = df_h[df_h['TAG'] == r_info.get('tag_p2')]
-                            if not df_p2.empty: fig.add_trace(go.Scatter(x=df_p2['FECHA'], y=df_p2['VALUE'], name="Presión P2", yaxis="y2", line=dict(color='#00ff00', width=2)))
+                        # Caudal (Cyan - Izquierda)
+                        df_q = df_h[df_h['TAG'] == r_info.get('tag_q')]
+                        if not df_q.empty: fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", line=dict(color='#00d4ff', width=2)))
+                        
+                        # Presión P1 (Fucsia - Derecha)
+                        df_p1 = df_h[df_h['TAG'] == r_info.get('tag_p1')]
+                        if not df_p1.empty: fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+                        
+                        # Presión P2 (Verde Lima - Derecha)
+                        df_p2 = df_h[df_h['TAG'] == r_info.get('tag_p2')]
+                        if not df_p2.empty: fig.add_trace(go.Scatter(x=df_p2['FECHA'], y=df_p2['VALUE'], name="Presión P2", yaxis="y2", line=dict(color='#00ff00', width=2)))
 
-                            fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white")), xaxis=dict(color="white"), yaxis=dict(color="white"), yaxis2=dict(side="right", overlaying="y", color="white"))
-                            st.plotly_chart(fig, use_container_width=True)
-                    except: pass
+                        fig.update_layout(
+                            paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10),
+                            hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")),
+                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
+                            yaxis=dict(title="Caudal (L/s)", color="white", side="left"),
+                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white")
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                except: pass
 
         # --- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS ---
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1224,28 +1241,24 @@ if sector_seleccionado:
             if sel_v_id:
                 v_info = dict_vrp_sec[sel_v_id]
                 tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-                if tags_v:
-                    try:
-                        tags_in_v = "', '".join(tags_v)
-                        df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-                        if not df_v.empty:
-                            st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
-                            fig_v = go.Figure()
-                            # Caudal
-                            dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                            if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP", line=dict(color='#00d4ff', width=2)))
-                            # Presiones
-                            dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                            if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada", yaxis="y2", line=dict(color='#e100ff', width=2)))
-                            dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                            if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida", yaxis="y2", line=dict(color='#00ff00', width=2)))
-
-                            fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white")), xaxis=dict(color="white"), yaxis=dict(color="white"), yaxis2=dict(side="right", overlaying="y", color="white"))
-                            st.plotly_chart(fig_v, use_container_width=True)
-                    except: pass
+                try:
+                    tags_in_v = "', '".join(tags_v)
+                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                    if not df_v.empty:
+                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                        fig_v = go.Figure()
+                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                        if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP", line=dict(color='#00d4ff', width=2)))
+                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
+                        if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
+                        if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida", yaxis="y2", line=dict(color='#00ff00', width=2)))
+                        fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(color="white"), yaxis=dict(color="white"), yaxis2=dict(side="right", overlaying="y", color="white"))
+                        st.plotly_chart(fig_v, use_container_width=True)
+                except: pass
 
         with col_pc:
-            # 7.11. PUNTOS CRÍTICOS (Estética de tonos azules)
+            # 7.11. PUNTOS CRÍTICOS (DISEÑO AZUL RESTAURADO)
             if dict_pc_sec:
                 tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
                 if tags_pc:
@@ -1253,14 +1266,19 @@ if sector_seleccionado:
                         tags_in_pc = "', '".join(tags_pc)
                         df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_pc}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
                         if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
-                            # Paleta de azules para PCs
+                            # Colores azules
                             for i, (tag_id, pc_data) in enumerate(dict_pc_sec.items()):
                                 df_temp = df_pc_h[df_pc_h['TAG'] == pc_data['tag_p1']]
                                 if not df_temp.empty:
                                     fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=pc_data['nombre'], line=dict(width=2)))
-                            fig_pc.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white", size=8)), xaxis=dict(color="white"), yaxis=dict(color="white"))
+                            fig_pc.update_layout(
+                                paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10),
+                                hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white", size=8)),
+                                xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
+                                yaxis=dict(title="Presión PC (kg)", color="white")
+                            )
                             st.plotly_chart(fig_pc, use_container_width=True)
                     except: pass
 
