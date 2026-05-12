@@ -1082,6 +1082,10 @@ if sector_seleccionado:
     st.markdown(
         f"""
         <style>
+            [data-testid="column"] {{
+            margin-top: -15px !important;
+            }}
+        
             [data-testid="stSidebar"] {{display: none;}}
             header {{visibility: hidden;}}
             .stAppDeployButton {{display:none;}}
