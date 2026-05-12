@@ -1083,7 +1083,7 @@ if sector_seleccionado:
         f"""
         <style>
             [data-testid="column"] {{
-            margin-top: -15px !important;
+            margin-top: -105px !important;
             }}
         
             [data-testid="stSidebar"] {{display: none;}}
