@@ -1369,7 +1369,7 @@ if sector_seleccionado:
                                 y=df_p2['VALUE'],
                                 name="Presión P2",
                                 yaxis="y2",
-                                line=dict(color='#00ff00', width=2)
+                                line=dict(color='#00ff00', width=2),
                                 hovertemplate='Presion de salida: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
                                 ))
 
