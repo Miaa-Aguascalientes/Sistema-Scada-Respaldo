@@ -1078,7 +1078,7 @@ for id_rb, info in mapa_rebombeos_dict.items():
 
 # 7. SECCION ------------------------------------------------------------------7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------
 if sector_seleccionado:
-    # 7.1. Estilos CSS
+    # 7.1. Estilos CSS: Optimización de HUD y márgenes
     st.markdown(
         f"""
         <style>
@@ -1144,7 +1144,7 @@ if sector_seleccionado:
         st.markdown('</div>', unsafe_allow_html=True)
         st.divider()
 
-        # 7.3. Selectores superiores
+        # 7.3. Selectores superiores con carga por defecto
         dict_reg_all = cargar_puntos_de_control_desde_db() 
         dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
         reg_nombres = {v['nombre']: k for k, v in dict_reg.items()}
@@ -1160,7 +1160,7 @@ if sector_seleccionado:
         
         with c_sel_reg:
             opc_reg = list(reg_nombres.keys())
-            # Si hay equipos, seleccionamos el primero por defecto para que el gráfico no esté vacío
+            # Toma el primer domicilio por defecto si existe
             sel_r = st.selectbox("Equipo punto de control:", opc_reg if opc_reg else ["Sin equipos"], key="sel_reg_full")
             sel_r_id = reg_nombres.get(sel_r)
 
@@ -1169,7 +1169,7 @@ if sector_seleccionado:
             sel_v = st.selectbox("Válvula VRP (Domicilio):", opc_vrp if opc_vrp else ["Sin VRP"], key="sel_vrp_full")
             sel_v_id = vrp_nombres.get(sel_v)
 
-        # 7.4. Layout Superior: Mapa e Histórico Puntos de Control
+        # 7.4. Layout Superior: Mapa
         col_izq, col_der = st.columns([1.0, 1.0])
         
         with col_izq:
@@ -1185,15 +1185,11 @@ if sector_seleccionado:
                     m_sec.fit_bounds(folium_geo.get_bounds())
                 except: pass
 
-            # Dibujar marcadores (simplificado para asegurar rendimiento)
-            for r in dict_reg.values(): folium.Marker(location=r['coord'], icon=folium.Icon(color='cadetblue', icon='star', prefix='fa')).add_to(m_sec)
-            for vrp in dict_vrp_sec.values(): folium.Marker(location=vrp['coord'], icon=folium.Icon(color='green', icon='cog', prefix='fa')).add_to(m_sec)
-
-            st_folium(m_sec, width="100%", height=330, key="mapa_miaa_sec_v6")
+            st_folium(m_sec, width="100%", height=330, key="mapa_miaa_sec_final")
             st.markdown('</div>', unsafe_allow_html=True)
 
         with col_der:
-            # 7.10. GRÁFICO PUNTO DE CONTROL
+            # 7.10. GRÁFICO PUNTO DE CONTROL (Estética Restaurada)
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 tags_g = [t for t in [r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')] if t]
@@ -1209,7 +1205,7 @@ if sector_seleccionado:
                             # Caudal (Cyan)
                             df_q = df_h[df_h['TAG'] == r_info.get('tag_q')]
                             if not df_q.empty: fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", line=dict(color='#00d4ff', width=2)))
-                            # Presiones
+                            # Presiones (Magenta y Verde)
                             df_p1 = df_h[df_h['TAG'] == r_info.get('tag_p1')]
                             if not df_p1.empty: fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", yaxis="y2", line=dict(color='#e100ff', width=2)))
                             df_p2 = df_h[df_h['TAG'] == r_info.get('tag_p2')]
@@ -1217,8 +1213,7 @@ if sector_seleccionado:
 
                             fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white")), xaxis=dict(color="white"), yaxis=dict(color="white"), yaxis2=dict(side="right", overlaying="y", color="white"))
                             st.plotly_chart(fig, use_container_width=True)
-                        else: st.warning("No hay datos históricos para este equipo.")
-                    except: st.error("Error al cargar histórico de control.")
+                    except: pass
 
         # --- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS ---
         st.markdown("<br>", unsafe_allow_html=True)
@@ -1248,10 +1243,9 @@ if sector_seleccionado:
                             fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, font=dict(color="white")), xaxis=dict(color="white"), yaxis=dict(color="white"), yaxis2=dict(side="right", overlaying="y", color="white"))
                             st.plotly_chart(fig_v, use_container_width=True)
                     except: pass
-            else: st.info("Sin datos de VRP.")
 
         with col_pc:
-            # 7.11. PUNTOS CRÍTICOS
+            # 7.11. PUNTOS CRÍTICOS (Estética de tonos azules)
             if dict_pc_sec:
                 tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
                 if tags_pc:
@@ -1261,6 +1255,7 @@ if sector_seleccionado:
                         if not df_pc_h.empty:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
+                            # Paleta de azules para PCs
                             for i, (tag_id, pc_data) in enumerate(dict_pc_sec.items()):
                                 df_temp = df_pc_h[df_pc_h['TAG'] == pc_data['tag_p1']]
                                 if not df_temp.empty:
