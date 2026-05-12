@@ -1353,7 +1353,13 @@ if sector_seleccionado:
                                 
                             if t_p1 and not df_h[df_h['TAG'] == t_p1].empty:
                                 df_p1 = df_h[df_h['TAG'] == t_p1]
-                                fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+                                fig.add_trace(go.Scatter(
+                                x=df_p1['FECHA'],
+                                y=df_p1['VALUE'],
+                                name="Presión P1",
+                                line=dict(color='#ff00ff', width=2)
+                                hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
+                                ))
                                 
                             if t_p2 and not df_h[df_h['TAG'] == t_p2].empty:
                                 df_p2 = df_h[df_h['TAG'] == t_p2]
