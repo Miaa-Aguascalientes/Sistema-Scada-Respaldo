@@ -1621,21 +1621,27 @@ with st.sidebar:
     # --- BUSCADORES ---
     
     # 8.4. Buscador de Pozos
-# La primera columna es para el texto, la segunda para el buscador
-col1, col2 = st.columns([1, 2]) 
-
-with col1:
-    # Alineamos el texto verticalmente usando un poco de padding si es necesario
-    st.markdown("### 🔍 Localizar Pozo")
-
-with col2:
-    lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
-    pozo_buscado = st.selectbox(
-        "Localizar Pozo", # Este label es necesario para accesibilidad, pero lo ocultaremos
-        options=[""] + lista_pozos_nombres,
-        format_func=lambda x: "Seleccionar" if x == "" else f"📍 {x}",
-        label_visibility="collapsed" # Esto quita el espacio superior del widget
-    )
+# Usamos st.sidebar para que todo se mueva a la izquierda
+with st.sidebar:
+    st.markdown("---") # Una línea divisora para separar del logo
+    
+    # Creamos las columnas dentro de la sidebar
+    # Ajustamos proporciones para que quepa bien en el ancho limitado del lateral
+    col_label, col_select = st.columns([1.1, 2])
+    
+    with col_label:
+        # Usamos un tamaño de texto menor (####) para que no rompa el diseño lateral
+        st.markdown("#### 🔍 Pozo")
+        
+    with col_select:
+        lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
+        pozo_buscado = st.selectbox(
+            "Localizar Pozo Sidebar",
+            options=[""] + lista_pozos_nombres,
+            format_func=lambda x: "Seleccionar" if x == "" else f"📍 {x}",
+            label_visibility="collapsed",
+            key="buscador_sidebar" # Key única para evitar conflictos
+        )
 
     # 8.4.1 Buscador de Tanques
     lista_tanques_nombres = sorted(list(mapa_tanques_dict.keys()))
