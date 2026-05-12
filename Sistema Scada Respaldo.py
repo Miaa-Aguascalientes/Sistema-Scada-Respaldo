@@ -1357,7 +1357,7 @@ if sector_seleccionado:
                                 x=df_p1['FECHA'],
                                 y=df_p1['VALUE'],
                                 name="Presión P1",
-                                line=dict(color='#ff00ff', width=2)
+                                line=dict(color='#ff00ff', width=2),
                                 hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
                                 ))
                                 
