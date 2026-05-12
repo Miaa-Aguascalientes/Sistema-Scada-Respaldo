@@ -912,7 +912,7 @@ st.markdown("""
            top: 20px; 
            left: 40px; 
            width: 170px;  /* <--- REDUCE ESTE VALOR (ej. 200px) */
-           height: 90px;  /* <--- REDUCE ESTE VALOR (ej. 60px) para que sea menos alto */
+           height: 50px;  /* <--- REDUCE ESTE VALOR (ej. 60px) para que sea menos alto */
            z-index: 999999; 
            display: flex; 
            justify-content: center; 
