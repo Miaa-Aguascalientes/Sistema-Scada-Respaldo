@@ -1380,19 +1380,31 @@ if sector_seleccionado:
                         if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida (kg/cm2)", yaxis="y2", line=dict(color='#00ff00', width=2)))
                         
 # 2. Configuración de Layout (Título Adentro y Estética)
-                    fig_v.update_layout(
-                        title=dict(
-                            text="Gráfico VRP",
-                            x=0.02,
-                            y=0.93,
-                            font=dict(color="#00ffcc", size=16)
-                        
-
-                        fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
-                        st.plotly_chart(fig_v, use_container_width=True)
-                    else: st.warning("No hay datos para esta VRP.")
-                except Exception as e: st.error(f"Error VRP: {e}")
-            else: st.info("Seleccione una VRP.")
+                fig_v.update_layout(
+                    title=dict(
+                        text="Gráfico VRP",
+                        x=0.02,
+                        y=0.93,
+                        font=dict(color="#00ffcc", size=16)
+                    ),
+                    paper_bgcolor='black', 
+                    plot_bgcolor='black', 
+                    height=300, 
+                    margin=dict(l=50, r=50, t=30, b=10), # t=30 da espacio al título interno
+                    hovermode="x unified", 
+                    legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white", size=10)), 
+                    xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), 
+                    yaxis=dict(title="Caudal (L/s)", color="white"), 
+                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
+                )
+                
+                st.plotly_chart(fig_v, use_container_width=True)
+            else: 
+                st.warning("No hay datos para esta VRP.")
+        except Exception as e: 
+            st.error(f"Error VRP: {e}")
+    else: 
+        st.info("Seleccione una VRP.")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
         with col_pc:
