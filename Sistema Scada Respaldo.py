@@ -1356,7 +1356,7 @@ if sector_seleccionado:
                     except Exception as e: st.error(f"Error Control: {e}")
             else: st.info("Seleccione un equipo.")
 
-# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS --------------------------------------------------------------------------------
+# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
       
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
@@ -1370,14 +1370,20 @@ if sector_seleccionado:
                     df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
                     
                     if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                    fig.update_layout(
+                    title=dict(
+                        text="Gráfico punto de Control",
+                        x=0.05, # Lo mueve a la izquierda
+                        y=0.95, # Lo sube al borde superior
+                        font=dict(color="#00d4ff", size=16)
+                    
                         fig_v = go.Figure()
                         dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP", line=dict(color='#00d4ff', width=2)))
+                        if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)", line=dict(color='#00d4ff', width=2)))
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                        if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+                        if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada (kg/cm2)", yaxis="y2", line=dict(color='#ff00ff', width=2)))
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                        if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida", yaxis="y2", line=dict(color='#00ff00', width=2)))
+                        if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida (kg/cm2)", yaxis="y2", line=dict(color='#00ff00', width=2)))
 
                         fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
                         st.plotly_chart(fig_v, use_container_width=True)
