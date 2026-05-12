@@ -1631,7 +1631,7 @@ with st.sidebar:
     # 8.4.1 Buscador de Tanques
     lista_tanques_nombres = sorted(list(mapa_tanques_dict.keys()))
     tanque_buscado = st.selectbox(
-        "💧 Localizar Tanque",
+        "🛢️ Localizar Tanque",
         options=[""] + lista_tanques_nombres,
         format_func=lambda x: "Seleccionar" if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
     )
@@ -1639,7 +1639,7 @@ with st.sidebar:
     # 8.4.2 Buscador de Rebombeos
     lista_rebombeos_nombres = sorted(list(mapa_rebombeos_dict.keys()))
     rebombeo_buscado = st.selectbox(
-        "🚀 Localizar Rebombeo",
+        "🧊 Localizar Rebombeo",
         options=[""] + lista_rebombeos_nombres,
         format_func=lambda x: "Seleccionar" if x == "" else f"🔄 {x}"
     )
