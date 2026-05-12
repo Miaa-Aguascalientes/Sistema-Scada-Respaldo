@@ -1316,7 +1316,6 @@ if sector_seleccionado:
                 f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
             # --- OBTENCIÓN DE DATOS REGISTRADOR (Punto de Control) ---
-            # Verificamos que sel_r sea válido y exista en nuestro diccionario filtrado
             if sel_r and sel_r in reg_nombres:
                 r_info = dict_reg[reg_nombres[sel_r]]
                 t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
@@ -1340,19 +1339,16 @@ if sector_seleccionado:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Gráfico punto de Control:</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
                             
-                            # Línea de Caudal
                             if t_q and not df_h[df_h['TAG'] == t_q].empty:
                                 df_q = df_h[df_h['TAG'] == t_q]
                                 fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Caudal (lps)", 
                                                        line=dict(color='#00d4ff', width=2), hovertemplate='%{y:.2f} L/s'))
                             
-                            # Línea de Presión P1
                             if t_p1 and not df_h[df_h['TAG'] == t_p1].empty:
                                 df_p1 = df_h[df_h['TAG'] == t_p1]
                                 fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1", 
                                                        yaxis="y2", line=dict(color='#ff00ff', width=2), hovertemplate='%{y:.2f} kg'))
                             
-                            # Línea de Presión P2
                             if t_p2 and not df_h[df_h['TAG'] == t_p2].empty:
                                 df_p2 = df_h[df_h['TAG'] == t_p2]
                                 fig.add_trace(go.Scatter(x=df_p2['FECHA'], y=df_p2['VALUE'], name="Presión P2", 
@@ -1370,19 +1366,19 @@ if sector_seleccionado:
                             )
                             st.plotly_chart(fig, use_container_width=True)
                         else:
-                            st.warning(f"No hay datos históricos para {sel_r} en el periodo seleccionado.")
-
+                            st.warning(f"No hay datos históricos para {sel_r}.")
                     except Exception as e: 
                         st.error(f"Error en Histórico de Control: {e}")
             else:
-                st.info("Seleccione un equipo del sector actual para ver el gráfico histórico.")
+                st.info("Seleccione un equipo del sector actual.")
 
 # 7.11. ------------------ GRÁFICO: HISTÓRICO VRP -----------------------------------------------------------------------------------------------------------------------------------
         st.markdown("<br>", unsafe_allow_html=True)
+        # CORRECCIÓN DE INDENTACIÓN AQUÍ:
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
-            # 7.10.1 GRÁFICO VRP (DISEÑO UNIFICADO CON PUNTOS DE CONTROL)
+            # 7.11.1 GRÁFICO VRP (DISEÑO UNIFICADO CON PUNTOS DE CONTROL)
             if sel_v_id:
                 v_info = dict_vrp_sec[sel_v_id]
                 tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
@@ -1394,32 +1390,29 @@ if sector_seleccionado:
                         st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
 
-                        # Caudal VRP (Cyan - Eje Izquierdo)
+                        # Caudal VRP (Cyan - Izquierdo)
                         dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                         if not dq.empty: 
                             fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP", line=dict(color='#00d4ff', width=2)))
 
-                        # P. Entrada (Fucsia - Eje Derecho)
+                        # P. Entrada (Fucsia - Derecho)
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
                         if not dp1.empty: 
                             fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada", yaxis="y2", line=dict(color='#ff00ff', width=2)))
 
-                        # P. Salida (Verde Lima - Eje Derecho)
+                        # P. Salida (Verde Lima - Derecho)
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
                         if not dp2.empty: 
                             fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida", yaxis="y2", line=dict(color='#00ff00', width=2)))
 
-                        # Layout idéntico al de Puntos de Control
                         fig_v.update_layout(
-                            paper_bgcolor='black', 
-                            plot_bgcolor='black', 
-                            height=300, 
-                            margin=dict(l=50, r=50, t=10, b=10), 
-                            hovermode="x unified", 
-                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")),
+                            paper_bgcolor='black', plot_bgcolor='black', height=300,
+                            margin=dict(l=50, r=50, t=30, b=10),
+                            hovermode="x unified",
+                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white", size=10)),
                             xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
                             yaxis=dict(title="Caudal (L/s)", color="white", side="left"),
-                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white")
+                            yaxis2=dict(title="Presión (kg)", side="right", color="white", overlaying="y", showgrid=False)
                         )
                         st.plotly_chart(fig_v, use_container_width=True)
                     else:
@@ -1427,13 +1420,12 @@ if sector_seleccionado:
                 except Exception as e:
                     st.error(f"Error en VRP: {e}")
             else:
-                st.info("Seleccione una VRP para ver el gráfico.")
-            
+                st.info("Seleccione una VRP.")
+
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
         with col_pc:
             if dict_pc_sec:
                 tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
-                
                 if tags_pc:
                     try:
                         tags_pc_in = "', '".join(tags_pc)
@@ -1444,30 +1436,18 @@ if sector_seleccionado:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
                             tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
-
                             for tag in tags_pc:
-                                df_temp = df_pc_h[df_pc_h['TAG'] == tag]
-                                if not df_temp.empty:
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_temp['FECHA'], 
-                                        y=df_temp['VALUE'], 
-                                        name=tag_to_name.get(tag, tag),
-                                        mode='lines',
-                                        line=dict(width=2),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} kg<extra></extra>'
-                                    ))
+                                df_t = df_pc_h[df_pc_h['TAG'] == tag]
+                                if not df_t.empty:
+                                    fig_pc.add_trace(go.Scatter(x=df_t['FECHA'], y=df_t['VALUE'], 
+                                                              name=tag_to_name.get(tag, tag), mode='lines',
+                                                              line=dict(width=2), hovertemplate='Presión: %{y:.2f} kg'))
 
                             fig_pc.update_layout(
                                 paper_bgcolor='black', plot_bgcolor='black', height=300,
                                 margin=dict(l=50, r=50, t=40, b=10),
                                 hovermode="x unified",
-                                hoverlabel=dict(bgcolor="rgba(30, 30, 30, 0.8)", font_size=12, font_color="white"),
-                                legend=dict(
-                                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-                                    font=dict(color="white", size=9),
-                                    itemclick="toggle", 
-                                    itemdoubleclick="toggleothers"
-                                ),
+                                legend=dict(orientation="h", y=1.02, font=dict(color="white", size=9)),
                                 xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
                                 yaxis=dict(title="Presión PC (kg)", color="#FF00FF", showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)')
                             )
