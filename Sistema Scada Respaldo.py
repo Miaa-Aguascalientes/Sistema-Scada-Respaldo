@@ -1347,7 +1347,6 @@ if sector_seleccionado:
                                 x=df_q['FECHA'], 
                                 y=df_q['VALUE'], 
                                 name="Caudal (lps)",
-                                
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>' # <-- Integrado correctamente
                                 ))
@@ -1358,6 +1357,7 @@ if sector_seleccionado:
                                 x=df_p1['FECHA'],
                                 y=df_p1['VALUE'],
                                 name="Presión P1",
+                                yaxis="y2",
                                 line=dict(color='#ff00ff', width=2),
                                 hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
                                 ))
@@ -1373,7 +1373,16 @@ if sector_seleccionado:
                                 hovertemplate='Presion de salida: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
                                 ))
 
-                            fig.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.02, x=0, font=dict(color="white", size=10)), xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="#00d4ff"), yaxis2=dict(title="Presión (kg)", side="right", color="#ff00ff", overlaying="y", showgrid=False))
+                            fig.update_layout(paper_bgcolor='black',
+                            plot_bgcolor='black',
+                            height=300,
+                            margin=dict(l=50, r=50, t=10, b=10),
+                            hovermode="x unified",
+                            legend=dict(orientation="h", y=1.02, x=0, font=dict(color="white", size=10)),
+                            xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
+                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff"),
+                            yaxis2=dict(title="Presión (kg)", side="right", color="#ff00ff", overlaying="y", showgrid=False))
+                            
                             st.plotly_chart(fig, use_container_width=True)
                         else: st.warning(f"No hay datos para {sel_r}.")
                     except Exception as e: st.error(f"Error Control: {e}")
