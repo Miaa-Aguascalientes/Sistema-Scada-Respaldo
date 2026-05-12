@@ -1621,16 +1621,12 @@ with st.sidebar:
     # --- BUSCADORES ---
     
     # 8.4. Buscador de Pozos
-# Usamos st.sidebar para que todo se mueva a la izquierda
 with st.sidebar:
     st.markdown("---") # Una línea divisora para separar del logo
     
-    # Creamos las columnas dentro de la sidebar
-    # Ajustamos proporciones para que quepa bien en el ancho limitado del lateral
     col_label, col_select = st.columns([1.1, 2])
     
     with col_label:
-        # Usamos un tamaño de texto menor (####) para que no rompa el diseño lateral
         st.markdown("#### 🔍 Pozo")
         
     with col_select:
@@ -1644,12 +1640,22 @@ with st.sidebar:
         )
 
     # 8.4.1 Buscador de Tanques
-    lista_tanques_nombres = sorted(list(mapa_tanques_dict.keys()))
-    tanque_buscado = st.selectbox(
-        "💧 Localizar Tanque",
-        options=[""] + lista_tanques_nombres,
-        format_func=lambda x: "Seleccionar" if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
-    )
+with st.sidebar:
+    # --- Buscador de Tanques ---
+    col_label_tq, col_select_tq = st.columns([1.1, 2])
+    
+    with col_label_tq:
+        st.markdown("#### 💧 Tanque")
+        
+    with col_select_tq:
+        lista_tanques_nombres = sorted(list(mapa_tanques_dict.keys()))
+        tanque_buscado = st.selectbox(
+            "Localizar Tanque Sidebar",
+            options=[""] + lista_tanques_nombres,
+            format_func=lambda x: "Seleccionar" if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}",
+            label_visibility="collapsed",
+            key="buscador_tanque_sidebar" # Key única para este widget
+        )
 
     # 8.4.2 Buscador de Rebombeos
     lista_rebombeos_nombres = sorted(list(mapa_rebombeos_dict.keys()))
