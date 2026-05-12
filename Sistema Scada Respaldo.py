@@ -1599,7 +1599,7 @@ with st.sidebar:
         st.session_state.zoom_inicial = 12.5
     
     # 8.3. ESTADO DE LAS CONEXIONES
-    with st.expander("🔌 Estado de las Conexiones", expanded=False):
+    with st.expander("🔌 Conexiones BD", expanded=False):
         status_mysql_scada = "OK" if get_mysql_scada_engine() else "ERROR"
         status_mysql_tele = "OK" if get_mysql_telemetria_engine() else "ERROR"
         status_postgres = "OK" if get_postgres_conn() else "ERROR"
@@ -1621,30 +1621,19 @@ with st.sidebar:
     # --- BUSCADORES ---
     
     # 8.4. Buscador de Pozos
-with st.sidebar:
-
-    
-    col_label, col_select = st.columns([1.1, 2])
-    
-    with col_label:
-        st.markdown("#### 🔍 Pozo")
-        
-    with col_select:
-        lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
-        pozo_buscado = st.selectbox(
-            "Localizar Pozo Sidebar",
-            options=[""] + lista_pozos_nombres,
-            format_func=lambda x: "Seleccionar" if x == "" else f"📍 {x}",
-            label_visibility="collapsed",
-            key="buscador_sidebar" # Key única para evitar conflictos
-        )
+    lista_pozos_nombres = sorted(list(mapa_pozos_dict.keys()))
+    pozo_buscado = st.selectbox(
+        "🔍 Localizar Pozo",
+        options=[""] + lista_pozos_nombres,
+        format_func=lambda x: "Seleccionar" if x == "" else f"📍 {x}"
+    )
 
     # 8.4.1 Buscador de Tanques
     lista_tanques_nombres = sorted(list(mapa_tanques_dict.keys()))
     tanque_buscado = st.selectbox(
         "💧 Localizar Tanque",
         options=[""] + lista_tanques_nombres,
-        format_func=lambda x: "Seleccionar Tanque..." if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
+        format_func=lambda x: "Seleccionar" if x == "" else f"📦 {x} - {mapa_tanques_dict[x]['nombre']}"
     )
 
     # 8.4.2 Buscador de Rebombeos
