@@ -1404,12 +1404,39 @@ if sector_seleccionado:
                     if not df_v.empty:
                         st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
+                        
                         dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty: fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)", line=dict(color='#00d4ff', width=2)))
+                        if not dq.empty:
+                        fig_v.add_trace(go.Scatter(
+                        x=dq['FECHA'],
+                        y=dq['VALUE'],
+                        name="Caudal VRP (Lps)",
+                        line=dict(color='#00d4ff', width=2),
+                        hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>' # <-- Integrado correctamente
+                        ))
+                        
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                        if not dp1.empty: fig_v.add_trace(go.Scatter(x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada (kg/cm2)", yaxis="y2", line=dict(color='#ff00ff', width=2)))
+                        if not dp1.empty:
+                        fig_v.add_trace(go.Scatter(
+                        x=dp1['FECHA'],
+                        y=dp1['VALUE'],
+                        name="P. Entrada (kg/cm2)",
+                        yaxis="y2",
+                        line=dict(color='#ff00ff', width=2),
+                        hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
+                        ))
+                        
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                        if not dp2.empty: fig_v.add_trace(go.Scatter(x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida (kg/cm2)", yaxis="y2", line=dict(color='#00ff00', width=2)))
+                        if not dp2.empty:
+                        fig_v.add_trace(go.Scatter(
+                        x=dp2['FECHA'],
+                        y=dp2['VALUE'],
+                        name="P. Salida (kg/cm2)",
+                        yaxis="y2",
+                        line=dict(color='#00ff00', width=2),
+                        hovertemplate='Presion de salida: %{y:.2f} kg/cm2<extra></extra>' # <-- Integrado correctamente
+                        ))
+                        
 
                         fig_v.update_layout(paper_bgcolor='black', plot_bgcolor='black', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
                         st.plotly_chart(fig_v, use_container_width=True)
