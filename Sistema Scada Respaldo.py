@@ -911,7 +911,7 @@ st.markdown("""
            position: fixed; 
            top: 20px; 
            left: 40px; 
-           width: 200px;  /* <--- REDUCE ESTE VALOR (ej. 200px) */
+           width: 170px;  /* <--- REDUCE ESTE VALOR (ej. 200px) */
            height: 70px;  /* <--- REDUCE ESTE VALOR (ej. 60px) para que sea menos alto */
            z-index: 999999; 
            display: flex; 
