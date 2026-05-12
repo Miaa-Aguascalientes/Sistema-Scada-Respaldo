@@ -1428,37 +1428,6 @@ if sector_seleccionado:
                     st.error(f"Error en VRP: {e}")
             else:
                 st.info("Seleccione una VRP para ver el gráfico.")
-
-        with col_pc:
-            # 7.11. PUNTOS CRÍTICOS (MANTIENE EL DISEÑO DE LÍNEAS AZULES)
-            if dict_pc_sec:
-                tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
-                if tags_pc:
-                    try:
-                        tags_in_pc = "', '".join(tags_pc)
-                        df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_pc}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-                        
-                        if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
-                            fig_pc = go.Figure()
-                            for i, (tag_id, pc_data) in enumerate(dict_pc_sec.items()):
-                                df_temp = df_pc_h[df_pc_h['TAG'] == pc_data['tag_p1']]
-                                if not df_temp.empty:
-                                    fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=pc_data['nombre'], line=dict(width=2)))
-                            
-                            fig_pc.update_layout(
-                                paper_bgcolor='black', 
-                                plot_bgcolor='black', 
-                                height=300, 
-                                margin=dict(l=50, r=50, t=10, b=10),
-                                hovermode="x unified", 
-                                legend=dict(orientation="h", y=1.1, font=dict(color="white", size=8)),
-                                xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
-                                yaxis=dict(title="Presión PC (kg)", color="white")
-                            )
-                            st.plotly_chart(fig_pc, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Error en Puntos Críticos: {e}")
             
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
         with col_pc:
