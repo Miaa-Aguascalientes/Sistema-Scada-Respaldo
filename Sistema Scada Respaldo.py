@@ -1353,7 +1353,7 @@ if sector_seleccionado:
             else: st.info("Seleccione un equipo.")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP Y PUNTOS CRÍTICOS --------------------------------------------------------------------------------
-        st.markdown("<br>", unsafe_allow_html=True)
+      
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
