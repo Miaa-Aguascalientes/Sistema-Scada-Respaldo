@@ -1290,13 +1290,38 @@ if sector_seleccionado:
                         val, fec = data_scada.get(tag, (0.0, "N/A"))
                         try: return float(val), fec
                         except: return 0.0, fec
+                            
                     q, f_q = ds(info['caudal']); p, f_p = ds(info['presion'])
                     v = [ds(info.get(f'v{i}')) for i in range(1, 4)]; a = [ds(info.get(f'a{i}')) for i in range(1, 4)]
+                    
                     html_popup_sec = f"""<div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;"><div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;"><b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b><span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span></div><div style="margin-bottom: 12px;"><div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div><div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;"><span>💧 Caudal: <b>{q:.2f} L/s</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span></div><div style="display: flex; align-items: baseline; font-size: 11px;"><span>🚀 Presión: <b>{p:.2f} kg</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span></div></div><div><div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div><table style="width: 100%; font-size: 10px; border-collapse: collapse;"><tr><td>L1-L2</td><td>{v[0][0]:.1f}V</td><td>{a[0][0]:.1f}A</td></tr></table></div></div>"""
+
+                    # --- ETIQUETA CON NOMBRE DEL POZO (DIVICON) ---
+                    folium.Marker(
+                        location=info['coord'],
+                        icon=folium.DivIcon(
+                            html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
+                                     text-shadow: 1px 1px 2px black; width: 100px; 
+                                     position: relative; left: 12px; top: -8px;">
+                                     {id_p}
+                                     </div>"""
+                        )
+                    ).add_to(m_sec)
+                    
                     if info.get('blink'):
-                        folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_sec, max_width=400)).add_to(m_sec)
+                        folium.Marker(
+                            location=info['coord'],
+                            icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
+                            popup=folium.Popup(html_popup_sec, max_width=400)
+                        ).add_to(m_sec)
                     else:
-                        folium.CircleMarker(location=info['coord'], radius=6, color=info['color_final'], fill=True, fill_opacity=1, popup=folium.Popup(html_popup_sec, max_width=400)).add_to(m_sec)
+                        folium.CircleMarker(
+                            location=info['coord'],
+                            radius=6,
+                            color=info['color_final'],
+                            fill=True, fill_opacity=1,
+                            popup=folium.Popup(html_popup_sec, max_width=400)
+                        ).add_to(m_sec)
 
             if st.session_state.get("ultimo_clic_sv"):
                 c_lat, c_lng = st.session_state.ultimo_clic_sv["lat"], st.session_state.ultimo_clic_sv["lng"]
