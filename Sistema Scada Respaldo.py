@@ -1359,8 +1359,7 @@ if sector_seleccionado:
                             <div style="
                                 font-size: 10pt; 
                                 color: white; 
-                                font-weight: bold;
-                                position: relative; left: 18px; top: -3px;">
+                                font-weight: bold;                    
                                 text-shadow: 2px 2px 4px #000; 
                                 background: rgba(0,0,0,0.5); 
                                 padding: 3px 8px; 
