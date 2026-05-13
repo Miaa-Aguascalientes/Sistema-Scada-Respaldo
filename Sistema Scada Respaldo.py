@@ -1272,7 +1272,7 @@ if sector_seleccionado:
             for id_pc, pc in dict_pc_sec.items():
                 # Forzamos la obtención del campo 'Domicilio' según la imagen image_1e9356.png
                 # Si pc['Domicilio'] viene vacío de la base de datos, mostrará 'S/D'
-                domicilio_texto = pc.get('Domicilio', 'S/D')
+                domicilio_texto = pc.get('Nombre', 'S/D')
                 
                 val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
                 
