@@ -1379,7 +1379,9 @@ if sector_seleccionado:
                                 ))
 
                             fig.update_layout(
-                                paper_bgcolor='black', plot_bgcolor='black', height=300,
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                height=300,
                                 margin=dict(l=50, r=50, t=10, b=10),
                                 hovermode="x unified",
                                 legend=dict(orientation="h", y=1.02, x=0, font=dict(color="white", size=10)),
@@ -1448,7 +1450,9 @@ if sector_seleccionado:
                             ))
 
                         fig_v.update_layout(
-                            paper_bgcolor='black', plot_bgcolor='black', height=300, 
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            height=300, 
                             margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", 
                             legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), 
                             xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), 
@@ -1492,7 +1496,9 @@ if sector_seleccionado:
                                     ))
 
                             fig_pc.update_layout(
-                                paper_bgcolor='black', plot_bgcolor='black', height=300,
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                height=300,
                                 margin=dict(l=50, r=50, t=40, b=10),
                                 hovermode="x unified",
                                 hoverlabel=dict(bgcolor="rgba(30, 30, 30, 0.8)", font_size=12, font_color="white"),
