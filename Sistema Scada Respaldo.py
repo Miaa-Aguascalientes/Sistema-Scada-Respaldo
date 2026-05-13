@@ -1284,7 +1284,7 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
                 folium.RegularPolygonMarker(
-                    location=pc['coord'],
+                    location=info['coord'],
                     number_of_sides=3,
                     radius=7,
                     color='#FF00FF',
