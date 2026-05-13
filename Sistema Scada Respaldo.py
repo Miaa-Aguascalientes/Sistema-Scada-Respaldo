@@ -1346,33 +1346,36 @@ if sector_seleccionado:
             for id_vrp, vrp in dict_vrp_sec.items():
                 val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                 val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
+                
+                serie_vrp = vrp.get('serie', 'S/N')
                 nombre_vrp = vrp['nombre']
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
 
-               # . ETIQUETA SIN SALTO DE LÍNEA
+# 2. ETIQUETA CON NÚMERO DE SERIE (Sin salto de línea)
                 folium.Marker(
                     location=vrp['coord'],
                     icon=folium.features.DivIcon(
-                        icon_size=(250,36), # Aumentamos el ancho del contenedor
-                        icon_anchor=(0, 20), # Ajustamos la posición para que no tape el icono
+                        icon_size=(250,36),
+                        icon_anchor=(0, 20),
                         html=f"""
                             <div style="
-                                font-size: 10pt; 
-                                color: white; 
-                                font-weight: bold;                    
+                                font-size: 9pt; 
+                                color: #00FFCC; 
+                                font-weight: bold; 
                                 text-shadow: 2px 2px 4px #000; 
-                                background: rgba(0,0,0,0.5); 
-                                padding: 3px 8px; 
+                                background: rgba(0,0,0,0.6); 
+                                padding: 2px 6px; 
                                 border-radius: 4px; 
                                 width: max-content; 
                                 white-space: nowrap; 
-                                border: 0.5px solid rgba(0,255,204,0.3);
+                                border: 1px solid rgba(0,255,204,0.4);
                             ">
-                                {nombre_vrp}
+                                SN: {serie_vrp}
                             </div>
                         """,
                     )
                 ).add_to(m_sec)
+                
                 # . Marcador principal (el icono del engrane)
                 folium.Marker(
                     location=vrp['coord'],
