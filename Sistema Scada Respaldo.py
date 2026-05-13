@@ -1319,7 +1319,7 @@ if sector_seleccionado:
                                  text-shadow: 2px 2px 3px black; 
                                  width: 500px; 
                                  white-space: nowrap; 
-                                 position: relative; left: 18px; top: -10px;">
+                                 position: relative; left: 18px; top: -3px;">
                                  {domicilio_texto} 
                                  <span style="font-size: 9px; color: #FF00FF; font-weight: normal; margin-left: 5px;">
                                  (ID: {id_pc})
