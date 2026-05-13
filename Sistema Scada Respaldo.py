@@ -1396,118 +1396,109 @@ if sector_seleccionado:
                 st.info("Seleccione un equipo.")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
-        col_vrp, col_pc = st.columns([1.0, 1.0])
+col_vrp, col_pc = st.columns([1.0, 1.0])
 
-        with col_vrp:
-            if sel_v_id:
-                v_info = dict_vrp_sec[sel_v_id]
-                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_in_v = "', '".join(tags_v)
-                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+with col_vrp:
+    if sel_v_id:
+        v_info = dict_vrp_sec[sel_v_id]
+        tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+        try:
+            engine_h = get_mysql_scada_engine()
+            tags_in_v = "', '".join(tags_v)
+            df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+            
+            if not df_v.empty:
+                st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                fig_v = go.Figure()
+
+                # Linea de caudal en el grafico de vrp
+                dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                if not dq.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dq['FECHA'],
+                        y=dq['VALUE'],
+                        name="Caudal VRP (Lps)",
+                        fill='tozeroy',
+                        fillcolor='rgba(0, 212, 255, 0.10)',
+                        line=dict(color='#00d4ff', width=2),
+                        hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
+                    ))
                     
-                    if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
-                        fig_v = go.Figure()
+                # Linea de presion P1 en el grafico de vrp
+                dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
+                if not dp1.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dp1['FECHA'],
+                        y=dp1['VALUE'],
+                        name="Presión P1 (kg/cm2)",
+                        yaxis="y2",
+                        line=dict(color='#FF4500', width=2, dash='dash'),
+                        hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
+                    ))
 
-                        # Linea de caudal en el grafico de vrp
-                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dq['FECHA'],
-                                y=dq['VALUE'],
-                                name="Caudal VRP (Lps)",
-                                fill='tozeroy',
-                                fillcolor='rgba(0, 212, 255, 0.10)', # Color del área (con transparencia opcional)
-                                line=dict(color='#00d4ff', width=2),
-                                hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
-                            ))
-                            
-                        # Linea de presion P1 en el grafico de vrp
-                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                        if not dp1.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dp1['FECHA'],
-                                y=dp1['VALUE'],
-                                name="Presión P1 (kg/cm2)",
-                                yaxis="y2",
-                                line=dict(color='#FF4500', width=2,dash='dash'),
-                                hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
-                            ))
+                # Linea de presion P2 en el grafico de vrp
+                dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
+                if not dp2.empty:
+                    fig_v.add_trace(go.Scatter(
+                        x=dp2['FECHA'], 
+                        y=dp2['VALUE'],
+                        name="Presión P2 (kg/cm2)",
+                        yaxis="y2",
+                        line=dict(color='#00ff00', width=2, dash='dash'),
+                        hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
+                    ))
 
-                        # Linea de presion P2 en el grafico de vrp
-                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                        if not dp2.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dp2['FECHA'], y=dp2['VALUE'],
-                                name="Presión P2 (kg/cm2)",
-                                yaxis="y2",
-                                line=dict(color='#00ff00', width=2,dash='dash'),
-                                hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
-                            ))
-
-fig_v.update_layout(
-    # Fondo del papel y del gráfico totalmente transparentes
-    paper_bgcolor='rgba(0,0,0,0)', 
-    plot_bgcolor='rgba(0,0,0,0)', 
-    height=300, 
-    # Añadimos un poco más de margen para que el marco no se corte
-    margin=dict(l=60, r=60, t=40, b=40), 
-    hovermode="x unified", 
-    # Leyenda centrada en la parte superior como en la imagen
-    legend=dict(
-        orientation="h", 
-        yanchor="bottom", 
-        y=1.02, 
-        xanchor="center", 
-        x=0.5, 
-        font=dict(color="white", size=10)
-    ), 
-    
-    # Eje X con línea blanca sutil que cierra el marco (mirror=True)
-    xaxis=dict(
-        showgrid=True, 
-        gridcolor='rgba(255,255,255,0.1)', 
-        color="white",
-        showline=True,
-        linewidth=1,
-        linecolor='rgba(255,255,255,0.3)', # Borde gris/blanco sutil
-        mirror=True, # Esto pone la línea también en la parte superior
-        ticks="outside"
-    ), 
-    
-    # Eje Y principal (Caudal)
-    yaxis=dict(
-        title="Caudal (L/s)", 
-        color="white",
-        showgrid=True,
-        gridcolor='rgba(255,255,255,0.1)',
-        showline=True,
-        linewidth=1,
-        linecolor='rgba(255,255,255,0.3)',
-        mirror=True, # Esto pone la línea también en el lado derecho
-        zeroline=False
-    ), 
-    
-    # Eje Y secundario (Presión)
-    yaxis2=dict(
-        title="Presión (kg)", 
-        side="right", 
-        overlaying="y", 
-        color="white", 
-        showgrid=False,
-        # Importante: No ponemos mirror aquí para no duplicar líneas
-        showline=False 
-    )
-)
-                        st.plotly_chart(fig_v, use_container_width=True)
-                    else:
-                        st.warning("No hay datos para esta VRP.")
-                except Exception as e:
-                    st.error(f"Error VRP: {e}")
+                fig_v.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)', 
+                    plot_bgcolor='rgba(0,0,0,0)', 
+                    height=300, 
+                    margin=dict(l=60, r=60, t=40, b=40), 
+                    hovermode="x unified", 
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="bottom", 
+                        y=1.02, 
+                        xanchor="center", 
+                        x=0.5, 
+                        font=dict(color="white", size=10)
+                    ), 
+                    xaxis=dict(
+                        showgrid=True, 
+                        gridcolor='rgba(255,255,255,0.1)', 
+                        color="white",
+                        showline=True,
+                        linewidth=1,
+                        linecolor='rgba(255,255,255,0.3)',
+                        mirror=True,
+                        ticks="outside"
+                    ), 
+                    yaxis=dict(
+                        title="Caudal (L/s)", 
+                        color="white",
+                        showgrid=True,
+                        gridcolor='rgba(255,255,255,0.1)',
+                        showline=True,
+                        linewidth=1,
+                        linecolor='rgba(255,255,255,0.3)',
+                        mirror=True,
+                        zeroline=False
+                    ), 
+                    yaxis2=dict(
+                        title="Presión (kg)", 
+                        side="right", 
+                        overlaying="y", 
+                        color="white", 
+                        showgrid=False,
+                        showline=False 
+                    )
+                )
+                st.plotly_chart(fig_v, use_container_width=True)
             else:
-                st.info("Seleccione una VRP.")
+                st.warning("No hay datos para esta VRP.")
+        except Exception as e:
+            st.error(f"Error VRP: {e}")
+    else:
+        st.info("Seleccione una VRP.")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
         with col_pc:
