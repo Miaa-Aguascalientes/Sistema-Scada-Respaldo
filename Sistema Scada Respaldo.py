@@ -469,8 +469,11 @@ def cargar_puntos_criticos_desde_db():
                 raw_c = str(r['coord']).replace('(', '').replace(')', '').replace(' ', '').strip()
                 lat_s, lon_s = raw_c.split(',')
                 id_reg = r.get('Serie', r.get('Registrador', 'ID'))
+                
+                # CORRECCIÓN AQUÍ: Guardar explícitamente 'Domicilio'
                 d_res[str(id_reg)] = {
-                    "nombre": str(r.get('Domicilio', r.get('Nombre_registrador', 'S/N'))),
+                    "nombre": str(r.get('Colonia', 'S/C')), # Usamos Colonia para el nombre interno
+                    "Domicilio": str(r.get('Domicilio', 'Sin Domicilio')), # <--- CLAVE NUEVA
                     "coord": [float(lat_s), float(lon_s)],
                     "sector": str(r['Sector']).split('.')[0].strip(),
                     "tag_p1": r.get('Presion_1'),
@@ -1272,7 +1275,7 @@ if sector_seleccionado:
             for id_pc, pc in dict_pc_sec.items():
                 # Forzamos la obtención del campo 'Domicilio' según la imagen image_1e9356.png
                 # Si pc['Domicilio'] viene vacío de la base de datos, mostrará 'S/D'
-                domicilio_texto = pc.get('Nombre', 'S/D')
+                domicilio_texto = pc.get('Domicilio', 'S/D')
                 
                 val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
                 
