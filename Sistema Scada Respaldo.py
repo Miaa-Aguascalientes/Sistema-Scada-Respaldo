@@ -1274,13 +1274,15 @@ if sector_seleccionado:
                 domicilio_reg = r.get('Domicilio', 'S/D')
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
 
-                # --- ETIQUETA CON DOMICILIO (DIVICON) ---
+# --- ETIQUETA CON DOMICILIO (PUNTOS DE CONTROL - SIN SALTO DE LÍNEA) ---
                 folium.Marker(
                     location=r['coord'],
                     icon=folium.DivIcon(
                         html=f"""<div style="font-size: 10px; color: #00FFFF; font-weight: bold; 
-                                 text-shadow: 2px 2px 3px black; width: 180px; 
-                                 position: relative; left: 15px; top: -15px; 
+                                 text-shadow: 2px 2px 3px black; 
+                                 width: 500px; 
+                                 white-space: nowrap; 
+                                 position: relative; left: 18px; top: -3px; 
                                  line-height: 1.1;">
                                  {domicilio_reg}
                                  </div>"""
