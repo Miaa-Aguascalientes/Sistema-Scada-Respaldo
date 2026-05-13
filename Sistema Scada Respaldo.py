@@ -1338,7 +1338,7 @@ if sector_seleccionado:
                         df_h = pd.read_sql(q_hist, engine_h)
                         
                         if not df_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Gráfico punto de Control:</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos de control:</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
 
                             # Linea de Caudal en el grafico de Puntos de control
@@ -1410,7 +1410,7 @@ if sector_seleccionado:
                     df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
                     
                     if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Valvulas reductoras de presión:</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
 
                         # Linea de caudal en el grafico de vrp
