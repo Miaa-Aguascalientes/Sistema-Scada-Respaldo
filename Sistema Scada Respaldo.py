@@ -1288,17 +1288,28 @@ if sector_seleccionado:
                                 <span style="color:#FFFF00; font-size:9px;">{fec_p}</span>
                             </div>"""
                 
-                # --- ETIQUETA FLOTANTE (DIVICON) ---
+# --- ETIQUETA FLOTANTE (DIVICON) SOLO CON ID/SERIE ---
                 folium.Marker(
                     location=pc['coord'],
                     icon=folium.DivIcon(
-                        html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
-                                 text-shadow: 2px 2px 3px black; width: 220px; 
-                                 position: relative; left: 18px; top: -10px; 
-                                 line-height: 1.1;">
-                                 {domicilio_texto}<br>
-                                 <span style="font-size: 9px; color: #FF00FF; font-weight: normal;">ID: {id_pc}</span>
-                                 </div>"""
+                        icon_size=(250,36),
+                        icon_anchor=(-15, 0), # Ajusta la posición a la derecha del marcador
+                        html=f"""
+                            <div style="
+                                font-size: 10pt; 
+                                color: #FF00FF; 
+                                font-weight: bold; 
+                                text-shadow: 2px 2px 4px #000; 
+                                background: rgba(0,0,0,0.6); 
+                                padding: 2px 8px; 
+                                border-radius: 4px; 
+                                width: max-content; 
+                                white-space: nowrap; 
+                                border: 1px solid rgba(255,0,255,0.4);
+                            ">
+                                SN: {id_pc}
+                            </div>
+                        """
                     )
                 ).add_to(m_sec)
                 
