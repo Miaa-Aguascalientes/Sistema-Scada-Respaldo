@@ -1415,7 +1415,11 @@ if sector_seleccionado:
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
                         if not dp1.empty:
                             fig_v.add_trace(go.Scatter(
-                                x=dp1['FECHA'], y=dp1['VALUE'], name="Presión P1 (kg/cm2)",
+                                x=dp1['FECHA'],
+                                y=dp1['VALUE'],
+                                name="Presión P1 (kg/cm2)",
+                                fill='tozeroy',
+                                fillcolor='rgba(0, 212, 255, 0.15)', # Color del área (con transparencia opcional)
                                 yaxis="y2",
                                 line=dict(color='#ff00ff', width=2),
                                 hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
@@ -1424,7 +1428,10 @@ if sector_seleccionado:
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
                         if not dp2.empty:
                             fig_v.add_trace(go.Scatter(
-                                x=dp2['FECHA'], y=dp2['VALUE'], name="Presión P2 (kg/cm2)",
+                                x=dp2['FECHA'], y=dp2['VALUE'],
+                                name="Presión P2 (kg/cm2)",
+                                fill='tozeroy',
+                                fillcolor='rgba(0, 212, 255, 0.15)', # Color del área (con transparencia opcional)
                                 yaxis="y2",
                                 line=dict(color='#00ff00', width=2),
                                 hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
