@@ -496,21 +496,25 @@ def cargar_vrp_desde_db():
     engine = get_mysql_telemetria_engine()
     if not engine: return {}
     try:
-        # Según la imagen proporcionada de la tabla Diccionario_vrp
         df = pd.read_sql("SELECT * FROM Diccionario_vrp", engine)
         d_res = {}
         for _, r in df.iterrows():
             try:
                 raw_c = str(r['coord']).replace('(', '').replace(')', '').replace(' ', '').strip()
                 lat_s, lon_s = raw_c.split(',')
-                id_reg = r.get('Serie', 'ID_VRP')
-                d_res[str(id_reg)] = {
+                
+                # Obtenemos el valor de la serie
+                id_val = r.get('Serie', 'ID_VRP')
+                
+                d_res[str(id_val)] = {
                     "nombre": str(r.get('Domicilio', 'S/N')),
                     "coord": [float(lat_s), float(lon_s)],
                     "sector": str(r['Sector']).split('.')[0].strip(),
                     "tag_p1": r.get('Presion_1'),
                     "tag_p2": r.get('Presion_2'),
-                    "tag_q": r.get('Caudal')
+                    "tag_q": r.get('Caudal'),
+                    # --- AGREGAMOS ESTA LÍNEA ---
+                    "Serie": str(id_val)
                 }
             except: continue
         return d_res
@@ -1366,12 +1370,47 @@ if sector_seleccionado:
                     popup=folium.Popup(html_pc, max_width=250)
                 ).add_to(m_sec)
                 
-            # 7.7.1 Marcadores VRP
+# 7.7.1 Marcadores VRP
             for id_vrp, vrp in dict_vrp_sec.items():
                 val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                 val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
+                
+                # Obtenemos la serie (ahora que ya está en el diccionario)
+                serie_vrp = vrp.get('Serie', 'S/N')
+                
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
-                folium.Marker(location=vrp['coord'], icon=folium.Icon(color='green', icon='cog', prefix='fa'), popup=folium.Popup(html_vrp, max_width=250)).add_to(m_sec)
+                
+                # --- MARCADOR CON ICONO COG ---
+                folium.Marker(
+                    location=vrp['coord'], 
+                    icon=folium.Icon(color='green', icon='cog', prefix='fa'), 
+                    popup=folium.Popup(html_vrp, max_width=250)
+                ).add_to(m_sec)
+
+                # --- ETIQUETA FLOTANTE PARA VRP ---
+                folium.Marker(
+                    location=vrp['coord'],
+                    icon=folium.features.DivIcon(
+                        icon_size=(250,36),
+                        icon_anchor=(-15, 20), # Posición a la derecha del icono verde
+                        html=f"""
+                            <div style="
+                                font-size: 10pt; 
+                                color: #00FFCC; 
+                                font-weight: bold; 
+                                text-shadow: 2px 2px 4px #000; 
+                                background: rgba(0,0,0,0.6); 
+                                padding: 2px 8px; 
+                                border-radius: 4px; 
+                                width: max-content; 
+                                white-space: nowrap; 
+                                border: 1px solid rgba(0,255,204,0.4);
+                            ">
+                                SN: {serie_vrp}
+                            </div>
+                        """
+                    )
+                ).add_to(m_sec)
 
             # 7.8. Marcadores Pozos
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
