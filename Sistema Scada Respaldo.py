@@ -1272,7 +1272,7 @@ if sector_seleccionado:
                 
                 # Usamos el ID del registrador o el número de serie si lo tienes disponible
                 # Suponiendo que la clave es 'id' o 'serie'
-                id_reg = r.get('Serie', 'S/N') 
+                id_reg = r.get('Nombre', 'S/N') 
                 
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
                 
