@@ -1436,7 +1436,7 @@ if sector_seleccionado:
                                 fill='tozeroy',
                                 fillcolor='rgba(0, 212, 255, 0.05)', # Color del área (con transparencia opcional)
                                 yaxis="y2",
-                                line=dict(color='#00ff00', width=2),
+                                line=dict(color='#00ff00', width=2,dash='dash'),
                                 hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                             ))
 
