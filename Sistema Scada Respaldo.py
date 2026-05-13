@@ -1408,7 +1408,7 @@ if sector_seleccionado:
                                 y=dq['VALUE'],
                                 name="Caudal VRP (Lps)",
                                 fill='tozeroy',
-                                fillcolor='rgba(0, 212, 255, 0.2)', # Color del área (con transparencia opcional)
+                                fillcolor='rgba(0, 212, 255, 0.10)', # Color del área (con transparencia opcional)
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
                             ))
