@@ -1403,7 +1403,10 @@ if sector_seleccionado:
                         dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                         if not dq.empty:
                             fig_v.add_trace(go.Scatter(
-                                x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)",
+                                x=dq['FECHA'],
+                                y=dq['VALUE'],
+                                name="Caudal VRP (Lps)",
+                                fill='tozeroy',
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
                             ))
