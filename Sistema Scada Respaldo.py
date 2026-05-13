@@ -1279,7 +1279,7 @@ if sector_seleccionado:
                 domicilio_reg = r.get('Domicilio', 'S/D')
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
 
-# --- ETIQUETA CON DOMICILIO (PUNTOS DE CONTROL - SIN SALTO DE LÍNEA) ---
+             # --- ETIQUETA CON DOMICILIO (PUNTOS DE CONTROL - SIN SALTO DE LÍNEA) ---
                 folium.Marker(
                     location=r['coord'],
                     icon=folium.DivIcon(
@@ -1303,13 +1303,9 @@ if sector_seleccionado:
 
 # 7.7. MARCADORES PUNTOS CRITICOS
             for id_pc, pc in dict_pc_sec.items():
-                # Forzamos la obtención del campo 'Domicilio' según la imagen image_1e9356.png
-                # Si pc['Domicilio'] viene vacío de la base de datos, mostrará 'S/D'
                 domicilio_texto = pc.get('Domicilio', 'S/D')
-                
                 val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
                 
-                # HTML del Popup
                 html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px; font-family:sans-serif;">
                                 <b style="color:#FF00FF; font-size:13px;">PUNTO CRÍTICO</b><br>
                                 <small>{domicilio_texto}</small><br>
@@ -1318,7 +1314,7 @@ if sector_seleccionado:
                                 <span style="color:#FFFF00; font-size:9px;">{fec_p}</span>
                             </div>"""
                 
-# --- ETIQUETA FLOTANTE (DIVICON) SIN SALTO DE LÍNEA ---
+                # --- ETIQUETA FLOTANTE (DIVICON) SIN SALTO DE LÍNEA ---
                 folium.Marker(
                     location=pc['coord'],
                     icon=folium.DivIcon(
@@ -1350,8 +1346,26 @@ if sector_seleccionado:
             for id_vrp, vrp in dict_vrp_sec.items():
                 val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                 val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
+                nombre_vrp = vrp['nombre']
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
-                folium.Marker(location=vrp['coord'], icon=folium.Icon(color='green', icon='cog', prefix='fa'), popup=folium.Popup(html_vrp, max_width=250)).add_to(m_sec)
+
+                # . ETIQUETA DE TEXTO (Título que aparece junto al marcador)
+                folium.Marker(
+                    location=vrp['coord'],
+                    icon=folium.features.DivIcon(
+                        icon_size=(150,36),
+                        icon_anchor=(0,0),
+                        html=f'<div style="font-size: 10pt; color: white; font-weight: bold; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.4); padding: 2px; border-radius: 4px; width: fit-content;">{nombre_vrp}</div>',
+                    )
+                ).add_to(m_sec)
+                # . Marcador principal (el icono del engrane)
+                folium.Marker(
+                    location=vrp['coord'],
+                    icon=folium.Icon(color='green', icon='cog', prefix='fa'),
+                    popup=folium.Popup(html_vrp, max_width=250)
+                ).add_to(m_sec)
+
+
 
             # 7.8. Marcadores Pozos
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
