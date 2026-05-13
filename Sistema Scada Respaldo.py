@@ -1274,7 +1274,7 @@ if sector_seleccionado:
                 html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px; font-family:sans-serif;"><b style="color:#FF00FF; font-size:13px;">PUNTO CRÍTICO</b><br><small>{pc['nombre']}</small><br><hr style="opacity:0.2; margin:5px 0;">Presión: <b style="color:#FF00FF;">{val_p:.2f} kg</b><br><span style="color:#FFFF00; font-size:9px;">{fec_p}</span></div>"""
                     # --- ETIQUETA CON NOMBRE DEL PUNTO CRITICO (DIVICON) ---
                 folium.Marker(
-                    location=info['coord'],
+                    location=pc['coord'],
                     icon=folium.DivIcon(
                         html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
                                  text-shadow: 1px 1px 2px black; width: 120px; 
@@ -1284,7 +1284,7 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
                 folium.RegularPolygonMarker(
-                    location=info['coord'],
+                    location=pc['coord'],
                     number_of_sides=3,
                     radius=7,
                     color='#FF00FF',
