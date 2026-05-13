@@ -1284,8 +1284,8 @@ if sector_seleccionado:
 # --- MARCADOR CON ICONO NUEVO ---
                 folium.Marker(
                     location=r['coord'], 
-                    # Cambié 'star' por 'microchip' para un look más Pro
-                    icon=folium.Icon(color='cadetblue', icon='microchip', prefix='fa'), 
+                    # Usamos 'faucet' para representar la válvula/llave de paso
+                    icon=folium.Icon(color='cadetblue', icon='faucet', prefix='fa'), 
                     popup=folium.Popup(html_popup_reg, max_width=300)
                 ).add_to(m_sec)
 
