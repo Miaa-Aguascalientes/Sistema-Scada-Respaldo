@@ -1279,10 +1279,9 @@ if sector_seleccionado:
                     location=r['coord'],
                     icon=folium.DivIcon(
                         html=f"""<div style="font-size: 10px; color: #00FFFF; font-weight: bold; 
-                                 text-shadow: 2px 2px 3px black; 
-                                 width: 400px;
-                                 white-space: nowrap;
+                                 text-shadow: 2px 2px 3px black; width: 180px; 
                                  position: relative; left: 15px; top: -15px; 
+                                 line-height: 1.1;">
                                  {domicilio_reg}
                                  </div>"""
                     )
