@@ -1270,6 +1270,7 @@ if sector_seleccionado:
 
             # 7.7. Marcadores Puntos Críticos
             for id_pc, pc in dict_pc_sec.items():
+                domicilio_label = pc.get('Domicilio', id_pc)
                 val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
                 html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px; font-family:sans-serif;"><b style="color:#FF00FF; font-size:13px;">PUNTO CRÍTICO</b><br><small>{pc['nombre']}</small><br><hr style="opacity:0.2; margin:5px 0;">Presión: <b style="color:#FF00FF;">{val_p:.2f} kg</b><br><span style="color:#FFFF00; font-size:9px;">{fec_p}</span></div>"""
                     # --- ETIQUETA CON NOMBRE DEL PUNTO CRITICO (DIVICON) ---
@@ -1279,10 +1280,14 @@ if sector_seleccionado:
                         html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
                                  text-shadow: 1px 1px 2px black; width: 120px; 
                                  position: relative; left: 12px; top: -8px;">
-                                 {id_pc}
+                                 line-height: 1.1;">
+                                 {domicilio_label}<br>
+                                 <span style="font-size: 9px; color: #FF00FF;">{id_pc}</span>
                                  </div>"""
                     )
                 ).add_to(m_sec)
+                
+                # --- MARCADOR TRIANGULAR ---
                 folium.RegularPolygonMarker(
                     location=pc['coord'],
                     number_of_sides=3,
