@@ -1431,7 +1431,7 @@ if sector_seleccionado:
                         df_h = pd.read_sql(q_hist, engine_h)
                         
                         if not df_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos de control:</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:14px; margin-bottom:10px; text-align: center;'>{domicilio_ctrl}</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
 
                             # Linea de Caudal en el grafico de Puntos de control
