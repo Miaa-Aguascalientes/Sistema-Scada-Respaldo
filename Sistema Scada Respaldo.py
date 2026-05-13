@@ -1355,7 +1355,7 @@ if sector_seleccionado:
                                     x=df_p1['FECHA'], y=df_p1['VALUE'], name="Presión P1",
                                     yaxis="y2", # <--- Correcto para eje derecho
                                     line=dict(color='#ff00ff', width=2),
-                                    hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>'
+                                    hovertemplate='Presion P1: %{y:.2f} kg/cm2<extra></extra>'
                                 ))
                                 
                             if t_p2 and not df_h[df_h['TAG'] == t_p2].empty:
@@ -1364,7 +1364,7 @@ if sector_seleccionado:
                                     x=df_p2['FECHA'], y=df_p2['VALUE'], name="Presión P2",
                                     yaxis="y2",
                                     line=dict(color='#00ff00', width=2),
-                                    hovertemplate='Presion de salida: %{y:.2f} kg/cm2<extra></extra>'
+                                    hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                                 ))
 
                             fig.update_layout(
@@ -1411,19 +1411,19 @@ if sector_seleccionado:
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
                         if not dp1.empty:
                             fig_v.add_trace(go.Scatter(
-                                x=dp1['FECHA'], y=dp1['VALUE'], name="P. Entrada (kg/cm2)",
+                                x=dp1['FECHA'], y=dp1['VALUE'], name="Presión P1 (kg/cm2)",
                                 yaxis="y2",
                                 line=dict(color='#ff00ff', width=2),
-                                hovertemplate='Presion de entrada: %{y:.2f} kg/cm2<extra></extra>'
+                                hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
                             ))
                         
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
                         if not dp2.empty:
                             fig_v.add_trace(go.Scatter(
-                                x=dp2['FECHA'], y=dp2['VALUE'], name="P. Salida (kg/cm2)",
+                                x=dp2['FECHA'], y=dp2['VALUE'], name="Presión P2 (kg/cm2)",
                                 yaxis="y2",
                                 line=dict(color='#00ff00', width=2),
-                                hovertemplate='Presion de salida: %{y:.2f} kg/cm2<extra></extra>'
+                                hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                             ))
 
                         fig_v.update_layout(
