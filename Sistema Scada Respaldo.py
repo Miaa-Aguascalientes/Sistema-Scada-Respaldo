@@ -1405,94 +1405,72 @@ with col_vrp:
         try:
             engine_h = get_mysql_scada_engine()
             tags_in_v = "', '".join(tags_v)
+            # Nota: Usando el nombre de tabla corregido 'vfitagnumhistory'
             df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
             
             if not df_v.empty:
-                st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:10px;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                
                 fig_v = go.Figure()
 
-                # Linea de caudal en el grafico de vrp
+                # --- Lógica de Trazado ---
                 dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                 if not dq.empty:
                     fig_v.add_trace(go.Scatter(
-                        x=dq['FECHA'],
-                        y=dq['VALUE'],
-                        name="Caudal VRP (Lps)",
-                        fill='tozeroy',
-                        fillcolor='rgba(0, 212, 255, 0.10)',
+                        x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)",
+                        fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
                         line=dict(color='#00d4ff', width=2),
                         hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
                     ))
                     
-                # Linea de presion P1 en el grafico de vrp
                 dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
                 if not dp1.empty:
                     fig_v.add_trace(go.Scatter(
-                        x=dp1['FECHA'],
-                        y=dp1['VALUE'],
-                        name="Presión P1 (kg/cm2)",
-                        yaxis="y2",
-                        line=dict(color='#FF4500', width=2, dash='dash'),
+                        x=dp1['FECHA'], y=dp1['VALUE'], name="Presión P1 (kg/cm2)",
+                        yaxis="y2", line=dict(color='#FF4500', width=2, dash='dash'),
                         hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
                     ))
 
-                # Linea de presion P2 en el grafico de vrp
                 dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
                 if not dp2.empty:
                     fig_v.add_trace(go.Scatter(
-                        x=dp2['FECHA'], 
-                        y=dp2['VALUE'],
-                        name="Presión P2 (kg/cm2)",
-                        yaxis="y2",
-                        line=dict(color='#00ff00', width=2, dash='dash'),
+                        x=dp2['FECHA'], y=dp2['VALUE'], name="Presión P2 (kg/cm2)",
+                        yaxis="y2", line=dict(color='#00ff00', width=2, dash='dash'),
                         hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                     ))
 
+                # --- Layout del Gráfico ---
                 fig_v.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     height=300, 
-                    margin=dict(l=60, r=60, t=40, b=40), 
+                    margin=dict(l=50, r=50, t=50, b=50), # Margen interno para que no pegue al borde
                     hovermode="x unified", 
-                    legend=dict(
-                        orientation="h", 
-                        yanchor="bottom", 
-                        y=1.02, 
-                        xanchor="center", 
-                        x=0.5, 
-                        font=dict(color="white", size=10)
-                    ), 
-                    xaxis=dict(
-                        showgrid=True, 
-                        gridcolor='rgba(255,255,255,0.1)', 
-                        color="white",
-                        showline=True,
-                        linewidth=1,
-                        linecolor='rgba(255,255,255,0.3)',
-                        mirror=True,
-                        ticks="outside"
-                    ), 
-                    yaxis=dict(
-                        title="Caudal (L/s)", 
-                        color="white",
-                        showgrid=True,
-                        gridcolor='rgba(255,255,255,0.1)',
-                        showline=True,
-                        linewidth=1,
-                        linecolor='rgba(255,255,255,0.3)',
-                        mirror=True,
-                        zeroline=False
-                    ), 
-                    yaxis2=dict(
-                        title="Presión (kg)", 
-                        side="right", 
-                        overlaying="y", 
-                        color="white", 
-                        showgrid=False,
-                        showline=False 
-                    )
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(color="white")),
+                    xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', color="white"),
+                    yaxis=dict(title="Caudal (L/s)", color="white", showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
+                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
                 )
-                st.plotly_chart(fig_v, use_container_width=True)
+
+                # --- APLICACIÓN DEL MARCO EXTERIOR ---
+                # Usamos un div con borde para rodear todo el objeto de Plotly
+                st.markdown(
+                    """
+                    <style>
+                    .marco-grafico {
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 5px;
+                        padding: 10px;
+                    }
+                    </style>
+                    """, unsafe_allow_html=True
+                )
+
+                with st.container():
+                    st.markdown('<div class="marco-grafico">', unsafe_allow_html=True)
+                    st.plotly_chart(fig_v, use_container_width=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
+
             else:
                 st.warning("No hay datos para esta VRP.")
         except Exception as e:
