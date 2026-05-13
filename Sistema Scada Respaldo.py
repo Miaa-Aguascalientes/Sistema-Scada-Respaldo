@@ -1479,7 +1479,7 @@ if sector_seleccionado:
                         df_pc_h = pd.read_sql(q_hist_pc, engine_h)
 
                         if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:0;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos criticos del sector:</h3>",, unsafe_allow_html=True)
                             fig_pc = go.Figure()
                             tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
 
