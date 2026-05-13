@@ -1211,12 +1211,17 @@ if sector_seleccionado:
             opcion_fecha = st.selectbox("Rango de fechas:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], index=2, key="f_sector_full")
         
         with c_sel_reg:
-            if not opciones_equipo:
-                sel_r = None
+            if not dict_reg: # Usamos el diccionario principal que ya tiene los datos
+                sel_r_id = None
                 st.selectbox("Equipo punto de control:", ["Sin equipos"], key="sel_reg_full", disabled=True)
             else:
-                sel_r = st.selectbox("Equipo punto de control:", opciones_equipo, key="sel_reg_full")
-                sel_r_id = reg_nombres.get(sel_r)
+                # 1. El selector ahora usa los IDs como opciones, pero muestra el Domicilio
+                sel_r_id = st.selectbox(
+                    "Equipo punto de control:", 
+                    options=list(dict_reg.keys()), 
+                    format_func=lambda x: dict_reg[x].get('Domicilio', dict_reg[x]['nombre']),
+                    key="sel_reg_full"
+                )
 
         with c_sel_vrp:
             if not opciones_vrp:
