@@ -1261,15 +1261,52 @@ if sector_seleccionado:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # 7.6. Marcadores Registradores
+# 7.6. Marcadores Registradores
             for r in dict_reg.values():
                 def get_rv(tk):
                     v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
                     try: return float(v), f
                     except: return 0.0, f
+                
                 rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q'); rbat, fb = get_rv('tag_vbat')
+                
+                # Usamos el ID del registrador o el número de serie si lo tienes disponible
+                # Suponiendo que la clave es 'id' o 'serie'
+                id_reg = r.get('id', 'S/N') 
+                
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
-                folium.Marker(location=r['coord'], icon=folium.Icon(color='cadetblue', icon='star', prefix='fa'), popup=folium.Popup(html_popup_reg, max_width=300)).add_to(m_sec)
+                
+                # --- MARCADOR CON ICONO ---
+                folium.Marker(
+                    location=r['coord'], 
+                    icon=folium.Icon(color='cadetblue', icon='star', prefix='fa'), 
+                    popup=folium.Popup(html_popup_reg, max_width=300)
+                ).add_to(m_sec)
+
+                # --- ETIQUETA FLOTANTE (DIVICON) ---
+                folium.Marker(
+                    location=r['coord'],
+                    icon=folium.features.DivIcon(
+                        icon_size=(250,36),
+                        icon_anchor=(-15, 20), # Desplazado para no tapar la estrella
+                        html=f"""
+                            <div style="
+                                font-size: 10pt; 
+                                color: #00FFFF; 
+                                font-weight: bold; 
+                                text-shadow: 2px 2px 4px #000; 
+                                background: rgba(0,0,0,0.6); 
+                                padding: 2px 8px; 
+                                border-radius: 4px; 
+                                width: max-content; 
+                                white-space: nowrap; 
+                                border: 1px solid rgba(0,255,255,0.4);
+                            ">
+                                SN: {id_reg}
+                            </div>
+                        """
+                    )
+                ).add_to(m_sec)
 
 # 7.7. Marcadores Puntos Críticos
             for id_pc, pc in dict_pc_sec.items():
@@ -1307,7 +1344,7 @@ if sector_seleccionado:
                                 white-space: nowrap; 
                                 border: 1px solid rgba(255,0,255,0.4);
                             ">
-                                SN: {id_pc}
+                                NS: {id_pc}
                             </div>
                         """
                     )
