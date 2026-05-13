@@ -1270,7 +1270,7 @@ if sector_seleccionado:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-# 7.6. Marcadores Registradores
+# 7.6. MARCADORES PUNTOS DE CONTROL
             for r in dict_reg.values():
                 def get_rv(tk):
                     v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -1278,17 +1278,14 @@ if sector_seleccionado:
                     except: return 0.0, f
                 
                 rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q'); rbat, fb = get_rv('tag_vbat')
-                
-                # Usamos el ID del registrador o el número de serie si lo tienes disponible
-                # Suponiendo que la clave es 'id' o 'serie'
                 id_reg = r.get('Serie', 'S/N') 
-                
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
-                
-                # --- MARCADOR CON ICONO ---
+
+# --- MARCADOR CON ICONO NUEVO ---
                 folium.Marker(
                     location=r['coord'], 
-                    icon=folium.Icon(color='cadetblue', icon='star', prefix='fa'), 
+                    # Cambié 'star' por 'microchip' para un look más Pro
+                    icon=folium.Icon(color='cadetblue', icon='microchip', prefix='fa'), 
                     popup=folium.Popup(html_popup_reg, max_width=300)
                 ).add_to(m_sec)
 
@@ -1317,15 +1314,11 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
 
-# 7.7. Marcadores Puntos Críticos
+# 7.7. MARCADORES PUNTOS CRITICOS EN EL MAPA
             for id_pc, pc in dict_pc_sec.items():
-                # Forzamos la obtención del campo 'Domicilio' según la imagen image_1e9356.png
-                # Si pc['Domicilio'] viene vacío de la base de datos, mostrará 'S/D'
                 domicilio_texto = pc.get('Domicilio', 'S/D')
-                
                 val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
                 
-                # HTML del Popup
                 html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px; font-family:sans-serif;">
                                 <b style="color:#FF00FF; font-size:13px;">PUNTO CRÍTICO</b><br>
                                 <small>{domicilio_texto}</small><br>
@@ -1334,7 +1327,7 @@ if sector_seleccionado:
                                 <span style="color:#FFFF00; font-size:9px;">{fec_p}</span>
                             </div>"""
                 
-# --- ETIQUETA FLOTANTE (DIVICON) SOLO CON ID/SERIE ---
+                # --- ETIQUETA FLOTANTE (DIVICON) SOLO CON ID/SERIE 
                 folium.Marker(
                     location=pc['coord'],
                     icon=folium.DivIcon(
@@ -1359,7 +1352,7 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
                 
-                # --- MARCADOR TRIANGULAR ---
+                # TIPO DE MARCADOR 
                 folium.RegularPolygonMarker(
                     location=pc['coord'],
                     number_of_sides=3,
@@ -1370,17 +1363,14 @@ if sector_seleccionado:
                     popup=folium.Popup(html_pc, max_width=250)
                 ).add_to(m_sec)
                 
-# 7.7.1 Marcadores VRP
+# 7.7.1 MARCADORES DE VALVULAS REDUCTORAS DE PRESION EN EL MAPA
             for id_vrp, vrp in dict_vrp_sec.items():
                 val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                 val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
-                
-                # Obtenemos la serie (ahora que ya está en el diccionario)
                 serie_vrp = vrp.get('Serie', 'S/N')
-                
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
                 
-                # --- MARCADOR CON ICONO COG ---
+                # TIPO DE MARCADOR
                 folium.Marker(
                     location=vrp['coord'], 
                     icon=folium.Icon(color='green', icon='cog', prefix='fa'), 
@@ -1412,7 +1402,7 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
 
-            # 7.8. Marcadores Pozos
+            # 7.8. MARCADOR DE POZOS EN EL MAPA
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
