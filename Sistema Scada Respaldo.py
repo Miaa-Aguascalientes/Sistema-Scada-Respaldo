@@ -1399,7 +1399,8 @@ if sector_seleccionado:
                     if not df_v.empty:
                         st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
-                        
+
+                        # Linea de caudal en el grafico de vrp
                         dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                         if not dq.empty:
                             fig_v.add_trace(go.Scatter(
@@ -1411,7 +1412,8 @@ if sector_seleccionado:
                                 line=dict(color='#00d4ff', width=2),
                                 hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
                             ))
-                        
+                            
+                        # Linea de presion P1 en el grafico de vrp
                         dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
                         if not dp1.empty:
                             fig_v.add_trace(go.Scatter(
@@ -1422,9 +1424,11 @@ if sector_seleccionado:
                                 fillcolor='rgba(0, 212, 255, 0.05)', # Color del área (con transparencia opcional)
                                 yaxis="y2",
                                 line=dict(color='#ff00ff', width=2),
+                                dash='dash',
                                 hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
                             ))
-                        
+
+                        # Linea de presion P2 en el grafico de vrp
                         dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
                         if not dp2.empty:
                             fig_v.add_trace(go.Scatter(
