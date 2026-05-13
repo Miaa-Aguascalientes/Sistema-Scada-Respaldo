@@ -1405,7 +1405,6 @@ with col_vrp:
         try:
             engine_h = get_mysql_scada_engine()
             tags_in_v = "', '".join(tags_v)
-            # Nota: Usando el nombre de tabla corregido 'vfitagnumhistory'
             df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
             
             if not df_v.empty:
@@ -1413,7 +1412,7 @@ with col_vrp:
                 
                 fig_v = go.Figure()
 
-                # --- Lógica de Trazado ---
+                # --- Trazados ---
                 dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                 if not dq.empty:
                     fig_v.add_trace(go.Scatter(
@@ -1439,12 +1438,12 @@ with col_vrp:
                         hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                     ))
 
-                # --- Layout del Gráfico ---
+                # --- Layout Ajustado ---
                 fig_v.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     height=300, 
-                    margin=dict(l=50, r=50, t=50, b=50), # Margen interno para que no pegue al borde
+                    margin=dict(l=50, r=50, t=30, b=50), # Un poco de aire interno
                     hovermode="x unified", 
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(color="white")),
                     xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', color="white"),
@@ -1452,24 +1451,21 @@ with col_vrp:
                     yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
                 )
 
-                # --- APLICACIÓN DEL MARCO EXTERIOR ---
-                # Usamos un div con borde para rodear todo el objeto de Plotly
+                # --- ESTILO DEL MARCO EXTERIOR ---
+                # Definimos el contenedor con el borde gris/blanco
                 st.markdown(
                     """
                     <style>
-                    .marco-grafico {
-                        border: 1px solid rgba(255, 255, 255, 0.3);
-                        border-radius: 5px;
-                        padding: 10px;
+                    .stPlotlyChart {
+                        border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
+                        border-radius: 4px;
+                        padding: 5px;
                     }
                     </style>
                     """, unsafe_allow_html=True
                 )
 
-                with st.container():
-                    st.markdown('<div class="marco-grafico">', unsafe_allow_html=True)
-                    st.plotly_chart(fig_v, use_container_width=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
+                st.plotly_chart(fig_v, use_container_width=True)
 
             else:
                 st.warning("No hay datos para esta VRP.")
