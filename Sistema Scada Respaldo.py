@@ -1447,17 +1447,60 @@ if sector_seleccionado:
                                 hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                             ))
 
-                        fig_v.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            height=300, 
-                            margin=dict(l=50, r=50, t=10, b=10),
-                            hovermode="x unified", 
-                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), 
-                            xaxis=dict(showgrid=True,gridcolor='rgba(255,255,255,0.1)',color="white"), 
-                            yaxis=dict(title="Caudal (L/s)", color="white"), 
-                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
-                        )
+fig_v.update_layout(
+    # Fondo del papel y del gráfico totalmente transparentes
+    paper_bgcolor='rgba(0,0,0,0)', 
+    plot_bgcolor='rgba(0,0,0,0)', 
+    height=300, 
+    # Añadimos un poco más de margen para que el marco no se corte
+    margin=dict(l=60, r=60, t=40, b=40), 
+    hovermode="x unified", 
+    # Leyenda centrada en la parte superior como en la imagen
+    legend=dict(
+        orientation="h", 
+        yanchor="bottom", 
+        y=1.02, 
+        xanchor="center", 
+        x=0.5, 
+        font=dict(color="white", size=10)
+    ), 
+    
+    # Eje X con línea blanca sutil que cierra el marco (mirror=True)
+    xaxis=dict(
+        showgrid=True, 
+        gridcolor='rgba(255,255,255,0.1)', 
+        color="white",
+        showline=True,
+        linewidth=1,
+        linecolor='rgba(255,255,255,0.3)', # Borde gris/blanco sutil
+        mirror=True, # Esto pone la línea también en la parte superior
+        ticks="outside"
+    ), 
+    
+    # Eje Y principal (Caudal)
+    yaxis=dict(
+        title="Caudal (L/s)", 
+        color="white",
+        showgrid=True,
+        gridcolor='rgba(255,255,255,0.1)',
+        showline=True,
+        linewidth=1,
+        linecolor='rgba(255,255,255,0.3)',
+        mirror=True, # Esto pone la línea también en el lado derecho
+        zeroline=False
+    ), 
+    
+    # Eje Y secundario (Presión)
+    yaxis2=dict(
+        title="Presión (kg)", 
+        side="right", 
+        overlaying="y", 
+        color="white", 
+        showgrid=False,
+        # Importante: No ponemos mirror aquí para no duplicar líneas
+        showline=False 
+    )
+)
                         st.plotly_chart(fig_v, use_container_width=True)
                     else:
                         st.warning("No hay datos para esta VRP.")
