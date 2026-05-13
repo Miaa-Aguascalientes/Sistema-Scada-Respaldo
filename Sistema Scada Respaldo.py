@@ -1573,7 +1573,7 @@ if sector_seleccionado:
                         if not df_pc_h.empty:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
-                            tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
+                            tag_to_name = {v['tag_p1']: v.get('Domicilio', v['nombre']) for v in dict_pc_sec.values()}
 
                             for tag in tags_pc:
                                 df_temp = df_pc_h[df_pc_h['TAG'] == tag]
