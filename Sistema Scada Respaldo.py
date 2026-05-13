@@ -1420,6 +1420,7 @@ if sector_seleccionado:
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
+                domicilio_ctrl = r_info.get('Domicilio', 'Sin Domicilio')
                 tags_grafico = [t for t in [t_q, t_p1, t_p2] if t]
 
                 if tags_grafico:
