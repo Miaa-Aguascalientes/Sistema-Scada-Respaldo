@@ -1349,13 +1349,29 @@ if sector_seleccionado:
                 nombre_vrp = vrp['nombre']
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
 
-                # . ETIQUETA DE TEXTO (Título que aparece junto al marcador)
+               # . ETIQUETA SIN SALTO DE LÍNEA
                 folium.Marker(
                     location=vrp['coord'],
                     icon=folium.features.DivIcon(
-                        icon_size=(150,36),
-                        icon_anchor=(0,0),
-                        html=f'<div style="font-size: 10pt; color: white; font-weight: bold; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.4); padding: 2px; border-radius: 4px; width: fit-content;">{nombre_vrp}</div>',
+                        icon_size=(250,36), # Aumentamos el ancho del contenedor
+                        icon_anchor=(0, 20), # Ajustamos la posición para que no tape el icono
+                        html=f"""
+                            <div style="
+                                font-size: 10pt; 
+                                color: white; 
+                                font-weight: bold;
+                                position: relative; left: 18px; top: -3px;">
+                                text-shadow: 2px 2px 4px #000; 
+                                background: rgba(0,0,0,0.5); 
+                                padding: 3px 8px; 
+                                border-radius: 4px; 
+                                width: max-content; 
+                                white-space: nowrap; 
+                                border: 0.5px solid rgba(0,255,204,0.3);
+                            ">
+                                {nombre_vrp}
+                            </div>
+                        """,
                     )
                 ).add_to(m_sec)
                 # . Marcador principal (el icono del engrane)
