@@ -1294,7 +1294,7 @@ if sector_seleccionado:
                     popup=folium.Popup(html_popup_reg, max_width=300)
                 ).add_to(m_sec)
 
-# 7.7. Marcadores Puntos Críticos
+# 7.7. MARCADORES PUNTOS CRITICOS
             for id_pc, pc in dict_pc_sec.items():
                 # Forzamos la obtención del campo 'Domicilio' según la imagen image_1e9356.png
                 # Si pc['Domicilio'] viene vacío de la base de datos, mostrará 'S/D'
@@ -1311,16 +1311,19 @@ if sector_seleccionado:
                                 <span style="color:#FFFF00; font-size:9px;">{fec_p}</span>
                             </div>"""
                 
-                # --- ETIQUETA FLOTANTE (DIVICON) ---
+# --- ETIQUETA FLOTANTE (DIVICON) SIN SALTO DE LÍNEA ---
                 folium.Marker(
                     location=pc['coord'],
                     icon=folium.DivIcon(
                         html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
-                                 text-shadow: 2px 2px 3px black; width: 220px; 
-                                 position: relative; left: 18px; top: -10px; 
-                                 line-height: 1.1;">
-                                 {domicilio_texto}<br>
-                                 <span style="font-size: 9px; color: #FF00FF; font-weight: normal;">ID: {id_pc}</span>
+                                 text-shadow: 2px 2px 3px black; 
+                                 width: 500px; 
+                                 white-space: nowrap; 
+                                 position: relative; left: 18px; top: -10px;">
+                                 {domicilio_texto} 
+                                 <span style="font-size: 9px; color: #FF00FF; font-weight: normal; margin-left: 5px;">
+                                 (ID: {id_pc})
+                                 </span>
                                  </div>"""
                     )
                 ).add_to(m_sec)
