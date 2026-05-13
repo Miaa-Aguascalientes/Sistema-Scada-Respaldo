@@ -439,8 +439,11 @@ def cargar_puntos_de_control_desde_db():
             try:
                 raw_c = str(r['coord']).replace('(', '').replace(')', '').replace(' ', '').strip()
                 lat_s, lon_s = raw_c.split(',')
-                id_reg = r.get('Serie', r.get('Registrador', 'ID'))
-                d_res[str(id_reg)] = {
+                
+                # Obtenemos la serie
+                id_reg_val = r.get('Serie', r.get('Registrador', 'ID'))
+                
+                d_res[str(id_reg_val)] = {
                     "nombre": str(r.get('Domicilio', r.get('Nombre_registrador', 'S/N'))),
                     "coord": [float(lat_s), float(lon_s)],
                     "sector": str(r['Sector']).split('.')[0].strip(),
@@ -448,7 +451,9 @@ def cargar_puntos_de_control_desde_db():
                     "tag_p2": r.get('Presion_2'), 
                     "tag_q": r.get('Caudal'),     
                     "tag_vbat": r.get('bateria'), 
-                    "tag_idx": r.get('indice')    
+                    "tag_idx": r.get('indice'),
+                    # --- CRUCIAL: Agregamos la Serie aquí para que el marcador la vea ---
+                    "Serie": str(id_reg_val) 
                 }
             except Exception as e:
                 continue
