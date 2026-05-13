@@ -1396,83 +1396,72 @@ if sector_seleccionado:
                 st.info("Seleccione un equipo.")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
-col_vrp, col_pc = st.columns([1.0, 1.0])
+        col_vrp, col_pc = st.columns([1.0, 1.0])
 
-with col_vrp:
-    if sel_v_id:
-        v_info = dict_vrp_sec[sel_v_id]
-        tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-        try:
-            engine_h = get_mysql_scada_engine()
-            tags_in_v = "', '".join(tags_v)
-            df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-            
-            if not df_v.empty:
-                st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:10px;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
-                
-                fig_v = go.Figure()
-
-                # --- Trazados ---
-                dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                if not dq.empty:
-                    fig_v.add_trace(go.Scatter(
-                        x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)",
-                        fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
-                        line=dict(color='#00d4ff', width=2),
-                        hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
-                    ))
+        with col_vrp:
+            if sel_v_id:
+                v_info = dict_vrp_sec[sel_v_id]
+                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+                try:
+                    engine_h = get_mysql_scada_engine()
+                    tags_in_v = "', '".join(tags_v)
+                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
                     
-                dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                if not dp1.empty:
-                    fig_v.add_trace(go.Scatter(
-                        x=dp1['FECHA'], y=dp1['VALUE'], name="Presión P1 (kg/cm2)",
-                        yaxis="y2", line=dict(color='#FF4500', width=2, dash='dash'),
-                        hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
-                    ))
+                    if not df_v.empty:
+                        st.markdown(f"<h3 style='color:#00ffcc; font-size:16px; margin-bottom:0;'>Gráfico VRP:</h3>", unsafe_allow_html=True)
+                        fig_v = go.Figure()
 
-                dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                if not dp2.empty:
-                    fig_v.add_trace(go.Scatter(
-                        x=dp2['FECHA'], y=dp2['VALUE'], name="Presión P2 (kg/cm2)",
-                        yaxis="y2", line=dict(color='#00ff00', width=2, dash='dash'),
-                        hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
-                    ))
+                        # Linea de caudal en el grafico de vrp
+                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                        if not dq.empty:
+                            fig_v.add_trace(go.Scatter(
+                                x=dq['FECHA'],
+                                y=dq['VALUE'],
+                                name="Caudal VRP (Lps)",
+                                fill='tozeroy',
+                                fillcolor='rgba(0, 212, 255, 0.10)', # Color del área (con transparencia opcional)
+                                line=dict(color='#00d4ff', width=2),
+                                hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
+                            ))
+                            
+                        # Linea de presion P1 en el grafico de vrp
+                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
+                        if not dp1.empty:
+                            fig_v.add_trace(go.Scatter(
+                                x=dp1['FECHA'],
+                                y=dp1['VALUE'],
+                                name="Presión P1 (kg/cm2)",
+                                yaxis="y2",
+                                line=dict(color='#FF4500', width=2,dash='dash'),
+                                hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
+                            ))
 
-                # --- Layout Ajustado ---
-                fig_v.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(0,0,0,0)', 
-                    height=300, 
-                    margin=dict(l=50, r=50, t=30, b=50), # Un poco de aire interno
-                    hovermode="x unified", 
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5, font=dict(color="white")),
-                    xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.05)', color="white"),
-                    yaxis=dict(title="Caudal (L/s)", color="white", showgrid=True, gridcolor='rgba(255,255,255,0.05)'),
-                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
-                )
+                        # Linea de presion P2 en el grafico de vrp
+                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
+                        if not dp2.empty:
+                            fig_v.add_trace(go.Scatter(
+                                x=dp2['FECHA'], y=dp2['VALUE'],
+                                name="Presión P2 (kg/cm2)",
+                                yaxis="y2",
+                                line=dict(color='#00ff00', width=2,dash='dash'),
+                                hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
+                            ))
 
-                # --- ESTILO DEL MARCO EXTERIOR ---
-                # Definimos el contenedor con el borde gris/blanco
-                st.markdown(
-                    """
-                    <style>
-                    .stPlotlyChart {
-                        border: 1.5px solid rgba(255, 255, 255, 0.2) !important;
-                        border-radius: 4px;
-                        padding: 5px;
-                    }
-                    </style>
-                    """, unsafe_allow_html=True
-                )
-
-                st.plotly_chart(fig_v, use_container_width=True)
-
+                        fig_v.update_layout(
+                            paper_bgcolor='black', plot_bgcolor='black', height=300, 
+                            margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", 
+                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), 
+                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), 
+                            yaxis=dict(title="Caudal (L/s)", color="white"), 
+                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
+                        )
+                        st.plotly_chart(fig_v, use_container_width=True)
+                    else:
+                        st.warning("No hay datos para esta VRP.")
+                except Exception as e:
+                    st.error(f"Error VRP: {e}")
             else:
-                st.warning("No hay datos para esta VRP.")
-        except Exception as e:
-            st.error(f"Error VRP: {e}")
-    else:
-        st.info("Seleccione una VRP.")
+                st.info("Seleccione una VRP.")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
         with col_pc:
