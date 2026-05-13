@@ -1420,7 +1420,6 @@ if sector_seleccionado:
                                 x=dp1['FECHA'],
                                 y=dp1['VALUE'],
                                 name="Presión P1 (kg/cm2)",
-                                fill='tozeroy',
                                 yaxis="y2",
                                 line=dict(color='#FF4500', width=2,dash='dash'),
                                 hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
@@ -1432,7 +1431,6 @@ if sector_seleccionado:
                             fig_v.add_trace(go.Scatter(
                                 x=dp2['FECHA'], y=dp2['VALUE'],
                                 name="Presión P2 (kg/cm2)",
-                                fill='tozeroy',
                                 yaxis="y2",
                                 line=dict(color='#00ff00', width=2,dash='dash'),
                                 hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
