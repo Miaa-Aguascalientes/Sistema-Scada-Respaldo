@@ -1302,7 +1302,7 @@ if sector_seleccionado:
                         icon=folium.DivIcon(
                             html=f"""<div style="font-size: 11px; color: white; font-weight: bold; 
                                      text-shadow: 1px 1px 2px black; width: 100px; 
-                                     position: relative; left: 14px; top: -3px;">
+                                     position: relative; left: 17px; top: -3px;">
                                      {id_p}
                                      </div>"""
                         )
