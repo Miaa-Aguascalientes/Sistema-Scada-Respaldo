@@ -1555,30 +1555,13 @@ if sector_seleccionado:
 
 # 7.10. ------------------------------------------- Histórico Punto de Control + Pozos (Q, P, Nivel) --------------------------------------------------------------------------------------------
         with col_der:
-            # 1. SELECTORES DE EQUIPO (Parte superior)
-            c_sel_reg, c_sel_vrp = st.columns(2)
+            # Eliminamos los selectores duplicados de aquí, ya que usamos sel_r_id definido arriba del mapa
             
-            with c_sel_reg:
-                if not opciones_equipo:
-                    sel_r = None
-                    st.selectbox("Equipo punto de control:", ["Sin equipos"], key="sel_reg_top", disabled=True)
-                else:
-                    sel_r = st.selectbox("Equipo punto de control:", opciones_equipo, key="sel_reg_top")
-                    sel_r_id = reg_nombres.get(sel_r)
-
-            with c_sel_vrp:
-                if not opciones_vrp:
-                    sel_v = None
-                    st.selectbox("Válvula VRP (Domicilio):", ["Sin VRP"], key="sel_vrp_top", disabled=True)
-                else:
-                    sel_v = st.selectbox("Válvula VRP (Domicilio):", opciones_vrp, key="sel_vrp_top")
-                    sel_v_id = vrp_nombres.get(sel_v)
-
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
                 
-                # Identificación de tags de pozos del sector
+                # Identificación de tags de pozos del sector para la comparativa
                 ids_pozos_sector = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
                 tags_pozos = []
                 mapa_tags_pozos = {} 
@@ -1610,7 +1593,7 @@ if sector_seleccionado:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-top:10px; text-align: center;'>Análisis Comparativo Integral</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
 
-                            # Trazas del Punto de Control (Sólidas Gruesas con 2 decimales)
+                            # Trazas del Punto de Control (Sólidas Gruesas - 2 decimales)
                             if t_q and not df_h[df_h['TAG'] == t_q].empty:
                                 df_q = df_h[df_h['TAG'] == t_q]
                                 fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Q Reg (lps)",
@@ -1623,7 +1606,7 @@ if sector_seleccionado:
                                     yaxis="y2", line=dict(color='#FF4500', width=3),
                                     hovertemplate='P1 Reg: <b>%{y:.2f}</b> kg<extra></extra>'))
 
-                            # Trazas de los Pozos (Sólidas con 2 decimales)
+                            # Trazas de los Pozos (Sólidas - 2 decimales - Azul intenso para Q)
                             for t_pz in tags_pozos:
                                 df_pz = df_h[df_h['TAG'] == t_pz]
                                 if not df_pz.empty:
@@ -1631,13 +1614,13 @@ if sector_seleccionado:
                                     es_eje_secundario = label.startswith("P ") or label.startswith("Niv ")
                                     
                                     if label.startswith("Q "):
-                                        color_pz = '#004a7c'
+                                        color_pz = '#004a7c' # Azul fuerte
                                         unidad = "Lps"
                                     elif label.startswith("Niv "):
-                                        color_pz = '#00ff00'
+                                        color_pz = '#00ff00' # Verde
                                         unidad = "m"
                                     else:
-                                        color_pz = '#b35900'
+                                        color_pz = '#b35900' # Naranja oscuro
                                         unidad = "kg"
 
                                     fig.add_trace(go.Scatter(
@@ -1651,9 +1634,10 @@ if sector_seleccionado:
 
                             fig.update_layout(
                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                height=400,
+                                height=450,
                                 margin=dict(l=50, r=50, t=50, b=10),
                                 hovermode="x unified",
+                                # LEYENDA ARRIBA DEL GRÁFICO
                                 legend=dict(
                                     orientation="h", yanchor="bottom", y=1.02, 
                                     xanchor="left", x=0, font=dict(color="white", size=10)
@@ -1664,8 +1648,12 @@ if sector_seleccionado:
                                             overlaying="y", showgrid=False, tickformat=".2f")
                             )
                             st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.warning("Sin datos para este periodo.")
                     except Exception as e:
                         st.error(f"Error: {e}")
+            else:
+                st.info("Seleccione un equipo en el buscador de arriba para visualizar la comparativa.")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
