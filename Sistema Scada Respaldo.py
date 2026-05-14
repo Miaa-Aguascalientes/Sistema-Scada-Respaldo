@@ -1554,17 +1554,16 @@ if sector_seleccionado:
             st.markdown('</div>', unsafe_allow_html=True)
 
 # 7.10. ---------------- Histórico Integral (Lado derecho del mapa) ----------------
-with col_der:
-    st.markdown("Histórico Puntos de control")
-    hoy = datetime.now().date()
-        
-    if opcion_hist == "Hoy": f_ini_h, f_fin_h = hoy, hoy
-    elif opcion_hist == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-    elif opcion_hist == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-    elif opcion_hist == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-    else:
-        rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
-        f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
+    with col_der:
+            hoy = datetime.now().date()
+            if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+            elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+            elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+            elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+            else:
+                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
+                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
+
 
     tags_visualizar = []
     mapeo_config = {}
