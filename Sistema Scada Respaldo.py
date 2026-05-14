@@ -1635,7 +1635,7 @@ if sector_seleccionado:
                             legend=dict(
                                 orientation="h",
                                 yanchor="bottom",
-                                y=-1.20,
+                                y=-0.0,
                                 x=0.5,
                                 xanchor="center",
                                 font=dict(color="white", size=9)
