@@ -1327,7 +1327,7 @@ if sector_seleccionado:
                     location=r['coord'],
                     icon=folium.features.DivIcon(
                         icon_size=(250,36),
-                        icon_anchor=(-15, 20), # Desplazado para no tapar la estrella
+                        icon_anchor=(-15, 40), # Desplazado para no tapar la estrella
                         html=f"""
                             <div style="
                                 font-size: 10pt; 
