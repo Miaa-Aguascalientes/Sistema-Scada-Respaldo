@@ -1573,9 +1573,9 @@ if sector_seleccionado:
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 conf_pc = [
-                    ('tag_q', f"PC {sel_r_id} - Q (lps)", '#00d4ff', False),
-                    ('tag_p1', f"PC {sel_r_id} - P1 (kg/cm2)", '#00ff00', True),
-                    ('tag_p2', f"PC {sel_r_id} - P2 (kg/cm2)", '#00ff00', True)
+                    ('tag_q', f"PC {sel_r_id} - Q", '#00d4ff', False),
+                    ('tag_p1', f"PC {sel_r_id} - P1", '#00ff00', True),
+                    ('tag_p2', f"PC {sel_r_id} - P2", '#00ff00', True)
                 ]
                 for key, lb, clr, sec in conf_pc:
                     tag_v = r_info.get(key)
@@ -1588,9 +1588,9 @@ if sector_seleccionado:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
                     conf_pz = [
-                        ('caudal', f"Pozo {id_p} - Q (Lps)", '#00d4ff', False),
-                        ('presion', f"Pozo {id_p} - P (kg/cm2)", '#00ff00', True),
-                        ('nivel_tanque', f"Pozo {id_p} - Nivel TQ (Mts)", '#0000FF', True) # Azul fuerte
+                        ('caudal', f"Pozo {id_p} - Q (lps)", '#00d4ff', False),
+                        ('presion', f"Pozo {id_p} - P (kg)", '#00ff00', True),
+                        ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", '#0000FF', True) # Azul fuerte
                     ]
                     for key, lb, clr, sec in conf_pz:
                         tag_v = p_info.get(key)
