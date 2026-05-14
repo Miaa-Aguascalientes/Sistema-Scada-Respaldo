@@ -1670,7 +1670,13 @@ with col_vrp:
                 # Caudal
                 dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
                 if not dq.empty:
-                    fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)", fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)', line=dict(color='#00d4ff', width=2)))
+                    fig_v.add_trace(go.Scatter(
+                          x=dq['FECHA'], y=dq['VALUE'],
+                          name="Caudal VRP (Lps)",
+                          mode='lines+markers',
+                          marker=dict(size=4, symbol='circle'),
+                          fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
+                          line=dict(color='#00d4ff', width=2)))
                 
                 # Presión P1 y P2
                 for p_tag, p_name, p_clr in [(v_info.get('tag_p1'), "P1", '#FF4500'), (v_info.get('tag_p2'), "P2", '#00ff00')]:
