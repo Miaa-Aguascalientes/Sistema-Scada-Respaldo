@@ -1552,7 +1552,8 @@ if sector_seleccionado:
                     st.session_state.ultimo_clic_sv = nuevo_clic
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
-
+            
+# 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector (Lado derecho del mapa) -------------------------
 with col_der:
     # TODO lo relacionado al histórico DEBE ir dentro de este bloque indentado
     st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>7.10. Histórico Integral - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
@@ -1625,10 +1626,17 @@ with col_der:
                 fig.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    height=450, # Aumentado para que se vea mejor al lado del mapa
-                    margin=dict(l=10, r=10, t=30, b=10), 
+                    height=300, 
+                    margin=dict(l=50, r=50, t=10, b=10), 
                     hovermode="x unified", 
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(color="white", size=9)
+                    ),
                     xaxis=dict(color="white", showgrid=False),
                     yaxis=dict(title="Caudal / Otros", color="white"),
                     yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="white", showgrid=False)
@@ -1639,14 +1647,10 @@ with col_der:
         except Exception as e:
             st.error(f"Error Scada (Derecha): {e}")
 
-# =================================================================================================================================
-# FILA INFERIOR: VRP (7.11) Y PUNTOS CRÍTICOS (7.12)
-# =================================================================================================================================
-# Salimos de 'with col_der' para que esta fila ocupe todo el ancho de la página
-st.markdown("---") 
+# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
+
 col_vrp, col_pc = st.columns([1.0, 1.0])
 
-# 7.11. Válvulas Reductoras de Presión (VRP)
 with col_vrp:
     if sel_v_id:
         v_info = dict_vrp_sec[sel_v_id]
@@ -1677,7 +1681,7 @@ with col_vrp:
         except Exception as e:
             st.error(f"Error VRP: {e}")
 
-# 7.12. Histórico Puntos Críticos
+# 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
 with col_pc:
     if dict_pc_sec:
         tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
