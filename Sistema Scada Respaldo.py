@@ -1555,8 +1555,7 @@ if sector_seleccionado:
             
 # 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector (Lado derecho del mapa) -------------------------
 with col_der:
-    # TODO lo relacionado al histórico DEBE ir dentro de este bloque indentado
-    st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>7.10. Histórico Integral - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>Histórico Puntos de control</h3>", unsafe_allow_html=True)
     
     hoy = datetime.now().date()
     # Usamos la variable opcion_fecha que mencionaste en tu snippet
