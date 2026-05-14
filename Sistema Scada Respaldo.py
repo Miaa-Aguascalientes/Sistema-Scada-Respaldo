@@ -1555,12 +1555,9 @@ if sector_seleccionado:
 
 # 7.10. ---------------- Histórico Integral (Lado derecho del mapa) ----------------
 with col_der:
-    st.markdown("### 7.10. Histórico Integral")
+    st.markdown("Histórico Puntos de control")
     hoy = datetime.now().date()
-    
-    # Lógica de fechas con KEY ÚNICA
-    opcion_hist = st.selectbox("Rango Histórico:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], key="sel_hist_integral")
-    
+        
     if opcion_hist == "Hoy": f_ini_h, f_fin_h = hoy, hoy
     elif opcion_hist == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
     elif opcion_hist == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
