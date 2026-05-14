@@ -1282,20 +1282,41 @@ if sector_seleccionado:
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
 
 
-# --- MARCADOR CON ICONO DE TACHUELA PURA ---
+
+# --- MARCADOR TACHUELA REALISTA (ESTILO 3D) ---
                 from folium.features import DivIcon
-                
+
+                # CSS para recrear la esfera 3D y el pin de image_87abee.png
                 icon_html = """
-                    <div style="font-size: 24px; color: #FF00FF; transform: rotate(45deg); text-shadow: 2px 2px 2px #000;">
-                        <i class="fa fa-thumbtack"></i>
+                <div style="position: relative; width: 30px; height: 30px;">
+                    <!-- La esfera con gradiente para volumen (estilo image_87ac34.png) -->
+                    <div style="
+                        width: 20px; 
+                        height: 20px; 
+                        background: radial-gradient(circle at 30% 30%, #ff66ff, #FF00FF, #990099);
+                        border-radius: 50%;
+                        box-shadow: 2px 4px 6px rgba(0,0,0,0.5);
+                        position: absolute;
+                        top: 0; left: 5px;
+                        z-index: 2;">
                     </div>
+                    <!-- El pin metálico -->
+                    <div style="
+                        width: 2px; 
+                        height: 15px; 
+                        background: linear-gradient(to right, #e0e0e0, #808080);
+                        position: absolute;
+                        top: 18px; left: 14px;
+                        z-index: 1;">
+                    </div>
+                </div>
                 """
 
                 folium.Marker(
                     location=r['coord'],
                     icon=DivIcon(
-                        icon_size=(30, 30),
-                        icon_anchor=(5, 25),
+                        icon_size=(30, 40),
+                        icon_anchor=(15, 33),
                         html=icon_html
                     ),
                     popup=folium.Popup(html_popup_reg, max_width=300)
