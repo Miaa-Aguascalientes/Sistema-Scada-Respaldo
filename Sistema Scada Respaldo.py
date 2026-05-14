@@ -1715,7 +1715,8 @@ if sector_seleccionado:
                                         x=df_temp['FECHA'], 
                                         y=df_temp['VALUE'], 
                                         name=tag_to_name.get(tag, tag), 
-                                        mode='lines', 
+                                        mode='lines+markers',
+                                        marker=dict(size=4, symbol='circle'),
                                         line=dict(width=2)))
 
                             fig_pc.update_layout(
