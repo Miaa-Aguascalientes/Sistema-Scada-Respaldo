@@ -1285,7 +1285,7 @@ if sector_seleccionado:
                 folium.Marker(
                     location=r['coord'], 
                     # Usamos 'faucet' para representar la válvula/llave de paso
-                    icon=folium.Icon(color='cadetblue', icon='faucet', prefix='fa'), 
+                    icon=folium.Icon(color='blue', icon='thumbtack', prefix='fa'), 
                     popup=folium.Popup(html_popup_reg, max_width=300)
                 ).add_to(m_sec)
 
@@ -1355,11 +1355,12 @@ if sector_seleccionado:
                 # TIPO DE MARCADOR 
                 folium.RegularPolygonMarker(
                     location=pc['coord'],
-                    number_of_sides=3,
-                    radius=7,
-                    color='#FF00FF',
-                    fill=True,
-                    fill_color='#FF00FF',
+                    icon=folium.Icon(
+                        color='lightgray',      # Color del globo de fondo
+                        icon_color='#FF00FF',  # Color de la tachuela (tu magenta)
+                        icon='thumbtack', 
+                        prefix='fa'
+                    ),
                     popup=folium.Popup(html_pc, max_width=250)
                 ).add_to(m_sec)
                 
@@ -1373,7 +1374,7 @@ if sector_seleccionado:
                 # TIPO DE MARCADOR
                 folium.Marker(
                     location=vrp['coord'], 
-                    icon=folium.Icon(color='blue', icon='bitbucket', prefix='fa'),
+                    icon=folium.Icon(color='green', icon='thumbtack', prefix='fa'),
                     popup=folium.Popup(html_vrp, max_width=250)
                 ).add_to(m_sec)
 
