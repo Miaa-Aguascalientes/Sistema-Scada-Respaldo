@@ -1234,7 +1234,7 @@ if sector_seleccionado:
                 sel_v_id = vrp_nombres.get(sel_v)
 
         # 7.4. Layout Superior: Mapa e Histórico Puntos de Control
-        col_izq, col_der = st.columns([1.2, 1])
+        col_izq, col_der = st.columns([1.0, 1.0])
         
         with col_izq:
             st.markdown('<div class="col-mapa-offset">', unsafe_allow_html=True)
