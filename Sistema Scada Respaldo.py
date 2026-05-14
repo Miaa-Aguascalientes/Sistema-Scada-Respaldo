@@ -1632,7 +1632,7 @@ if sector_seleccionado:
                             height=350,
                             margin=dict(l=50, r=50, t=50, b=10),
                             hovermode="x unified",
-                            legend=dict(orientation="h",
+                            legend=dict(
                                 orientation="h",
                                 yanchor="bottom",
                                 y=-1.02,
