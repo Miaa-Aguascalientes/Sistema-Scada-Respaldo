@@ -1696,30 +1696,41 @@ if sector_seleccionado:
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
 with col_pc:
-    if dict_pc_sec:
-        tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
-        if tags_pc_list:
-            try:
-                tags_pc_in = "', '".join(tags_pc_list)
-                df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+            if dict_pc_sec:
+                tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                if tags_pc_list:
+                    try:
+                        tags_pc_in = "', '".join(tags_pc_list)
+                        df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
 
-                if not df_pc_h.empty:
-                    st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
-                    fig_pc = go.Figure()
-                    tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
+                        if not df_pc_h.empty:
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
+                            fig_pc = go.Figure()
+                            tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
 
-                    for tag in tags_pc_list:
-                        df_temp = df_pc_h[df_pc_h['TAG'] == tag]
-                        if not df_temp.empty:
-                            fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=tag_to_name.get(tag, tag), mode='lines', line=dict(width=2)))
+                            for tag in tags_pc_list:
+                                df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                                if not df_temp.empty:
+                                    fig_pc.add_trace(go.Scatter(
+                                        x=df_temp['FECHA'], 
+                                        y=df_temp['VALUE'], 
+                                        name=tag_to_name.get(tag, tag), 
+                                        mode='lines', 
+                                        line=dict(width=2)))
 
-                    fig_pc.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(l=50, r=50, t=40, b=10), hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color="white", size=9)))
-                    st.plotly_chart(fig_pc, use_container_width=True)
-            except Exception as e:
-                st.error(f"Error PC: {e}")
+                            fig_pc.update_layout(
+                                paper_bgcolor='rgba(0,0,0,0)', 
+                                plot_bgcolor='rgba(0,0,0,0)', 
+                                height=300, 
+                                margin=dict(l=50, r=50, t=40, b=10), 
+                                hovermode="x unified", 
+                                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color="white", size=9)))
+                            st.plotly_chart(fig_pc, use_container_width=True)
+                    except Exception as e:
+                        st.error(f"Error PC: {e}")
 
-# Finalizamos el script para evitar renderizados infinitos
-st.stop()
+        # Finalizamos el bloque del sector
+        st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
