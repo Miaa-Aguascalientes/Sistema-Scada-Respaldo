@@ -1555,8 +1555,10 @@ if sector_seleccionado:
 
 # 7.10. ---------------- Histórico Integral (Lado derecho del mapa) ----------------
 with col_der:
+    st.markdown("### 7.10. Histórico Integral")
     hoy = datetime.now().date()
-    # Lógica de fechas con KEY ÚNICA para evitar conflictos
+    
+    # Lógica de fechas con KEY ÚNICA
     opcion_hist = st.selectbox("Rango Histórico:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], key="sel_hist_integral")
     
     if opcion_hist == "Hoy": f_ini_h, f_fin_h = hoy, hoy
@@ -1601,7 +1603,7 @@ with col_der:
                     tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 3. Consulta y Renderizado del gráfico derecho
+    # 3. Consulta y Renderizado
     if tags_visualizar:
         try:
             engine_h = get_mysql_scada_engine()
@@ -1622,125 +1624,71 @@ with col_der:
                 st.plotly_chart(fig, use_container_width=True)
         except Exception as e:
             st.error(f"Error Scada: {e}")
-# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
-        col_vrp, col_pc = st.columns([1.0, 1.0])
 
-        with col_vrp:
-            if sel_v_id:
-                v_info = dict_vrp_sec[sel_v_id]
-                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_in_v = "', '".join(tags_v)
-                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-                    
-                    if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Valvulas reductoras de presión:</h3>", unsafe_allow_html=True)
-                        fig_v = go.Figure()
+# =================================================================================================================================
+# FILA INFERIOR: VRP (7.11) Y PUNTOS CRÍTICOS (7.12)
+# =================================================================================================================================
+# Salimos de 'with col_der' para que esta fila ocupe todo el ancho de la página
+st.markdown("---") 
+col_vrp, col_pc = st.columns([1.0, 1.0])
 
-                        # Linea de caudal en el grafico de vrp
-                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dq['FECHA'],
-                                y=dq['VALUE'],
-                                name="Caudal VRP (Lps)",
-                                fill='tozeroy',
-                                fillcolor='rgba(0, 212, 255, 0.10)', # Color del área (con transparencia opcional)
-                                line=dict(color='#00d4ff', width=2),
-                                hovertemplate='Caudal: %{y:.2f} Lps<extra></extra>'
-                            ))
-                            
-                        # Linea de presion P1 en el grafico de vrp
-                        dp1 = df_v[df_v['TAG'] == v_info.get('tag_p1')]
-                        if not dp1.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dp1['FECHA'],
-                                y=dp1['VALUE'],
-                                name="Presión P1 (kg/cm2)",
-                                yaxis="y2",
-                                line=dict(color='#FF4500', width=2),
-                                hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
-                            ))
+# 7.11. Válvulas Reductoras de Presión (VRP)
+with col_vrp:
+    if sel_v_id:
+        v_info = dict_vrp_sec[sel_v_id]
+        tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+        try:
+            engine_h = get_mysql_scada_engine()
+            tags_in_v = "', '".join(tags_v)
+            df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+            
+            if not df_v.empty:
+                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Válvulas reductoras de presión:</h3>", unsafe_allow_html=True)
+                fig_v = go.Figure()
 
-                        # Linea de presion P2 en el grafico de vrp
-                        dp2 = df_v[df_v['TAG'] == v_info.get('tag_p2')]
-                        if not dp2.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dp2['FECHA'], y=dp2['VALUE'],
-                                name="Presión P2 (kg/cm2)",
-                                yaxis="y2",
-                                line=dict(color='#00ff00', width=2),
-                                hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
-                            ))
-
-                        fig_v.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            height=300, 
-                            margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", 
-                            legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), 
-                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), 
-                            yaxis=dict(title="Caudal (L/s)", color="white"), 
-                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False)
-                        )
-                        st.plotly_chart(fig_v, use_container_width=True)
-                    else:
-                        st.warning("No hay datos para esta VRP.")
-                except Exception as e:
-                    st.error(f"Error VRP: {e}")
-            else:
-                st.info("Seleccione una VRP.")
-
-# 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -----------------------------------------------------------------------------------------------------------------------------------
-        with col_pc:
-            if dict_pc_sec:
-                tags_pc = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                # Caudal
+                dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                if not dq.empty:
+                    fig_v.add_trace(go.Scatter(x=dq['FECHA'], y=dq['VALUE'], name="Caudal VRP (Lps)", fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)', line=dict(color='#00d4ff', width=2)))
                 
-                if tags_pc:
-                    try:
-                        tags_pc_in = "', '".join(tags_pc)
-                        q_hist_pc = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
-                        df_pc_h = pd.read_sql(q_hist_pc, engine_h)
+                # Presión P1 y P2
+                for p_tag, p_name, p_clr in [(v_info.get('tag_p1'), "P1", '#FF4500'), (v_info.get('tag_p2'), "P2", '#00ff00')]:
+                    if p_tag:
+                        dp = df_v[df_v['TAG'] == p_tag]
+                        if not dp.empty:
+                            fig_v.add_trace(go.Scatter(x=dp['FECHA'], y=dp['VALUE'], name=f"Presión {p_name}", yaxis="y2", line=dict(color=p_clr, width=2)))
 
-                        if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos criticos del sector:</h3>", unsafe_allow_html=True)
-                            fig_pc = go.Figure()
-                            tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
+                fig_v.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
+                st.plotly_chart(fig_v, use_container_width=True)
+        except Exception as e:
+            st.error(f"Error VRP: {e}")
 
-                            for tag in tags_pc:
-                                df_temp = df_pc_h[df_pc_h['TAG'] == tag]
-                                if not df_temp.empty:
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_temp['FECHA'], 
-                                        y=df_temp['VALUE'], 
-                                        name=tag_to_name.get(tag, tag),
-                                        mode='lines',
-                                        line=dict(width=2),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} kg<extra></extra>'
-                                    ))
+# 7.12. Histórico Puntos Críticos
+with col_pc:
+    if dict_pc_sec:
+        tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+        if tags_pc_list:
+            try:
+                tags_pc_in = "', '".join(tags_pc_list)
+                df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
 
-                            fig_pc.update_layout(
-                                paper_bgcolor='rgba(0,0,0,0)',
-                                plot_bgcolor='rgba(0,0,0,0)',
-                                height=300,
-                                margin=dict(l=50, r=50, t=40, b=10),
-                                hovermode="x unified",
-                                hoverlabel=dict(bgcolor="rgba(30, 30, 30, 0.8)", font_size=12, font_color="white"),
-                                legend=dict(
-                                    orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
-                                    font=dict(color="white", size=9),
-                                    itemclick="toggle", 
-                                    itemdoubleclick="toggleothers"
-                                ),
-                                xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
-                                yaxis=dict(title="Presión PC (kg)", color="#FF00FF", showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)')
-                            )
-                            st.plotly_chart(fig_pc, use_container_width=True)
-                    except Exception as e: 
-                        st.error(f"Error en Puntos Críticos: {e}")
+                if not df_pc_h.empty:
+                    st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
+                    fig_pc = go.Figure()
+                    tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
 
-    st.stop()
+                    for tag in tags_pc_list:
+                        df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                        if not df_temp.empty:
+                            fig_pc.add_trace(go.Scatter(x=df_temp['FECHA'], y=df_temp['VALUE'], name=tag_to_name.get(tag, tag), mode='lines', line=dict(width=2)))
+
+                    fig_pc.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(l=50, r=50, t=40, b=10), hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color="white", size=9)))
+                    st.plotly_chart(fig_pc, use_container_width=True)
+            except Exception as e:
+                st.error(f"Error PC: {e}")
+
+# Finalizamos el script para evitar renderizados infinitos
+st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
