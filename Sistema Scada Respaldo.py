@@ -1657,48 +1657,53 @@ if sector_seleccionado:
 
 col_vrp, col_pc = st.columns([1.0, 1.0])
 
-with col_vrp:
-    if sel_v_id:
-        v_info = dict_vrp_sec[sel_v_id]
-        tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
-        try:
-            engine_h = get_mysql_scada_engine()
-            tags_in_v = "', '".join(tags_v)
-            df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
-            
-            if not df_v.empty:
-                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Válvulas reductoras de presión:</h3>", unsafe_allow_html=True)
-                fig_v = go.Figure()
+        with col_vrp:
+            if sel_v_id:
+                v_info = dict_vrp_sec[sel_v_id]
+                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+                try:
+                    engine_h = get_mysql_scada_engine()
+                    tags_in_v = "', '".join(tags_v)
+                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                    
+                    if not df_v.empty:
+                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Válvulas reductoras de presión:</h3>", unsafe_allow_html=True)
+                        fig_v = go.Figure()
 
-                # Caudal
-                dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                if not dq.empty:
-                    fig_v.add_trace(go.Scatter(
-                          x=dq['FECHA'], y=dq['VALUE'],
-                          name="Caudal VRP (Lps)",
-                          mode='lines+markers',
-                          marker=dict(size=4, symbol='circle'),
-                          fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
-                          line=dict(color='#00d4ff', width=2)))
-                
-                # Presión P1 y P2
-                for p_tag, p_name, p_clr in [(v_info.get('tag_p1'), "P1", '#FF4500'), (v_info.get('tag_p2'), "P2", '#00ff00')]:
-                    if p_tag:
-                        dp = df_v[df_v['TAG'] == p_tag]
-                        if not dp.empty:
+                        # Caudal
+                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
+                        if not dq.empty:
                             fig_v.add_trace(go.Scatter(
-                                  x=dp['FECHA'],
-                                  y=dp['VALUE'],
-                                  name=f"Presión {p_name}",
-                                  yaxis="y2",
-                                  mode='lines+markers',
-                                  marker=dict(size=4, symbol='circle'),
-                                  line=dict(color=p_clr, width=2)))
+                                x=dq['FECHA'], y=dq['VALUE'],
+                                name="Caudal VRP (Lps)",
+                                mode='lines+markers',
+                                marker=dict(size=4, symbol='circle'),
+                                fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
+                                line=dict(color='#00d4ff', width=2)))
+                        
+                        # Presión P1 y P2
+                        for p_tag, p_name, p_clr in [(v_info.get('tag_p1'), "P1", '#FF4500'), (v_info.get('tag_p2'), "P2", '#00ff00')]:
+                            if p_tag:
+                                dp = df_v[df_v['TAG'] == p_tag]
+                                if not dp.empty:
+                                    fig_v.add_trace(go.Scatter(
+                                        x=dp['FECHA'], y=dp['VALUE'],
+                                        name=f"Presión {p_name}",
+                                        yaxis="y2",
+                                        mode='lines+markers',
+                                        marker=dict(size=4, symbol='circle'),
+                                        line=dict(color=p_clr, width=2)))
 
-                fig_v.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
-                st.plotly_chart(fig_v, use_container_width=True)
-        except Exception as e:
-            st.error(f"Error VRP: {e}")
+                        fig_v.update_layout(
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                            height=300, margin=dict(l=50, r=50, t=10, b=10), 
+                            hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")),
+                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
+                            yaxis=dict(title="Caudal (L/s)", color="white"),
+                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
+                        st.plotly_chart(fig_v, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error VRP: {e}")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
 with col_pc:
