@@ -1555,8 +1555,10 @@ if sector_seleccionado:
 
 # 7.10. ------------------------------------------- Histórico Punto de Control + Pozos (Q, P, Nivel) --------------------------------------------------------------------------------------------
         with col_der:
-            # Eliminamos los selectores duplicados de aquí, ya que usamos sel_r_id definido arriba del mapa
-            
+            # Quitamos los selectores de fecha y equipo de aquí, ya que usamos:
+            # sel_r_id (Buscador de Punto de Control arriba del mapa)
+            # f_ini_h / f_fin_h (Selector de fechas arriba del mapa)
+
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
@@ -1571,7 +1573,8 @@ if sector_seleccionado:
                         p_tags = mapa_pozos_dict[id_p]
                         c_tag = p_tags.get('caudal')
                         pr_tag = p_tags.get('presion')
-                        nv_tag = p_tags.get('nivel_tanque')
+                        # Usamos nivel_tanque del diccionario de pozos
+                        nv_tag = p_tags.get('nivel_tanque') 
                         
                         if c_tag: 
                             tags_pozos.append(c_tag); mapa_tags_pozos[c_tag] = f"Q {id_p}"
@@ -1593,7 +1596,7 @@ if sector_seleccionado:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-top:10px; text-align: center;'>Análisis Comparativo Integral</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
 
-                            # Trazas del Punto de Control (Sólidas Gruesas - 2 decimales)
+                            # 1. Trazas del Punto de Control (Líneas sólidas gruesas con 2 decimales)
                             if t_q and not df_h[df_h['TAG'] == t_q].empty:
                                 df_q = df_h[df_h['TAG'] == t_q]
                                 fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Q Reg (lps)",
@@ -1606,7 +1609,7 @@ if sector_seleccionado:
                                     yaxis="y2", line=dict(color='#FF4500', width=3),
                                     hovertemplate='P1 Reg: <b>%{y:.2f}</b> kg<extra></extra>'))
 
-                            # Trazas de los Pozos (Sólidas - 2 decimales - Azul intenso para Q)
+                            # 2. Trazas de los Pozos (Líneas sólidas con azul fuerte y 2 decimales)
                             for t_pz in tags_pozos:
                                 df_pz = df_h[df_h['TAG'] == t_pz]
                                 if not df_pz.empty:
@@ -1614,10 +1617,10 @@ if sector_seleccionado:
                                     es_eje_secundario = label.startswith("P ") or label.startswith("Niv ")
                                     
                                     if label.startswith("Q "):
-                                        color_pz = '#004a7c' # Azul fuerte
+                                        color_pz = '#004a7c' # Azul fuerte/oscuro
                                         unidad = "Lps"
                                     elif label.startswith("Niv "):
-                                        color_pz = '#00ff00' # Verde
+                                        color_pz = '#00ff00' # Verde sólido
                                         unidad = "m"
                                     else:
                                         color_pz = '#b35900' # Naranja oscuro
@@ -1637,10 +1640,14 @@ if sector_seleccionado:
                                 height=450,
                                 margin=dict(l=50, r=50, t=50, b=10),
                                 hovermode="x unified",
-                                # LEYENDA ARRIBA DEL GRÁFICO
+                                # LEYENDA EN LA PARTE SUPERIOR
                                 legend=dict(
-                                    orientation="h", yanchor="bottom", y=1.02, 
-                                    xanchor="left", x=0, font=dict(color="white", size=10)
+                                    orientation="h", 
+                                    yanchor="bottom", 
+                                    y=1.02, 
+                                    xanchor="left", 
+                                    x=0, 
+                                    font=dict(color="white", size=10)
                                 ),
                                 xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
                                 yaxis=dict(title="Caudal (L/s)", color="#00d4ff", tickformat=".2f"),
@@ -1649,11 +1656,11 @@ if sector_seleccionado:
                             )
                             st.plotly_chart(fig, use_container_width=True)
                         else:
-                            st.warning("Sin datos para este periodo.")
+                            st.warning("Sin datos históricos en el periodo.")
                     except Exception as e:
                         st.error(f"Error: {e}")
             else:
-                st.info("Seleccione un equipo en el buscador de arriba para visualizar la comparativa.")
+                st.info("Seleccione un punto de control en el buscador superior para ver la comparativa.")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
