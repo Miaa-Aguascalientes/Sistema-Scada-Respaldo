@@ -1677,7 +1677,14 @@ with col_vrp:
                     if p_tag:
                         dp = df_v[df_v['TAG'] == p_tag]
                         if not dp.empty:
-                            fig_v.add_trace(go.Scatter(x=dp['FECHA'], y=dp['VALUE'], name=f"Presión {p_name}", yaxis="y2", line=dict(color=p_clr, width=2)))
+                            fig_v.add_trace(go.Scatter(
+                                  x=dp['FECHA'],
+                                  y=dp['VALUE'],
+                                  name=f"Presión {p_name}",
+                                  yaxis="y2",
+                                  mode='lines+markers',
+                                  marker=dict(size=4, symbol='circle'),
+                                  line=dict(color=p_clr, width=2)))
 
                 fig_v.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")), xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"), yaxis=dict(title="Caudal (L/s)", color="white"), yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
                 st.plotly_chart(fig_v, use_container_width=True)
