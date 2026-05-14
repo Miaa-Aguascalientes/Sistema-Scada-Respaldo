@@ -1418,7 +1418,7 @@ if sector_seleccionado:
                     location=pc['coord'],
                     icon=DivIcon(
                         icon_size=(30, 40),
-                        icon_anchor=(15, 50),
+                        icon_anchor=(15, 33),
                         html=icon_html
                     ),
                     popup=folium.Popup(html_pc, max_width=250)
@@ -1475,7 +1475,7 @@ if sector_seleccionado:
                     location=vrp['coord'],
                     icon=folium.features.DivIcon(
                         icon_size=(250,36),
-                        icon_anchor=(-15, 20), # Posición a la derecha del icono verde
+                        icon_anchor=(-15, 35), # Posición a la derecha del icono verde
                         html=f"""
                             <div style="
                                 font-size: 10pt; 
