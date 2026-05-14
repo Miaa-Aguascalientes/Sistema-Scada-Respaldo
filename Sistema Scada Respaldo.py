@@ -1553,46 +1553,41 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector --------------------------------------------------------------------------------------------
+# 7.10. ------------------------------------------- Histórico Total del Sector (Control por Leyenda) --------------------------------------------------------------------------------------------
 with col_der:
     hoy = datetime.now().date()
-    if opcion_fecha == "Hoy": 
-        f_ini_h, f_fin_h = hoy, hoy
-    elif opcion_fecha == "Esta Semana": 
-        f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-    elif opcion_fecha == "Últimos 14 días": 
-        f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-    elif opcion_fecha == "Este Mes": 
-        f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+    # ... (Misma lógica de fechas anterior) ...
+    if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+    elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+    elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+    elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
     else:
         rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
         f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-    # --- NUEVA LÓGICA DE ORDEN Y COLOR DINÁMICO ---
-    tags_pc = []
-    tags_pozos = []
-    mapeo_config = {} # tag -> {label, color, secondary_y}
+    tags_totales_lista = []
+    mapeo_config = {}
 
-    # 1. Recolección de Puntos de Control (Prioridad 1)
+    # 1. EXTRACCIÓN DINÁMICA DE TODOS LOS PUNTOS DE CONTROL (Sin importar domicilio)
     if sel_r_id:
         r_info = dict_reg[sel_r_id]
         
-        # Definimos los mapeos potenciales para los puntos de control del sector
-        # Se pueden agregar más si el diccionario r_info los contiene
+        # Lista extendida de posibles variables en el sector
         conf_pc_mapeo = [
-            ('tag_q',  f"PC {sel_r_id} - Q (lps)", '#00d4ff', False),
-            ('tag_p1', f"PC {sel_r_id} - P1 (kg)", '#00ff00', True),
-            ('tag_p2', f"PC {sel_r_id} - P2 (kg)", '#ffff00', True),
-            ('tag_p3', f"PC {sel_r_id} - P3 (kg)", '#ff8000', True)
+            ('tag_q',  f"PC {sel_r_id} - Caudal", '#00d4ff', False),
+            ('tag_p1', f"PC {sel_r_id} - Presión 1", '#00ff00', True),
+            ('tag_p2', f"PC {sel_r_id} - Presión 2", '#ffff00', True),
+            ('tag_p3', f"PC {sel_r_id} - Presión 3", '#ff8000', True),
+            ('tag_p4', f"PC {sel_r_id} - Presión 4", '#ff00ff', True) # Por si escala el sector
         ]
         
         for key, lb, clr, sec in conf_pc_mapeo:
             tag_v = r_info.get(key)
             if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                tags_pc.append(tag_v)
+                tags_totales_lista.append(tag_v)
                 mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 2. Recolección de Pozos (Prioridad 2)
+    # 2. EXTRACCIÓN DE TODOS LOS POZOS DEL SECTOR
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
@@ -1603,35 +1598,32 @@ with col_der:
             ]
             for key, lb, clr, sec in conf_pz:
                 tag_v = p_info.get(key)
-                if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'sin telemetria', 'n/a']:
-                    tags_pozos.append(tag_v)
+                if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'sin telemetria']:
+                    tags_totales_lista.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # Unimos manteniendo el orden: Primero Puntos de Control, luego Pozos
-    tags_totales = tags_pc + tags_pozos
-
-    if tags_totales:
+    if tags_totales_lista:
         try:
             engine_h = get_mysql_scada_engine()
-            # Usamos set() para el query pero mantenemos tags_totales para el orden del gráfico
-            tags_query = "', '".join(list(set(tags_totales)))
+            # Quitamos duplicados para el query pero mantenemos la lista original para el mapeo
+            tags_unicos_query = "', '".join(list(set(tags_totales_lista)))
             
             q_hist = f"""
                 SELECT h.FECHA, h.VALUE, r.NAME as TAG 
                 FROM vfitagnumhistory h 
                 JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                WHERE r.NAME IN ('{tags_query}') 
+                WHERE r.NAME IN ('{tags_unicos_query}') 
                 AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' 
                 ORDER BY h.FECHA ASC
             """
             df_h = pd.read_sql(q_hist, engine_h)
             
             if not df_h.empty:
-                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Histórico Sector: {sel_r_id}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Panel de Control Histórico: Sector {sel_r_id}</h3>", unsafe_allow_html=True)
                 fig = go.Figure()
 
-                # Graficamos iterando sobre tags_totales para asegurar el orden en la leyenda
-                for tag_name in tags_totales:
+                # Iteramos sobre la lista original para preservar el orden visual en la leyenda
+                for tag_name in tags_totales_lista:
                     df_tag = df_h[df_h['TAG'] == tag_name]
                     if not df_tag.empty:
                         cfg = mapeo_config[tag_name]
@@ -1642,49 +1634,40 @@ with col_der:
                             yaxis="y2" if cfg['sec'] else "y1",
                             mode='lines',
                             line=dict(width=2, color=cfg['color']),
+                            # 'legendonly' hace que la serie esté cargada pero apagada por defecto si hay demasiadas
+                            # visible=True, 
                             hovertemplate=f'<b>{cfg["label"]}</b>: %{{y:.2f}}<extra></extra>'
                         ))
 
                 fig.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    height=350,
+                    height=450, # Un poco más alto ya que habrá muchas variables
                     margin=dict(l=50, r=50, t=10, b=10),
                     hovermode="x unified",
+                    showlegend=True,
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",
-                        y=1.02,
+                        y=-0.5, # Bajamos la leyenda para que no estorbe arriba
                         x=0.5,
                         xanchor="center",
-                        font=dict(color="white", size=9)
+                        font=dict(color="white", size=10),
+                        itemclick="toggle", # Comportamiento de activar/desactivar
+                        itemdoubleclick="toggleothers" # Doble clic para aislar una variable
                     ),
-                    xaxis=dict(
-                        showgrid=True, 
-                        gridcolor='rgba(255, 255, 255, 0.1)', 
-                        color="white",
-                        title="Tiempo"
-                    ),
-                    yaxis=dict(
-                        title="Caudal (Lps)", 
-                        color="#00d4ff",
-                        showgrid=True,
-                        gridcolor='rgba(255, 255, 255, 0.05)'
-                    ),
-                    yaxis2=dict(
-                        title="Presión (Kg) / Nivel", 
-                        side="right", 
-                        color="#00ff00", 
-                        overlaying="y", 
-                        showgrid=False
-                    )
+                    xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
+                    yaxis=dict(title="Caudal (Lps)", color="#00d4ff", gridcolor='rgba(255, 255, 255, 0.05)'),
+                    yaxis2=dict(title="Presión / Nivel", side="right", color="#00ff00", overlaying="y", showgrid=False)
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                
+                # Configuración para que el gráfico sea responsivo y permita interacción
+                st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False})
             else:
-                st.warning("No hay datos históricos para los tags seleccionados en este periodo.")
+                st.info("No se encontraron registros para los tags de este sector.")
                 
         except Exception as e:
-            st.error(f"Error al generar gráfico histórico: {e}")
+            st.error(f"Error en la consulta histórica: {e}")
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
