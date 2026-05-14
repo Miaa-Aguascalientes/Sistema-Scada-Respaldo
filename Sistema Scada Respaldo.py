@@ -1613,6 +1613,7 @@ with col_der:
                     df_tag = df_h[df_h['TAG'] == tag_name]
                     if not df_tag.empty:
                         cfg = mapeo_config[tag_name]
+                        
                         fig.add_trace(go.Scatter(
                             x=df_tag['FECHA'], 
                             y=df_tag['VALUE'], 
@@ -1620,7 +1621,7 @@ with col_der:
                             yaxis="y2" if cfg['sec'] else "y1", 
                             mode='lines', 
                             line=dict(width=1.5, color=cfg['color']),
-                            hovertemplate='%{y:.2f}<extra></extra>'
+                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
                         ))
                 
                 # Ajustamos el height para que quepa bien junto al mapa
