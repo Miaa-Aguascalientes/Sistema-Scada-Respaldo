@@ -1385,14 +1385,41 @@ if sector_seleccionado:
                     )
                 ).add_to(m_sec)
                 
-                # TIPO DE MARCADOR 
-                folium.RegularPolygonMarker(
+# --- MARCADOR TACHUELA REALISTA ROJA (ESTILO 3D) ---
+                from folium.features import DivIcon
+
+                # Gradiente rojo para imitar el volumen de image_87abee.png
+                icon_html = """
+                <div style="position: relative; width: 30px; height: 30px;">
+                    <!-- Esfera con volumen rojo -->
+                    <div style="
+                        width: 20px; 
+                        height: 20px; 
+                        background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000);
+                        border-radius: 50%;
+                        box-shadow: 2px 4px 6px rgba(0,0,0,0.5);
+                        position: absolute;
+                        top: 0; left: 5px;
+                        z-index: 2;">
+                    </div>
+                    <!-- Pin metálico -->
+                    <div style="
+                        width: 2px; 
+                        height: 15px; 
+                        background: linear-gradient(to right, #e0e0e0, #808080);
+                        position: absolute;
+                        top: 18px; left: 14px;
+                        z-index: 1;">
+                    </div>
+                </div>
+                """
+
+                folium.Marker(
                     location=pc['coord'],
-                    icon=folium.Icon(
-                        color='lightgray',      # Color del globo de fondo
-                        icon_color='#FF00FF',  # Color de la tachuela (tu magenta)
-                        icon='thumbtack', 
-                        prefix='fa'
+                    icon=DivIcon(
+                        icon_size=(30, 40),
+                        icon_anchor=(15, 33),
+                        html=icon_html
                     ),
                     popup=folium.Popup(html_pc, max_width=250)
                 ).add_to(m_sec)
@@ -1404,10 +1431,42 @@ if sector_seleccionado:
                 serie_vrp = vrp.get('Serie', 'S/N')
                 html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
                 
-                # TIPO DE MARCADOR
+# --- MARCADOR TACHUELA REALISTA VERDE (ESTILO 3D) ---
+                from folium.features import DivIcon
+
+                # Gradiente verde para simular volumen y brillo
+                icon_html = """
+                <div style="position: relative; width: 30px; height: 30px;">
+                    <!-- Esfera con volumen verde -->
+                    <div style="
+                        width: 20px; 
+                        height: 20px; 
+                        background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a);
+                        border-radius: 50%;
+                        box-shadow: 2px 4px 6px rgba(0,0,0,0.5);
+                        position: absolute;
+                        top: 0; left: 5px;
+                        z-index: 2;">
+                    </div>
+                    <!-- Pin metálico -->
+                    <div style="
+                        width: 2px; 
+                        height: 15px; 
+                        background: linear-gradient(to right, #e0e0e0, #808080);
+                        position: absolute;
+                        top: 18px; left: 14px;
+                        z-index: 1;">
+                    </div>
+                </div>
+                """
+
                 folium.Marker(
-                    location=vrp['coord'], 
-                    icon=folium.Icon(color='green', icon='thumbtack', prefix='fa'),
+                    location=vrp['coord'],
+                    icon=DivIcon(
+                        icon_size=(30, 40),
+                        icon_anchor=(15, 33),
+                        html=icon_html
+                    ),
                     popup=folium.Popup(html_vrp, max_width=250)
                 ).add_to(m_sec)
 
