@@ -1553,41 +1553,44 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 7.10. ------------------------------------------- Histórico Total del Sector (Multisitio) --------------------------------------------------------------------------------------------
+# 7.10. ------------------------------------------- Histórico Integral de Puntos de Control y Pozos --------------------------------------------------------------------------------------------
 with col_der:
-    # ... (Mantener lógica de fechas igual) ...
+    hoy = datetime.now().date()
+    # ... (Mantenemos la lógica de selección de fechas que ya tienes) ...
+    if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+    elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+    elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+    elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+    else:
+        rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
+        f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-    tags_totales_lista = []
+    tags_visualizar = []
     mapeo_config = {}
 
-    # 1. EXTRACCIÓN DE TODOS LOS PUNTOS DE CONTROL DEL SECTOR
-    if sel_r_id:
-        # Buscamos en el diccionario de registros (dict_reg)
-        r_info = dict_reg.get(sel_r_id, {})
-        
-        # Si tu estructura permite múltiples sitios por sector, los buscamos aquí.
-        # Asumiendo que 'sitios' es una lista de diccionarios dentro de r_info.
-        # Si no existe esa lista, creamos una temporal con r_info para no romper el bucle.
-        sitios_del_sector = r_info.get('sitios', [r_info]) 
+    # 1. RECOLECCIÓN DE TODOS LOS PUNTOS DE CONTROL (Series: 45683, 31220, etc.)
+    # Iteramos sobre todos los IDs que pertenecen al sector seleccionado o a la vista actual
+    # Si 'ids_series_sector' es tu lista de números de serie para ese sector:
+    ids_series_sector = list(dict_reg.keys()) # O la variable que contenga los IDs del sector actual
 
-        for idx, sitio in enumerate(sitios_del_sector):
-            # Determinamos un nombre para el sitio (puedes usar una llave 'nombre' si existe)
-            nombre_sitio = sitio.get('nombre', f"PC {idx+1}")
+    for s_id in ids_series_sector:
+        if s_id in dict_reg:
+            r_info = dict_reg[s_id]
             
-            conf_pc_mapeo = [
-                ('tag_q',  f"{nombre_sitio} - Q",  '#00d4ff', False),
-                ('tag_p1', f"{nombre_sitio} - P1", '#00ff00', True),
-                ('tag_p2', f"{nombre_sitio} - P2", '#ffff00', True),
-                ('tag_p3', f"{nombre_sitio} - P3", '#ff8000', True)
+            # Definimos las variables a extraer por cada número de serie
+            conf_pc = [
+                ('tag_q',  f"S:{s_id} - Q",  '#00d4ff', False),
+                ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
+                ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
             ]
             
-            for key, lb, clr, sec in conf_pc_mapeo:
-                tag_v = sitio.get(key)
+            for key, lb, clr, sec in conf_pc:
+                tag_v = r_info.get(key)
                 if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                    tags_totales_lista.append(tag_v)
+                    tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 2. EXTRACCIÓN DE TODOS LOS POZOS DEL SECTOR
+    # 2. RECOLECCIÓN DE POZOS DEL SECTOR
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
@@ -1599,14 +1602,14 @@ with col_der:
             for key, lb, clr, sec in conf_pz:
                 tag_v = p_info.get(key)
                 if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a']:
-                    tags_totales_lista.append(tag_v)
+                    tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # --- RENDERIZADO DEL GRÁFICO (Se mantiene similar, pero con etiquetas únicas) ---
-    if tags_totales_lista:
+    # 3. CONSULTA Y RENDERIZADO
+    if tags_visualizar:
         try:
             engine_h = get_mysql_scada_engine()
-            tags_unicos_query = "', '".join(list(set(tags_totales_lista)))
+            tags_unicos_query = "', '".join(list(set(tags_visualizar)))
             
             q_hist = f"""
                 SELECT h.FECHA, h.VALUE, r.NAME as TAG 
@@ -1619,15 +1622,16 @@ with col_der:
             df_h = pd.read_sql(q_hist, engine_h)
             
             if not df_h.empty:
-                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Sector {sel_r_id} - Análisis Integral</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Comparativo Histórico - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
                 fig = go.Figure()
 
-                for tag_name in tags_totales_lista:
+                for tag_name in tags_visualizar:
                     df_tag = df_h[df_h['TAG'] == tag_name]
                     if not df_tag.empty:
                         cfg = mapeo_config[tag_name]
                         fig.add_trace(go.Scatter(
-                            x=df_tag['FECHA'], y=df_tag['VALUE'],
+                            x=df_tag['FECHA'],
+                            y=df_tag['VALUE'],
                             name=cfg['label'],
                             yaxis="y2" if cfg['sec'] else "y1",
                             mode='lines',
@@ -1636,15 +1640,28 @@ with col_der:
                         ))
 
                 fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
                     height=450,
+                    margin=dict(l=50, r=50, t=10, b=10),
                     hovermode="x unified",
-                    legend=dict(orientation="h", y=-0.2, x=0.5, xanchor="center"),
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=-0.5,
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(color="white", size=9)
+                    ),
+                    xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
                     yaxis=dict(title="Caudal (Lps)", color="#00d4ff"),
-                    yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", showgrid=False)
+                    yaxis2=dict(title="Presión / Nivel", side="right", color="#00ff00", overlaying="y", showgrid=False)
                 )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Sin datos para las series de este sector.")
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(f"Error Scada: {e}")
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
