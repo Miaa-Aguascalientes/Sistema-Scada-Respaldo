@@ -1507,6 +1507,8 @@ if sector_seleccionado:
                                     x=df_p1['FECHA'],
                                     y=df_p1['VALUE'],
                                     name="Presión P1",
+                                    fill='tozeroy',
+                                    fillcolor='rgba(0, 212, 255, 0.5)', # Color del área (con transparencia opcional)
                                     yaxis="y2", # <--- Correcto para eje derecho
                                     line=dict(color='#FF4500', width=2,dash='dash'),
                                     hovertemplate='Presion P1: %{y:.2f} kg/cm2<extra></extra>'
