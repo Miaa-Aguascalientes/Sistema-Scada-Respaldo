@@ -1507,9 +1507,8 @@ if sector_seleccionado:
                                     x=df_p1['FECHA'],
                                     y=df_p1['VALUE'],
                                     name="Presión P1",
-                                    
                                     fill='tozeroy',
-                                    fillcolor='rgba(0, 212, 255, 0.5)', # Color del área (con transparencia opcional)
+                                    fillcolor='rgba(0, 212, 255, 0.05)', # Color del área (con transparencia opcional)
                                     yaxis="y2", # <--- Correcto para eje derecho
                                     line=dict(color='#FF4500', width=2),
                                     hovertemplate='Presion P1: %{y:.2f} kg/cm2<extra></extra>'
@@ -1523,7 +1522,7 @@ if sector_seleccionado:
                                     y=df_p2['VALUE'],
                                     name="Presión P2",
                                     yaxis="y2",
-                                    line=dict(color='#00ff00', width=2,dash='dash'),
+                                    line=dict(color='#00ff00', width=2),
                                     hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                                 ))
 
@@ -1583,7 +1582,7 @@ if sector_seleccionado:
                                 y=dp1['VALUE'],
                                 name="Presión P1 (kg/cm2)",
                                 yaxis="y2",
-                                line=dict(color='#FF4500', width=2,dash='dash'),
+                                line=dict(color='#FF4500', width=2),
                                 hovertemplate='Presión P1: %{y:.2f} kg/cm2<extra></extra>'
                             ))
 
@@ -1594,7 +1593,7 @@ if sector_seleccionado:
                                 x=dp2['FECHA'], y=dp2['VALUE'],
                                 name="Presión P2 (kg/cm2)",
                                 yaxis="y2",
-                                line=dict(color='#00ff00', width=2,dash='dash'),
+                                line=dict(color='#00ff00', width=2),
                                 hovertemplate='Presion P2: %{y:.2f} kg/cm2<extra></extra>'
                             ))
 
