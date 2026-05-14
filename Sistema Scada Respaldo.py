@@ -1283,24 +1283,24 @@ if sector_seleccionado:
 
 
 
-# --- MARCADOR TACHUELA REALISTA (ESTILO 3D) ---
+# --- MARCADOR TACHUELA REALISTA AZUL (ESTILO 3D) ---
                 from folium.features import DivIcon
 
-                # CSS para recrear la esfera 3D y el pin de image_87abee.png
+                # Ajuste de gradientes para tonos azules tipo SCADA
                 icon_html = """
                 <div style="position: relative; width: 30px; height: 30px;">
-                    <!-- La esfera con gradiente para volumen (estilo image_87ac34.png) -->
+                    <!-- Esfera con volumen azul -->
                     <div style="
                         width: 20px; 
                         height: 20px; 
-                        background: radial-gradient(circle at 30% 30%, #ff66ff, #FF00FF, #990099);
+                        background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366);
                         border-radius: 50%;
                         box-shadow: 2px 4px 6px rgba(0,0,0,0.5);
                         position: absolute;
                         top: 0; left: 5px;
                         z-index: 2;">
                     </div>
-                    <!-- El pin metálico -->
+                    <!-- Pin metálico -->
                     <div style="
                         width: 2px; 
                         height: 15px; 
