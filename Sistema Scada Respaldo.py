@@ -1553,38 +1553,38 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 7.10. ---------------- Histórico Integral (Lado derecho del mapa) ----------------
-    with col_der:
-            hoy = datetime.now().date()
-            if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
-            elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-            elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-            elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-            else:
-                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
-                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
-
+with col_der:
+    # TODO lo relacionado al histórico DEBE ir dentro de este bloque indentado
+    st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>7.10. Histórico Integral - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
+    
+    hoy = datetime.now().date()
+    # Usamos la variable opcion_fecha que mencionaste en tu snippet
+    if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+    elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+    elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+    elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+    else:
+        rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_integral_p")
+        f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
     tags_visualizar = []
     mapeo_config = {}
 
-    # 1. Recolección de Puntos de Control
-    ids_series_sector = list(dict_reg.keys())
-    for s_id in ids_series_sector:
-        if s_id in dict_reg:
-            r_info = dict_reg[s_id]
-            conf_pc = [
-                ('tag_q', f"S:{s_id} - Q", '#00d4ff', False),
-                ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
-                ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
-            ]
-            for key_t, lb, clr, sec in conf_pc:
-                tag_v = r_info.get(key_t)
-                if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                    tags_visualizar.append(tag_v)
-                    mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+    # 1. Recolección de Puntos de Control (dict_reg)
+    for s_id in list(dict_reg.keys()):
+        r_info = dict_reg[s_id]
+        conf_pc = [
+            ('tag_q', f"S:{s_id} - Q", '#00d4ff', False),
+            ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
+            ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
+        ]
+        for key_t, lb, clr, sec in conf_pc:
+            tag_v = r_info.get(key_t)
+            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                tags_visualizar.append(tag_v)
+                mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 2. Recolección de Pozos
+    # 2. Recolección de Pozos (mapa_pozos_dict)
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
@@ -1599,7 +1599,7 @@ if sector_seleccionado:
                     tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 3. Consulta y Renderizado
+    # 3. Consulta y Renderizado del gráfico derecho
     if tags_visualizar:
         try:
             engine_h = get_mysql_scada_engine()
@@ -1608,30 +1608,36 @@ if sector_seleccionado:
             df_h = pd.read_sql(q_hist, engine_h)
             
             if not df_h.empty:
-                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; text-align: center;'>Comparativo Histórico - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
                 fig = go.Figure()
                 for tag_name in tags_visualizar:
                     df_tag = df_h[df_h['TAG'] == tag_name]
                     if not df_tag.empty:
                         cfg = mapeo_config[tag_name]
-                        fig.add_trace(go.Scatter(x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], yaxis="y2" if cfg['sec'] else "y1", mode='lines', line=dict(width=1.5, color=cfg['color'])))
+                        fig.add_trace(go.Scatter(
+                            x=df_tag['FECHA'], y=df_tag['VALUE'], 
+                            name=cfg['label'], 
+                            yaxis="y2" if cfg['sec'] else "y1", 
+                            mode='lines', 
+                            line=dict(width=1.5, color=cfg['color'])
+                        ))
                 
+                # Ajustamos el height para que quepa bien junto al mapa
                 fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                height=300,
-                margin=dict(l=50, r=50, t=10, b=10),
-                hovermode="x unified",
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    x=0.5,
-                    xanchor="center",
-                    font=dict(color="white", size=9)))
+                    paper_bgcolor='rgba(0,0,0,0)', 
+                    plot_bgcolor='rgba(0,0,0,0)', 
+                    height=450, # Aumentado para que se vea mejor al lado del mapa
+                    margin=dict(l=10, r=10, t=30, b=10), 
+                    hovermode="x unified", 
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    xaxis=dict(color="white", showgrid=False),
+                    yaxis=dict(title="Caudal / Otros", color="white"),
+                    yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="white", showgrid=False)
+                )
                 st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("Sin datos históricos para este periodo.")
         except Exception as e:
-            st.error(f"Error Scada: {e}")
+            st.error(f"Error Scada (Derecha): {e}")
 
 # =================================================================================================================================
 # FILA INFERIOR: VRP (7.11) Y PUNTOS CRÍTICOS (7.12)
