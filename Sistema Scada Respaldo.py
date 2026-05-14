@@ -1706,7 +1706,9 @@ if sector_seleccionado:
                         if not df_pc_h.empty:
                             st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
                             fig_pc = go.Figure()
-                            tag_to_name = {v['tag_p1']: v['nombre'] for v in dict_pc_sec.values()}
+                            
+                            # CAMBIO 1: Usar 'Domicilio' en lugar de 'nombre' (Colonia) para el mapeo
+                            tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'S/D')) for v in dict_pc_sec.values()}
 
                             for tag in tags_pc_list:
                                 df_temp = df_pc_h[df_pc_h['TAG'] == tag]
@@ -1717,7 +1719,10 @@ if sector_seleccionado:
                                         name=tag_to_name.get(tag, tag), 
                                         mode='lines+markers',
                                         marker=dict(size=4, symbol='circle'),
-                                        line=dict(width=2)))
+                                        line=dict(width=2),
+                                        # CAMBIO 2: Formatear a dos decimales con :.2f
+                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} kg<extra></extra>'
+                                    ))
 
                             fig_pc.update_layout(
                                 paper_bgcolor='rgba(0,0,0,0)', 
@@ -1725,7 +1730,11 @@ if sector_seleccionado:
                                 height=300, 
                                 margin=dict(l=50, r=50, t=40, b=10), 
                                 hovermode="x unified", 
+                                # CAMBIO 3: Asegurar que el eje Y también muestre dos decimales
+                                yaxis=dict(tickformat=".2f", color="white"),
+                                xaxis=dict(color="white"),
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color="white", size=9)))
+                            
                             st.plotly_chart(fig_pc, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error PC: {e}")
