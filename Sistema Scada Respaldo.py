@@ -1554,7 +1554,7 @@ if sector_seleccionado:
             st.markdown('</div>', unsafe_allow_html=True)
             
 # 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector (Lado derecho del mapa) -------------------------
-with col_der:
+        with col_der:
     st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>Histórico Puntos de control</h3>", unsafe_allow_html=True)
     
     hoy = datetime.now().date()
