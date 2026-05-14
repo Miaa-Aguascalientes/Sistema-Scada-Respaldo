@@ -1234,7 +1234,7 @@ if sector_seleccionado:
                 sel_v_id = vrp_nombres.get(sel_v)
 
         # 7.4. Layout Superior: Mapa e Histórico Puntos de Control
-        col_izq, col_der = st.columns([1.0, 1.2])
+        col_izq, col_der = st.columns([1.0, 1.1])
         
         with col_izq:
             st.markdown('<div class="col-mapa-offset">', unsafe_allow_html=True)
@@ -1553,14 +1553,16 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 7.10. ------------------------------------------- Histórico Integral de Puntos de Control y Pozos --------------------------------------------------------------------------------------------
+# 7.10. ---------------- Histórico Integral (Lado derecho del mapa) ----------------
 with col_der:
     hoy = datetime.now().date()
-    # ... (Mantenemos la lógica de selección de fechas que ya tienes) ...
-    if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
-    elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-    elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-    elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+    # Lógica de fechas con KEY ÚNICA para evitar conflictos
+    opcion_hist = st.selectbox("Rango Histórico:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], key="sel_hist_integral")
+    
+    if opcion_hist == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+    elif opcion_hist == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+    elif opcion_hist == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+    elif opcion_hist == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
     else:
         rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
         f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
@@ -1568,29 +1570,23 @@ with col_der:
     tags_visualizar = []
     mapeo_config = {}
 
-    # 1. RECOLECCIÓN DE TODOS LOS PUNTOS DE CONTROL (Series: 45683, 31220, etc.)
-    # Iteramos sobre todos los IDs que pertenecen al sector seleccionado o a la vista actual
-    # Si 'ids_series_sector' es tu lista de números de serie para ese sector:
-    ids_series_sector = list(dict_reg.keys()) # O la variable que contenga los IDs del sector actual
-
+    # 1. Recolección de Puntos de Control
+    ids_series_sector = list(dict_reg.keys())
     for s_id in ids_series_sector:
         if s_id in dict_reg:
             r_info = dict_reg[s_id]
-            
-            # Definimos las variables a extraer por cada número de serie
             conf_pc = [
-                ('tag_q',  f"S:{s_id} - Q",  '#00d4ff', False),
+                ('tag_q', f"S:{s_id} - Q", '#00d4ff', False),
                 ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
                 ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
             ]
-            
-            for key, lb, clr, sec in conf_pc:
-                tag_v = r_info.get(key)
+            for key_t, lb, clr, sec in conf_pc:
+                tag_v = r_info.get(key_t)
                 if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                     tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 2. RECOLECCIÓN DE POZOS DEL SECTOR
+    # 2. Recolección de Pozos
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
@@ -1599,67 +1595,31 @@ with col_der:
                 ('presion', f"Pozo {id_p} - P", '#00ff00', True),
                 ('nivel_tanque', f"Pozo {id_p} - Nivel", '#0000FF', True)
             ]
-            for key, lb, clr, sec in conf_pz:
-                tag_v = p_info.get(key)
+            for key_t, lb, clr, sec in conf_pz:
+                tag_v = p_info.get(key_t)
                 if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a']:
                     tags_visualizar.append(tag_v)
                     mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-    # 3. CONSULTA Y RENDERIZADO
+    # 3. Consulta y Renderizado del gráfico derecho
     if tags_visualizar:
         try:
             engine_h = get_mysql_scada_engine()
             tags_unicos_query = "', '".join(list(set(tags_visualizar)))
-            
-            q_hist = f"""
-                SELECT h.FECHA, h.VALUE, r.NAME as TAG 
-                FROM vfitagnumhistory h 
-                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                WHERE r.NAME IN ('{tags_unicos_query}') 
-                AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' 
-                ORDER BY h.FECHA ASC
-            """
+            q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
             df_h = pd.read_sql(q_hist, engine_h)
             
             if not df_h.empty:
-                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Comparativo Histórico - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
+                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; text-align: center;'>Comparativo Histórico - Sector {sel_r_id}</h3>", unsafe_allow_html=True)
                 fig = go.Figure()
-
                 for tag_name in tags_visualizar:
                     df_tag = df_h[df_h['TAG'] == tag_name]
                     if not df_tag.empty:
                         cfg = mapeo_config[tag_name]
-                        fig.add_trace(go.Scatter(
-                            x=df_tag['FECHA'],
-                            y=df_tag['VALUE'],
-                            name=cfg['label'],
-                            yaxis="y2" if cfg['sec'] else "y1",
-                            mode='lines',
-                            line=dict(width=1.5, color=cfg['color']),
-                            hovertemplate=f'<b>{cfg["label"]}</b>: %{{y:.2f}}<extra></extra>'
-                        ))
-
-                fig.update_layout(
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    height=300,
-                    margin=dict(l=50, r=50, t=10, b=10),
-                    hovermode="x unified",
-                    legend=dict(
-                        orientation="h",
-                        yanchor="bottom",
-                        y=1.0,
-                        x=0.50,
-                        xanchor="center",
-                        font=dict(color="white", size=9)
-                    ),
-                    xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
-                    yaxis=dict(title="Caudal (Lps)", color="#00d4ff"),
-                    yaxis2=dict(title="Presión / Nivel", side="right", color="#00ff00", overlaying="y", showgrid=False)
-                )
+                        fig.add_trace(go.Scatter(x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], yaxis="y2" if cfg['sec'] else "y1", mode='lines', line=dict(width=1.5, color=cfg['color'])))
+                
+                fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350, margin=dict(l=10, r=10, t=30, b=10), hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)))
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("Sin datos para las series de este sector.")
         except Exception as e:
             st.error(f"Error Scada: {e}")
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
