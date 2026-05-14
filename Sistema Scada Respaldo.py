@@ -1553,100 +1553,138 @@ if sector_seleccionado:
                     st.rerun()
             st.markdown('</div>', unsafe_allow_html=True)
 
-# 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector (Lado derecho del mapa) --------------------------------------------------------------------------------------------
-        with col_der:
-            hoy = datetime.now().date()
-            if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
-            elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-            elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-            elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-            else:
-                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
-                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
+# 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector --------------------------------------------------------------------------------------------
+with col_der:
+    hoy = datetime.now().date()
+    if opcion_fecha == "Hoy": 
+        f_ini_h, f_fin_h = hoy, hoy
+    elif opcion_fecha == "Esta Semana": 
+        f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+    elif opcion_fecha == "Últimos 14 días": 
+        f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+    elif opcion_fecha == "Este Mes": 
+        f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+    else:
+        rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
+        f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-            # --- NUEVA LÓGICA DE ORDEN Y COLOR ---
-            tags_pc = []
-            tags_pozos = []
-            mapeo_config = {} # tag -> {label, color, secondary_y}
+    # --- NUEVA LÓGICA DE ORDEN Y COLOR DINÁMICO ---
+    tags_pc = []
+    tags_pozos = []
+    mapeo_config = {} # tag -> {label, color, secondary_y}
 
-            # 1. Recolección de Puntos de Control (Prioridad 1)
-            if sel_r_id:
-                r_info = dict_reg[sel_r_id]
-                conf_pc = [
-                    ('tag_q', f"PC {sel_r_id} - Q", '#00d4ff', False),
-                    ('tag_p1', f"PC {sel_r_id} - P1", '#00ff00', True),
-                    ('tag_p2', f"PC {sel_r_id} - P2", '#00ff00', True)
-                ]
-                for key, lb, clr, sec in conf_pc:
-                    tag_v = r_info.get(key)
-                    if tag_v and str(tag_v) not in ['0', 'None', 'N/A']:
-                        tags_pc.append(tag_v)
-                        mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+    # 1. Recolección de Puntos de Control (Prioridad 1)
+    if sel_r_id:
+        r_info = dict_reg[sel_r_id]
+        
+        # Definimos los mapeos potenciales para los puntos de control del sector
+        # Se pueden agregar más si el diccionario r_info los contiene
+        conf_pc_mapeo = [
+            ('tag_q',  f"PC {sel_r_id} - Q (lps)", '#00d4ff', False),
+            ('tag_p1', f"PC {sel_r_id} - P1 (kg)", '#00ff00', True),
+            ('tag_p2', f"PC {sel_r_id} - P2 (kg)", '#ffff00', True),
+            ('tag_p3', f"PC {sel_r_id} - P3 (kg)", '#ff8000', True)
+        ]
+        
+        for key, lb, clr, sec in conf_pc_mapeo:
+            tag_v = r_info.get(key)
+            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                tags_pc.append(tag_v)
+                mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+
+    # 2. Recolección de Pozos (Prioridad 2)
+    for id_p in ids_p:
+        if id_p in mapa_pozos_dict:
+            p_info = mapa_pozos_dict[id_p]
+            conf_pz = [
+                ('caudal', f"Pozo {id_p} - Q", '#00d4ff', False),
+                ('presion', f"Pozo {id_p} - P", '#00ff00', True),
+                ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", '#0000FF', True)
+            ]
+            for key, lb, clr, sec in conf_pz:
+                tag_v = p_info.get(key)
+                if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'sin telemetria', 'n/a']:
+                    tags_pozos.append(tag_v)
+                    mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+
+    # Unimos manteniendo el orden: Primero Puntos de Control, luego Pozos
+    tags_totales = tags_pc + tags_pozos
+
+    if tags_totales:
+        try:
+            engine_h = get_mysql_scada_engine()
+            # Usamos set() para el query pero mantenemos tags_totales para el orden del gráfico
+            tags_query = "', '".join(list(set(tags_totales)))
             
-            # 2. Recolección de Pozos (Prioridad 2)
-            for id_p in ids_p:
-                if id_p in mapa_pozos_dict:
-                    p_info = mapa_pozos_dict[id_p]
-                    conf_pz = [
-                        ('caudal', f"Pozo {id_p} - Q (lps)", '#00d4ff', False),
-                        ('presion', f"Pozo {id_p} - P (kg)", '#00ff00', True),
-                        ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", '#0000FF', True) # Azul fuerte
-                    ]
-                    for key, lb, clr, sec in conf_pz:
-                        tag_v = p_info.get(key)
-                        if tag_v and str(tag_v) not in ['0', 'None', 'Sin telemetria', 'N/A']:
-                            tags_pozos.append(tag_v)
-                            mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+            q_hist = f"""
+                SELECT h.FECHA, h.VALUE, r.NAME as TAG 
+                FROM vfitagnumhistory h 
+                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                WHERE r.NAME IN ('{tags_query}') 
+                AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' 
+                ORDER BY h.FECHA ASC
+            """
+            df_h = pd.read_sql(q_hist, engine_h)
+            
+            if not df_h.empty:
+                st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Histórico Sector: {sel_r_id}</h3>", unsafe_allow_html=True)
+                fig = go.Figure()
 
-            tags_totales = tags_pc + tags_pozos # El orden de la lista define el orden en la leyenda
+                # Graficamos iterando sobre tags_totales para asegurar el orden en la leyenda
+                for tag_name in tags_totales:
+                    df_tag = df_h[df_h['TAG'] == tag_name]
+                    if not df_tag.empty:
+                        cfg = mapeo_config[tag_name]
+                        fig.add_trace(go.Scatter(
+                            x=df_tag['FECHA'],
+                            y=df_tag['VALUE'],
+                            name=cfg['label'],
+                            yaxis="y2" if cfg['sec'] else "y1",
+                            mode='lines',
+                            line=dict(width=2, color=cfg['color']),
+                            hovertemplate=f'<b>{cfg["label"]}</b>: %{{y:.2f}}<extra></extra>'
+                        ))
 
-            if tags_totales:
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_query = "', '".join(list(set(tags_totales)))
-                    q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_query}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
-                    df_h = pd.read_sql(q_hist, engine_h)
-                    
-                    if not df_h.empty:
-                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Histórico Sector:</h3>", unsafe_allow_html=True)
-                        fig = go.Figure()
-
-                        # Graficamos siguiendo el orden de tags_totales para la leyenda
-                        for tag_name in tags_totales:
-                            df_tag = df_h[df_h['TAG'] == tag_name]
-                            if not df_tag.empty:
-                                cfg = mapeo_config[tag_name]
-                                fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'],
-                                    y=df_tag['VALUE'],
-                                    name=cfg['label'],
-                                    yaxis="y2" if cfg['sec'] else "y1",
-                                    mode='lines',
-                                    line=dict(width=2, color=cfg['color']),
-                                    hovertemplate=f'<b>{cfg["label"]}</b>: %{{y:.2f}}<extra></extra>'
-                                ))
-
-                        fig.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)',
-                            plot_bgcolor='rgba(0,0,0,0)',
-                            height=300,
-                            margin=dict(l=50, r=50, t=10, b=10),
-                            hovermode="x unified",
-                            legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.0,
-                                x=0.50,
-                                xanchor="center",
-                                font=dict(color="white", size=9)
-                            ),
-                            xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
-                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff"),
-                            yaxis2=dict(title="Presión/Nivel", side="right", color="#00ff00", overlaying="y", showgrid=False)
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error en gráfico: {e}")
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    height=350,
+                    margin=dict(l=50, r=50, t=10, b=10),
+                    hovermode="x unified",
+                    legend=dict(
+                        orientation="h",
+                        yanchor="bottom",
+                        y=1.02,
+                        x=0.5,
+                        xanchor="center",
+                        font=dict(color="white", size=9)
+                    ),
+                    xaxis=dict(
+                        showgrid=True, 
+                        gridcolor='rgba(255, 255, 255, 0.1)', 
+                        color="white",
+                        title="Tiempo"
+                    ),
+                    yaxis=dict(
+                        title="Caudal (Lps)", 
+                        color="#00d4ff",
+                        showgrid=True,
+                        gridcolor='rgba(255, 255, 255, 0.05)'
+                    ),
+                    yaxis2=dict(
+                        title="Presión (Kg) / Nivel", 
+                        side="right", 
+                        color="#00ff00", 
+                        overlaying="y", 
+                        showgrid=False
+                    )
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No hay datos históricos para los tags seleccionados en este periodo.")
+                
+        except Exception as e:
+            st.error(f"Error al generar gráfico histórico: {e}")
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
