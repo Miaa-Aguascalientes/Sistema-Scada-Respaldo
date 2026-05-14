@@ -1373,7 +1373,7 @@ if sector_seleccionado:
                 # TIPO DE MARCADOR
                 folium.Marker(
                     location=vrp['coord'], 
-                    icon=folium.Icon(color='green', icon='cog', prefix='fa'), 
+                    icon=folium.Icon(color='blue', icon='bitbucket', prefix='fa'),
                     popup=folium.Popup(html_vrp, max_width=250)
                 ).add_to(m_sec)
 
