@@ -1617,7 +1617,6 @@ if sector_seleccionado:
                             df_tag = df_h[df_h['TAG'] == tag_name]
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
-                                
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], 
                                     y=df_tag['VALUE'], 
@@ -1630,19 +1629,9 @@ if sector_seleccionado:
                                 ))
                         
                         fig.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)', 
-                            plot_bgcolor='rgba(0,0,0,0)', 
-                            height=300, 
-                            margin=dict(l=50, r=50, t=10, b=10), 
-                            hovermode="x unified", 
-                            legend=dict(
-                                orientation="h",
-                                yanchor="bottom",
-                                y=1.02,
-                                x=0.5,
-                                xanchor="center",
-                                font=dict(color="white", size=9)
-                            ),
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
+                            height=300, margin=dict(l=50, r=50, t=10, b=10), 
+                            hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                             xaxis=dict(color="white", showgrid=False),
                             yaxis=dict(title="Caudal / Otros", color="white"),
                             yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="white", showgrid=False)
@@ -1653,9 +1642,9 @@ if sector_seleccionado:
                 except Exception as e:
                     st.error(f"Error Scada (Derecha): {e}")
 
-# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
-
-col_vrp, col_pc = st.columns([1.0, 1.0])
+        # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
+        # Esta sección va FUERA del "with col_der" pero DENTRO del "if sector_seleccionado"
+        col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
             if sel_v_id:
