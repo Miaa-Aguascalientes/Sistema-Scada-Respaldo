@@ -1636,7 +1636,7 @@ if sector_seleccionado:
                                 orientation="h",
                                 yanchor="bottom",
                                 y=-1.02,
-                                x=5,
+                                x=0.5,
                                 xanchor="center",
                                 font=dict(color="white", size=9)
                             ),
