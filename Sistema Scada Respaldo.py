@@ -1629,7 +1629,7 @@ if sector_seleccionado:
                                     line=dict(width=1.5, color=cfg['color']),
                                     marker=dict(size=4, symbol='circle'),
                                     fill='tozeroy' if es_caudal else None,
-                                    fillcolor=f"rgba{tuple(int(cfg['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (0.1,)}" if es_caudal else None,
+                                    fillcolor=f"rgba{tuple(int(cfg['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (0.01,)}" if es_caudal else None,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
                                 ))
                         
