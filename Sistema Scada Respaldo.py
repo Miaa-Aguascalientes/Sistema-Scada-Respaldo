@@ -1619,8 +1619,9 @@ with col_der:
                             y=df_tag['VALUE'], 
                             name=cfg['label'], 
                             yaxis="y2" if cfg['sec'] else "y1", 
-                            mode='lines', 
+                            mode='lines+markers',
                             line=dict(width=1.5, color=cfg['color']),
+                            marker=dict(size=4, symbol='circle'),
                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
                         ))
                 
