@@ -1617,6 +1617,9 @@ if sector_seleccionado:
                             df_tag = df_h[df_h['TAG'] == tag_name]
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
+                                
+                                es_caudal = not cfg['sec']
+                                
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], 
                                     y=df_tag['VALUE'], 
