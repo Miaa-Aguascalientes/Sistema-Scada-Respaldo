@@ -1695,7 +1695,7 @@ if sector_seleccionado:
                     st.error(f"Error VRP: {e}")
 
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
-with col_pc:
+        with col_pc:
             if dict_pc_sec:
                 tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
                 if tags_pc_list:
