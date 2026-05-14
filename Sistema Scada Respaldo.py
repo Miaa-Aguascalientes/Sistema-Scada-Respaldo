@@ -1555,21 +1555,25 @@ if sector_seleccionado:
 
 # 7.10. ------------------------------------------- Histórico Punto de Control y Pozos del Sector (Lado derecho del mapa) --------------------------------------------------------------------------------------------
         with col_der:
+            # --- 1. SELECTOR DE FECHAS (AHORA ARRIBA) ---
             hoy = datetime.now().date()
-            if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
-            elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-            elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-            elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-            else:
-                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
-                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
+            with st.container():
+                opcion_fecha = st.selectbox("Rango de tiempo:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], key="sel_rango_hist_top")
+                
+                if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+                elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+                elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+                elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+                else:
+                    rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f_top")
+                    f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-            # --- NUEVA LÓGICA DE ORDEN Y COLOR ---
+            # --- 2. LÓGICA DE DATOS Y GRÁFICO (AHORA ARRIBA) ---
             tags_pc = []
             tags_pozos = []
             mapeo_config = {} # tag -> {label, color, secondary_y}
 
-            # 1. Recolección de Puntos de Control (Prioridad 1)
+            # Prioridad 1: Puntos de Control
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 conf_pc = [
@@ -1583,14 +1587,14 @@ if sector_seleccionado:
                         tags_pc.append(tag_v)
                         mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
             
-            # 2. Recolección de Pozos (Prioridad 2)
+            # Prioridad 2: Pozos
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
                     conf_pz = [
                         ('caudal', f"Pozo {id_p} - Q", '#00d4ff', False),
                         ('presion', f"Pozo {id_p} - P", '#00ff00', True),
-                        ('nivel_tanque', f"Pozo {id_p} - Nivel", '#0000FF', True) # Azul fuerte
+                        ('nivel_tanque', f"Pozo {id_p} - Nivel", '#0000FF', True)
                     ]
                     for key, lb, clr, sec in conf_pz:
                         tag_v = p_info.get(key)
@@ -1598,7 +1602,7 @@ if sector_seleccionado:
                             tags_pozos.append(tag_v)
                             mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
-            tags_totales = tags_pc + tags_pozos # El orden de la lista define el orden en la leyenda
+            tags_totales = tags_pc + tags_pozos 
 
             if tags_totales:
                 try:
@@ -1608,17 +1612,15 @@ if sector_seleccionado:
                     df_h = pd.read_sql(q_hist, engine_h)
                     
                     if not df_h.empty:
-                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Histórico Sector:</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-top:10px; margin-bottom:5px; text-align: center;'>Histórico Sector:</h3>", unsafe_allow_html=True)
                         fig = go.Figure()
 
-                        # Graficamos siguiendo el orden de tags_totales para la leyenda
                         for tag_name in tags_totales:
                             df_tag = df_h[df_h['TAG'] == tag_name]
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'],
-                                    y=df_tag['VALUE'],
+                                    x=df_tag['FECHA'], y=df_tag['VALUE'],
                                     name=cfg['label'],
                                     yaxis="y2" if cfg['sec'] else "y1",
                                     mode='lines',
@@ -1629,18 +1631,19 @@ if sector_seleccionado:
                         fig.update_layout(
                             paper_bgcolor='rgba(0,0,0,0)',
                             plot_bgcolor='rgba(0,0,0,0)',
-                            height=300,
-                            margin=dict(l=50, r=50, t=10, b=10),
+                            height=280,
+                            margin=dict(l=40, r=40, t=10, b=10),
                             hovermode="x unified",
-                            legend=dict(orientation="h", y=-0.2, x=0, font=dict(color="white", size=9)),
+                            legend=dict(orientation="h", y=-0.3, x=0, font=dict(color="white", size=9)),
                             xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
-                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff"),
-                            yaxis2=dict(title="Presión/Nivel", side="right", color="#00ff00", overlaying="y", showgrid=False)
+                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", titlefont=dict(size=10)),
+                            yaxis2=dict(title="P/N", side="right", color="#00ff00", overlaying="y", showgrid=False, titlefont=dict(size=10))
                         )
                         st.plotly_chart(fig, use_container_width=True)
                 except Exception as e:
                     st.error(f"Error en gráfico: {e}")
 
+            st.markdown("---") # Separador visual entre gráfico e info detallada
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
