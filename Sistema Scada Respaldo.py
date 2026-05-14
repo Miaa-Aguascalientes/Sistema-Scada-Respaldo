@@ -1648,8 +1648,8 @@ with col_der:
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",
-                        y=-0.5,
-                        x=0.5,
+                        y=-1.0,
+                        x=0.50,
                         xanchor="center",
                         font=dict(color="white", size=9)
                     ),
