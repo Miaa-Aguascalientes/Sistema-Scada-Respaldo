@@ -1555,15 +1555,20 @@ if sector_seleccionado:
 
 # 7.10. ------------------------------------------- Histórico Punto de Control + Pozos (Q, P, Nivel) --------------------------------------------------------------------------------------------
         with col_der:
-            # Quitamos los selectores de fecha y equipo de aquí, ya que usamos:
-            # sel_r_id (Buscador de Punto de Control arriba del mapa)
-            # f_ini_h / f_fin_h (Selector de fechas arriba del mapa)
+            hoy = datetime.now().date()
+            if opcion_fecha == "Hoy": f_ini_h, f_fin_h = hoy, hoy
+            elif opcion_fecha == "Esta Semana": f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+            elif opcion_fecha == "Últimos 14 días": f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+            elif opcion_fecha == "Este Mes": f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+            else:
+                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_f")
+                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
             if sel_r_id:
                 r_info = dict_reg[sel_r_id]
                 t_q, t_p1, t_p2 = r_info.get('tag_q'), r_info.get('tag_p1'), r_info.get('tag_p2')
                 
-                # Identificación de tags de pozos del sector para la comparativa
+                # --- LÓGICA: Identificar tags de pozos (Caudal, Presión y NIVEL) ---
                 ids_pozos_sector = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
                 tags_pozos = []
                 mapa_tags_pozos = {} 
@@ -1573,8 +1578,7 @@ if sector_seleccionado:
                         p_tags = mapa_pozos_dict[id_p]
                         c_tag = p_tags.get('caudal')
                         pr_tag = p_tags.get('presion')
-                        # Usamos nivel_tanque del diccionario de pozos
-                        nv_tag = p_tags.get('nivel_tanque') 
+                        nv_tag = p_tags.get('nivel') # Se extrae el tag de nivel
                         
                         if c_tag: 
                             tags_pozos.append(c_tag); mapa_tags_pozos[c_tag] = f"Q {id_p}"
@@ -1593,74 +1597,57 @@ if sector_seleccionado:
                         df_h = pd.read_sql(q_hist, engine_h)
                         
                         if not df_h.empty:
-                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-top:10px; text-align: center;'>Análisis Comparativo Integral</h3>", unsafe_allow_html=True)
+                            st.markdown(f"<h3 style='color:#00d4ff; font-size:16px; margin-bottom:10px; text-align: center;'>Análisis: PC vs Pozos (Caudal, Presión, Nivel)</h3>", unsafe_allow_html=True)
                             fig = go.Figure()
 
-                            # 1. Trazas del Punto de Control (Líneas sólidas gruesas con 2 decimales)
+                            # 1. Trazas del Punto de Control
                             if t_q and not df_h[df_h['TAG'] == t_q].empty:
                                 df_q = df_h[df_h['TAG'] == t_q]
                                 fig.add_trace(go.Scatter(x=df_q['FECHA'], y=df_q['VALUE'], name="Q Reg (lps)",
-                                    line=dict(color='#00d4ff', width=3),
-                                    hovertemplate='Q Reg: <b>%{y:.2f}</b> Lps<extra></extra>'))
+                                    fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.15)',
+                                    line=dict(color='#00d4ff', width=3)))
 
                             if t_p1 and not df_h[df_h['TAG'] == t_p1].empty:
                                 df_p1 = df_h[df_h['TAG'] == t_p1]
                                 fig.add_trace(go.Scatter(x=df_p1['FECHA'], y=df_p1['VALUE'], name="P1 Reg (kg)",
-                                    yaxis="y2", line=dict(color='#FF4500', width=3),
-                                    hovertemplate='P1 Reg: <b>%{y:.2f}</b> kg<extra></extra>'))
+                                    yaxis="y2", line=dict(color='#FF4500', width=3)))
 
-                            # 2. Trazas de los Pozos (Líneas sólidas con azul fuerte y 2 decimales)
+                            # 2. Trazas de los Pozos (Caudal, Presión y NIVEL)
                             for t_pz in tags_pozos:
                                 df_pz = df_h[df_h['TAG'] == t_pz]
                                 if not df_pz.empty:
                                     label = mapa_tags_pozos[t_pz]
+                                    # Nivel y Presión comparten el eje derecho (y2)
                                     es_eje_secundario = label.startswith("P ") or label.startswith("Niv ")
                                     
-                                    if label.startswith("Q "):
-                                        color_pz = '#004a7c' # Azul fuerte/oscuro
-                                        unidad = "Lps"
-                                    elif label.startswith("Niv "):
-                                        color_pz = '#00ff00' # Verde sólido
-                                        unidad = "m"
-                                    else:
-                                        color_pz = '#b35900' # Naranja oscuro
-                                        unidad = "kg"
+                                    # Estilo diferente para Nivel (puntos) vs Presión (guiones)
+                                    estilo_linea = 'dot' if label.startswith("P ") else 'dash'
+                                    color_traza = '#00FF00' if label.startswith("Niv ") else None # Verde para nivel
 
                                     fig.add_trace(go.Scatter(
                                         x=df_pz['FECHA'], y=df_pz['VALUE'], 
                                         name=label,
                                         yaxis="y2" if es_eje_secundario else "y1",
-                                        line=dict(width=2, dash='solid', color=color_pz),
-                                        opacity=0.85,
-                                        hovertemplate=f'{label}: <b>%{{y:.2f}}</b> {unidad}<extra></extra>'
+                                        line=dict(width=1.5, dash=estilo_linea, color=color_traza),
+                                        opacity=0.7,
+                                        hovertemplate=f'{label}: %{{y:.2f}}<extra></extra>'
                                     ))
 
                             fig.update_layout(
                                 paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                                 height=450,
-                                margin=dict(l=50, r=50, t=50, b=10),
+                                margin=dict(l=50, r=50, t=10, b=10),
                                 hovermode="x unified",
-                                # LEYENDA EN LA PARTE SUPERIOR
-                                legend=dict(
-                                    orientation="h", 
-                                    yanchor="bottom", 
-                                    y=1.02, 
-                                    xanchor="left", 
-                                    x=0, 
-                                    font=dict(color="white", size=10)
-                                ),
+                                legend=dict(orientation="h", y=-0.25, x=0, font=dict(color="white", size=9)),
                                 xaxis=dict(showgrid=True, gridcolor='rgba(255, 255, 255, 0.1)', color="white"),
-                                yaxis=dict(title="Caudal (L/s)", color="#00d4ff", tickformat=".2f"),
-                                yaxis2=dict(title="Presión (kg) / Nivel (m)", side="right", color="#ff4500", 
-                                            overlaying="y", showgrid=False, tickformat=".2f")
+                                yaxis=dict(title="Caudal (L/s)", color="#00d4ff"),
+                                yaxis2=dict(title="Presión (kg) / Nivel (m)", side="right", color="#ff4500", overlaying="y", showgrid=False)
                             )
                             st.plotly_chart(fig, use_container_width=True)
                         else:
-                            st.warning("Sin datos históricos en el periodo.")
+                            st.warning("No hay datos históricos.")
                     except Exception as e:
-                        st.error(f"Error: {e}")
-            else:
-                st.info("Seleccione un punto de control en el buscador superior para ver la comparativa.")
+                        st.error(f"Error en comparativa: {e}")
 
 # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ---------------------------------------------------------------------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
