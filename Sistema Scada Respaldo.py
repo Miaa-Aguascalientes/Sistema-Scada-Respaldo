@@ -1281,11 +1281,23 @@ if sector_seleccionado:
                 id_reg = r.get('Serie', 'S/N') 
                 html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
 
-# --- MARCADOR CON ICONO NUEVO ---
+
+# --- MARCADOR CON ICONO DE TACHUELA PURA ---
+                from folium.features import DivIcon
+                
+                icon_html = """
+                    <div style="font-size: 24px; color: #FF00FF; transform: rotate(45deg); text-shadow: 2px 2px 2px #000;">
+                        <i class="fa fa-thumbtack"></i>
+                    </div>
+                """
+
                 folium.Marker(
-                    location=r['coord'], 
-                    # Usamos 'faucet' para representar la válvula/llave de paso
-                    icon=folium.Icon(color='blue', icon='thumbtack', prefix='fa'), 
+                    location=r['coord'],
+                    icon=DivIcon(
+                        icon_size=(30, 30),
+                        icon_anchor=(5, 25),
+                        html=icon_html
+                    ),
                     popup=folium.Popup(html_popup_reg, max_width=300)
                 ).add_to(m_sec)
 
