@@ -1327,7 +1327,7 @@ if sector_seleccionado:
                     location=r['coord'],
                     icon=folium.features.DivIcon(
                         icon_size=(250,36),
-                        icon_anchor=(-15, 40), # Desplazado para no tapar la estrella
+                        icon_anchor=(-15, 35), # Desplazado para no tapar la estrella
                         html=f"""
                             <div style="
                                 font-size: 10pt; 
@@ -1365,7 +1365,7 @@ if sector_seleccionado:
                     location=pc['coord'],
                     icon=folium.DivIcon(
                         icon_size=(250,36),
-                        icon_anchor=(-15, 0), # Ajusta la posición a la derecha del marcador
+                        icon_anchor=(-15, 35), # Ajusta la posición a la derecha del marcador
                         html=f"""
                             <div style="
                                 font-size: 10pt; 
@@ -1418,7 +1418,7 @@ if sector_seleccionado:
                     location=pc['coord'],
                     icon=DivIcon(
                         icon_size=(30, 40),
-                        icon_anchor=(15, 33),
+                        icon_anchor=(15, 50),
                         html=icon_html
                     ),
                     popup=folium.Popup(html_pc, max_width=250)
