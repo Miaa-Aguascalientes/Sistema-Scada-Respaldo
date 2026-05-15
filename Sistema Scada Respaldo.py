@@ -1628,8 +1628,8 @@ if sector_seleccionado:
                                 if es_caudal:
                                     # Diferentes tonos de AZUL/CIAN (Caudal)
                                     # Variamos la luminosidad basándonos en idx_q
-                                    brillo = max(100 - (idx_q * 25), 40) 
-                                    color_base = f"hsl(190, 100%, {brillo}%)" 
+                                    brillo = max(75 - (idx_q_pc * 15), 35)
+                                    color_base = f"hsl(200, 100%, {brillo}%)"
                                     idx_q += 1
                                 else:
                                     # Diferentes tonos de VERDE (Presión)
@@ -1716,12 +1716,16 @@ if sector_seleccionado:
                                 
                                 # --- COLORES DINÁMICOS ---
                                 if es_caudal_v:
-                                    brillo = max(100 - (idx_vq * 20), 35)
-                                    color_v = f"hsl(190, 100%, {brillo}%)"
+                                    # Paleta de Azules: Brillo controlado entre 40% y 75%
+                                    brillo = 75 - (idx_vq * 15)
+                                    brillo = max(brillo, 35)
+                                    color_v = f"hsl(200, 100%, {brillo}%)" 
                                     idx_vq += 1
                                 else:
-                                    brillo = max(85 - (idx_vp * 15), 30)
-                                    color_v = f"hsl(145, 100%, {brillo}%)"
+                                    # Paleta de Verdes: Brillo controlado entre 40% y 80%
+                                    brillo = 80 - (idx_vp * 15)
+                                    brillo = max(brillo, 30)
+                                    color_v = f"hsl(150, 100%, {brillo}%)"
                                     idx_vp += 1
 
                                 fig_v.add_trace(go.Scatter(
@@ -1747,7 +1751,7 @@ if sector_seleccionado:
                             legend=dict(orientation="h",
                             yanchor="bottom",
                             y=1.05,
-                            x=0.3,
+                            x=0.5,
                             xanchor="center", font=dict(color="white", size=9)),
                             xaxis=dict(color="white", showgrid=False),
                             yaxis=dict(title="Caudal (Lps)", color="#00d4ff", tickformat=".2f"),
