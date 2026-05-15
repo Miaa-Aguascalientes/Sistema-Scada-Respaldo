@@ -1677,12 +1677,15 @@ if sector_seleccionado:
             tags_vrp_global = []
             mapeo_vrp_global = {}
             
-            # Recorremos el diccionario de VRPs del sector seleccionado
+            # Recorremos el diccionario de VRPs del sector
             for v_id, v_info in dict_vrp_sec.items():
+                # USAMOS EL ID (v_id) PARA QUE SEA MÁS CORTO EN LA LEYENDA
+                identificador = f"VRP {v_id}" 
+                
                 conf_vrp = [
-                    ('tag_q', f"VRP {v_info['nombre']} - Q", False),
-                    ('tag_p1', f"VRP {v_info['nombre']} - P1", True),
-                    ('tag_p2', f"VRP {v_info['nombre']} - P2", True)
+                    ('tag_q', f"{identificador} - Q", False),
+                    ('tag_p1', f"{identificador} - P1", True),
+                    ('tag_p2', f"{identificador} - P2", True)
                 ]
                 
                 for key_t, lb, sec in conf_vrp:
@@ -1699,7 +1702,7 @@ if sector_seleccionado:
                     df_v = pd.read_sql(q_vrp, engine_h)
                     
                     if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:20px; margin-bottom:10px; text-align: center;'>Histórico Integral de VRPs del Sector</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='color:#00ffcc; font-size:20px; margin-bottom:10px; text-align: center;'>Análisis Integral de VRPs del Sector</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
                         
                         idx_vq = 0
@@ -1711,14 +1714,12 @@ if sector_seleccionado:
                                 c_vrp = mapeo_vrp_global[t_name]
                                 es_caudal_v = not c_vrp['sec']
                                 
-                                # --- COLORES DINÁMICOS POR VARIABLE ---
+                                # --- COLORES DINÁMICOS ---
                                 if es_caudal_v:
-                                    # Tonos de Azul/Cian para Caudales
                                     brillo = max(100 - (idx_vq * 20), 35)
                                     color_v = f"hsl(190, 100%, {brillo}%)"
                                     idx_vq += 1
                                 else:
-                                    # Tonos de Verde para Presiones
                                     brillo = max(85 - (idx_vp * 15), 30)
                                     color_v = f"hsl(145, 100%, {brillo}%)"
                                     idx_vp += 1
@@ -1726,7 +1727,7 @@ if sector_seleccionado:
                                 fig_v.add_trace(go.Scatter(
                                     x=df_t['FECHA'], 
                                     y=df_t['VALUE'], 
-                                    name=c_vrp['label'], 
+                                    name=c_vrp['label'], # Ahora mostrará "VRP [ID] - Q"
                                     yaxis="y2" if c_vrp['sec'] else "y1", 
                                     mode='lines' if es_caudal_v else 'lines+markers',
                                     line=dict(width=1.8, color=color_v),
@@ -1742,16 +1743,18 @@ if sector_seleccionado:
                             height=380, 
                             margin=dict(l=50, r=50, t=10, b=10), 
                             hovermode="x unified", 
+                            # Mantenemos la leyenda abajo para que no estorbe
                             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                             xaxis=dict(color="white", showgrid=False),
-                            yaxis=dict(title="Caudales (Lps)", color="#00d4ff", tickformat=".2f"),
-                            yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
+                            yaxis=dict(title="Caudal (Lps)", color="#00d4ff", tickformat=".2f"),
+                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
                         )
                         st.plotly_chart(fig_v, use_container_width=True)
                     else:
-                        st.warning("No se encontraron datos para las VRPs en este rango.")
+                        st.warning("No se encontraron datos para las VRPs.")
                 except Exception as e:
-                    st.error(f"Error Scada VRP Global: {e}")
+                    st.error(f"Error Scada VRP: {e}")
+                    
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
         with col_pc:
             if dict_pc_sec:
