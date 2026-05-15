@@ -1755,8 +1755,7 @@ if sector_seleccionado:
                                     yaxis="y2" if c_vrp['sec'] else "y1", 
                                     mode='lines+markers',
                                     line=dict(width=1.8, color=color_v),
-                                    marker=dict(size=3 if es_caudal else 3, symbol='circle'),
-                                    marker=dict(size=3) if c_vrp['sec'] else None,
+                                    marker=dict(size=3) if c_vrp['sec'] else 3, symbol='circle'),
                                     fill='tozeroy' if es_caudal_v else None,
                                     fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
                                     hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_final}<extra></extra>'
