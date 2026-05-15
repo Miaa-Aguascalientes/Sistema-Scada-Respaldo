@@ -1217,21 +1217,7 @@ if sector_seleccionado:
         with c_sel_f:
             opcion_fecha = st.selectbox("Rango de fechas:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], index=2, key="f_sector_full")
         
-        with c_sel_reg:
-            if not opciones_equipo:
-                sel_r = None
-                st.selectbox("Equipo punto de control:", ["Sin equipos"], key="sel_reg_full", disabled=True)
-            else:
-                sel_r = st.selectbox("Equipo punto de control:", opciones_equipo, key="sel_reg_full")
-                sel_r_id = reg_nombres.get(sel_r)
 
-        with c_sel_vrp:
-            if not opciones_vrp:
-                sel_v = None
-                st.selectbox("Válvula VRP (Domicilio):", ["Sin VRP"], key="sel_vrp_full", disabled=True)
-            else:
-                sel_v = st.selectbox("Válvula VRP (Domicilio):", opciones_vrp, key="sel_vrp_full")
-                sel_v_id = vrp_nombres.get(sel_v)
 
         # 7.4. Layout Superior: Mapa e Histórico Puntos de Control
         col_izq, col_der = st.columns([1.0, 1.0])
