@@ -1751,11 +1751,12 @@ if sector_seleccionado:
                                 fig_v.add_trace(go.Scatter(
                                     x=df_t['FECHA'], 
                                     y=df_t['VALUE'], 
-                                    name=c_vrp['label'], # Ahora mostrará "VRP [ID] - Q"
+                                    name=c_vrp['label'], 
                                     yaxis="y2" if c_vrp['sec'] else "y1", 
                                     mode='lines+markers',
                                     line=dict(width=1.8, color=color_v),
-                                    marker=dict(size=3) if c_vrp['sec'] else 3, symbol='circle'),
+                                    # CORRECCIÓN AQUÍ: Sintaxis de marcador limpia
+                                    marker=dict(size=3 if es_caudal_v else 4, symbol='circle'),
                                     fill='tozeroy' if es_caudal_v else None,
                                     fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
                                     hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_final}<extra></extra>'
