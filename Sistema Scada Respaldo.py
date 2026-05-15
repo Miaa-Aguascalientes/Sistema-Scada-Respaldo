@@ -1622,7 +1622,9 @@ if sector_seleccionado:
                             df_tag = df_h[df_h['TAG'] == tag_name]
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
-                                es_caudal = not cfg['sec']
+                                
+                                es_caudal_pc = not cfg['sec']
+                                
                                 label_u = cfg['label'].upper()
 
                                 if es_caudal_pc:
