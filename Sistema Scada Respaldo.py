@@ -1669,58 +1669,89 @@ if sector_seleccionado:
                 except Exception as e:
                     st.error(f"Error Scada (Derecha): {e}")
 
-        # 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
-        # Esta sección va FUERA del "with col_der" pero DENTRO del "if sector_seleccionado"
+# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
-            if sel_v_id:
-                v_info = dict_vrp_sec[sel_v_id]
-                tags_v = [t for t in [v_info.get('tag_q'), v_info.get('tag_p1'), v_info.get('tag_p2')] if t]
+            # 1. Recolección de TODAS las variables de TODAS las VRP del sector
+            tags_vrp_global = []
+            mapeo_vrp_global = {}
+            
+            # Recorremos el diccionario de VRPs del sector seleccionado
+            for v_id, v_info in dict_vrp_sec.items():
+                conf_vrp = [
+                    ('tag_q', f"VRP {v_info['nombre']} - Q", False),
+                    ('tag_p1', f"VRP {v_info['nombre']} - P1", True),
+                    ('tag_p2', f"VRP {v_info['nombre']} - P2", True)
+                ]
+                
+                for key_t, lb, sec in conf_vrp:
+                    t_val = v_info.get(key_t)
+                    if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a']:
+                        tags_vrp_global.append(t_val)
+                        mapeo_vrp_global[t_val] = {'label': lb, 'sec': sec}
+
+            if tags_vrp_global:
                 try:
                     engine_h = get_mysql_scada_engine()
-                    tags_in_v = "', '".join(tags_v)
-                    df_v = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                    tags_in_v = "', '".join(list(set(tags_vrp_global)))
+                    q_vrp = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
+                    df_v = pd.read_sql(q_vrp, engine_h)
                     
                     if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:18px; margin-bottom:10px; text-align: center;'>Válvulas reductoras de presión:</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<h3 style='color:#00ffcc; font-size:20px; margin-bottom:10px; text-align: center;'>Histórico Integral de VRPs del Sector</h3>", unsafe_allow_html=True)
                         fig_v = go.Figure()
-
-                        # Caudal
-                        dq = df_v[df_v['TAG'] == v_info.get('tag_q')]
-                        if not dq.empty:
-                            fig_v.add_trace(go.Scatter(
-                                x=dq['FECHA'], y=dq['VALUE'],
-                                name="Caudal VRP (Lps)",
-                                mode='lines+markers',
-                                marker=dict(size=4, symbol='circle'),
-                                fill='tozeroy', fillcolor='rgba(0, 212, 255, 0.10)',
-                                line=dict(color='#00d4ff', width=2)))
                         
-                        # Presión P1 y P2
-                        for p_tag, p_name, p_clr in [(v_info.get('tag_p1'), "P1", '#FF4500'), (v_info.get('tag_p2'), "P2", '#00ff00')]:
-                            if p_tag:
-                                dp = df_v[df_v['TAG'] == p_tag]
-                                if not dp.empty:
-                                    fig_v.add_trace(go.Scatter(
-                                        x=dp['FECHA'], y=dp['VALUE'],
-                                        name=f"Presión {p_name}",
-                                        yaxis="y2",
-                                        mode='lines+markers',
-                                        marker=dict(size=4, symbol='circle'),
-                                        line=dict(color=p_clr, width=2)))
+                        idx_vq = 0
+                        idx_vp = 0
+
+                        for t_name in tags_vrp_global:
+                            df_t = df_v[df_v['TAG'] == t_name]
+                            if not df_t.empty:
+                                c_vrp = mapeo_vrp_global[t_name]
+                                es_caudal_v = not c_vrp['sec']
+                                
+                                # --- COLORES DINÁMICOS POR VARIABLE ---
+                                if es_caudal_v:
+                                    # Tonos de Azul/Cian para Caudales
+                                    brillo = max(100 - (idx_vq * 20), 35)
+                                    color_v = f"hsl(190, 100%, {brillo}%)"
+                                    idx_vq += 1
+                                else:
+                                    # Tonos de Verde para Presiones
+                                    brillo = max(85 - (idx_vp * 15), 30)
+                                    color_v = f"hsl(145, 100%, {brillo}%)"
+                                    idx_vp += 1
+
+                                fig_v.add_trace(go.Scatter(
+                                    x=df_t['FECHA'], 
+                                    y=df_t['VALUE'], 
+                                    name=c_vrp['label'], 
+                                    yaxis="y2" if c_vrp['sec'] else "y1", 
+                                    mode='lines' if es_caudal_v else 'lines+markers',
+                                    line=dict(width=1.8, color=color_v),
+                                    marker=dict(size=3) if c_vrp['sec'] else None,
+                                    fill='tozeroy' if es_caudal_v else None,
+                                    fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
+                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
+                                ))
 
                         fig_v.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                            height=300, margin=dict(l=50, r=50, t=10, b=10), 
-                            hovermode="x unified", legend=dict(orientation="h", y=1.1, x=0.1, font=dict(color="white")),
-                            xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)', color="white"),
-                            yaxis=dict(title="Caudal (L/s)", color="white"),
-                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="white", showgrid=False))
+                            paper_bgcolor='rgba(0,0,0,0)', 
+                            plot_bgcolor='rgba(0,0,0,0)', 
+                            height=380, 
+                            margin=dict(l=50, r=50, t=10, b=10), 
+                            hovermode="x unified", 
+                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                            xaxis=dict(color="white", showgrid=False),
+                            yaxis=dict(title="Caudales (Lps)", color="#00d4ff", tickformat=".2f"),
+                            yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
+                        )
                         st.plotly_chart(fig_v, use_container_width=True)
+                    else:
+                        st.warning("No se encontraron datos para las VRPs en este rango.")
                 except Exception as e:
-                    st.error(f"Error VRP: {e}")
-
+                    st.error(f"Error Scada VRP Global: {e}")
 # 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
         with col_pc:
             if dict_pc_sec:
