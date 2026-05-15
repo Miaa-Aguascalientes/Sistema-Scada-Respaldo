@@ -1623,11 +1623,11 @@ if sector_seleccionado:
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
                                 
-                                es_caudal_pc = not cfg['sec']
+                                es_caudal = not cfg['sec']
                                 
                                 label_u = cfg['label'].upper()
 
-                                if es_caudal_pc:
+                                if es_caudal:
                                     unidad_pc = "Lps"
                                 elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u:
                                     unidad_pc = "Mts"
