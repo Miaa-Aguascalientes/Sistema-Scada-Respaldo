@@ -1218,7 +1218,7 @@ if sector_seleccionado:
             opcion_fecha = st.selectbox(
                 "Rango de fechas:",
                 ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-                index=2, key="f_sector_full")
+                index=2,
                 key="f_sector_full",
                 label_visibility="collapsed" # Colapsamos el label para que queden alineados
         )
