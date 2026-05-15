@@ -1213,9 +1213,15 @@ if sector_seleccionado:
         vrp_nombres = {v['nombre']: k for k, v in dict_vrp_sec.items()}
         opciones_vrp = list(vrp_nombres.keys())
 
-        c_sel_f, c_sel_reg, c_sel_vrp = st.columns([1.2, 1.2, 1.2])
+        c_sel_f, c_fecha_ext = st.columns([1, 1])
         with c_sel_f:
-            opcion_fecha = st.selectbox("Rango de fechas:", ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], index=2, key="f_sector_full")
+            opcion_fecha = st.selectbox(
+                "Rango de fechas:",
+                ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
+                index=2, key="f_sector_full")
+                key="f_sector_full",
+                label_visibility="collapsed" # Colapsamos el label para que queden alineados
+        )
         
 
 
