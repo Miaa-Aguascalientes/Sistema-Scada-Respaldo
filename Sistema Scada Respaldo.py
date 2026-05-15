@@ -1628,8 +1628,8 @@ if sector_seleccionado:
                                 if es_caudal:
                                     # Diferentes tonos de AZUL/CIAN (Caudal)
                                     # Variamos la luminosidad basándonos en idx_q
-                                    brillo = max(75 - (idx_q_pc * 15), 35)
-                                    color_base = f"hsl(200, 100%, {brillo}%)"
+                                    brillo = max(100 - (idx_q * 25), 40) 
+                                    color_base = f"hsl(190, 100%, {brillo}%)" 
                                     idx_q += 1
                                 else:
                                     # Diferentes tonos de VERDE (Presión)
