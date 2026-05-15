@@ -1545,6 +1545,13 @@ if sector_seleccionado:
             
             hoy = datetime.now().date()
             # Usamos la variable opcion_fecha que mencionaste en tu snippet
+
+            c1, c2 = st.columns([1, 1])
+            with c1:
+                opcion_h = st.selectbox("Rango de tiempo:", 
+                                        ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"], 
+                                        key="opc_hist_pc")
+            
             if opcion_fecha == "Hoy": 
                 f_ini_h, f_fin_h = hoy, hoy
             elif opcion_fecha == "Esta Semana": 
