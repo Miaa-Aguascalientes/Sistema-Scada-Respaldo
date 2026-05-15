@@ -1651,7 +1651,7 @@ if sector_seleccionado:
                                     # La opacidad se mantiene en 0.15 (15%)
                                     fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
                                     
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
+                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad}<extra></extra>'
                                 ))
                         
                         fig.update_layout(
@@ -1738,7 +1738,7 @@ if sector_seleccionado:
                                     marker=dict(size=3) if c_vrp['sec'] else None,
                                     fill='tozeroy' if es_caudal_v else None,
                                     fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
+                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ('kg/cm²' if cfg['sec'] else 'Lps') + '<extra></extra>'
                                 ))
 
                         fig_v.update_layout(
