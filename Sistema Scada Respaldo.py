@@ -1744,7 +1744,11 @@ if sector_seleccionado:
                             margin=dict(l=50, r=50, t=10, b=10), 
                             hovermode="x unified", 
                             # Mantenemos la leyenda abajo para que no estorbe
-                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                            legend=dict(orientation="h",
+                            yanchor="bottom",
+                            y=1.05,
+                            x=0.3,
+                            xanchor="center", font=dict(color="white", size=9)),
                             xaxis=dict(color="white", showgrid=False),
                             yaxis=dict(title="Caudal (Lps)", color="#00d4ff", tickformat=".2f"),
                             yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
