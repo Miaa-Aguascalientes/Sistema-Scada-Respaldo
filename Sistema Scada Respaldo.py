@@ -1576,22 +1576,6 @@ if sector_seleccionado:
         with col_der:
             st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>Histórico Puntos de control</h3>", unsafe_allow_html=True)
             
-            hoy = datetime.now().date()
-            # Usamos la variable opcion_fecha que mencionaste en tu snippet
-
-
-            if opcion_fecha == "Hoy": 
-                f_ini_h, f_fin_h = hoy, hoy
-            elif opcion_fecha == "Esta Semana": 
-                f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-            elif opcion_fecha == "Últimos 14 días": 
-                f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-            elif opcion_fecha == "Este Mes": 
-                f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-            else:
-                rango = st.date_input("Periodo:", value=(hoy - timedelta(days=7), hoy), max_value=hoy, key="date_hist_integral_p")
-                f_ini_h, f_fin_h = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
-
             tags_visualizar = []
             mapeo_config = {}
 
