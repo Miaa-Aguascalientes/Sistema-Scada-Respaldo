@@ -1604,7 +1604,7 @@ if sector_seleccionado:
                             mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
             # 3. Consulta y Renderizado del gráfico derecho
-            if tags_visualizar:
+if tags_visualizar:
                 try:
                     engine_h = get_mysql_scada_engine()
                     tags_unicos_query = "', '".join(list(set(tags_visualizar)))
@@ -1613,37 +1613,59 @@ if sector_seleccionado:
                     
                     if not df_h.empty:
                         fig = go.Figure()
+                        
+                        # Contadores para variar la intensidad
+                        idx_q = 0
+                        idx_p = 0
+
                         for tag_name in tags_visualizar:
                             df_tag = df_h[df_h['TAG'] == tag_name]
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
-                                
                                 es_caudal = not cfg['sec']
                                 
+                                # --- LÓGICA DE COLORES DINÁMICOS ---
+                                if es_caudal:
+                                    # Diferentes tonos de AZUL/CIAN (Caudal)
+                                    # Variamos la luminosidad basándonos en idx_q
+                                    brillo = max(100 - (idx_q * 25), 40) 
+                                    color_base = f"hsl(190, 100%, {brillo}%)" 
+                                    idx_q += 1
+                                else:
+                                    # Diferentes tonos de VERDE (Presión)
+                                    brillo = max(80 - (idx_p * 20), 30)
+                                    color_base = f"hsl(145, 100%, {brillo}%)"
+                                    idx_p += 1
+
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], 
                                     y=df_tag['VALUE'], 
                                     name=cfg['label'], 
                                     yaxis="y2" if cfg['sec'] else "y1", 
-                                    mode='lines+markers',
-                                    line=dict(width=1.5, color=cfg['color']),
-                                    marker=dict(size=4, symbol='circle'),
+                                    mode='lines' if es_caudal else 'lines+markers',
+                                    line=dict(width=2, color=color_base),
+                                    marker=dict(size=4) if cfg['sec'] else None,
+                                    
+                                    # Configuración de Área para Caudales
                                     fill='tozeroy' if es_caudal else None,
-                                    fillcolor=f"rgba{tuple(int(cfg['color'].lstrip('#')[i:i+2], 16) for i in (0, 2, 4)) + (0.05,)}" if es_caudal else None,
+                                    # La opacidad se mantiene en 0.15 (15%)
+                                    fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
+                                    
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
                                 ))
                         
                         fig.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                            height=300, margin=dict(l=50, r=50, t=10, b=10), 
-                            hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                            paper_bgcolor='rgba(0,0,0,0)', 
+                            plot_bgcolor='rgba(0,0,0,0)', 
+                            height=350, 
+                            margin=dict(l=50, r=50, t=10, b=10), 
+                            hovermode="x unified", 
+                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10)),
                             xaxis=dict(color="white", showgrid=False),
-                            yaxis=dict(title="Caudal / Otros", color="white"),
-                            yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="white", showgrid=False)
+                            yaxis=dict(title="Caudales (m³/h)", color="#00d4ff", tickformat=".2f"),
+                            yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
                         )
                         st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.warning("Sin datos históricos para este periodo.")
                 except Exception as e:
                     st.error(f"Error Scada (Derecha): {e}")
 
