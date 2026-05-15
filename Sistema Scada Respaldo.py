@@ -1222,6 +1222,33 @@ if sector_seleccionado:
                 key="f_sector_full",
                 label_visibility="collapsed" # Colapsamos el label para que queden alineados
         )
+        # Inicialización de fechas
+        hoy = datetime.now().date()
+        f_ini_h, f_fin_h = hoy, hoy
+
+        # Lógica de asignación de periodos
+        if opcion_fecha == "Hoy":
+            f_ini_h, f_fin_h = hoy, hoy
+        elif opcion_fecha == "Esta Semana":
+            f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
+        elif opcion_fecha == "Últimos 14 días":
+            f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
+        elif opcion_fecha == "Este Mes":
+            f_ini_h, f_fin_h = hoy.replace(day=1), hoy
+        elif opcion_fecha == "Personalizado":
+            with c_fecha_ext:
+                # El calendario aparece a la derecha y nivelado al pixel
+                rango_p = st.date_input(
+                    "Periodo:",
+                    value=(hoy - timedelta(days=7), hoy),
+                    max_value=hoy,
+                    key="f_sector_custom_global",
+                    label_visibility="collapsed"
+                )
+                if isinstance(rango_p, tuple) and len(rango_p) == 2:
+                    f_ini_h, f_fin_h = rango_p
+                else:
+                    f_ini_h, f_fin_h = hoy, hoy    
         
 
 
