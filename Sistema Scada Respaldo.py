@@ -1660,7 +1660,7 @@ if sector_seleccionado:
                                     mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     
-                                    marker=dict(size=4) if cfg['sec'] else None,
+                                    marker=dict(size=3 if es_caudal else 3, symbol='circle'),
                                     
                                     # Configuración de Área para Caudales
                                     fill='tozeroy' if es_caudal else None,
