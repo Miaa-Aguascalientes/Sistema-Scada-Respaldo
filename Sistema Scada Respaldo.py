@@ -1753,8 +1753,9 @@ if sector_seleccionado:
                                     y=df_t['VALUE'], 
                                     name=c_vrp['label'], # Ahora mostrará "VRP [ID] - Q"
                                     yaxis="y2" if c_vrp['sec'] else "y1", 
-                                    mode='lines' if es_caudal_v else 'lines+markers',
+                                    mode='lines+markers',
                                     line=dict(width=1.8, color=color_v),
+                                    marker=dict(size=3 if es_caudal else 3, symbol='circle'),
                                     marker=dict(size=3) if c_vrp['sec'] else None,
                                     fill='tozeroy' if es_caudal_v else None,
                                     fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
