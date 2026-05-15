@@ -1713,6 +1713,10 @@ if sector_seleccionado:
                             if not df_t.empty:
                                 c_vrp = mapeo_vrp_global[t_name]
                                 es_caudal_v = not c_vrp['sec']
+                                if "P1" in c_vrp['label'] or "P2" in c_vrp['label']:
+                                    unidad_final = "kg/cm²"
+                                else:
+                                    unidad_final = "Lps"
                                 
                                 # --- COLORES DINÁMICOS ---
                                 if es_caudal_v:
@@ -1738,7 +1742,7 @@ if sector_seleccionado:
                                     marker=dict(size=3) if c_vrp['sec'] else None,
                                     fill='tozeroy' if es_caudal_v else None,
                                     fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ('kg/cm²' if cfg['sec'] else 'Lps') + '<extra></extra>'
+                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_final}<extra></extra>'
                                 ))
 
                         fig_v.update_layout(
