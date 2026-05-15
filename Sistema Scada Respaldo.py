@@ -1657,7 +1657,7 @@ if sector_seleccionado:
                                     y=df_tag['VALUE'], 
                                     name=cfg['label'], 
                                     yaxis="y2" if cfg['sec'] else "y1", 
-                                    mode='lines' if es_caudal else 'lines+markers',
+                                    mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=4) if cfg['sec'] else None,
                                     
