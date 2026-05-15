@@ -1604,7 +1604,7 @@ if sector_seleccionado:
                             mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
 
             # 3. Consulta y Renderizado del gráfico derecho
-if tags_visualizar:
+            if tags_visualizar:
                 try:
                     engine_h = get_mysql_scada_engine()
                     tags_unicos_query = "', '".join(list(set(tags_visualizar)))
