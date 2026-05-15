@@ -1623,6 +1623,14 @@ if sector_seleccionado:
                             if not df_tag.empty:
                                 cfg = mapeo_config[tag_name]
                                 es_caudal = not cfg['sec']
+                                label_u = cfg['label'].upper()
+
+                                if es_caudal_pc:
+                                    unidad_pc = "Lps"
+                                elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u:
+                                    unidad_pc = "Mts"
+                                else:
+                                    unidad_pc = "kg/cm²"
                                 
                                 # --- LÓGICA DE COLORES DINÁMICOS ---
                                 if es_caudal:
@@ -1651,7 +1659,7 @@ if sector_seleccionado:
                                     # La opacidad se mantiene en 0.15 (15%)
                                     fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
                                     
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f}<extra></extra>'
+                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_pc}<extra></extra>'
                                 ))
                         
                         fig.update_layout(
