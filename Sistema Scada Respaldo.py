@@ -1659,6 +1659,7 @@ if sector_seleccionado:
                                     yaxis="y2" if cfg['sec'] else "y1", 
                                     mode='lines+markers',
                                     line=dict(width=2, color=color_base),
+                                    
                                     marker=dict(size=4) if cfg['sec'] else None,
                                     
                                     # Configuración de Área para Caudales
