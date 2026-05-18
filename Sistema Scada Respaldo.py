@@ -852,7 +852,10 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
-                        # Limpieza de duplicados por minuto para un cruce limpio
+                        # Guardamos la fecha exacta original en una columna nueva antes de agrupar
+                        dft_l['FECHA_REAL_TXT'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
+                        
+                        # Limpieza de duplicados por minuto para mantener la estructura unificada
                         dft_l = dft_l.groupby('FECHA_MIN').last().reset_index()
                         
                         fig_line.add_trace(
@@ -864,8 +867,9 @@ if "graficar_pozo" in params:
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # Inyección directa del nombre de la variable y su valor formateado
-                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f}<extra></extra>"
+                                # Usamos customdata para inyectar la hora exacta (con segundos) al tooltip
+                                customdata=dft_l['FECHA_REAL_TXT'],
+                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(% {customdata})</span><extra></extra>"
                             )
                         )
                 
