@@ -872,6 +872,9 @@ if "graficar_pozo" in params:
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91]
+                        showspikes=True,
+                        spikemode="across",
+                        spikesnap="cursor"          
                     ),
                     
                     # --- MARGEN IZQUIERDO COMPACTO ---
@@ -891,7 +894,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00d4ff"),
                         side="left",
                         overlaying="y",
-                        anchor="free",
+                        anchor="x",
                         position=0.07
                     ),
                     
@@ -902,7 +905,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00ff00"), 
                         side="right",
                         overlaying="y",
-                        anchor="free",
+                        anchor="x",
                         position=0.92
                     ),
                     
@@ -912,7 +915,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#ff00b4"), 
                         side="right",
                         overlaying="y",
-                        anchor="free",
+                        anchor="x",
                         position=0.955
                     ),
                     
@@ -922,7 +925,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#ff8000"), 
                         side="right",
                         overlaying="y",
-                        anchor="free",
+                        anchor="x",
                         position=1.00
                     )
                 )
