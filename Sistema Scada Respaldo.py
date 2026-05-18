@@ -879,7 +879,7 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.91
+                        position=0.92
                     ),
                     
                     # EJE DERECHO 2: Niveles (Compactado al centro del grupo derecho)
