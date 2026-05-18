@@ -871,7 +871,7 @@ if "graficar_pozo" in params:
                     # El dominio horizontal empieza en 0.07 para dar espacio al eje libre exterior izquierdo
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0.07, 0.91]
+                        domain=[0.07, 0.91],
                         showspikes=True,
                         spikemode="across",
                         spikesnap="cursor"          
