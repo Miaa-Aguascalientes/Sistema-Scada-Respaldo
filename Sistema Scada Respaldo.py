@@ -1900,7 +1900,7 @@ st.markdown("""
 
 with st.sidebar:
     # 8.1. Contenedor del logo
-    st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Lecturas-Hes/c45d926ef0e34215c237cd3c7f71f7b97bf9a784/LogoMIAA-BpcVaQaq.svg"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/77573406f536a08b28e9e40f64ff2b368b3df1ad/LogoMIAA.svg"></div>', unsafe_allow_html=True)
 
     # 8.2. Inicializamos variables de estado (Solo si no existen)
     if 'centro_mapa' not in st.session_state:
