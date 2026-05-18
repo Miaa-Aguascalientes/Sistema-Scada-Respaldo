@@ -879,7 +879,7 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="x",
-                        position=0.90
+                        position=0.92
                     ),
                     
                     # EJE DERECHO 2: Niveles (Compactado al centro del grupo derecho)
@@ -889,7 +889,7 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.95
+                        position=0.97
                     ),
                     
                     # EJE DERECHO 3: Eléctricos (Fijo en el extremo exterior derecho)
