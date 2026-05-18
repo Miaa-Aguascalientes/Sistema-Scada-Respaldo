@@ -912,7 +912,7 @@ if "graficar_pozo" in params:
                         )
                     )
                 
-fig_line.update_layout(
+                fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
