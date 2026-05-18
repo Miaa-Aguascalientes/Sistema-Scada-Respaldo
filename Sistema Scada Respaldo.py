@@ -705,15 +705,17 @@ if "graficar_pozo" in params:
     
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
     tag_caudal_real = pozo_info.get('caudal', '')
+    tag_nivel_tanque = pozo_info.get('nivel_tanque', '')
     tag_presion_real = pozo_info.get('presion', '')
     tag_nivel_dinamico = pozo_info.get('nivel_dinamico', '')
     tag_sumergencia = pozo_info.get('sumergencia', '')
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    # Asignación de ejes correlacionada con la nueva distribución compacta
+    # Configuración visual: 'y' e 'y5' van a la izquierda; 'y2', 'y3', 'y4' van a la derecha
     config_visual = [
         ('caudal', "Caudal (Lps)", 'y', '#00d4ff'), 
+        ('nivel_tanque', "Nivel Tanque (m)", 'y5', '#00ffcc'),
         ('presion', "Presión (Kg/cm²)", 'y2', '#00ff00'),
         ('nivel_dinamico', "Nivel Dinámico (m)", 'y3', '#ff00b4'),
         ('sumergencia', "Sumergencia (m)", 'y3', '#a800ff')
@@ -739,10 +741,10 @@ if "graficar_pozo" in params:
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
-            # ---  LÓGICA DE INDICADORES ---
+            # --- LÓGICA DE INDICADORES ---
             val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
             val_v_prom, val_a_prom = "0.00", "0.00"
-            val_nd_prom, val_sum_prom = "0.00", "0.00"
+            val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
 
             if not df.empty:
                 if tag_totalizado in df['TagName'].values:
@@ -753,6 +755,8 @@ if "graficar_pozo" in params:
                 
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
+                if tag_nivel_tanque in df['TagName'].values:
+                    val_nt_prom = f"{df[df['TagName'] == tag_nivel_tanque]['VALUE'].mean():,.2f}"
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
                 if tag_nivel_dinamico in df['TagName'].values:
@@ -777,17 +781,21 @@ if "graficar_pozo" in params:
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Caudal Promedio</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
         </div>
+        <div style="padding: 12px 18px; background: rgba(0, 255, 204, 0.05); border: 2px solid #00ffcc; border-radius: 12px; min-width: 130px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Nivel Tanque</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nt_prom} <small style="font-size: 12px; color: #00ffcc;">m</small></span>
+        </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm²</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 0, 180, 0.05); border: 2px solid #ff00b4; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Nivel Dinámico</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nd_prom} <small style="font-size: 12px; color: #ff00b4;">Mts</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nd_prom} <small style="font-size: 12px; color: #ff00b4;">m</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(168, 0, 255, 0.05); border: 2px solid #a800ff; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Sumergencia</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_sum_prom} <small style="font-size: 12px; color: #a800ff;">Mts</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_sum_prom} <small style="font-size: 12px; color: #a800ff;">m</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
@@ -801,7 +809,7 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
-            # ---  PESTAÑA DE VOLÚMENES ---
+            # --- PESTAÑA DE VOLÚMENES ---
             with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
@@ -833,7 +841,7 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # ---  GRÁFICO CON REDISTRIBUCIÓN OPTIMIZADA DE EJES ---
+            # --- GRÁFICO MULTI-EJE CALIBRADO (IZQUIERDA Y DERECHA COMPACTOS) ---
             if not df.empty:
                 fig_line = go.Figure()
                 
@@ -860,19 +868,35 @@ if "graficar_pozo" in params:
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
-                    # Se extiende la cuadrícula central al 90% del ancho disponible
+                    # El dominio horizontal empieza en 0.07 para dar espacio al eje libre exterior izquierdo
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0, 0.90]
+                        domain=[0.07, 0.91]
                     ),
                     
-                    # EJE IZQUIERDO: Caudal
+                    # --- MARGEN IZQUIERDO COMPACTO ---
+                    # EJE IZQUIERDO EXTERIOR: Nivel Tanque (m)
+                    yaxis5=dict(
+                        title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
+                        tickfont=dict(color="#00ffcc"), 
+                        side="left",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.00
+                    ),
+                    
+                    # EJE IZQUIERDO INTERIOR: Caudal (Pegado al borde del gráfico en 0.07)
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
-                        tickfont=dict(color="#00d4ff")
+                        tickfont=dict(color="#00d4ff"),
+                        side="left",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.07
                     ),
                     
-                    # EJE DERECHO 1: Presión (Desplazado a la derecha, al nuevo borde de la gráfica)
+                    # --- MARGEN DERECHO COMPACTO ---
+                    # EJE DERECHO INTERIOR: Presión (Pegado al borde derecho en 0.91)
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
@@ -882,17 +906,17 @@ if "graficar_pozo" in params:
                         position=0.92
                     ),
                     
-                    # EJE DERECHO 2: Niveles (Compactado al centro del grupo derecho)
+                    # EJE DERECHO INTERMEDIO: Niveles Pozo (Posición 0.955)
                     yaxis3=dict(
-                        title=dict(text="<b>Niveles (m)</b>", font=dict(color="#ff00b4")), 
+                        title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
                         tickfont=dict(color="#ff00b4"), 
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.96
+                        position=0.955
                     ),
                     
-                    # EJE DERECHO 3: Eléctricos (Fijo en el extremo exterior derecho)
+                    # EJE DERECHO EXTERIOR: Eléctricos (Posición fija en 1.00)
                     yaxis4=dict(
                         title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
                         tickfont=dict(color="#ff8000"), 
