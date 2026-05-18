@@ -840,48 +840,28 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- PROCESAMIENTO AVANZADO DE DATOS MÚLTIPLES ---
+            # --- GRÁFICO MULTI-EJE SIN ALTERACIÓN DE DATOS ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
-                df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
-                
-                # 1. Creamos una matriz de tiempo maestro basada en todos los minutos únicos del set completo
-                linea_tiempo_maestra = pd.DataFrame({'FECHA_MIN': sorted(df['FECHA_MIN'].unique())})
                 
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                    dft_l = df[df['TagName'] == t['tag']].copy()
+                    # Extraemos los datos puros y originales de la base de datos sin alterar nada
+                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA')
                     if not dft_l.empty:
-                        # Conservamos la cadena de texto de la hora exacta original de este tag específico
-                        dft_l['HORA_REAL_TXT'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
-                        
-                        # Eliminamos duplicados dentro del mismo minuto tomando la última muestra real
-                        dft_l = dft_l.sort_values('FECHA').groupby('FECHA_MIN').last().reset_index()
-                        
-                        # 2. Hacemos un cruce con la línea de tiempo maestra para no perder ningún punto de control
-                        df_maestro_tag = pd.merge(linea_tiempo_maestra, dft_l, on='FECHA_MIN', how='left')
-                        
-                        # 3. Relleno hacia adelante (ffill): Arrastra el último valor conocido y su hora original
-                        df_maestro_tag['VALUE'] = df_maestro_tag['VALUE'].ffill()
-                        df_maestro_tag['HORA_REAL_TXT'] = df_maestro_tag['HORA_REAL_TXT'].ffill()
-                        
-                        # Si quedan nulos al inicio por falta de muestras iniciales, rellenamos hacia atrás para evitar quiebres
-                        df_maestro_tag['VALUE'] = df_maestro_tag['VALUE'].bfill()
-                        df_maestro_tag['HORA_REAL_TXT'] = df_maestro_tag['HORA_REAL_TXT'].bfill()
                         
                         fig_line.add_trace(
                             go.Scatter(
-                                x=df_maestro_tag['FECHA_MIN'], 
-                                y=df_maestro_tag['VALUE'], 
+                                x=dft_l['FECHA'], 
+                                y=dft_l['VALUE'], 
                                 name=t['label'], 
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # Inyectamos la hora en que el dato realmente se generó en el SCADA
-                                customdata=df_maestro_tag['HORA_REAL_TXT'].tolist(),
-                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
+                                # El hovertemplate lee la fecha original (%{x}) de cada punto individual
+                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(%{x|%H:%M:%S})</span><extra></extra>"
                             )
                         )
                 
@@ -890,12 +870,20 @@ if "graficar_pozo" in params:
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified",
+                    
+                    # 'hovermode="x"' activa las cajas individuales de todas las variables cruzadas por la vertical
+                    hovermode="x", 
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0.07, 0.91]
+                        domain=[0.07, 0.91],
+                        # 'across' proyecta la línea guía de forma transversal a través de todos los ejes superpuestos
+                        showspikes=True,
+                        spikemode="across",
+                        spikethickness=1,
+                        spikedash="dash",
+                        spikecolor="rgba(255,255,255,0.4)"
                     ),
                     
                     # --- MARGEN IZQUIERDO COMPACTO ORIGINAL ---
