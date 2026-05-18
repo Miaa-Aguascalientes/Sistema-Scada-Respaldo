@@ -711,7 +711,7 @@ if "graficar_pozo" in params:
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    # Asignación explícita de ejes para el lado derecho ('y' es izquierdo, 'y2', 'y3', 'y4' son derechos)
+    # Asignación de ejes correlacionada con la nueva distribución compacta
     config_visual = [
         ('caudal', "Caudal (Lps)", 'y', '#00d4ff'), 
         ('presion', "Presión (Kg/cm²)", 'y2', '#00ff00'),
@@ -833,7 +833,7 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # ---  GRÁFICO CON EJES DERECHOS COMPACTOS Y GRÁFICO ANCHO ---
+            # ---  GRÁFICO CON REDISTRIBUCIÓN OPTIMIZADA DE EJES ---
             if not df.empty:
                 fig_line = go.Figure()
                 
@@ -848,7 +848,7 @@ if "graficar_pozo" in params:
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
-                                yaxis=t['axis']  # Mapeo directo al sub-eje correspondiente
+                                yaxis=t['axis']
                             )
                         )
                 
@@ -860,12 +860,10 @@ if "graficar_pozo" in params:
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
-                    # --- COMPRESIÓN DE EJES DERECHOS ---
-                    # Ampliamos el dominio para que el gráfico sea más ancho
-                    # Antes estaba en [0, 0.78], ahora lo subimos a [0, 0.84] (o [0, 0.82] si quieres aún más compactos)
+                    # Se extiende la cuadrícula central al 90% del ancho disponible
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0, 0.84]
+                        domain=[0, 0.90]
                     ),
                     
                     # EJE IZQUIERDO: Caudal
@@ -874,27 +872,27 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00d4ff")
                     ),
                     
-                    # EJE DERECHO 1: Presión (Pegado al borde del gráfico, nueva posición)
+                    # EJE DERECHO 1: Presión (Desplazado a la derecha, al nuevo borde de la gráfica)
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
                         side="right",
-                        overlaying="y", # Importante para que no lo desplace
-                        anchor="x",     # Se ancla al gráfico
-                        position=0.84   # Misma posición que el final del dominio x
+                        overlaying="y",
+                        anchor="x",
+                        position=0.90
                     ),
                     
-                    # EJE DERECHO 2: Niveles (Desplazado a la derecha en la posición 0.92)
+                    # EJE DERECHO 2: Niveles (Compactado al centro del grupo derecho)
                     yaxis3=dict(
                         title=dict(text="<b>Niveles (m)</b>", font=dict(color="#ff00b4")), 
                         tickfont=dict(color="#ff00b4"), 
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.92
+                        position=0.95
                     ),
                     
-                    # EJE DERECHO 3: Eléctricos (Desplazado aún más a la derecha en la posición 1.00)
+                    # EJE DERECHO 3: Eléctricos (Fijo en el extremo exterior derecho)
                     yaxis4=dict(
                         title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
                         tickfont=dict(color="#ff8000"), 
