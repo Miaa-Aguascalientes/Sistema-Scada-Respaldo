@@ -840,19 +840,40 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- GRÁFICO MULTI-EJE SIN ALTERACIÓN DE DATOS ---
+            # --- ESTRATEGIA DE CRUCE COMPLETO SIN ALTERAR CURVAS ORIGINALES ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
+                
+                # Creamos un eje de tiempo común consolidando TODAS las fechas reales obtenidas de la DB
+                eje_tiempo_global = sorted(df['FECHA'].unique())
+                df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
                 
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                    # Extraemos los datos puros y originales de la base de datos sin alterar nada
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA')
                     if not dft_l.empty:
+                        # Conservamos la hora exacta nativa en texto
+                        dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
+                        
+                        # Realizamos un cruce de proximidad hacia atrás ('asof') basado en la fecha exacta
+                        # Esto NO inventa puntos en la base de datos ni altera el gráfico, solo calcula 
+                        # qué valor ponerle a la tarjeta si te pararas en ese instante de tiempo exacto.
+                        df_tag_maestro = pd.merge_asof(
+                            df_interactivo, 
+                            dft_l, 
+                            left_on='FECHA_INDEX', 
+                            right_on='FECHA', 
+                            direction='backward'
+                        )
+                        
+                        # Si hay nulos al principio de la serie por desfase, jalamos el primer dato conocido hacia atrás
+                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                         
                         fig_line.add_trace(
                             go.Scatter(
+                                # Graficamos las curvas usando los tiempos puros originales del tag para que la línea NO se altere
                                 x=dft_l['FECHA'], 
                                 y=dft_l['VALUE'], 
                                 name=t['label'], 
@@ -860,8 +881,11 @@ if "graficar_pozo" in params:
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # El hovertemplate lee la fecha original (%{x}) de cada punto individual
-                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(%{x|%H:%M:%S})</span><extra></extra>"
+                                # Usamos los arreglos alineados globalmente en customdata y hovertext para alimentar la tarjeta
+                                customdata=df_tag_maestro['HORA_REAL'].tolist(),
+                                hovertext=df_tag_maestro['VALUE'].tolist(),
+                                # Forzamos a leer del hovertext calculado por proximidad
+                                hovertemplate="<b>%{fullData.name}</b>: %{hovertext:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
                             )
                         )
                 
@@ -871,19 +895,13 @@ if "graficar_pozo" in params:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
-                    # 'hovermode="x"' activa las cajas individuales de todas las variables cruzadas por la vertical
-                    hovermode="x", 
+                    # Regresa la tarjeta unificada vertical impecable que tenías al principio
+                    hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0.07, 0.91],
-                        # 'across' proyecta la línea guía de forma transversal a través de todos los ejes superpuestos
-                        showspikes=True,
-                        spikemode="across",
-                        spikethickness=1,
-                        spikedash="dash",
-                        spikecolor="rgba(255,255,255,0.4)"
+                        domain=[0.07, 0.91]
                     ),
                     
                     # --- MARGEN IZQUIERDO COMPACTO ORIGINAL ---
