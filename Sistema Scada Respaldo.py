@@ -841,11 +841,10 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- PROCESAMIENTO CRÍTICO DE HOVER SEGURO ---
+            # --- PROCESAMIENTO CRÍTICO DE HOVER SEGURO Y CON COLOR ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # Definimos el eje de tiempo unificado donde Plotly evaluará el cursor
                 eje_tiempo_global = sorted(df['FECHA'].unique())
                 df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
                 
@@ -854,7 +853,6 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
                     
-                    # Rescate si el sensor no generó ningún cambio en el periodo visual
                     if dft_l.empty:
                         q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA < '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
@@ -865,7 +863,7 @@ if "graficar_pozo" in params:
                         else:
                             dft_l = pd.DataFrame([{ 'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini) }])
 
-                    # 1. PINTAMOS LA GEOMETRÍA REAL (Sin Hover para evitar duplicados o cajas rotas)
+                    # 1. TRAZA GEOMÉTRICA REAL (Mantiene las líneas y marcadores en el gráfico con su color original)
                     fig_line.add_trace(
                         go.Scatter(
                             x=dft_l['FECHA'], 
@@ -876,14 +874,12 @@ if "graficar_pozo" in params:
                             marker=dict(size=4, symbol='circle'),
                             yaxis=t['axis'],
                             showlegend=True,
-                            hoverinfo="skip"  # Ignoramos por completo el comportamiento nativo roto
+                            hoverinfo="skip"  # Desactivado aquí para evitar duplicación de cajas
                         )
                     )
                     
-                    # Mapeamos la estampa de procedencia original del dato
                     dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%m-%d %H:%M:%S')
                     
-                    # Forzamos el cruce asof hacia el eje de tiempo maestro
                     df_tag_maestro = pd.merge_asof(
                         df_interactivo, 
                         dft_l, 
@@ -894,15 +890,15 @@ if "graficar_pozo" in params:
                     df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
                     df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
-                    # 2. INYECTAMOS LA TRAZA INVISIBLE DE SOPORTE PARA LA TARJETA UNIFICADA
-                    # Al tener exactamente los mismos puntos X que el eje global, NUNCA desaparecerá de la tarjeta
+                    # 2. TRAZA INVISIBLE DE HOVER BLINDADA Y CON COLOR RESTAURADO
+                    # Al heredar 't['color']' en su propiedad line, Plotly pinta el texto y el marcador de la tarjeta con el color real
                     fig_line.add_trace(
                         go.Scatter(
                             x=df_interactivo['FECHA_INDEX'],
                             y=df_tag_maestro['VALUE'],
                             name=t['label'],
                             mode='lines',
-                            line=dict(color='rgba(0,0,0,0)', width=0), # Totalmente invisible en el gráfico
+                            line=dict(color=t['color'], width=0), # Ancho 0 e inyectando su color hexadecimal original para la etiqueta
                             yaxis=t['axis'],
                             showlegend=False,
                             customdata=df_tag_maestro['HORA_REAL'].tolist(),
@@ -917,7 +913,6 @@ if "graficar_pozo" in params:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
-                    # Forzado estricto de la tarjeta vertical unificada impecable
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
@@ -926,7 +921,7 @@ if "graficar_pozo" in params:
                         domain=[0.07, 0.91]
                     ),
                     
-                    # --- CONFIGURACIÓN DE EJES MULTIPLES ---
+                    # --- CONFIGURACIÓN DE EJES MÚLTIPLES ---
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
