@@ -843,20 +843,18 @@ if "graficar_pozo" in params:
             # --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
-                
-                # Redondeamos las marcas de tiempo al minuto más cercano para sincronizar los ejes X
                 df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
                 
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                    dft_l = df[df['TagName'] == t['tag']]
+                    dft_l = df[df['TagName'] == t['tag']].copy()
                     if not dft_l.empty:
-                        # Guardamos la fecha exacta original en una columna nueva antes de agrupar
-                        dft_l['FECHA_REAL_TXT'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
+                        # Extraemos el texto de la hora real de la muestra antes de agrupar por minuto
+                        dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
                         
-                        # Limpieza de duplicados por minuto para mantener la estructura unificada
-                        dft_l = dft_l.groupby('FECHA_MIN').last().reset_index()
+                        # Agrupamos por minuto y tomamos la última lectura de ese bloque
+                        dft_l = dft_l.sort_values('FECHA').groupby('FECHA_MIN').last().reset_index()
                         
                         fig_line.add_trace(
                             go.Scatter(
@@ -867,9 +865,10 @@ if "graficar_pozo" in params:
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # Usamos customdata para inyectar la hora exacta (con segundos) al tooltip
-                                customdata=dft_l['FECHA_REAL_TXT'],
-                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(% {customdata})</span><extra></extra>"
+                                # Pasamos la columna formateada como una lista limpia en customdata
+                                customdata=dft_l['HORA_REAL'].tolist(),
+                                # Sintaxis corregida sin espacios: %{customdata}
+                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
                             )
                         )
                 
@@ -878,7 +877,7 @@ if "graficar_pozo" in params:
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified",  # Agrupación unificada perfecta sobre el tiempo homogeneizado
+                    hovermode="x unified",
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
