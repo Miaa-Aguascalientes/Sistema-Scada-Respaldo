@@ -711,7 +711,7 @@ if "graficar_pozo" in params:
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    # Configuración visual base incluyendo las nuevas variables de niveles (lado secundario Y - Derecho)
+    # Configuración visual base incluyendo las nuevas variables de niveles
     config_visual = [
         ('caudal', "Caudal (Lps)", False, '#00d4ff'), 
         ('presion', "Presión (Kg/cm²)", True, '#00ff00'),
@@ -764,7 +764,7 @@ if "graficar_pozo" in params:
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
-            # --- RENDER CABECERA (CON ELÉCTRICOS Y NUEVOS NIVELES INTEGRADOS) ---
+            # --- RENDER CABECERA ---
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -833,13 +833,23 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # ---  GRÁFICO DE LÍNEAS (EJES FIX CON DICCIONARIOS) ---
+            # ---  GRÁFICO DE LÍNEAS CON MARCADORES (PUNTOS INTEGRADOS) ---
             if not df.empty:
                 fig_line = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
-                        fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=2.5)), secondary_y=t['side'])
+                        fig_line.add_trace(
+                            go.Scatter(
+                                x=dft_l['FECHA'], 
+                                y=dft_l['VALUE'], 
+                                name=t['label'], 
+                                mode='lines+markers',  # <-- Se agregan los marcadores junto a la línea
+                                line=dict(color=t['color'], width=2.5),
+                                marker=dict(size=4, symbol='circle')  # <-- Estilo y tamaño de los puntitos
+                            ), 
+                            secondary_y=t['side']
+                        )
                 
                 fig_line.update_layout(
                     template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
