@@ -926,7 +926,7 @@ if "graficar_pozo" in params:
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         showline=False,       # Sin recuadros externos
-                        mirror=False
+                        mirror=False,
                         showspikes=True,
                         spikethickness=1, 
                         spikedash="dash",
