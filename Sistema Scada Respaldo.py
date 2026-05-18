@@ -879,7 +879,7 @@ if "graficar_pozo" in params:
                         )
                     )
                     
-                    dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%m-%d %H:%M:%S')
+                    dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%d-%m-%Y %H:%M:%S')
                     
                     df_tag_maestro = pd.merge_asof(
                         df_interactivo, 
