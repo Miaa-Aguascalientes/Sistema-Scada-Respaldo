@@ -841,7 +841,7 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- PROCESAMIENTO CRÍTICO DE HOVER SEGURO Y CON COLOR ---
+            # --- PROCESAMIENTO CRÍTICO DE HOVER CON COLORES ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
@@ -863,7 +863,7 @@ if "graficar_pozo" in params:
                         else:
                             dft_l = pd.DataFrame([{ 'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini) }])
 
-                    # 1. TRAZA GEOMÉTRICA REAL (Mantiene las líneas y marcadores en el gráfico con su color original)
+                    # 1. GEOMETRÍA VISUAL REAL
                     fig_line.add_trace(
                         go.Scatter(
                             x=dft_l['FECHA'], 
@@ -874,7 +874,7 @@ if "graficar_pozo" in params:
                             marker=dict(size=4, symbol='circle'),
                             yaxis=t['axis'],
                             showlegend=True,
-                            hoverinfo="skip"  # Desactivado aquí para evitar duplicación de cajas
+                            hoverinfo="skip"
                         )
                     )
                     
@@ -890,20 +890,24 @@ if "graficar_pozo" in params:
                     df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
                     df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
-                    # 2. TRAZA INVISIBLE DE HOVER BLINDADA Y CON COLOR RESTAURADO
-                    # Al heredar 't['color']' en su propiedad line, Plotly pinta el texto y el marcador de la tarjeta con el color real
+                    # 2. TRAZA DE HOVER BLINDADA CON FORZADO EN COLOR DE MARCADORES Y BORDES
                     fig_line.add_trace(
                         go.Scatter(
                             x=df_interactivo['FECHA_INDEX'],
                             y=df_tag_maestro['VALUE'],
                             name=t['label'],
                             mode='lines',
-                            line=dict(color=t['color'], width=0), # Ancho 0 e inyectando su color hexadecimal original para la etiqueta
+                            # Ponemos un ancho minúsculo (0.01) para obligar a Plotly a reconocer el color en el hover
+                            line=dict(color=t['color'], width=0.01), 
                             yaxis=t['axis'],
                             showlegend=False,
                             customdata=df_tag_maestro['HORA_REAL'].tolist(),
                             hovertext=df_tag_maestro['VALUE'].tolist(),
-                            hovertemplate="<b>%{fullData.name}</b>: %{hovertext:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
+                            # Estructuramos el texto inyectándole etiquetas HTML con el color hexadecimal exacto
+                            hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
+                            hoverlabel=dict(
+                                bordercolor=t['color']
+                            )
                         )
                     )
                 
