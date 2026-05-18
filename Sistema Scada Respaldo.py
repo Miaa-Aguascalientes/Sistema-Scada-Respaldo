@@ -840,34 +840,47 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
+            # --- PROCESAMIENTO AVANZADO DE DATOS MÚLTIPLES ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
+                
+                # 1. Creamos una matriz de tiempo maestro basada en todos los minutos únicos del set completo
+                linea_tiempo_maestra = pd.DataFrame({'FECHA_MIN': sorted(df['FECHA_MIN'].unique())})
                 
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']].copy()
                     if not dft_l.empty:
-                        # Extraemos el texto de la hora real de la muestra antes de agrupar por minuto
-                        dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
+                        # Conservamos la cadena de texto de la hora exacta original de este tag específico
+                        dft_l['HORA_REAL_TXT'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
                         
-                        # Agrupamos por minuto y tomamos la última lectura de ese bloque
+                        # Eliminamos duplicados dentro del mismo minuto tomando la última muestra real
                         dft_l = dft_l.sort_values('FECHA').groupby('FECHA_MIN').last().reset_index()
+                        
+                        # 2. Hacemos un cruce con la línea de tiempo maestra para no perder ningún punto de control
+                        df_maestro_tag = pd.merge(linea_tiempo_maestra, dft_l, on='FECHA_MIN', how='left')
+                        
+                        # 3. Relleno hacia adelante (ffill): Arrastra el último valor conocido y su hora original
+                        df_maestro_tag['VALUE'] = df_maestro_tag['VALUE'].ffill()
+                        df_maestro_tag['HORA_REAL_TXT'] = df_maestro_tag['HORA_REAL_TXT'].ffill()
+                        
+                        # Si quedan nulos al inicio por falta de muestras iniciales, rellenamos hacia atrás para evitar quiebres
+                        df_maestro_tag['VALUE'] = df_maestro_tag['VALUE'].bfill()
+                        df_maestro_tag['HORA_REAL_TXT'] = df_maestro_tag['HORA_REAL_TXT'].bfill()
                         
                         fig_line.add_trace(
                             go.Scatter(
-                                x=dft_l['FECHA_MIN'], 
-                                y=dft_l['VALUE'], 
+                                x=df_maestro_tag['FECHA_MIN'], 
+                                y=df_maestro_tag['VALUE'], 
                                 name=t['label'], 
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # Pasamos la columna formateada como una lista limpia en customdata
-                                customdata=dft_l['HORA_REAL'].tolist(),
-                                # Sintaxis corregida sin espacios: %{customdata}
+                                # Inyectamos la hora en que el dato realmente se generó en el SCADA
+                                customdata=df_maestro_tag['HORA_REAL_TXT'].tolist(),
                                 hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
                             )
                         )
