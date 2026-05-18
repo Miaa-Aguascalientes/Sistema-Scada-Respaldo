@@ -648,6 +648,7 @@ from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 params = st.query_params
 
@@ -702,7 +703,6 @@ if "graficar_pozo" in params:
             st.info("Selecciona el rango.")
             st.stop()
 
-    
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
     tag_caudal_real = pozo_info.get('caudal', '')
     tag_nivel_tanque = pozo_info.get('nivel_tanque', '')
@@ -712,7 +712,6 @@ if "graficar_pozo" in params:
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    # Configuración visual: 'y' e 'y5' van a la izquierda; 'y2', 'y3', 'y4' van a la derecha
     config_visual = [
         ('caudal', "Caudal (Lps)", 'y', '#00d4ff'), 
         ('nivel_tanque', "Nivel Tanque (m)", 'y5', '#00ffcc'),
@@ -841,22 +840,33 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- GRÁFICO MULTI-EJE CALIBRADO (IZQUIERDA Y DERECHA COMPACTOS) ---
+            # --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
             if not df.empty:
+                df['FECHA'] = pd.to_datetime(df['FECHA'])
+                
+                # TRUCO MAESTRO: Redondeamos las marcas de tiempo al minuto más cercano para que coincidan exactamente 
+                # en el eje X y obligar a 'x unified' a agruparlas de forma nativa.
+                df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
+                
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
+                        # Si hay lecturas duplicadas en el mismo minuto debido al redondeo, tomamos la última.
+                        dft_l = dft_l.groupby('FECHA_MIN').last().reset_index()
+                        
                         fig_line.add_trace(
                             go.Scatter(
-                                x=dft_l['FECHA'], 
+                                x=dft_l['FECHA_MIN'], 
                                 y=dft_l['VALUE'], 
                                 name=t['label'], 
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
-                                yaxis=t['axis']
+                                yaxis=t['axis'],
+                                # Plantilla limpia para la visualización unificada
+                                hovertemplate="%{y:,.2f}<extra></extra>"
                             )
                         )
                 
@@ -865,20 +875,16 @@ if "graficar_pozo" in params:
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified", 
+                    hovermode="x unified",  # Modo unificado perfecto gracias a la homogenización de tiempos
                     legend=dict(orientation="h", y=1.08),
                     
-                    # El dominio horizontal empieza en 0.07 para dar espacio al eje libre exterior izquierdo
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0.07, 0.91],
-                        showspikes=True,
-                        spikemode="across",
-                        spikesnap="cursor"          
+                        domain=[0.07, 0.91]
                     ),
                     
-                    # --- MARGEN IZQUIERDO COMPACTO ---
-                    # EJE IZQUIERDO EXTERIOR: Nivel Tanque (m)
+                    # --- DISEÑO ORIGINAL DE EJES FIJOS Y SEPARADOS MANTENIDO AL 100% ---
+                    # MARGEN IZQUIERDO COMPACTO
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
@@ -887,45 +893,37 @@ if "graficar_pozo" in params:
                         anchor="free",
                         position=0.00
                     ),
-                    
-                    # EJE IZQUIERDO INTERIOR: Caudal (Pegado al borde del gráfico en 0.07)
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
                         tickfont=dict(color="#00d4ff"),
                         side="left",
-                        overlaying="y",
-                        anchor="x",
+                        anchor="free",
                         position=0.07
                     ),
                     
-                    # --- MARGEN DERECHO COMPACTO ---
-                    # EJE DERECHO INTERIOR: Presión (Pegado al borde derecho en 0.91)
+                    # MARGEN DERECHO COMPACTO
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
                         side="right",
                         overlaying="y",
-                        anchor="x",
+                        anchor="free",
                         position=0.92
                     ),
-                    
-                    # EJE DERECHO INTERMEDIO: Niveles Pozo (Posición 0.955)
                     yaxis3=dict(
                         title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
                         tickfont=dict(color="#ff00b4"), 
                         side="right",
                         overlaying="y",
-                        anchor="x",
+                        anchor="free",
                         position=0.955
                     ),
-                    
-                    # EJE DERECHO EXTERIOR: Eléctricos (Posición fija en 1.00)
                     yaxis4=dict(
                         title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
                         tickfont=dict(color="#ff8000"), 
                         side="right",
                         overlaying="y",
-                        anchor="x",
+                        anchor="free",
                         position=1.00
                     )
                 )
