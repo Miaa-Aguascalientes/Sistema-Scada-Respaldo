@@ -840,12 +840,11 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
+# --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # TRUCO MAESTRO: Redondeamos las marcas de tiempo al minuto más cercano para que coincidan exactamente 
-                # en el eje X y obligar a 'x unified' a agruparlas de forma nativa.
+                # Redondeamos las marcas de tiempo al minuto más cercano para la coincidencia exacta
                 df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
                 
                 fig_line = go.Figure()
@@ -853,20 +852,20 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
-                        # Si hay lecturas duplicadas en el mismo minuto debido al redondeo, tomamos la última.
+                        # Si hay lecturas duplicadas en el mismo minuto, tomamos la última.
                         dft_l = dft_l.groupby('FECHA_MIN').last().reset_index()
                         
                         fig_line.add_trace(
                             go.Scatter(
                                 x=dft_l['FECHA_MIN'], 
                                 y=dft_l['VALUE'], 
-                                name=t['label'], 
+                                name=t['label'], # Este es el texto que se mapea a fullData.name
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # Plantilla limpia para la visualización unificada
-                                hovertemplate="%{y:,.2f}<extra></extra>"
+                                # --- CORRECCIÓN AQUÍ: Forzar Nombre de la variable + Valor ---
+                                hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f}<extra></extra>"
                             )
                         )
                 
@@ -875,7 +874,7 @@ if "graficar_pozo" in params:
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified",  # Modo unificado perfecto gracias a la homogenización de tiempos
+                    hovermode="x unified",  # Agrupa todo usando el tiempo homogenizado
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
@@ -928,10 +927,6 @@ if "graficar_pozo" in params:
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
-
-        except Exception as e: st.error(f"Error: {e}")
-            
-    st.stop()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
