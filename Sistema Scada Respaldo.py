@@ -123,7 +123,7 @@ if not st.session_state.autenticado:
         <div class="visual-core">
             <div class="ring r1"></div><div class="ring r2"></div>
             <div class="center-logo">
-                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/77573406f536a08b28e9e40f64ff2b368b3df1ad/LogoMIAA.svg" class="logo-miaa">
+                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/b501401ee7b1a2428dbb38f08887517b058e544e/LogoMIAA.svg?token=BLAUM5JZJYJQLBLEKUVVFEDKBMUVU" class="logo-miaa">
                 <h2 style="color:#00d4ff; font-family:Orbitron; font-size:-400px; letter-spacing:5px; margin-top:-35px;"></h2>
             </div>
         </div>
@@ -1900,7 +1900,7 @@ st.markdown("""
 
 with st.sidebar:
     # 8.1. Contenedor del logo
-    st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/77573406f536a08b28e9e40f64ff2b368b3df1ad/LogoMIAA.svg"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/b501401ee7b1a2428dbb38f08887517b058e544e/LogoMIAA.svg?token=BLAUM5JZJYJQLBLEKUVVFEDKBMUVU"></div>', unsafe_allow_html=True)
 
     # 8.2. Inicializamos variables de estado (Solo si no existen)
     if 'centro_mapa' not in st.session_state:
