@@ -912,7 +912,7 @@ if "graficar_pozo" in params:
                         )
                     )
                 
-                fig_line.update_layout(
+fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
@@ -921,26 +921,40 @@ if "graficar_pozo" in params:
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
+                    # --- CONFIGURACIÓN DEL EJE X CON BORDES ---
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
-                        domain=[0.07, 0.91]
+                        domain=[0.07, 0.91],
+                        showline=True,        # Muestra la línea del eje
+                        linecolor='white',   # Color de la línea en blanco
+                        linewidth=1.5,       # Grosor de la línea
+                        mirror=True          # Enmarca el contenedor principal
                     ),
                     
-                    # --- CONFIGURACIÓN DE EJES MÚLTIPLES ---
+                    # --- CONFIGURACIÓN DE EJES MÚLTIPLES (CON LÍNEAS DIVISORIAS BLANCAS) ---
+                    # Para lograr el efecto de separación como en tu referencia (imagen_15.png),
+                    # aplicamos bordes blancos verticales a cada eje Y secundario.
+                    
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
                         side="left",
                         overlaying="y",
                         anchor="free",
-                        position=0.00
+                        position=0.00,
+                        showline=True,
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
                         tickfont=dict(color="#00d4ff"),
                         side="left",
                         anchor="free",
-                        position=0.04
+                        position=0.07,
+                        showline=True,
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
@@ -948,7 +962,10 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.92
+                        position=0.92,
+                        showline=True,
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis3=dict(
                         title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
@@ -956,7 +973,10 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=0.955
+                        position=0.955,
+                        showline=True,
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis4=dict(
                         title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
@@ -964,7 +984,10 @@ if "graficar_pozo" in params:
                         side="right",
                         overlaying="y",
                         anchor="free",
-                        position=1.00
+                        position=1.00,
+                        showline=True,
+                        linecolor='white',
+                        linewidth=1.5
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
