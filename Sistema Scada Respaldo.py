@@ -123,7 +123,7 @@ if not st.session_state.autenticado:
         <div class="visual-core">
             <div class="ring r1"></div><div class="ring r2"></div>
             <div class="center-logo">
-                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Lecturas-Hes/c45d926ef0e34215c237cd3c7f71f7b97bf9a784/LogoMIAA-BpcVaQaq.svg" class="logo-miaa">
+                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Sistema-Scada/77573406f536a08b28e9e40f64ff2b368b3df1ad/LogoMIAA.svg" class="logo-miaa">
                 <h2 style="color:#00d4ff; font-family:Orbitron; font-size:-400px; letter-spacing:5px; margin-top:-35px;"></h2>
             </div>
         </div>
