@@ -711,23 +711,23 @@ if "graficar_pozo" in params:
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    # Configuración visual base incluyendo las nuevas variables de niveles
+    # Asignación explícita de ejes para el lado derecho ('y' es izquierdo, 'y2', 'y3', 'y4' son derechos)
     config_visual = [
-        ('caudal', "Caudal (Lps)", False, '#00d4ff'), 
-        ('presion', "Presión (Kg/cm²)", True, '#00ff00'),
-        ('nivel_dinamico', "Nivel Dinámico (m)", True, '#ff00b4'),
-        ('sumergencia', "Sumergencia (m)", True, '#a800ff')
+        ('caudal', "Caudal (Lps)", 'y', '#00d4ff'), 
+        ('presion', "Presión (Kg/cm²)", 'y2', '#00ff00'),
+        ('nivel_dinamico', "Nivel Dinámico (m)", 'y3', '#ff00b4'),
+        ('sumergencia', "Sumergencia (m)", 'y3', '#a800ff')
     ]
     
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
-        if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", True, '#fffb00'))
+        if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", 'y4', '#fffb00'))
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
-        if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", True, '#ff8000'))
+        if t and t != 'N/A': config_visual.append((t, f"Amp L{i+1}", 'y4', '#ff8000'))
 
     tags_grafico = []
     for item in config_visual:
         real_t = pozo_info.get(item[0], item[0])
-        if real_t and real_t != 'N/A': tags_grafico.append({'tag': real_t, 'label': item[1], 'side': item[2], 'color': item[3]})
+        if real_t and real_t != 'N/A': tags_grafico.append({'tag': real_t, 'label': item[1], 'axis': item[2], 'color': item[3]})
     
     tags_query = [t['tag'] for t in tags_grafico]
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
@@ -833,9 +833,10 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # ---  GRÁFICO DE LÍNEAS CON MARCADORES (PUNTOS INTEGRADOS) ---
+            # ---  GRÁFICO CON EJES DERECHOS INDEPENDIENTES Y SEPARADOS ---
             if not df.empty:
-                fig_line = make_subplots(specs=[[{"secondary_y": True}]])
+                fig_line = go.Figure()
+                
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
@@ -844,26 +845,59 @@ if "graficar_pozo" in params:
                                 x=dft_l['FECHA'], 
                                 y=dft_l['VALUE'], 
                                 name=t['label'], 
-                                mode='lines+markers',  # <-- Se agregan los marcadores junto a la línea
-                                line=dict(color=t['color'], width=2.5),
-                                marker=dict(size=4, symbol='circle')  # <-- Estilo y tamaño de los puntitos
-                            ), 
-                            secondary_y=t['side']
+                                mode='lines+markers',
+                                line=dict(color=t['color'], width=2.2),
+                                marker=dict(size=4, symbol='circle'),
+                                yaxis=t['axis']  # Mapeo directo al sub-eje correspondiente
+                            )
                         )
                 
                 fig_line.update_layout(
-                    template="plotly_dark", height=600, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified", legend=dict(orientation="h", y=1.05),
+                    template="plotly_dark", 
+                    height=650, 
+                    paper_bgcolor='rgba(0,0,0,0)', 
+                    plot_bgcolor='rgba(0,0,0,0)', 
+                    hovermode="x unified", 
+                    legend=dict(orientation="h", y=1.08),
+                    
+                    # El dominio [0, 0.78] le deja un 22% de ancho a la derecha a los ejes adicionales
+                    xaxis=dict(
+                        title=dict(text="<b>Línea de Tiempo</b>"),
+                        domain=[0, 0.78]
+                    ),
+                    
+                    # EJE IZQUIERDO: Caudal
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
                         tickfont=dict(color="#00d4ff")
                     ),
+                    
+                    # EJE DERECHO 1: Presión (Pegado al borde del gráfico)
                     yaxis2=dict(
-                        title=dict(text="<b>Presión / Niveles / Eléctricos</b>", font=dict(color="#00ff00")), 
+                        title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
-                        anchor="x", overlaying="y", side="right"
+                        side="right"
                     ),
-                    xaxis=dict(title=dict(text="<b>Línea de Tiempo</b>"))
+                    
+                    # EJE DERECHO 2: Niveles (Desplazado a la derecha en la posición 0.85)
+                    yaxis3=dict(
+                        title=dict(text="<b>Niveles (m)</b>", font=dict(color="#ff00b4")), 
+                        tickfont=dict(color="#ff00b4"), 
+                        side="right",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.85
+                    ),
+                    
+                    # EJE DERECHO 3: Eléctricos (Desplazado aún más a la derecha en la posición 0.93)
+                    yaxis4=dict(
+                        title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
+                        tickfont=dict(color="#ff8000"), 
+                        side="right",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.93
+                    )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
