@@ -840,11 +840,11 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-# --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
+            # --- GRÁFICO MULTI-EJE CALIBRADO CON CORRECCIÓN HOVER TOTAL ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # Redondeamos las marcas de tiempo al minuto más cercano para la coincidencia exacta
+                # Redondeamos las marcas de tiempo al minuto más cercano para sincronizar los ejes X
                 df['FECHA_MIN'] = df['FECHA'].dt.round('1min')
                 
                 fig_line = go.Figure()
@@ -852,19 +852,19 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']]
                     if not dft_l.empty:
-                        # Si hay lecturas duplicadas en el mismo minuto, tomamos la última.
+                        # Limpieza de duplicados por minuto para un cruce limpio
                         dft_l = dft_l.groupby('FECHA_MIN').last().reset_index()
                         
                         fig_line.add_trace(
                             go.Scatter(
                                 x=dft_l['FECHA_MIN'], 
                                 y=dft_l['VALUE'], 
-                                name=t['label'], # Este es el texto que se mapea a fullData.name
+                                name=t['label'], 
                                 mode='lines+markers',
                                 line=dict(color=t['color'], width=2.2),
                                 marker=dict(size=4, symbol='circle'),
                                 yaxis=t['axis'],
-                                # --- CORRECCIÓN AQUÍ: Forzar Nombre de la variable + Valor ---
+                                # Inyección directa del nombre de la variable y su valor formateado
                                 hovertemplate="<b>%{fullData.name}</b>: %{y:,.2f}<extra></extra>"
                             )
                         )
@@ -874,7 +874,7 @@ if "graficar_pozo" in params:
                     height=650, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
-                    hovermode="x unified",  # Agrupa todo usando el tiempo homogenizado
+                    hovermode="x unified",  # Agrupación unificada perfecta sobre el tiempo homogeneizado
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
@@ -882,8 +882,7 @@ if "graficar_pozo" in params:
                         domain=[0.07, 0.91]
                     ),
                     
-                    # --- DISEÑO ORIGINAL DE EJES FIJOS Y SEPARADOS MANTENIDO AL 100% ---
-                    # MARGEN IZQUIERDO COMPACTO
+                    # --- MARGEN IZQUIERDO COMPACTO ORIGINAL ---
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
@@ -900,7 +899,7 @@ if "graficar_pozo" in params:
                         position=0.07
                     ),
                     
-                    # MARGEN DERECHO COMPACTO
+                    # --- MARGEN DERECHO COMPACTO ORIGINAL ---
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
@@ -927,6 +926,10 @@ if "graficar_pozo" in params:
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
+
+        except Exception as e: st.error(f"Error: {e}")
+            
+    st.stop()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
