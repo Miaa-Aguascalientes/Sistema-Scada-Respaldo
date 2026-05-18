@@ -878,8 +878,8 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00ff00"), 
                         side="right",
                         overlaying="y",
-                        anchor="x",
-                        position=0.96
+                        anchor="free",
+                        position=0.94
                     ),
                     
                     # EJE DERECHO 2: Niveles (Compactado al centro del grupo derecho)
