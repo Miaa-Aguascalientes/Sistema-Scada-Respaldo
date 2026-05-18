@@ -928,7 +928,7 @@ if "graficar_pozo" in params:
                         showline=False,       # Sin recuadros externos
                         mirror=False,
                         showspikes=True,
-                        spikethickness=1, 
+                        spikethickness=0.05, 
                         spikedash="dash",
                         spikemode="across",
                         spikecolor="rgba(255, 255, 255, 0.6)"          
