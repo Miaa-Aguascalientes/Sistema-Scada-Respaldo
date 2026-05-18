@@ -756,7 +756,8 @@ if "graficar_pozo" in params:
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_nivel_tanque in df['TagName'].values:
-                    val_nt_prom = f"{df[df['TagName'] == tag_nivel_tanque]['VALUE'].mean():,.2f}"
+                    df_nt = df[df['TagName'] == tag_nivel_tanque].sort_values('FECHA')
+                    val_nt_ultimo = f"{df_nt['VALUE'].iloc[-1]:,.2f}"
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
                 if tag_nivel_dinamico in df['TagName'].values:
@@ -782,8 +783,8 @@ if "graficar_pozo" in params:
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 204, 0.05); border: 2px solid #00ffcc; border-radius: 12px; min-width: 130px; text-align: center;">
-            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Nivel Tanque</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nt_prom} <small style="font-size: 12px; color: #00ffcc;">m</small></span>
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Último Nivel Tanque</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nt_ultimo} <small style="font-size: 12px; color: #00ffcc;">m</small></span>
         </div>
         <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
