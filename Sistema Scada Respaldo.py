@@ -737,6 +737,8 @@ if "graficar_pozo" in params:
         try:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
+            
+            # 1. Consulta principal del rango de tiempo seleccionado
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
@@ -840,54 +842,71 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- ESTRATEGIA DE CRUCE COMPLETO SIN ALTERAR CURVAS ORIGINALES ---
+            # --- ANÁLISIS INTERACTIVO DE COINCIDENCIAS CRUZADAS ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # Creamos un eje de tiempo común consolidando TODAS las fechas reales obtenidas de la DB
+                # Creamos el mapa maestro temporal basándonos en todas las fechas reales devueltas
                 eje_tiempo_global = sorted(df['FECHA'].unique())
                 df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
                 
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA')
-                    if not dft_l.empty:
-                        # Conservamos la hora exacta nativa en texto
-                        dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%H:%M:%S')
+                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                    
+                    # 2. SEGURO HISTÓRICO ANTI-DESAPARICIÓN: 
+                    # Si la serie de este tag está completamente vacía en esta ventana de tiempo,
+                    # consultamos directamente su última muestra histórica en la base de datos completa.
+                    if dft_l.empty:
+                        q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA < '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
+                        df_ultimo_reg = pd.read_sql(q_ultimo, engine)
                         
-                        # Realizamos un cruce de proximidad hacia atrás ('asof') basado en la fecha exacta
-                        # Esto NO inventa puntos en la base de datos ni altera el gráfico, solo calcula 
-                        # qué valor ponerle a la tarjeta si te pararas en ese instante de tiempo exacto.
-                        df_tag_maestro = pd.merge_asof(
-                            df_interactivo, 
-                            dft_l, 
-                            left_on='FECHA_INDEX', 
-                            right_on='FECHA', 
-                            direction='backward'
+                        if not df_ultimo_reg.empty:
+                            df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
+                            dft_l = df_ultimo_reg
+                        else:
+                            # Si de plano el sensor jamás ha tenido un solo registro en el SCADA, inicializamos en 0 en f_ini
+                            dft_l = pd.DataFrame([{ 'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini) }])
+
+                    # Formateamos la estampa de tiempo nativa en un string legible para inyectar en la etiqueta
+                    dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%m-%d %H:%M:%S')
+                    
+                    # Realizamos el cruce por proximidad hacia atrás basado en el eje maestro
+                    df_tag_maestro = pd.merge_asof(
+                        df_interactivo, 
+                        dft_l, 
+                        left_on='FECHA_INDEX', 
+                        right_on='FECHA', 
+                        direction='backward'
+                    )
+                    
+                    # Si hay nulos remanentes al principio de la serie (por ejemplo, si el último dato fue posterior a f_ini)
+                    # usamos bfill() para que arrastre de forma limpia el primer registro conocido hacia el pasado.
+                    df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                    df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
+                    
+                    # Extraemos los arreglos alineados como listas puras nativas de Python
+                    valores_hover = df_tag_maestro['VALUE'].tolist()
+                    fechas_hover = df_tag_maestro['HORA_REAL'].tolist()
+                    
+                    fig_line.add_trace(
+                        go.Scatter(
+                            # Pintamos la línea basándonos en los tiempos reales y puros para NO alterar la forma geométrica original
+                            x=dft_l['FECHA'], 
+                            y=dft_l['VALUE'], 
+                            name=t['label'], 
+                            mode='lines+markers',
+                            line=dict(color=t['color'], width=2.2),
+                            marker=dict(size=4, symbol='circle'),
+                            yaxis=t['axis'],
+                            # Almacenamos los arreglos alineados por fila del eje global en customdata y hovertext
+                            customdata=fechas_hover,
+                            hovertext=valores_hover,
+                            # Forzamos a Plotly a pintar el valor y el tiempo de procedencia exacta del dato desde las listas mapeadas
+                            hovertemplate="<b>%{fullData.name}</b>: %{hovertext:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
                         )
-                        
-                        # Si hay nulos al principio de la serie por desfase, jalamos el primer dato conocido hacia atrás
-                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
-                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
-                        
-                        fig_line.add_trace(
-                            go.Scatter(
-                                # Graficamos las curvas usando los tiempos puros originales del tag para que la línea NO se altere
-                                x=dft_l['FECHA'], 
-                                y=dft_l['VALUE'], 
-                                name=t['label'], 
-                                mode='lines+markers',
-                                line=dict(color=t['color'], width=2.2),
-                                marker=dict(size=4, symbol='circle'),
-                                yaxis=t['axis'],
-                                # Usamos los arreglos alineados globalmente en customdata y hovertext para alimentar la tarjeta
-                                customdata=df_tag_maestro['HORA_REAL'].tolist(),
-                                hovertext=df_tag_maestro['VALUE'].tolist(),
-                                # Forzamos a leer del hovertext calculado por proximidad
-                                hovertemplate="<b>%{fullData.name}</b>: %{hovertext:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
-                            )
-                        )
+                    )
                 
                 fig_line.update_layout(
                     template="plotly_dark", 
@@ -895,7 +914,7 @@ if "graficar_pozo" in params:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
-                    # Regresa la tarjeta unificada vertical impecable que tenías al principio
+                    # Forzamos la tarjeta unificada vertical donde conviven todas las variables al unísono
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
