@@ -921,15 +921,15 @@ if "graficar_pozo" in params:
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
-                    # --- CONFIGURACIÓN DEL EJE X (SIN ENCHASIS/RECUADRO) ---
+                    # --- CONFIGURACIÓN DEL EJE X ---
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
-                        showline=False,       # Quitamos la línea base del eje X para evitar cierres de cuadro
-                        mirror=False          # Desactivado por completo para que no encierre el gráfico
+                        showline=False,       # Sin recuadros externos
+                        mirror=False
                     ),
                     
-                    # --- CONFIGURACIÓN DE EJES Y (SÓLO LÍNEAS VERTICALES SEPARADORAS) ---
+                    # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
@@ -937,7 +937,9 @@ if "graficar_pozo" in params:
                         overlaying="y",
                         anchor="free",
                         position=0.00,
-                        showline=False        # Eje del extremo izquierdo sin línea divisoria hacia afuera
+                        showline=True,        # Línea activa: Divide Nivel Tanque de Caudal
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
@@ -945,7 +947,7 @@ if "graficar_pozo" in params:
                         side="left",
                         anchor="free",
                         position=0.07,
-                        showline=True,        # Línea blanca vertical separadora
+                        showline=True,        # Línea activa: Cierre del área de gráfica izquierda
                         linecolor='white',
                         linewidth=1.5
                     ),
@@ -956,7 +958,7 @@ if "graficar_pozo" in params:
                         overlaying="y",
                         anchor="free",
                         position=0.92,
-                        showline=True,        # Línea blanca vertical separadora
+                        showline=True,        # Línea activa: Cierre del área de gráfica derecha
                         linecolor='white',
                         linewidth=1.5
                     ),
@@ -967,7 +969,7 @@ if "graficar_pozo" in params:
                         overlaying="y",
                         anchor="free",
                         position=0.955,
-                        showline=True,        # Línea blanca vertical separadora
+                        showline=True,        # Línea activa: Divide Presión de Niveles Pozo
                         linecolor='white',
                         linewidth=1.5
                     ),
@@ -978,7 +980,9 @@ if "graficar_pozo" in params:
                         overlaying="y",
                         anchor="free",
                         position=1.00,
-                        showline=False        # Eje del extremo derecho final, no requiere separar más ejes
+                        showline=True,        # Línea activa: Divide Niveles Pozo de Eléctricos
+                        linecolor='white',
+                        linewidth=1.5
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
