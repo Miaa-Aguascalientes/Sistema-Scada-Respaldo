@@ -738,7 +738,6 @@ if "graficar_pozo" in params:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
             
-            # 1. Consulta principal del rango de tiempo seleccionado
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
@@ -842,11 +841,11 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- ANÁLISIS INTERACTIVO DE COINCIDENCIAS CRUZADAS ---
+            # --- PROCESAMIENTO CRÍTICO DE HOVER SEGURO ---
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # Creamos el mapa maestro temporal basándonos en todas las fechas reales devueltas
+                # Definimos el eje de tiempo unificado donde Plotly evaluará el cursor
                 eje_tiempo_global = sorted(df['FECHA'].unique())
                 df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
                 
@@ -855,9 +854,7 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
                     
-                    # 2. SEGURO HISTÓRICO ANTI-DESAPARICIÓN: 
-                    # Si la serie de este tag está completamente vacía en esta ventana de tiempo,
-                    # consultamos directamente su última muestra histórica en la base de datos completa.
+                    # Rescate si el sensor no generó ningún cambio en el periodo visual
                     if dft_l.empty:
                         q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA < '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
@@ -866,33 +863,11 @@ if "graficar_pozo" in params:
                             df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                             dft_l = df_ultimo_reg
                         else:
-                            # Si de plano el sensor jamás ha tenido un solo registro en el SCADA, inicializamos en 0 en f_ini
                             dft_l = pd.DataFrame([{ 'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini) }])
 
-                    # Formateamos la estampa de tiempo nativa en un string legible para inyectar en la etiqueta
-                    dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%m-%d %H:%M:%S')
-                    
-                    # Realizamos el cruce por proximidad hacia atrás basado en el eje maestro
-                    df_tag_maestro = pd.merge_asof(
-                        df_interactivo, 
-                        dft_l, 
-                        left_on='FECHA_INDEX', 
-                        right_on='FECHA', 
-                        direction='backward'
-                    )
-                    
-                    # Si hay nulos remanentes al principio de la serie (por ejemplo, si el último dato fue posterior a f_ini)
-                    # usamos bfill() para que arrastre de forma limpia el primer registro conocido hacia el pasado.
-                    df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
-                    df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
-                    
-                    # Extraemos los arreglos alineados como listas puras nativas de Python
-                    valores_hover = df_tag_maestro['VALUE'].tolist()
-                    fechas_hover = df_tag_maestro['HORA_REAL'].tolist()
-                    
+                    # 1. PINTAMOS LA GEOMETRÍA REAL (Sin Hover para evitar duplicados o cajas rotas)
                     fig_line.add_trace(
                         go.Scatter(
-                            # Pintamos la línea basándonos en los tiempos reales y puros para NO alterar la forma geométrica original
                             x=dft_l['FECHA'], 
                             y=dft_l['VALUE'], 
                             name=t['label'], 
@@ -900,10 +875,38 @@ if "graficar_pozo" in params:
                             line=dict(color=t['color'], width=2.2),
                             marker=dict(size=4, symbol='circle'),
                             yaxis=t['axis'],
-                            # Almacenamos los arreglos alineados por fila del eje global en customdata y hovertext
-                            customdata=fechas_hover,
-                            hovertext=valores_hover,
-                            # Forzamos a Plotly a pintar el valor y el tiempo de procedencia exacta del dato desde las listas mapeadas
+                            showlegend=True,
+                            hoverinfo="skip"  # Ignoramos por completo el comportamiento nativo roto
+                        )
+                    )
+                    
+                    # Mapeamos la estampa de procedencia original del dato
+                    dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%m-%d %H:%M:%S')
+                    
+                    # Forzamos el cruce asof hacia el eje de tiempo maestro
+                    df_tag_maestro = pd.merge_asof(
+                        df_interactivo, 
+                        dft_l, 
+                        left_on='FECHA_INDEX', 
+                        right_on='FECHA', 
+                        direction='backward'
+                    )
+                    df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                    df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
+                    
+                    # 2. INYECTAMOS LA TRAZA INVISIBLE DE SOPORTE PARA LA TARJETA UNIFICADA
+                    # Al tener exactamente los mismos puntos X que el eje global, NUNCA desaparecerá de la tarjeta
+                    fig_line.add_trace(
+                        go.Scatter(
+                            x=df_interactivo['FECHA_INDEX'],
+                            y=df_tag_maestro['VALUE'],
+                            name=t['label'],
+                            mode='lines',
+                            line=dict(color='rgba(0,0,0,0)', width=0), # Totalmente invisible en el gráfico
+                            yaxis=t['axis'],
+                            showlegend=False,
+                            customdata=df_tag_maestro['HORA_REAL'].tolist(),
+                            hovertext=df_tag_maestro['VALUE'].tolist(),
                             hovertemplate="<b>%{fullData.name}</b>: %{hovertext:,.2f} <span style='color:#888; font-size:11px;'>(%{customdata})</span><extra></extra>"
                         )
                     )
@@ -914,7 +917,7 @@ if "graficar_pozo" in params:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
-                    # Forzamos la tarjeta unificada vertical donde conviven todas las variables al unísono
+                    # Forzado estricto de la tarjeta vertical unificada impecable
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
@@ -923,7 +926,7 @@ if "graficar_pozo" in params:
                         domain=[0.07, 0.91]
                     ),
                     
-                    # --- MARGEN IZQUIERDO COMPACTO ORIGINAL ---
+                    # --- CONFIGURACIÓN DE EJES MULTIPLES ---
                     yaxis5=dict(
                         title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
                         tickfont=dict(color="#00ffcc"), 
@@ -939,8 +942,6 @@ if "graficar_pozo" in params:
                         anchor="free",
                         position=0.07
                     ),
-                    
-                    # --- MARGEN DERECHO COMPACTO ORIGINAL ---
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
