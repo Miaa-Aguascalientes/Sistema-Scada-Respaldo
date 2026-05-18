@@ -939,7 +939,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00d4ff"),
                         side="left",
                         anchor="free",
-                        position=0.05
+                        position=0.03
                     ),
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
