@@ -664,7 +664,6 @@ if "graficar_pozo" in params:
 
     cabecera_placeholder = st.empty()
     
-    # --- 5.1. FILTRO DE TIEMPO ---
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -703,14 +702,23 @@ if "graficar_pozo" in params:
             st.info("Selecciona el rango.")
             st.stop()
 
-    # --- 5.2. CONFIGURACIÓN DE TAGS Y CONSULTA ---
+    
     tag_totalizado = str(pozo_info.get('totalizado', '')).strip()
     tag_caudal_real = pozo_info.get('caudal', '')
     tag_presion_real = pozo_info.get('presion', '')
+    tag_nivel_dinamico = pozo_info.get('nivel_dinamico', '')
+    tag_sumergencia = pozo_info.get('sumergencia', '')
     tags_voltaje = [t for t in pozo_info.get('voltajes_l', []) if t and t != 'N/A']
     tags_amperaje = [t for t in pozo_info.get('amperajes_l', []) if t and t != 'N/A']
     
-    config_visual = [('caudal', "Caudal (Lps)", False, '#00d4ff'), ('presion', "Presión (Kg/cm²)", True, '#00ff00')]
+    # Configuración visual base incluyendo las nuevas variables de niveles (lado secundario Y - Derecho)
+    config_visual = [
+        ('caudal', "Caudal (Lps)", False, '#00d4ff'), 
+        ('presion', "Presión (Kg/cm²)", True, '#00ff00'),
+        ('nivel_dinamico', "Nivel Dinámico (m)", True, '#ff00b4'),
+        ('sumergencia', "Sumergencia (m)", True, '#a800ff')
+    ]
+    
     for i, t in enumerate(pozo_info.get('voltajes_l', [])):
         if t and t != 'N/A': config_visual.append((t, f"V L{i+1}", True, '#fffb00'))
     for i, t in enumerate(pozo_info.get('amperajes_l', [])):
@@ -731,9 +739,10 @@ if "graficar_pozo" in params:
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
             
-            # --- 5.3. LÓGICA DE INDICADORES ---
+            # ---  LÓGICA DE INDICADORES ---
             val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
             val_v_prom, val_a_prom = "0.00", "0.00"
+            val_nd_prom, val_sum_prom = "0.00", "0.00"
 
             if not df.empty:
                 if tag_totalizado in df['TagName'].values:
@@ -746,33 +755,45 @@ if "graficar_pozo" in params:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
+                if tag_nivel_dinamico in df['TagName'].values:
+                    val_nd_prom = f"{df[df['TagName'] == tag_nivel_dinamico]['VALUE'].mean():,.2f}"
+                if tag_sumergencia in df['TagName'].values:
+                    val_sum_prom = f"{df[df['TagName'] == tag_sumergencia]['VALUE'].mean():,.2f}"
                 if tags_voltaje:
                     val_v_prom = f"{df[df['TagName'].isin(tags_voltaje)]['VALUE'].mean():,.1f}"
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
-            # --- 5.4. RENDER CABECERA (CON ELÉCTRICOS RESTAURADOS) ---
+            # --- RENDER CABECERA (CON ELÉCTRICOS Y NUEVOS NIVELES INTEGRADOS) ---
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">📈 Análisis Integral: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
     <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
+        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Volumen</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_vol} <small style="font-size: 12px; color: #00d4ff;">m³</small></span>
         </div>
-        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 150px; text-align: center;">
+        <div style="padding: 12px 18px; background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Caudal Promedio</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_cau_prom} <small style="font-size: 12px; color: #00d4ff;">Lps</small></span>
         </div>
-        <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 150px; text-align: center;">
+        <div style="padding: 12px 18px; background: rgba(0, 255, 0, 0.05); border: 2px solid #00ff00; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Presión Promedio</span>
-            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm2</small></span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_pre_prom} <small style="font-size: 12px; color: #00ff00;">Kg/cm²</small></span>
         </div>
-        <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 150px; text-align: center;">
+        <div style="padding: 12px 18px; background: rgba(255, 0, 180, 0.05); border: 2px solid #ff00b4; border-radius: 12px; min-width: 130px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Nivel Dinámico</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_nd_prom} <small style="font-size: 12px; color: #ff00b4;">m</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(168, 0, 255, 0.05); border: 2px solid #a800ff; border-radius: 12px; min-width: 130px; text-align: center;">
+            <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Sumergencia</span>
+            <span style="color: white; font-size: 24px; font-weight: bold;">{val_sum_prom} <small style="font-size: 12px; color: #a800ff;">m</small></span>
+        </div>
+        <div style="padding: 12px 18px; background: rgba(255, 251, 0, 0.05); border: 2px solid #fffb00; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Voltaje Prom</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_v_prom} <small style="font-size: 12px; color: #fffb00;">Volt</small></span>
         </div>
-        <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 150px; text-align: center;">
+        <div style="padding: 12px 18px; background: rgba(255, 128, 0, 0.05); border: 2px solid #ff8000; border-radius: 12px; min-width: 130px; text-align: center;">
             <span style="color: #888; font-size: 13px; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 6px;">Amperaje Prom</span>
             <span style="color: white; font-size: 24px; font-weight: bold;">{val_a_prom} <small style="font-size: 12px; color: #ff8000;">Amp</small></span>
         </div>
@@ -780,7 +801,7 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
-            # --- 5.5. PESTAÑA DE VOLÚMENES ---
+            # ---  PESTAÑA DE VOLÚMENES ---
             with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
@@ -812,7 +833,7 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- 5.6. GRÁFICO DE LÍNEAS (EJES FIX CON DICCIONARIOS) ---
+            # ---  GRÁFICO DE LÍNEAS (EJES FIX CON DICCIONARIOS) ---
             if not df.empty:
                 fig_line = make_subplots(specs=[[{"secondary_y": True}]])
                 for t in tags_grafico:
@@ -828,7 +849,7 @@ if "graficar_pozo" in params:
                         tickfont=dict(color="#00d4ff")
                     ),
                     yaxis2=dict(
-                        title=dict(text="<b>Presión / Eléctricos</b>", font=dict(color="#00ff00")), 
+                        title=dict(text="<b>Presión / Niveles / Eléctricos</b>", font=dict(color="#00ff00")), 
                         tickfont=dict(color="#00ff00"), 
                         anchor="x", overlaying="y", side="right"
                     ),
