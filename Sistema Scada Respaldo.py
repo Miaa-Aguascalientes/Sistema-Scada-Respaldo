@@ -742,7 +742,7 @@ if "graficar_pozo" in params:
             df = pd.read_sql(q, engine)
 
             # --- AQUÍ ESTÁ LA CLAVE: VALIDACIÓN DE DATOS ---
-            if df.empty:
+            if not df.empty:
                 st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado (del {f_ini} al {f_fin}).")
             else:
             
