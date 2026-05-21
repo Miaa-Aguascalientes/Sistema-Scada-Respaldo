@@ -740,6 +740,11 @@ if "graficar_pozo" in params:
             
             q = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY h.FECHA ASC"
             df = pd.read_sql(q, engine)
+
+            # --- AQUÍ ESTÁ LA CLAVE: VALIDACIÓN DE DATOS ---
+            if df.empty:
+                st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado (del {f_ini} al {f_fin}).")
+            else:
             
             # --- LÓGICA DE INDICADORES ---
             val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
