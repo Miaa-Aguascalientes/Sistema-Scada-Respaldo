@@ -745,6 +745,7 @@ if "graficar_pozo" in params:
             val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
             val_v_prom, val_a_prom = "0.00", "0.00"
             val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
+            val_nt_ultimo = "0.00"
 
             if not df.empty:
                 if tag_totalizado in df['TagName'].values:
