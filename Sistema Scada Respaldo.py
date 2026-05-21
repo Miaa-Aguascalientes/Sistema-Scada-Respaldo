@@ -644,8 +644,6 @@ if tag_a_graficar:
 
 # 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
 
-# 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
-
 from plotly.subplots import make_subplots
 from datetime import datetime, timedelta
 import pandas as pd
