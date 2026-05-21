@@ -733,7 +733,7 @@ if "graficar_pozo" in params:
     tags_query = [t['tag'] for t in tags_grafico]
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
 
-if tags_query:
+    if tags_query:
         try:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
