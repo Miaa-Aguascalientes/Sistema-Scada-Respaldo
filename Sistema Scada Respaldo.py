@@ -816,7 +816,72 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
+            # --- PESTAÑA DE VOLÚMENES ---
+            with st.expander("📅 Análisis de volumen real", expanded=False):
+                if tag_totalizado and tag_totalizado != 'N/A':
+                    curr_year = datetime.now().year
+                    q_hist = f"SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{tag_totalizado}' AND YEAR(h.FECHA) IN ({curr_year}, {curr_year - 1}) ORDER BY h.FECHA ASC"
+                    df_h = pd.read_sql(q_hist, engine)
 
+                    if not df_h.empty:
+                        res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].last().reset_index()
+                        res_meses['produccion_neta'] = res_meses['VALUE'].diff()
+                        idx0 = res_meses.index[0]
+                        v0 = df_h[(df_h['anio']==res_meses.loc[idx0,'anio']) & (df_h['mes']==res_meses.loc[idx0,'mes'])]['VALUE'].iloc[0]
+                        res_meses.loc[idx0, 'produccion_neta'] = res_meses.loc[idx0, 'VALUE'] - v0
+                        
+                        nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
+                        res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
+
+                        col_g, col_t = st.columns([2, 1])
+                        with col_g:
+                            fig_hist = go.Figure()
+                            for an in sorted(res_meses['anio'].unique()):
+                                df_a = res_meses[res_meses['anio'] == an].sort_values('mes')
+                                fig_hist.add_trace(go.Bar(x=df_a['Mes_Txt'], y=df_a['produccion_neta'], name=f'Año {an}', marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)'))
+                            fig_hist.update_layout(template="plotly_dark", barmode='group', height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                            st.plotly_chart(fig_hist, use_container_width=True)
+
+                        with col_t:
+                            pivot = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=True)
+                            pivot.index = [nombres_meses[m] for m in pivot.index]
+                            st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
+                    else: st.info("Sin datos.")
+
+            # --- PROCESAMIENTO CRÍTICO DE HOVER CON COLORES ---
+            if not df.empty:
+                df['FECHA'] = pd.to_datetime(df['FECHA'])
+                
+                eje_tiempo_global = sorted(df['FECHA'].unique())
+                df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
+                
+                fig_line = go.Figure()
+                
+                for t in tags_grafico:
+                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                    
+                    if dft_l.empty:
+                        fecha_limite = f_ini - timedelta(days=30)
+                        q_ultimo = f"""
+                            SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME = '{t['tag']}' 
+                            AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}'
+                            ORDER BY h.FECHA DESC 
+                            LIMIT 1
+                        """
+                        df_ultimo_reg = pd.read_sql(q_ultimo, engine)
+                        
+                        if not df_ultimo_reg.empty:
+                            df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
+                            dft_l = df_ultimo_reg
+                        else:
+                            dft_l = pd.DataFrame([{
+                                'TagName': t['tag'],
+                                'VALUE': 0.0,
+                                'FECHA': pd.to_datetime(f_ini)
+                            }])
 
                     # 1. GEOMETRÍA VISUAL REAL
                     fig_line.add_trace(
