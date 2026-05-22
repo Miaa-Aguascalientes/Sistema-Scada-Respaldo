@@ -740,6 +740,8 @@ if "graficar_pozo" in params:
             
             q = f"SELECT r.NAME as TagName, h.VALUE FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{lista_tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{hoy_dt}'"
             df = pd.read_sql(q, engine)
+            df['FECHA'] = pd.to_datetime(df['FECHA'])
+            df = df.sort_values('FECHA', ascending=True)
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
