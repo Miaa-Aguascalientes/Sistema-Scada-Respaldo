@@ -2738,7 +2738,7 @@ if sectores_data:
             try:
                 # Construimos la URL con los parámetros de sesión
                 params_url = f"tag={id_mm}&nombre={info.get('NOMBRE')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
-                url_historial = f"historial_medidor?{params_url}"
+                url_historial = f"historial_medidor?tag={id_mm}&nombre={info.get('NOMBRE')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
@@ -2750,7 +2750,7 @@ if sectores_data:
                         ⚙️ Presión: <b>{info.get('PRESION', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_historial}" target="_blank" style="color: #00d4ff; font-size: 11px; text-decoration: none;">📊 Ver Histórico</a>
+                        <a href="{url_historial}" target="_blank" style="...">📊 Ver Histórico</a>
                     </div>
                 </div>
                 """
