@@ -868,14 +868,21 @@ if "graficar_pozo" in params:
                                     y=df_a['produccion_neta'], 
                                     name=f'Año {an}', 
                                     marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)'
+                                    hovertemplate='%{x}<br>Volumen: %{y:,.2f}<extra></extra>'
                                 ))
-                            fig_hist.update_layout(template="plotly_dark", barmode='group', height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+                            fig_hist.update_layout(
+                                template="plotly_dark",
+                                barmode='group',
+                                height=350,
+                                paper_bgcolor='rgba(0,0,0,0)',
+                                plot_bgcolor='rgba(0,0,0,0)'),
+                                yaxis=dict(tickformat=',.0f')
                             st.plotly_chart(fig_hist, use_container_width=True)
 
                         with col_t:
                             pivot = res_meses.pivot(index='mes', columns='anio', values='produccion_neta').sort_index(ascending=True)
                             pivot.index = [nombres_meses[m] for m in pivot.index]
-                            st.dataframe(pivot.style.format("{:,.2f}"), use_container_width=True)
+                            st.dataframe(pivot.style.format("{:,.0f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
             # --- PROCESAMIENTO CRÍTICO DE HOVER CON COLORES ---
