@@ -2731,25 +2731,31 @@ if sectores_data:
                 continue
                 MousePosition().add_to(m_sec)
 
-    # 9.9. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ----------------------------------------------------------------------
+# 9.9. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ----------------------------------------------------------------------
     if ver_macromedidores:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
             try:
+                # AQUÍ ESTÁ EL CAMBIO: Apunta a la página nueva creada en /pages/
+                # Streamlit detecta automáticamente el archivo historial_medidor.py
+                url_historial = f"historial_medidor?graficar_medidor={id_mm}&nombre={info.get('NOMBRE')}"
+                
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
                     <b style="color: #bf40bf; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
                     <hr style="border: 0.5px solid #333; margin: 8px 0;">
                     <div style="font-size: 12px;">
-                        📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
-                        💧 Flujo: <b>{info.get('flujo', 0):.2f} Lps</b><br>
-                        ⚙️ Presión: <b>{info.get('presion', 0):.2f} Kg/cm²</b>
+                        📍 Nombre: <b>{info.get('NOMBRE', 'N/A')}</b><br>
+                        💧 Flujo: <b>{info.get('FLUJO', 0):.2f} Lps</b><br>
+                        ⚙️ Presión: <b>{info.get('PRESION', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="?graficar_medidor={id_mm}&nombre={info.get('NOMBRE')}" target="_self" style="color: #00d4ff; font-size: 11px; text-decoration: none;">📊 Ver Histórico</a>
+                        <a href="{url_historial}" target="_blank" style="color: #00d4ff; font-size: 11px; text-decoration: none;">📊 Ver Histórico</a>
                     </div>
                 </div>
                 """
+                
+                # ... (resto de tu lógica folium igual que antes)
                 
                 folium.RegularPolygonMarker(
                     location=info['coord'],
