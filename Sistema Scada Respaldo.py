@@ -745,7 +745,7 @@ if "graficar_pozo" in params:
             if df.empty:
                 # Si está vacío, mostramos el aviso y salimos de esta parte
                 st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado.")
-                st.stop()
+                
             else:
                 # --- LÓGICA DE INDICADORES (Solo se ejecuta si hay datos) ---
                 val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
