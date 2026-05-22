@@ -520,6 +520,31 @@ def cargar_vrp_desde_db():
         return d_res
     except: return {}
 
+# 3.5. Funcion para optener los macromedidores desde la base de datos
+@st.cache_data(ttl=3600)
+def cargar_medidores_desde_db():
+    engine = get_mysql_telemetria_engine()
+    if not engine: return {}
+    try:
+        # Ajusta la consulta a tu tabla real de macromedidores
+        query = "SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo FROM Macromedidores"
+        df = pd.read_sql(query, engine)
+        
+        datos_medidores = {}
+        for _, row in df.iterrows():
+            datos_medidores[row['Medidor']] = {
+                "nombre": row['Nombre'],
+                "coord": (float(row['Lat']), float(row['Lon'])),
+                "flujo": row['Flujo'],
+                "presion": row['Presion'],
+                "consumo": row['Consumo']
+            }
+        return datos_medidores
+    except Exception as e:
+        st.error(f"Error al cargar datos: {e}")
+        return {}
+
+
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
 params = st.query_params
 tag_a_graficar = params.get("graficar_tanque", None)
@@ -2217,6 +2242,7 @@ with st.sidebar:
         ver_pozos = st.checkbox("Mostrar Pozos", value=True)
         ver_tanques = st.checkbox("Mostrar Tanques", value=True)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
+        ver_macromedidores = st.checkbox("Mostrar Macromedidores", value=True)
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
@@ -2617,6 +2643,41 @@ if sectores_data:
             except:
                 continue
                 MousePosition().add_to(m_sec)
+
+    # 9.9. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ----------------------------------------------------------------------
+    if ver_macromedidores:
+        datos_macromedidores = cargar_medidores_desde_db()
+        for id_mm, info in datos_macromedidores.items():
+            try:
+                html_popup_mm = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
+                    <b style="color: #bf40bf; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
+                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                    <div style="font-size: 12px;">
+                        📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
+                        💧 Flujo: <b>{info.get('flujo', 0):.2f} Lps</b><br>
+                        ⚙️ Presión: <b>{info.get('presion', 0):.2f} Kg/cm²</b>
+                    </div>
+                </div>
+                """
+                
+                folium.RegularPolygonMarker(
+                    location=info['coord'],
+                    number_of_sides=3,
+                    radius=8,
+                    color='#800080',
+                    fill=True,
+                    fill_color='#800080',
+                    fill_opacity=0.9,
+                    popup=folium.Popup(html_popup_mm, max_width=300)
+                ).add_to(m)
+                
+                folium.Marker(
+                    location=info['coord'], 
+                    icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>')
+                ).add_to(m)
+            except:
+                continue            
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
     folium_static(m, width=None, height=750)
