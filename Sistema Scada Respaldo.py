@@ -1079,7 +1079,81 @@ if "graficar_pozo" in params:
         except Exception as e: st.error(f"Error: {e}")
             
     st.stop()
+
+# 4.7. SECCION ---------------------------------------------------------------- 5. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
+if tag_medidor:
+    import datetime
+    import plotly.graph_objects as go
     
+    st.title(f"📊 Análisis de Flujo: {tag_medidor}")
+    
+    col_f1, col_f2 = st.columns([1, 2])
+    with col_f1:
+        opcion_fecha = st.selectbox(
+            "Selecciona un rango:",
+            ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
+            index=2, # <--- CAMBIO: Ahora selecciona 'Últimos 14 días' por defecto
+            key="pop_selector_final_v8"
+        )
+
+    hoy = datetime.date.today()
+    
+    # 4.2. Lógica de selección de fechas
+    if opcion_fecha == "Hoy":
+        fecha_inicio = hoy
+        fecha_fin = hoy
+    elif opcion_fecha == "Esta Semana":
+        fecha_inicio = hoy - datetime.timedelta(days=hoy.weekday())
+        fecha_fin = hoy
+    elif opcion_fecha == "Últimos 14 días":
+        fecha_inicio = hoy - datetime.timedelta(days=14)
+        fecha_fin = hoy
+    elif opcion_fecha == "Este Mes":
+        fecha_inicio = hoy.replace(day=1)
+        fecha_fin = hoy
+    else: 
+        with col_f2:
+            rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="pop_cal_v8")
+            fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
+
+    # 5.3. CONSULTA SQL (Ajusta la tabla según donde guardes el historial de medidores)
+    try:
+        engine = get_mysql_scada_engine()
+        # Nota: Si el historial de medidores está en otra tabla, cambia 'vfitagnumhistory'
+        query_mm = f"""
+            SELECT FECHA, FLUJO_VALOR 
+            FROM MACROMEDIDORES 
+            WHERE ID_MEDIDOR = '{tag_medidor}'
+            AND FECHA BETWEEN '{f_desde}' AND '{f_hasta}'
+            ORDER BY FECHA ASC
+        """
+        df_mm = pd.read_sql(query_mm, engine)
+
+        if not df_mm.empty:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df_mm['FECHA'], y=df_mm['FLUJO_VALOR'],
+                mode='lines',
+                line=dict(color='#800080', width=2), # Morado para medidores
+                fill='tozeroy',
+                fillcolor='rgba(128, 0, 128, 0.2)'
+            ))
+            
+            fig.update_layout(template="plotly_dark", title="Historial de Flujo (Lps)")
+            st.plotly_chart(fig, use_container_width=True)
+            
+        else:
+            st.warning("No hay datos de flujo para el periodo seleccionado.")
+            
+    except Exception as e:
+        st.error(f"Error: {e}")
+    
+    if st.button("⬅️ Volver al Mapa"):
+        st.query_params.clear()
+        st.rerun()
+
+
+
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
@@ -2657,6 +2731,9 @@ if sectores_data:
                         📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
                         💧 Flujo: <b>{info.get('flujo', 0):.2f} Lps</b><br>
                         ⚙️ Presión: <b>{info.get('presion', 0):.2f} Kg/cm²</b>
+                    </div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <a href="{url_analisis}" target="_self" style="color: #00d4ff; font-size: 11px;">📊 Ver Histórico</a>
                     </div>
                 </div>
                 """
