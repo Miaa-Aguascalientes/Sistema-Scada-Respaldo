@@ -830,25 +830,40 @@ if "graficar_pozo" in params:
             with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
-                    q_hist = f"SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{tag_totalizado}' AND YEAR(h.FECHA) IN ({curr_year}, {curr_year - 1}) ORDER BY h.FECHA ASC"
+                    q_hist = f"""
+                        SELECT YEAR(h.FECHA) as anio, MONTH(h.FECHA) as mes, h.VALUE, h.FECHA 
+                        FROM vfitagnumhistory h 
+                        JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                        WHERE r.NAME = '{tag_totalizado}' 
+                        AND h.FECHA >= DATE_SUB(NOW(), INTERVAL 24 MONTH)
+                        ORDER BY h.FECHA ASC
+                    """
                     df_h = pd.read_sql(q_hist, engine)
 
                     if not df_h.empty:
-                        res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].last().reset_index()
+                        res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].first().reset_index()
                         res_meses['produccion_neta'] = res_meses['VALUE'].diff()
-                        idx0 = res_meses.index[0]
-                        v0 = df_h[(df_h['anio']==res_meses.loc[idx0,'anio']) & (df_h['mes']==res_meses.loc[idx0,'mes'])]['VALUE'].iloc[0]
-                        res_meses.loc[idx0, 'produccion_neta'] = res_meses.loc[idx0, 'VALUE'] - v0
                         
+                                                
                         nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
                         res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
+
+                        curr_year = datetime.now().year
+                        res_meses = res_meses[res_meses['anio'].isin([curr_year, curr_year - 1])]
+
+                        
 
                         col_g, col_t = st.columns([2, 1])
                         with col_g:
                             fig_hist = go.Figure()
                             for an in sorted(res_meses['anio'].unique()):
                                 df_a = res_meses[res_meses['anio'] == an].sort_values('mes')
-                                fig_hist.add_trace(go.Bar(x=df_a['Mes_Txt'], y=df_a['produccion_neta'], name=f'Año {an}', marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)'))
+                                fig_hist.add_trace(go.Bar(
+                                    x=df_a['Mes_Txt'], 
+                                    y=df_a['produccion_neta'], 
+                                    name=f'Año {an}', 
+                                    marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)'
+                                ))
                             fig_hist.update_layout(template="plotly_dark", barmode='group', height=350, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
                             st.plotly_chart(fig_hist, use_container_width=True)
 
