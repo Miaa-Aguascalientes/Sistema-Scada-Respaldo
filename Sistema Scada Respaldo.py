@@ -2755,7 +2755,27 @@ if sectores_data:
                 </div>
                 """
                 
-                # ... (resto de tu lógica folium igual que antes) 
+                folium.RegularPolygonMarker(
+                    location=info['coord'],
+                    number_of_sides=3,
+                    radius=8,
+                    color='#800080',
+                    fill=True,
+                    fill_color='#800080',
+                    fill_opacity=0.9,
+                    popup=folium.Popup(html_popup_mm, max_width=300)
+                ).add_to(m)
+                
+                folium.Marker(
+                    location=info['coord'], 
+                    icon=folium.DivIcon(
+                        icon_anchor=(-15, 15), 
+                        html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
+                    )
+                ).add_to(m)
+            except Exception as e:
+                # Opcional: imprimir el error en consola para depurar si algo falla
+                continue
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
     folium_static(m, width=None, height=750)
