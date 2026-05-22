@@ -527,7 +527,7 @@ def cargar_medidores_desde_db():
     if not engine: return {}
     try:
         # Ajusta la consulta a tu tabla real de macromedidores
-        query = "SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo FROM Macromedidores"
+        query = "SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo FROM MACROMEDIDORES"
         df = pd.read_sql(query, engine)
         
         datos_medidores = {}
