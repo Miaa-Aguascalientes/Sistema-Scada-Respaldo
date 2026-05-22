@@ -2736,10 +2736,9 @@ if sectores_data:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
             try:
-                # CONSTRUCCIÓN DE URL CON SESIÓN PERSISTENTE
-                base_url = f"historial_medidor?tag={id_mm}&nombre={info.get('NOMBRE')}"
-                acceso = f"&access=granted&role={st.session_state.get('rol', 'usuario')}"
-                url_historial = base_url + acceso
+                # Construimos la URL con los parámetros de sesión
+                params_url = f"tag={id_mm}&nombre={info.get('NOMBRE')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                url_historial = f"historial_medidor?{params_url}"
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
@@ -2772,7 +2771,7 @@ if sectores_data:
                     icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>')
                 ).add_to(m)
             except:
-                continue        
+                continue     
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
     folium_static(m, width=None, height=750)
