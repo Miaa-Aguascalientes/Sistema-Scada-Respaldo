@@ -2738,7 +2738,7 @@ if sectores_data:
             try:
                 # AQUÍ ESTÁ EL CAMBIO: Apunta a la página nueva creada en /pages/
                 # Streamlit detecta automáticamente el archivo historial_medidor.py
-                url_historial = f"historial_medidor?graficar_medidor={id_mm}&nombre={info.get('NOMBRE')}"
+                url_historial = f"historial_medidor?tag_a_graficar:={id_mm}&nombre={info.get('NOMBRE')}"
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
