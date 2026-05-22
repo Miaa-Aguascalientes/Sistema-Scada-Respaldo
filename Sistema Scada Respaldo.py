@@ -1081,14 +1081,24 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
-params = st.query_params
-tag_a_graficar = params.get("graficar_medidor", None)
-nombre_mm = params.get("nombre", "Medidor")
+import streamlit as st
 
-if tag_a_graficar:
-    import datetime
-    import plotly.graph_objects as go
+# INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
+if "ver_grafico" in st.query_params:
+    st.set_page_config(layout="wide", page_title="Historial")
     
+    # Autenticación rápida por parámetros
+    if not st.session_state.get('autenticado'):
+        if st.query_params.get("access") == "granted":
+            st.session_state.autenticado = True
+            st.session_state.rol = st.query_params.get("role", "usuario")
+        else:
+            st.error("No autorizado")
+            st.stop()
+
+    # AQUÍ VA TU LÓGICA DE GRÁFICO (Copia aquí el código de la sección 5 que tenías)
+    tag_a_graficar = st.query_params.get("ver_grafico")
+    nombre_mm = st.query_params.get("nombre")
     st.title(f"📊 Análisis de Flujo: {nombre_mm}")
     
     # 5.1. FILTROS DE FECHA
@@ -2736,8 +2746,7 @@ if sectores_data:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
             try:
-                # URL configurada para abrir en nueva pestaña y pasar parámetros
-                # Nota: 'Sistema Scada Respaldo.py' es el nombre que debe reconocer tu servidor
+                # La URL llama al mismo archivo, pero con los parámetros que interceptamos arriba
                 url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('NOMBRE', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
                 
                 html_popup_mm = f"""
@@ -2750,7 +2759,7 @@ if sectores_data:
                         ⚙️ Presión: <b>{info.get('PRESION', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_pestaña}" target="_blank" style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO EN PESTAÑA NUEVA</a>
+                        <a href="{url_pestaña}" target="_blank" style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
                     </div>
                 </div>
                 """
@@ -2773,7 +2782,6 @@ if sectores_data:
                         html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
-                
             except Exception as e:
                 continue
            
