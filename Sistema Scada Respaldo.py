@@ -1134,7 +1134,7 @@ if "ver_grafico" in st.query_params:
     f_hasta = f"{fecha_fin} 23:59:59"
     
     try:
-        engine = get_mysql_scada_engine()
+        engine = get_mysql_telemetria_engine()
         query_mm = f"""
             SELECT FECHA, FLUJO_VALOR 
             FROM MACROMEDIDORES 
