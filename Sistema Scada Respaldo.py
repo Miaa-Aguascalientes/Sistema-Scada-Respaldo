@@ -867,7 +867,7 @@ if "graficar_pozo" in params:
                                     x=df_a['Mes_Txt'], 
                                     y=df_a['produccion_neta'], 
                                     name=f'Año {an}', 
-                                    marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)'
+                                    marker_color='#00d4ff' if an == curr_year else 'rgba(150,150,150,0.4)',
                                     hovertemplate='%{x}<br>Volumen: %{y:,.2f}<extra></extra>'
                                 ))
                             fig_hist.update_layout(
