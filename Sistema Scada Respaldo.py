@@ -768,6 +768,7 @@ if "graficar_pozo" in params:
                     if len(df_tot) >= 2:
                         consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
                         val_vol = f"{consumo_neta:,.2f}"
+                    st.metric(label="VOLUMEN", value=f"{val_vol} m³")
                 
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
@@ -886,7 +887,7 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.0f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
-            # --- PROCESAMIENTO CRÍTICO DE HOVER CON COLORES ---
+            # --- PROCESAMIENTO GRAFICO DE BARRAS DEL VOLUMEN -------------------------------
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
