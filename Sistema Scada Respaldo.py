@@ -1082,6 +1082,8 @@ if "graficar_pozo" in params:
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
+import pandas as pd
+import datetime
 
 # INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
 if "ver_grafico" in st.query_params:
