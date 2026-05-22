@@ -955,7 +955,8 @@ if "graficar_pozo" in params:
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         showline=False,       # Sin recuadros externos
-                        mirror=False,
+                        range=[df['FECHA'].min(), df['FECHA'].max()],
+                        autorange=True,
                         showspikes=True,
                         spikethickness=0.05, 
                         spikedash="dash",
