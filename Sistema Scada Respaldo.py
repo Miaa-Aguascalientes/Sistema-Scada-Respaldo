@@ -842,14 +842,19 @@ if "graficar_pozo" in params:
 
                     if not df_h.empty:
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].first().reset_index()
-                        res_meses['produccion_neta'] = res_meses['VALUE'].diff()
+                        res_meses = res_meses.sort_values(['anio', 'mes'])
                         
-                                                
+                        # Calculamos la diferencia entre el valor del mes actual y el mes siguiente
+                        res_meses['produccion_neta'] = res_meses['VALUE'].shift(-1) - res_meses['VALUE']
+                        
                         nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
                         res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
 
                         curr_year = datetime.now().year
                         res_meses = res_meses[res_meses['anio'].isin([curr_year, curr_year - 1])]
+                        
+                        # Eliminamos el último registro (el mes actual) que no tiene producción cerrada
+                        res_meses = res_meses.dropna(subset=['produccion_neta'])
 
                         
 
