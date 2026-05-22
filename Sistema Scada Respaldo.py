@@ -2736,9 +2736,13 @@ if sectores_data:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
             try:
-                # AQUÍ ESTÁ EL CAMBIO: Apunta a la página nueva creada en /pages/
-                # Streamlit detecta automáticamente el archivo historial_medidor.py
-                url_historial = f"historial_medidor?tag_a_graficar:={id_mm}&nombre={info.get('NOMBRE')}"
+                # CORRECCIÓN: Estructura idéntica a la de tus tanques para que no pida login
+                url_historial = (
+                    f"historial_medidor?graficar_medidor={id_mm}"
+                    f"&nombre={str(info.get('NOMBRE', 'Medidor')).replace(' ', '%20')}"
+                    f"&access=granted"
+                    f"&role={st.session_state.get('rol', 'usuario')}"
+                )
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
@@ -2750,7 +2754,10 @@ if sectores_data:
                         ⚙️ Presión: <b>{info.get('PRESION', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_historial}" target="_blank" style="color: #00d4ff; font-size: 11px; text-decoration: none;">📊 Ver Histórico</a>
+                        <a href="{url_historial}" target="_blank" 
+                           style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">
+                           📊 VER HISTÓRICO
+                        </a>
                     </div>
                 </div>
                 """
@@ -2762,19 +2769,14 @@ if sectores_data:
                     color='#800080',
                     fill=True,
                     fill_color='#800080',
-                    fill_opacity=0.9,
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
                 folium.Marker(
                     location=info['coord'], 
-                    icon=folium.DivIcon(
-                        icon_anchor=(-15, 15), 
-                        html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
-                    )
+                    icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>')
                 ).add_to(m)
-            except Exception as e:
-                # Opcional: imprimir el error en consola para depurar si algo falla
+            except:
                 continue
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
