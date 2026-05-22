@@ -675,24 +675,26 @@ if "graficar_pozo" in params:
         )
 
     hoy_dt = datetime.now()
-    f_fin = hoy_dt
-    
+# Definimos medianoche como base para todas las comparaciones
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    f_fin = hoy_dt # Por defecto hasta el momento actual
+
     if opcion_fecha == "Hoy":
-        f_ini = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        f_ini = medianoche
     elif opcion_fecha == "Ayer":
-        f_ini = (hoy_dt - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        f_fin = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(seconds=1)
+        f_ini = (medianoche - timedelta(days=1))
+        f_fin = medianoche - timedelta(seconds=1)
     elif opcion_fecha == "Últimos 7 días":
-        f_ini = hoy_dt - timedelta(days=7)
+        f_ini = (medianoche - timedelta(days=7))
     elif opcion_fecha == "Últimos 14 días":
-        f_ini = hoy_dt - timedelta(days=14)
+        f_ini = (medianoche - timedelta(days=14))
     elif opcion_fecha == "Este Mes":
-        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0)
+        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif opcion_fecha == "Último Mes":
-        f_ini = (hoy_dt.replace(day=1) - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0)
-        f_fin = hoy_dt.replace(day=1, hour=0, minute=0, second=0) - timedelta(seconds=1)
+        f_ini = (hoy_dt.replace(day=1) - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(seconds=1)
     elif opcion_fecha == "Últimos 6 meses":
-        f_ini = hoy_dt - timedelta(days=180)
+        f_ini = (medianoche - timedelta(days=180))
     elif opcion_fecha == "Personalizado":
         with col_f2:
             rango = st.date_input("Selecciona el periodo:", value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()), max_value=hoy_dt.date())
