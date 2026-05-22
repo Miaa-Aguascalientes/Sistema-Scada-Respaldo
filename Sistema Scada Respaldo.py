@@ -738,15 +738,7 @@ if "graficar_pozo" in params:
             engine = get_mysql_scada_engine()
             lista_tags_str = f"','".join(list(set(tags_query)))
             
-            q = f"""
-                SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                FROM vfitagnumhistory h 
-                FORCE INDEX (idx_tag_fecha) 
-                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                WHERE r.NAME IN ('{lista_tags_str}') 
-                AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
-                ORDER BY h.FECHA ASC
-            """
+            q = f"SELECT r.NAME as TagName, h.VALUE FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_str}') AND h.FECHA BETWEEN '{f_ini}' AND '{hoy_dt}'"
             df = pd.read_sql(q, engine)
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
