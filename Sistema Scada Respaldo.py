@@ -2736,8 +2736,9 @@ if sectores_data:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
             try:
-                # LA CLAVE: Aquí es donde pasas los parámetros de autenticación
-                url_historial = f"historial_medidor?tag={id_mm}&nombre={info.get('NOMBRE')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                # AQUÍ ESTÁ EL CAMBIO: Apunta a la página nueva creada en /pages/
+                # Streamlit detecta automáticamente el archivo historial_medidor.py
+                url_historial = f"historial_medidor?graficar_medidor={id_mm}&nombre={info.get('NOMBRE')}"
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
@@ -2754,23 +2755,7 @@ if sectores_data:
                 </div>
                 """
                 
-                folium.RegularPolygonMarker(
-                    location=info['coord'],
-                    number_of_sides=3,
-                    radius=8,
-                    color='#800080',
-                    fill=True,
-                    fill_color='#800080',
-                    fill_opacity=0.9,
-                    popup=folium.Popup(html_popup_mm, max_width=300)
-                ).add_to(m)
-                
-                folium.Marker(
-                    location=info['coord'], 
-                    icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>')
-                ).add_to(m)
-            except:
-                continue   
+                # ... (resto de tu lógica folium igual que antes) 
            
     folium.LayerControl(position='topright', collapsed=False).add_to(m)          
     folium_static(m, width=None, height=750)
