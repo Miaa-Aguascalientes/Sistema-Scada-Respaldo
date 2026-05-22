@@ -670,7 +670,7 @@ if "graficar_pozo" in params:
         opcion_fecha = st.selectbox(
             "Rango de tiempo:", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
-            index=2, 
+            index=3, 
             key="fecha_pozo_v8"
         )
 
