@@ -861,14 +861,27 @@ if "graficar_pozo" in params:
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
                     
                     if dft_l.empty:
-                        q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA < '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
+                        fecha_limite = f_ini - timedelta(days=30)
+                        q_ultimo = f"""
+                            SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME = '{t['tag']}' 
+                            AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}'
+                            ORDER BY h.FECHA DESC 
+                            LIMIT 1
+                        """
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
                         
                         if not df_ultimo_reg.empty:
                             df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                             dft_l = df_ultimo_reg
                         else:
-                            dft_l = pd.DataFrame([{ 'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini) }])
+                            dft_l = pd.DataFrame([{
+                                'TagName': t['tag'],
+                                'VALUE': 0.0,
+                                'FECHA': pd.to_datetime(f_ini)
+                            }])
 
                     # 1. GEOMETRÍA VISUAL REAL
                     fig_line.add_trace(
