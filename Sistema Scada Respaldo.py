@@ -1081,27 +1081,30 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 5. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
-if tag_medidor:
+params = st.query_params
+tag_a_graficar = params.get("graficar_medidor", None)
+nombre_mm = params.get("nombre", "Medidor")
+
+if tag_a_graficar:
     import datetime
     import plotly.graph_objects as go
     
-    st.title(f"📊 Análisis de Flujo: {tag_medidor}")
+    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
     
+    # 5.1. FILTROS DE FECHA
     col_f1, col_f2 = st.columns([1, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
             "Selecciona un rango:",
             ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-            index=2, # <--- CAMBIO: Ahora selecciona 'Últimos 14 días' por defecto
-            key="pop_selector_final_v8"
+            index=2,
+            key="mm_selector_fecha"
         )
 
     hoy = datetime.date.today()
     
-    # 4.2. Lógica de selección de fechas
     if opcion_fecha == "Hoy":
-        fecha_inicio = hoy
-        fecha_fin = hoy
+        fecha_inicio, fecha_fin = hoy, hoy
     elif opcion_fecha == "Esta Semana":
         fecha_inicio = hoy - datetime.timedelta(days=hoy.weekday())
         fecha_fin = hoy
@@ -1113,17 +1116,19 @@ if tag_medidor:
         fecha_fin = hoy
     else: 
         with col_f2:
-            rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="pop_cal_v8")
+            rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="mm_cal_fecha")
             fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
-    # 5.3. CONSULTA SQL (Ajusta la tabla según donde guardes el historial de medidores)
+    # 5.2. CONSULTA SQL
+    f_desde = f"{fecha_inicio} 00:00:00"
+    f_hasta = f"{fecha_fin} 23:59:59"
+    
     try:
         engine = get_mysql_scada_engine()
-        # Nota: Si el historial de medidores está en otra tabla, cambia 'vfitagnumhistory'
         query_mm = f"""
             SELECT FECHA, FLUJO_VALOR 
             FROM MACROMEDIDORES 
-            WHERE ID_MEDIDOR = '{tag_medidor}'
+            WHERE ID_MEDIDOR = '{tag_a_graficar}'
             AND FECHA BETWEEN '{f_desde}' AND '{f_hasta}'
             ORDER BY FECHA ASC
         """
@@ -1134,20 +1139,28 @@ if tag_medidor:
             fig.add_trace(go.Scatter(
                 x=df_mm['FECHA'], y=df_mm['FLUJO_VALOR'],
                 mode='lines',
-                line=dict(color='#800080', width=2), # Morado para medidores
+                line=dict(color='#800080', width=2),
                 fill='tozeroy',
                 fillcolor='rgba(128, 0, 128, 0.2)'
             ))
             
-            fig.update_layout(template="plotly_dark", title="Historial de Flujo (Lps)")
+            fig.update_layout(
+                template="plotly_dark", 
+                title=f"Historial de Flujo: {nombre_mm} (Lps)",
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
             st.plotly_chart(fig, use_container_width=True)
             
+            with st.expander("Ver tabla de datos detallada"):
+                st.dataframe(df_mm.sort_values(by='FECHA', ascending=False), use_container_width=True)
         else:
-            st.warning("No hay datos de flujo para el periodo seleccionado.")
+            st.warning("No hay datos registrados para el periodo seleccionado.")
             
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error en la consulta: {e}")
     
+    # 5.3. NAVEGACIÓN
     if st.button("⬅️ Volver al Mapa"):
         st.query_params.clear()
         st.rerun()
@@ -2733,7 +2746,7 @@ if sectores_data:
                         ⚙️ Presión: <b>{info.get('presion', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_analisis}" target="_self" style="color: #00d4ff; font-size: 11px;">📊 Ver Histórico</a>
+                        <a href="?graficar_medidor={id_mm}&nombre={info.get('NOMBRE')}" target="_self" style="color: #00d4ff; font-size: 11px; text-decoration: none;">📊 Ver Histórico</a>
                     </div>
                 </div>
                 """
