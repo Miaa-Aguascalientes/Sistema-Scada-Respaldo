@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px 
+import plotly.express as px # Asegúrate de tener esta importación
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1109,7 +1109,7 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA: TU DISEÑO ORIGINAL ---
+    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1153,7 +1153,7 @@ if "ver_grafico" in st.query_params:
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 4. FUNCIÓN INDICADORES (TU DISEÑO ORIGINAL) ---
+    # --- 4. FUNCIÓN INDICADORES ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
@@ -1179,18 +1179,11 @@ if "ver_grafico" in st.query_params:
         
         st.write("---")
 
-        # --- PREPARACIÓN: AGRUPACIÓN DIARIA PARA LIMPIEZA DE EJE X ---
-        df['FECHA_D'] = pd.to_datetime(df['FECHA']).dt.date
-        df_agrupado = df.groupby('FECHA_D').agg({'Flujo': 'mean', 'Presion': 'mean', 'Consumo': 'sum'}).reset_index()
-        df_agrupado['FECHA_STR'] = df_agrupado['FECHA_D'].astype(str)
-
-        # GRÁFICO TENDENCIAS
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df_agrupado['FECHA_STR'], y=df_agrupado['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df_agrupado['FECHA_STR'], y=df_agrupado['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias (Diario)", hovermode="x unified",
-                          xaxis=dict(type='category'), 
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                           paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         
@@ -1198,14 +1191,33 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # GRÁFICO CONSUMO DIARIO
+        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
         st.subheader("Consumo Diario (m³)")
-        fig_bar = px.bar(df_agrupado, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
-        fig_bar.update_layout(template="plotly_dark", 
-                              xaxis=dict(type='category'), 
-                              plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        
+        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
+        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
+        df_diario.columns = ['FECHA', 'Consumo']
+        
+        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
+        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
+                         color_discrete_sequence=['#00FFFF'])
+        
+        # 3. Forzamos que se muestren todos los ticks del eje X
+        fig_bar.update_layout(
+            template="plotly_dark", 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
+        )
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
+        # ----------------------------------------
 
     else: 
         st.warning("No hay datos registrados en este rango.")
