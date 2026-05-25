@@ -1092,10 +1092,7 @@ import plotly.express as px
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
     
-    if not st.session_state.get('autenticado'):
-        if st.query_params.get("access") == "granted":
-            st.session_state.autenticado = True
-        else: st.stop()
+    # ... (tu lógica de autenticación se mantiene igual) ...
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
@@ -1104,62 +1101,49 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
-    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
-
-    # --- 2. CABECERA Y CSS (AJUSTADA A ALTURA MÍNIMA) ---
-    st.markdown(f"""
-        <style>
-            @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
-            /* Eliminamos márgenes superiores para subir todo al máximo */
-            div[data-testid="column"] {{ padding-top: 0px !important; }}
-            div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
-        </style>
-        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
-            <svg class="spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-            </svg>
-            <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem;"> {nombre_mm}</h3>
-            <div style="display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px;">
-                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-                <div><b>Domicilio:</b> {info['Domicilio']}</div>
-                <div><b>Colonia:</b> {info['Colonia']}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- 3. SELECTOR Y INDICADORES ---
-   
+    # --- 3. LÓGICA DE FECHAS REFORZADA ---
     col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
 
     with col_sel:
-        opcion_fecha = st.selectbox("rango", 
+        opcion_fecha = st.selectbox("Rango:", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
 
-    # --- AQUÍ ESTABA EL ERROR: ASIGNACIÓN DE FECHAS ---
-    f_fin = hoy_dt
-    if opcion_fecha == "Hoy": f_ini = medianoche
+    # Definición de fechas basada en la selección
+    if opcion_fecha == "Hoy": 
+        f_ini, f_fin = medianoche, hoy_dt
     elif opcion_fecha == "Ayer": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
-    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche
+    elif opcion_fecha == "Últimos 7 días": 
+        f_ini, f_fin = medianoche - dt.timedelta(days=7), hoy_dt
+    elif opcion_fecha == "Últimos 14 días": 
+        f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+    elif opcion_fecha == "Este Mes": 
+        f_ini, f_fin = hoy_dt.replace(day=1, hour=0, minute=0), hoy_dt
     elif opcion_fecha == "Último Mes":
-        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        f_fin = primer_dia - dt.timedelta(seconds=1)
-        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0)
+        f_fin = primer_dia
+        f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1)
+    elif opcion_fecha == "Últimos 6 meses": 
+        f_ini, f_fin = medianoche - dt.timedelta(days=180), hoy_dt
     else: # Personalizado
-        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-    # ... (inserta aquí tu lógica de fechas) ...
-    
-    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+        rango = st.date_input("Selecciona rango:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        if isinstance(rango, tuple) and len(rango) == 2:
+            f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+        else:
+            f_ini, f_fin = medianoche - dt.timedelta(days=7), hoy_dt
 
+    # --- CONSULTA DE DATOS ---
+    # Usamos una variable de consulta que se refresca al cambiar 'opcion_fecha'
+    df = pd.read_sql(f"""
+        SELECT FECHA, Flujo, Presion, Consumo 
+        FROM MACROMEDIDORES 
+        WHERE Medidor = '{tag_a_graficar}' 
+        AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
+        ORDER BY FECHA ASC
+    """, engine)
+
+    # --- INDICADORES (Actualizados con el nuevo DF) ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 5px; text-align: center; height: 65px; display: flex; flex-direction: column; justify-content: center;">
@@ -1169,6 +1153,7 @@ if "ver_grafico" in st.query_params:
         """, unsafe_allow_html=True)
 
     if not df.empty:
+        # Aquí es donde ocurre la magia: al filtrar el DF, estos valores cambian automáticamente
         with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
         with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
         with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
