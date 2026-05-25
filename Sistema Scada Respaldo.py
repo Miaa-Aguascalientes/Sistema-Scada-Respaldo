@@ -1095,9 +1095,25 @@ if "ver_grafico" in st.query_params:
             st.session_state.autenticado = True
         else: st.stop()
 
+# ... (dentro de if "ver_grafico" in st.query_params:)
+    
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
-    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
+
+    # --- NUEVO ENCABEZADO CON DATOS AL LADO ---
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.title(f"📊 {nombre_mm}")
+    with col2:
+        # Esto pone los datos de identificación a la derecha del título
+        st.markdown(f"""
+            <div style="background-color: #262730; padding: 10px; border-radius: 5px; border-left: 5px solid #00FFFF;">
+                <b style="color: #00FFFF;">ID Medidor:</b> {tag_a_graficar}<br>
+                <b style="color: #00FFFF;">Nombre:</b> {nombre_mm}
+            </div>
+        """, unsafe_allow_html=True)
+    
+    st.write("---")
 
     # Variables de tiempo
     hoy_dt = dt.datetime.now()
