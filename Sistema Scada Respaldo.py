@@ -1088,8 +1088,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-# NOTA: Sin st.set_page_config para no alterar tu barra lateral existente
-
+# --- Configuración de datos ---
 tag_a_graficar = st.query_params.get("ver_grafico")
 nombre_mm = st.query_params.get("nombre")
 
@@ -1101,7 +1100,7 @@ if tag_a_graficar:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 1. CABECERA: TÍTULO, ICONO Y TARJETA ORIGINAL ---
+    # --- 1. CABECERA: TÍTULO, ICONO Y TARJETA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1122,51 +1121,47 @@ if tag_a_graficar:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 2. SELECTOR DE FECHAS ---
-    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
-        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
-    
-    # ... (Lógica de f_ini y f_fin aquí) ...
-    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt 
-    
+    # --- 2. LÓGICA DE DATOS ---
+    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 3. INDICADORES (RESTAURADOS) ---
-    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
-        st.markdown(f"""
-            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center;">
-                <div style="color: #adb5bd; font-size: 12px;">{icon} {titulo}</div>
-                <div style="color: {color_valor}; font-size: 22px; font-weight: 800;">{valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
     if not df.empty:
+        # --- 3. INDICADORES ---
         k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("Caudal promedio", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+        with k1: st.metric("Caudal promedio", f"{df['Flujo'].mean():.1f} l/s")
+        with k2: st.metric("Volumen total", f"{df['Consumo'].sum():.1f} m³")
+        with k3: st.metric("Presión promedio", f"{df['Presion'].mean():.2f} kg")
         
         st.write("---")
 
-        # --- 4. GRÁFICO TENDENCIAS (ORIGINAL CON EJES SECUNDARIOS) ---
+        # --- 4. GRÁFICO TENDENCIAS (Leyenda arriba-izquierda) ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.1)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        
+        fig.update_layout(
+            template="plotly_dark", title="Análisis de Tendencias", 
+            legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="left", x=0),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- 5. NUEVO GRÁFICO DE CONSUMO DIARIO ---
+        # --- 5. GRÁFICO CONSUMO DIARIO (Texto arriba de la barra) ---
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
-        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text_auto='.1f', color_discrete_sequence=['#00FFFF'])
+        
+        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text='Consumo', 
+                         color_discrete_sequence=['#00FFFF'])
+        
+        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_bar, use_container_width=True)
     else:
-        st.warning("No hay datos.")
+        st.warning("No hay datos disponibles.")
     
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
