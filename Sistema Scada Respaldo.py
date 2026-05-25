@@ -2771,8 +2771,8 @@ if sectores_data:
                 folium.CircleMarker(
                     location=info['coord'],
                     number_of_sides=3,
-                    radius=8,
-                    color='#800080',
+                    radius=5,
+                    color='#B19CD9',
                     fill=True,
                     fill_color='#800080',
                     fill_opacity=0.9,
@@ -2782,7 +2782,7 @@ if sectores_data:
                 folium.Marker(
                     location=info['coord'], 
                     icon=folium.DivIcon(
-                        icon_anchor=(-15, 25), 
+                        icon_anchor=(-15, 5), 
                         html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
