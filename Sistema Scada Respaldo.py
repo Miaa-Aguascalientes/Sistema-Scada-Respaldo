@@ -1081,11 +1081,6 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
-Para que los indicadores aparezcan arriba de todo, justo después de la cabecera (el bloque de información) y antes de cualquier otra cosa (incluso antes del selector de fechas), simplemente muevo el bloque de los indicadores (la sección if not df.empty: ...) para que se ejecute inmediatamente después de la st.markdown de la cabecera.
-
-Aquí tienes el código completo con ese orden exacto:
-
-Python
 import streamlit as st
 import pandas as pd
 import datetime as dt
