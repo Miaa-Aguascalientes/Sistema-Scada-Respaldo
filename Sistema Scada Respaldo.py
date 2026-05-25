@@ -1205,7 +1205,7 @@ if "ver_grafico" in st.query_params:
         # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
+        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text='Consumo', 
                          color_discrete_sequence=['#00FFFF'])
         
         # 3. Forzamos que se muestren todos los ticks del eje X
