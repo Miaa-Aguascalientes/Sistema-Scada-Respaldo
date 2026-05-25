@@ -1132,7 +1132,7 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     # --- 3. SELECTOR Y INDICADORES ---
-    st.markdown("**Rango de visualización:**") # Título manual fuera del selector
+   
     col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
 
     with col_sel:
