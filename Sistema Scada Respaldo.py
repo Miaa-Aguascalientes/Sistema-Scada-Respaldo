@@ -1089,7 +1089,7 @@ from plotly.subplots import make_subplots
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
-    st.set_page_config(layout="wide", page_title="Historial")
+    st.set_page_config(layout="wide", page_title="Macromedidor")
     
     # Autenticación
     if not st.session_state.get('autenticado'):
@@ -1101,7 +1101,7 @@ if "ver_grafico" in st.query_params:
     nombre_mm = st.query_params.get("nombre")
 
     # --- 1. TÍTULO ---
-    st.title(f"📊 {nombre_mm}")
+    st.title(f"📊 Macromedidor: {nombre_mm}")
 
 # --- Función actualizada para centrado y diseño tipo tarjeta ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
