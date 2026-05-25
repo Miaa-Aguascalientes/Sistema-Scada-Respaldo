@@ -1127,7 +1127,7 @@ if "ver_grafico" in st.query_params:
     df = pd.read_sql(query, engine)
     
     df_info = pd.read_sql(f"SELECT Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
-    info = df_info.iloc[0] if not df_info.empty else {"Domicilio": "N/A", "Colonia": "N/A"}
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
     # --- 3. ENCABEZADO ---
     col1, col2 = st.columns([1.5, 2.5])
