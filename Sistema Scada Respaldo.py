@@ -1097,7 +1097,7 @@ if "ver_grafico" in st.query_params:
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
-    st.title(f"📊 Análisis: {nombre_mm}")
+    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
 
     # Variables de tiempo
     hoy_dt = dt.datetime.now()
@@ -1124,10 +1124,9 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-# 5.2. CONSULTA Y GRÁFICO PERSONALIZADO
+    # Consulta y Gráfico
     engine = get_mysql_telemetria_engine()
     try:
-        # Asegúrate de que las columnas coincidan exactamente con tu BD: FECHA, Flujo, Presion
         query = f"""
             SELECT FECHA, Flujo, Presion 
             FROM MACROMEDIDORES 
@@ -1138,56 +1137,27 @@ if "ver_grafico" in st.query_params:
         df = pd.read_sql(query, engine)
         
         if not df.empty:
-            # Crear subplots con eje secundario
             fig = make_subplots(specs=[[{"secondary_y": True}]])
             
-            # 1. Caudal: Azul claro, tipo area (fill='tozeroy')
-            fig.add_trace(
-                go.Scatter(
-                    x=df['FECHA'], y=df['Flujo'], 
-                    name="Caudal (Lps)", 
-                    line=dict(color='#87CEFA', width=2), # Azul claro
-                    fill='tozeroy', 
-                    fillcolor='rgba(135, 206, 250, 0.3)'
-                ), 
-                secondary_y=False
-            )
+            # Caudal: Azul claro (Cian) y tipo área
+            fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", 
+                                     line=dict(color='#00FFFF', width=2), 
+                                     fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
             
-            # 2. Presión: Color Verde
-            fig.add_trace(
-                go.Scatter(
-                    x=df['FECHA'], y=df['Presion'], 
-                    name="Presión (Kg/cm²)", 
-                    line=dict(color='#32CD32', width=2) # Verde
-                ), 
-                secondary_y=True
-            )
+            # Presión: Verde brillante
+            fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", 
+                                     line=dict(color='#00FF00', width=2)), secondary_y=True)
             
-            # Configuración de leyendas arriba y layout
-            fig.update_layout(
-                template="plotly_dark", 
-                title=f"Caudal y Presión: {nombre_mm}", 
-                hovermode="x unified",
-                legend=dict(
-                    orientation="h",
-                    yanchor="bottom",
-                    y=1.02,
-                    xanchor="right",
-                    x=1
-                ),
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)'
-            )
+            # Layout: Leyenda ARRIBA a la IZQUIERDA (x=0)
+            fig.update_layout(template="plotly_dark", title=f"Historial: {nombre_mm}", hovermode="x unified",
+                              legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                              paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             
             fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
             fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
-            
             st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.warning("No hay datos registrados en este rango.")
-            
-    except Exception as e:
-        st.error(f"Error al consultar base de datos: {e}")
+        else: st.warning("No hay datos en este rango.")
+    except Exception as e: st.error(f"Error en BD: {e}")
 
 
     st.stop()
