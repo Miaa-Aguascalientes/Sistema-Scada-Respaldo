@@ -1100,11 +1100,20 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. TÍTULO Y DATOS EN UNA SOLA LÍNEA ---
+    # --- 1. LÓGICA DE DATOS ---
+    engine = get_mysql_telemetria_engine()
+    hoy_dt = dt.datetime.now()
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Consulta de Info (se hace primero para usarla en el título)
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
+
+    # --- 2. TÍTULO Y PANEL DE DATOS EN UNA LÍNEA ---
     st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-            <h1 style="margin: 0;">📊 Macromedidor: {nombre_mm}</h1>
-            <div style="background-color: #1a1a1a; padding: 10px 15px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0; display: flex; gap: 15px;">
+        <div style="display: flex; align-items: center; gap: 25px; margin-bottom: 25px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d;">
+            <h2 style="margin: 0; color: #ffffff;">📊 Macromedidor: {nombre_mm}</h2>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
@@ -1113,39 +1122,11 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-# --- Función actualizada para centrado y diseño tipo tarjeta ---
-    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
-        st.markdown(f"""
-            <div style="
-                background-color: #0e1117; 
-                border: 1px solid #30363d; 
-                border-radius: 8px; 
-                padding: 8px 5px; 
-                text-align: center;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            ">
-                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center;">
-                    <span style="margin-right: 6px;">{icon}</span> {titulo}
-                </div>
-                <div style="color: {color_valor}; font-size: 20px; font-weight: 800; line-height: 1;">
-                    {valor} <span style="font-size: 12px; color: #ffffff;">{unidad}</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    # --- 3. LÓGICA DE FECHAS Y DATOS ---
-    engine = get_mysql_telemetria_engine()
-    hoy_dt = dt.datetime.now()
-    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    # Selector de fechas
-    opcion_fecha = st.selectbox("Selecciona un rango:", 
+    # --- 3. SELECTOR DE FECHAS ---
+    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
         index=3)
 
-    # Ajuste de fechas
     f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
@@ -1162,24 +1143,23 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # Consultas
+    # Carga de datos principales
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
-    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 4. PANEL DE INFORMACIÓN ---
-    st.markdown(f"""
-        <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0; margin-bottom: 20px;">
-            <div style="display: flex; gap: 15px;">
-                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-                <div><b>Domicilio:</b> {info['Domicilio']}</div>
-                <div><b>Colonia:</b> {info['Colonia']}</div>
+    # --- 4. FUNCIÓN INDICADORES ---
+    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
+        st.markdown(f"""
+            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center;">
+                    <span style="margin-right: 6px;">{icon}</span> {titulo}
+                </div>
+                <div style="color: {color_valor}; font-size: 22px; font-weight: 800; line-height: 1;">
+                    {valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span>
+                </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # --- 5. INDICADORES ---
+    # --- 5. VISUALIZACIÓN ---
     if not df.empty:
         prom_caudal = df['Flujo'].mean()
         prom_presion = df['Presion'].mean()
@@ -1192,7 +1172,6 @@ if "ver_grafico" in st.query_params:
         
         st.write("---")
 
-        # --- 6. GRÁFICO ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
