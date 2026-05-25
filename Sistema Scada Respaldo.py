@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px
+import plotly.express as px # Asegúrate de tener esta importación
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1109,7 +1109,28 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. SELECTOR DE FECHAS ---
+    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
+    st.markdown(f"""
+        <style>
+            @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
+        </style>
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
+            <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;"> {nombre_mm}</h2>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                <div><b>Colonia:</b> {info['Colonia']}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- 3. SELECTOR DE FECHAS ---
     opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
         index=3)
@@ -1132,72 +1153,72 @@ if "ver_grafico" in st.query_params:
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 3. CÁLCULO DE MÉTRICAS ---
-    prom_caudal = df['Flujo'].mean() if not df.empty else 0
-    prom_presion = df['Presion'].mean() if not df.empty else 0
-    total_consumo = df['Consumo'].sum() if not df.empty else 0
-
-# --- CABECERA E INDICADORES (TODO EN UNA FILA) ---
-    st.markdown(f"""
-        <div style="
-            display: flex; 
-            align-items: center; 
-            background-color: #0e1117; 
-            padding: 15px 20px; 
-            border-radius: 8px; 
-            border: 1px solid #30363d; 
-            gap: 20px;
-        ">
-            <div style="font-size: 20px; font-weight: bold; color: #ffffff;">Medidor</div>
-            <div style="border-left: 1px solid #30363d; height: 30px;"></div>
-            
-            <div style="font-size: 13px; color: #c9d1d9; flex-grow: 1;">
-                <b>ID:</b> {tag_a_graficar} &nbsp;|&nbsp; 
-                <b>Nombre:</b> {info['Nombre']} &nbsp;|&nbsp; 
-                <b>Domicilio:</b> {info['Domicilio']} &nbsp;|&nbsp; 
-                <b>Colonia:</b> {info['Colonia']}
-            </div>
-
-            <div style="display: flex; gap: 25px; border-left: 1px solid #30363d; padding-left: 20px;">
-                <div style="text-align: center;">
-                    <div style="font-size: 10px; color: #adb5bd;">Caudal Prom.</div>
-                    <div style="color: #00FFFF; font-weight: 800; font-size: 16px;">{prom_caudal:.1f} <span style="font-size: 10px; color: #ffffff;">l/s</span></div>
+    # --- 4. FUNCIÓN INDICADORES ---
+    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
+        st.markdown(f"""
+            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center;">
+                    <span style="margin-right: 6px;">{icon}</span> {titulo}
                 </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 10px; color: #adb5bd;">Vol. Total</div>
-                    <div style="color: #00FFFF; font-weight: 800; font-size: 16px;">{total_consumo:.1f} <span style="font-size: 10px; color: #ffffff;">m³</span></div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 10px; color: #adb5bd;">Presión Prom.</div>
-                    <div style="color: #00FF00; font-weight: 800; font-size: 16px;">{prom_presion:.2f} <span style="font-size: 10px; color: #ffffff;">kg</span></div>
+                <div style="color: {color_valor}; font-size: 22px; font-weight: 800; line-height: 1;">
+                    {valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    # --- 5. GRÁFICOS ---
-    st.write("---")
+    # --- 5. VISUALIZACIÓN ---
     if not df.empty:
+        prom_caudal = df['Flujo'].mean()
+        prom_presion = df['Presion'].mean()
+        total_consumo = df['Consumo'].sum()
+
+        k1, k2, k3 = st.columns(3)
+        with k1: mostrar_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
+        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
+        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
+        
+        st.write("---")
+
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False); fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+        
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        
+        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
+        fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
+        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        
+        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
+        
+        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
-        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
+                         color_discrete_sequence=['#00FFFF'])
+        
+        # 3. Forzamos que se muestren todos los ticks del eje X
+        fig_bar.update_layout(
+            template="plotly_dark", 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
+        )
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
+        # ----------------------------------------
+
     else: 
         st.warning("No hay datos registrados en este rango.")
     
