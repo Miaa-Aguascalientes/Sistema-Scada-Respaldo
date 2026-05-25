@@ -1083,7 +1083,10 @@ if "graficar_pozo" in params:
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
-import datetime as dt # Alias 'dt' para todo el bloque
+import datetime as dt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots # ESTA ES LA LÍNEA QUE TE FALTA
+from sqlalchemy import create_engine
 
 # INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
 if "ver_grafico" in st.query_params:
