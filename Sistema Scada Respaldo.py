@@ -2763,9 +2763,9 @@ if sectores_data:
                     <b style="color: #bf40bf; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
                     <hr style="border: 0.5px solid #333; margin: 8px 0;">
                     <div style="font-size: 12px;">
-                        📍 Nombre: <b>{info.get('NOMBRE', 'N/A')}</b><br>
-                        💧 Flujo: <b>{info.get('FLUJO', 0):.2f} Lps</b><br>
-                        ⚙️ Presión: <b>{info.get('PRESION', 0):.2f} Kg/cm²</b>
+                        📍 Nombre: <b>{info.get('Nombre', 'N/A')}</b><br>
+                        💧 Flujo: <b>{info.get('Flujo', 0):.2f} Lps</b><br>
+                        ⚙️ Presión: <b>{info.get('Presion', 0):.2f} Kg/cm²</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
                         <a href="{url_pestaña}" target="_blank" style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
