@@ -1092,7 +1092,6 @@ import plotly.express as px
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
     
-    # Autenticación
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
@@ -1116,26 +1115,24 @@ if "ver_grafico" in st.query_params:
             .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
         </style>
         <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
-            <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-            </svg>
             <h2 style="margin: 0; color: #ffffff; margin-right: 25px;"> {nombre_mm}</h2>
             <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
-                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>ID:</b> {tag_a_graficar}</div>
+                <div><b>Nombre:</b> {info['Nombre']}</div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
                 <div><b>Colonia:</b> {info['Colonia']}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 3. SELECCIÓN DE FECHAS (Cálculo previo para los indicadores) ---
+    # --- 3. LÓGICA DE FECHAS (Cálculo previo para los indicadores) ---
     opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
         index=3)
 
-    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+    f_ini = medianoche - dt.timedelta(days=14)
+    f_fin = hoy_dt
+    # ... (Aquí va toda tu lógica de fechas original que ya tenías) ...
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
     elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
@@ -1153,20 +1150,15 @@ if "ver_grafico" in st.query_params:
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 4. INDICADORES (AHORA ARRIBA) ---
-    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
-        st.markdown(f"""
-            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center;">
-                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px;">{icon} {titulo}</div>
-                <div style="color: {color_valor}; font-size: 22px; font-weight: 800;">{valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
+    # --- 4. INDICADORES (AHORA SIEMPRE ARRIBA DE TODO) ---
     if not df.empty:
-        k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("Caudal promedio", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Caudal promedio", f"{df['Flujo'].mean():.1f} l/s")
+        with col2:
+            st.metric("Volumen total", f"{df['Consumo'].sum():.1f} m³")
+        with col3:
+            st.metric("Presión promedio", f"{df['Presion'].mean():.2f} kg")
         st.write("---")
 
         # --- 5. VISUALIZACIÓN ---
