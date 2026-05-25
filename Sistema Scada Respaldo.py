@@ -1138,6 +1138,7 @@ if "ver_grafico" in st.query_params:
             <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0;">
                 <div style="display: flex; gap: 15px;">
                     <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                    <div><b>Nombre:</b> {info['Nombre']}</div>
                     <div><b>Domicilio:</b> {info['Domicilio']}</div>
                     <div><b>Colonia:</b> {info['Colonia']}</div>
                 </div>
