@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px # Asegúrate de tener esta importación
+import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1109,30 +1109,25 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-# --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
+    # --- 2. CABECERA COMPACTA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }}
+            .spin-icon {{ animation: spin 4s linear infinite; margin-right: 8px; }}
             .header-container {{ 
-                display: flex; 
-                align-items: center; 
-                background-color: #0e1117; 
-                padding: 1px 1px; /* Reducido de 20px vertical a 10px */
-                border-radius: 8px; 
-                border: 1px solid #30363d; 
-                margin-bottom: 20px; 
+                display: flex; align-items: center; background-color: #0e1117; 
+                padding: 10px 15px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 20px;
             }}
-            .header-title {{ margin: 0; color: #ffffff; margin-right: 20px; font-size: 24px; }}
-            .header-info {{ display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 1px solid #00FFFF; padding-left: 15px; }}
+            .divider {{ border-left: 1px solid #30363d; height: 25px; margin: 0 15px; }}
         </style>
         <div class="header-container">
-            <svg class="spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="spin-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
-            <h2 class="header-title">{nombre_mm}</h2>
-            <div class="header-info">
+            <h2 style="margin: 0; color: #ffffff; font-size: 20px;">Medidor</h2>
+            <div class="divider"></div>
+            <div style="display: flex; gap: 15px; font-size: 13px; color: #c9d1d9; align-items: center;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
@@ -1164,70 +1159,48 @@ if "ver_grafico" in st.query_params:
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 4. FUNCIÓN INDICADORES ---
+    # --- 4. INDICADORES ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
-                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center;">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center;">
                     <span style="margin-right: 6px;">{icon}</span> {titulo}
                 </div>
-                <div style="color: {color_valor}; font-size: 22px; font-weight: 800; line-height: 1;">
+                <div style="color: {color_valor}; font-size: 22px; font-weight: 800;">
                     {valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- 5. VISUALIZACIÓN ---
     if not df.empty:
-        prom_caudal = df['Flujo'].mean()
-        prom_presion = df['Presion'].mean()
-        total_consumo = df['Consumo'].sum()
-
+        prom_caudal, prom_presion, total_consumo = df['Flujo'].mean(), df['Presion'].mean(), df['Consumo'].sum()
         k1, k2, k3 = st.columns(3)
         with k1: mostrar_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
         with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
         with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
-        
+        st.write("---")
+
+        # --- 5. GRÁFICOS ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
-        
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
-                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        
-        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
-        fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False); fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-        
-        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
-        
-        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
-                         color_discrete_sequence=['#00FFFF'])
-        
-        # 3. Forzamos que se muestren todos los ticks del eje X
-        fig_bar.update_layout(
-            template="plotly_dark", 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
-        )
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
-        # ----------------------------------------
-
     else: 
         st.warning("No hay datos registrados en este rango.")
     
