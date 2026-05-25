@@ -1130,13 +1130,15 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 3. SELECTOR DE FECHAS ---
-    col_selector, col_vacia = st.columns([1, 3])
-    with col_selector:
+    # --- 3. SELECTOR Y COLUMNAS ---
+    col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
+
+    with col_sel:
         opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3)
 
+    # Lógica de fechas
     f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
@@ -1158,25 +1160,18 @@ if "ver_grafico" in st.query_params:
     # --- 4. INDICADORES ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
-            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
-                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center;">
-                    <span style="margin-right: 6px;">{icon}</span> {titulo}
-                </div>
-                <div style="color: {color_valor}; font-size: 22px; font-weight: 800; line-height: 1;">
-                    {valor} <span style="font-size: 13px; color: #ffffff;">{unidad}</span>
+            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; height: 75px; display: flex; flex-direction: column; justify-content: center; margin-top: 25px;">
+                <div style="color: #adb5bd; font-size: 11px; margin-bottom: 2px;">{icon} {titulo}</div>
+                <div style="color: {color_valor}; font-size: 20px; font-weight: 800; line-height: 1;">
+                    {valor} <span style="font-size: 12px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
     if not df.empty:
-        prom_caudal = df['Flujo'].mean()
-        prom_presion = df['Presion'].mean()
-        total_consumo = df['Consumo'].sum()
-
-        k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
+        with col1: mostrar_indicador("Caudal promedio", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
+        with col2: mostrar_indicador("Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
+        with col3: mostrar_indicador("Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
         
         st.write("---")
 
