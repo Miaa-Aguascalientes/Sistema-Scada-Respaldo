@@ -1105,14 +1105,29 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Consulta de Info (se hace primero para usarla en el título)
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. TÍTULO Y PANEL DE DATOS EN UNA LÍNEA ---
+    # --- 2. TÍTULO Y PANEL DE DATOS CON ANIMACIÓN ---
+    # El estilo 'spin' hace que el icono rote infinitamente
+    st.markdown("""
+        <style>
+            @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            .spin-icon { animation: spin 4s linear infinite; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    svg_animado = """
+    <svg class="spin-icon" width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+    </svg>
+    """
+
     st.markdown(f"""
         <div style="display: flex; align-items: center; gap: 25px; margin-bottom: 25px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d;">
-            <h2 style="margin: 0; color: #ffffff;">🎚️ Macromedidor: {nombre_mm}</h2>
+            {svg_animado}
+            <h2 style="margin: 0; color: #ffffff;">Macromedidor: {nombre_mm}</h2>
             <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
@@ -1143,7 +1158,6 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # Carga de datos principales
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
     # --- 4. FUNCIÓN INDICADORES ---
@@ -1170,6 +1184,8 @@ if "ver_grafico" in st.query_params:
         with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
         with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
         
+        st.write("---")
+
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
