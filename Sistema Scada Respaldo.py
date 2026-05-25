@@ -1089,42 +1089,63 @@ import datetime as dt # Alias 'dt' para todo el bloque
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Historial")
     
+    # Autenticación rápida
+    if not st.session_state.get('autenticado'):
+        if st.query_params.get("access") == "granted":
+            st.session_state.autenticado = True
+        else: st.stop()
+
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
-    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
+    st.title(f"📊 Análisis: {nombre_mm}")
+
+    # Variables de tiempo
+    hoy_dt = dt.datetime.now()
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
+    opcion_fecha = st.selectbox("Selecciona un rango:", 
+        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+        index=3)
+
+    # Lógica de fechas
+    f_ini, f_fin = medianoche, hoy_dt
+    if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    elif opcion_fecha == "Personalizado":
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        if isinstance(rango, tuple) and len(rango) == 2:
+            f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+
+    # Consulta y Gráfico
     engine = get_mysql_telemetria_engine()
-    if engine:
-        try:
-            # CORRECCIÓN AQUÍ: Usando nombres reales de tu tabla
-            # Nota: Asegúrate de tener una tabla que guarde HISTÓRICOS. 
-            # Si 'MACROMEDIDORES' solo guarda el último valor, esta consulta fallará.
-            # Si tienes una tabla de históricos (ej: 'HISTORICO_MACROMEDIDORES'), cámbialo aquí.
-            query = f"""
-                SELECT FECHA, Flujo 
-                FROM MACROMEDIDORES 
-                WHERE Medidor = '{tag_a_graficar}' 
-                ORDER BY FECHA ASC
-            """
-            df = pd.read_sql(query, engine)
-            
-            if not df.empty:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], fill='tozeroy', line=dict(color='#800080')))
-                fig.update_layout(template="plotly_dark", title=f"Historial Flujo: {nombre_mm}")
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.warning("No hay datos históricos para este medidor.")
-        except Exception as e:
-            st.error(f"Error en consulta: {e}")
-    else:
-        st.error("Error de conexión.")
+    try:
+        query = f"SELECT FECHA, Flujo, Presion FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
+        df = pd.read_sql(query, engine)
         
+        if not df.empty:
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='blue')), secondary_y=False)
+            fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='orange')), secondary_y=True)
+            
+            fig.update_layout(template="plotly_dark", title=f"Caudal y Presión: {nombre_mm}", hovermode="x unified")
+            fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
+            fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+            st.plotly_chart(fig, use_container_width=True)
+        else: st.warning("No hay datos en este rango.")
+    except Exception as e: st.error(f"Error: {e}")
+
     if st.button("⬅️ Volver al Mapa"):
         st.query_params.clear()
         st.rerun()
     st.stop()
-
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
