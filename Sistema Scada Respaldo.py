@@ -1126,7 +1126,8 @@ if "ver_grafico" in st.query_params:
     query = f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
     df = pd.read_sql(query, engine)
     
-    df_info = pd.read_sql(f"SELECT Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
+# AGREGADO: Incluimos 'Nombre' en la consulta
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
     # --- 3. ENCABEZADO ---
@@ -1138,7 +1139,7 @@ if "ver_grafico" in st.query_params:
             <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0;">
                 <div style="display: flex; gap: 15px;">
                     <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                    <div><b>Nombre:</b> {info['Nombre']}</div>
+                    <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                     <div><b>Domicilio:</b> {info['Domicilio']}</div>
                     <div><b>Colonia:</b> {info['Colonia']}</div>
                 </div>
