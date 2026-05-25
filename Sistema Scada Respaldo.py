@@ -1089,9 +1089,10 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 # --- Configuración de página ---
+st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
+
 if "ver_grafico" in st.query_params:
-    st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
-    
+    # Autenticación
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
@@ -1100,24 +1101,56 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. LÓGICA DE DATOS ---
+    # --- 1. LÓGICA DE DATOS (Primero cargamos todo) ---
     engine = get_mysql_telemetria_engine()
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    
+
+    # --- 2. SELECTOR DE FECHAS (Necesario para filtrar datos iniciales) ---
+    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
+        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
+
+    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+    # (Aquí mantén tu lógica de fechas intacta...)
+    if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    elif opcion_fecha == "Personalizado":
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        if isinstance(rango, tuple) and len(rango) == 2:
+            f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA ---
+    # --- 3. INDICADORES (PRIMERO, TAL CUAL PEDISTE) ---
+    if not df.empty:
+        c1, c2, c3 = st.columns(3)
+        def mostrar_indicador(col, titulo, valor, unidad, color, icono):
+            col.markdown(f"""
+                <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 20px;">
+                    <div style="color: #adb5bd; font-size: 12px;">{icono} {titulo}</div>
+                    <div style="color: {color}; font-size: 24px; font-weight: 800;">{valor} <span style="font-size: 14px; color: #ffffff;">{unidad}</span></div>
+                </div>
+            """, unsafe_allow_html=True)
+        
+        mostrar_indicador(c1, "Caudal promedio", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
+        mostrar_indicador(c2, "Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
+        mostrar_indicador(c3, "Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+
+    # --- 4. CABECERA (DESPUÉS DE LOS INDICADORES) ---
     st.markdown(f"""
-        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
-            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;"> {nombre_mm}</h2>
-            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
-                <div><b>ID:</b> {tag_a_graficar}</div>
-                <div><b>Nombre:</b> {info['Nombre']}</div>
-                <div><b>Domicilio:</b> {info['Domicilio']}</div>
-                <div><b>Colonia:</b> {info['Colonia']}</div>
-            </div>
+        <div style="background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
+            <h2 style="margin: 0;"> {nombre_mm}</h2>
+            <div style="font-size: 13px; color: #c9d1d9;">ID: {tag_a_graficar} | Nombre: {info['Nombre']} | Domicilio: {info['Domicilio']} | Colonia: {info['Colonia']}</div>
         </div>
     """, unsafe_allow_html=True)
 
