@@ -1123,11 +1123,9 @@ if "ver_grafico" in st.query_params:
 
     # --- 2. CONSULTA DE DATOS ---
     engine = get_mysql_telemetria_engine()
-    # Consulta de serie temporal para gráfico e indicadores
     query = f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
     df = pd.read_sql(query, engine)
     
-    # Consulta de datos fijos para encabezado
     df_info = pd.read_sql(f"SELECT Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Domicilio": "N/A", "Colonia": "N/A"}
 
@@ -1148,22 +1146,28 @@ if "ver_grafico" in st.query_params:
     st.write("---")
 
     # --- 4. INDICADORES Y GRÁFICO ---
+    def mostrar_indicador(titulo, valor, unidad, color_borde):
+        st.markdown(f"""
+            <div style="border: 2px solid {color_borde}; border-radius: 15px; padding: 20px; text-align: center; background-color: #0e1117; margin: 10px 0;">
+                <div style="color: #888; font-size: 14px; font-weight: bold; margin-bottom: 10px;">{titulo}</div>
+                <div style="color: white; font-size: 28px; font-weight: bold;">{valor} <span style="font-size: 16px; color: {color_borde};">{unidad}</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+
     if not df.empty:
         prom_caudal = df['Flujo'].mean()
         prom_presion = df['Presion'].mean()
         total_consumo = df['Consumo'].sum()
 
-        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
-        with col_kpi1: st.metric("CAUDAL PROMEDIO", f"{prom_caudal:.2f} Lps")
-        with col_kpi2: st.metric("CONSUMO TOTAL", f"{total_consumo:.2f} m³")
-        with col_kpi3: st.metric("PRESIÓN PROMEDIO", f"{prom_presion:.2f} kg/cm²")
+        k1, k2, k3 = st.columns(3)
+        with k1: mostrar_indicador("CAUDAL PROMEDIO", f"{prom_caudal:.2f}", "Lps", "#00FFFF")
+        with k2: mostrar_indicador("VOLUMEN", f"{total_consumo:.2f}", "m³", "#00FFFF")
+        with k3: mostrar_indicador("PRESIÓN PROMEDIO", f"{prom_presion:.2f}", "kg/cm²", "#00FF00")
         st.write("---")
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", 
-                                 line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", 
-                                 line=dict(color='#00FF00', width=2)), secondary_y=True)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
         fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
