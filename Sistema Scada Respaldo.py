@@ -1109,7 +1109,7 @@ if "ver_grafico" in st.query_params:
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
     # --- 2. TÍTULO Y PANEL DE DATOS CON ANIMACIÓN ---
-    # El estilo 'spin' hace que el icono rote infinitamente
+    # Inyectamos el estilo CSS para que el icono gire
     st.markdown("""
         <style>
             @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -1118,14 +1118,14 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     svg_animado = """
-    <svg class="spin-icon" width="45" height="45" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"></circle>
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
     </svg>
     """
 
     st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 25px; margin-bottom: 25px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d;">
+        <div style="display: flex; align-items: center; gap: 20px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
             {svg_animado}
             <h2 style="margin: 0; color: #ffffff;">Macromedidor: {nombre_mm}</h2>
             <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
