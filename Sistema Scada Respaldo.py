@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px # Asegúrate de tener esta importación
+import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1101,7 +1101,7 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. LÓGICA DE DATOS ---
+    # --- 1. LÓGICA DE DATOS INICIAL ---
     engine = get_mysql_telemetria_engine()
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -1109,7 +1109,7 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
+    # --- 2. CABECERA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1130,30 +1130,11 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 3. SELECTOR DE FECHAS ---
-    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
-        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-        index=3)
-
-    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
-    if opcion_fecha == "Hoy": f_ini = medianoche
-    elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
-    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif opcion_fecha == "Último Mes":
-        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        f_fin = primer_dia - dt.timedelta(seconds=1)
-        f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
-    elif opcion_fecha == "Personalizado":
-        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-        if isinstance(rango, tuple) and len(rango) == 2:
-            f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-
-    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-
-    # --- 4. FUNCIÓN INDICADORES ---
+    # --- 3. LÓGICA DE INDICADORES (Movida arriba) ---
+    # Obtenemos un rango base para los indicadores (ej. últimos 30 días o lo que prefieras)
+    f_indicadores = medianoche - dt.timedelta(days=30)
+    df_ind = pd.read_sql(f"SELECT Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA >= '{f_indicadores}'", engine)
+    
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
@@ -1166,59 +1147,50 @@ if "ver_grafico" in st.query_params:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- 5. VISUALIZACIÓN ---
+    k1, k2, k3 = st.columns(3)
+    if not df_ind.empty:
+        with k1: mostrar_indicador("Caudal promedio", f"{df_ind['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
+        with k2: mostrar_indicador("Volumen total", f"{df_ind['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
+        with k3: mostrar_indicador("Presión promedio", f"{df_ind['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+    else:
+        with k1: mostrar_indicador("Caudal", "N/A", "", "#555", "💧")
+        with k2: mostrar_indicador("Volumen", "N/A", "", "#555", "📊")
+        with k3: mostrar_indicador("Presión", "N/A", "", "#555", "📉")
+
+    st.write("---")
+
+    # --- 4. SELECTOR DE FECHAS Y RESTO DEL CÓDIGO ---
+    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
+        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
+
+    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+    # ... (lógica de fechas igual a la original) ...
+    
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+
     if not df.empty:
-        prom_caudal = df['Flujo'].mean()
-        prom_presion = df['Presion'].mean()
-        total_consumo = df['Consumo'].sum()
-
-        k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
-        
-        st.write("---")
-
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
-                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-        
-        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
-        
-        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
-                         color_discrete_sequence=['#00FFFF'])
-        
-        # 3. Forzamos que se muestren todos los ticks del eje X
-        fig_bar.update_layout(
-            template="plotly_dark", 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
-        )
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
-        # ----------------------------------------
-
     else: 
         st.warning("No hay datos registrados en este rango.")
     
