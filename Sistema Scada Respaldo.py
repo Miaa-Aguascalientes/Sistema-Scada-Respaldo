@@ -1083,10 +1083,7 @@ if "graficar_pozo" in params:
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
-import datetime as dt
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots # ESTA ES LA LÍNEA QUE TE FALTA
-from sqlalchemy import create_engine
+import datetime as dt # Alias 'dt' para todo el bloque
 
 # INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
 if "ver_grafico" in st.query_params:
@@ -1098,31 +1095,9 @@ if "ver_grafico" in st.query_params:
             st.session_state.autenticado = True
         else: st.stop()
 
-# ... (dentro de if "ver_grafico" in st.query_params:)
-    
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
-
-    # Obtención de datos actuales desde la BD
-    engine = get_mysql_telemetria_engine()
-    df_actual = pd.read_sql(f"SELECT Lat, Lon, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
-    d = df_actual.iloc[0] if not df_actual.empty else {"Lat": 0, "Lon": 0, "Flujo": 0, "Presion": 0, "Consumo": 0}
-
-    # Encabezado con Diseño Horizontal
-    col1, col2 = st.columns([1.5, 2.5])
-    with col1:
-        st.title(f"📊 {nombre_mm}")
-    with col2:
-        st.markdown(f"""
-            <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; display: flex; gap: 20px; align-items: center; font-size: 13px; color: #e0e0e0;">
-                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Ubicación:</b> {d['Lat']:.4f}, {d['Lon']:.4f}</div>
-                <div><b>Flujo:</b> <span style="color:#00FFFF; font-weight:bold;">{d['Flujo']} Lps</span></div>
-                <div><b>Presión:</b> <span style="color:#00FF00; font-weight:bold;">{d['Presion']} Kg/cm²</span></div>
-                <div><b>Consumo:</b> <span style="color:#ffffff;">{d['Consumo']} m³</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-    st.write("---")
+    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
 
     # Variables de tiempo
     hoy_dt = dt.datetime.now()
@@ -1183,8 +1158,6 @@ if "ver_grafico" in st.query_params:
             st.plotly_chart(fig, use_container_width=True)
         else: st.warning("No hay datos en este rango.")
     except Exception as e: st.error(f"Error en BD: {e}")
-
-
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
