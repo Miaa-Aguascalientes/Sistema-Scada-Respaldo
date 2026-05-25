@@ -1136,7 +1136,7 @@ if "ver_grafico" in st.query_params:
                 height: 90px;
                 display: flex;
                 align-items: center;
-                margin-top: 25px;
+                margin-top: 10px;
             }
         </style>
     """, unsafe_allow_html=True)
