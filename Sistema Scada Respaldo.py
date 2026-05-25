@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px # Asegúrate de tener esta importación
+import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1179,65 +1179,37 @@ if "ver_grafico" in st.query_params:
         
         st.write("---")
 
+        # GRÁFICO TENDENCIAS
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
         fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        
-        # --- MODIFICACIÓN PARA TENDENCIAS: FORZAR TODOS LOS DÍAS EN EL EJE X ---
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
-        
-        fig.update_layout(
-            template="plotly_dark", 
-            title="Análisis de Tendencias", 
-            hovermode="x unified",
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)',
-            # Configuramos el eje X para mostrar todos los días
-            xaxis=dict(
-                tickmode='array',
-                tickvals=df['FECHA'].unique(), # Fuerza una marca por cada fecha única en tus datos
-                tickformat='%b %d',           # Formato: Mes y Día (ej: May 21)
-                tickangle=-45                 # Inclinación para que no se encimen los textos
-            )
-        )
+                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                          xaxis=dict(tickmode='array', tickvals=df['FECHA'].unique(), tickformat='%b %d', tickangle=-45))
         
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
+        # GRÁFICO CONSUMO DIARIO
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-        
-        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        
+        # Asegurar continuidad en rango
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
-        
-        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text='Consumo', 
-                         color_discrete_sequence=['#00FFFF'])
-        
-        # 3. Forzamos que se muestren todos los ticks del eje X
-        fig_bar.update_layout(
-            template="plotly_dark", 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
-        )
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
+
     else: 
         st.warning("No hay datos registrados en este rango.")
     st.stop()
