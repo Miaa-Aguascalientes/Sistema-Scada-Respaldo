@@ -1111,25 +1111,25 @@ if "ver_grafico" in st.query_params:
 
     # --- 2. TÍTULO Y PANEL DE DATOS EN UNA LÍNEA ---
     svg_icon = """
-<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <circle cx="12" cy="12" r="10"></circle>
-  <path d="M12 12l-4 4"></path>
-  <path d="M12 12l4-4"></path>
-</svg>
-"""
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M12 12l-4 4"></path>
+      <path d="M12 12l4-4"></path>
+    </svg>
+    """
 
-st.markdown(f"""
-    <div style="display: flex; align-items: center; gap: 25px; margin-bottom: 25px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d;">
-        {svg_icon}
-        <h2 style="margin: 0; color: #ffffff;">Macromedidor: {nombre_mm}</h2>
-        <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
-            <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-            <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-            <div><b>Domicilio:</b> {info['Domicilio']}</div>
-            <div><b>Colonia:</b> {info['Colonia']}</div>
+    st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 25px; margin-bottom: 25px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d;">
+            {svg_icon}
+            <h2 style="margin: 0; color: #ffffff;">Macromedidor: {nombre_mm}</h2>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                <div><b>Colonia:</b> {info['Colonia']}</div>
+            </div>
         </div>
-    </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
     # --- 3. SELECTOR DE FECHAS ---
     opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
