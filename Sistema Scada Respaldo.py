@@ -1137,28 +1137,39 @@ if "ver_grafico" in st.query_params:
     prom_presion = df['Presion'].mean() if not df.empty else 0
     total_consumo = df['Consumo'].sum() if not df.empty else 0
 
-    # --- 4. CABECERA E INDICADORES (UNIFICADOS EN UNA SOLA FILA) ---
+# --- CABECERA E INDICADORES (TODO EN UNA FILA) ---
     st.markdown(f"""
-        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 15px; border-radius: 8px; border: 1px solid #30363d; gap: 20px;">
-            <div style="font-size: 20px; font-weight: bold; color: #ffffff; min-width: 150px;">Medidor</div>
+        <div style="
+            display: flex; 
+            align-items: center; 
+            background-color: #0e1117; 
+            padding: 15px 20px; 
+            border-radius: 8px; 
+            border: 1px solid #30363d; 
+            gap: 20px;
+        ">
+            <div style="font-size: 20px; font-weight: bold; color: #ffffff;">Medidor</div>
             <div style="border-left: 1px solid #30363d; height: 30px;"></div>
             
             <div style="font-size: 13px; color: #c9d1d9; flex-grow: 1;">
-                <b>ID:</b> {tag_a_graficar} &nbsp;|&nbsp; <b>Nombre:</b> {info['Nombre']} &nbsp;|&nbsp; <b>Domicilio:</b> {info['Domicilio']} &nbsp;|&nbsp; <b>Colonia:</b> {info['Colonia']}
+                <b>ID:</b> {tag_a_graficar} &nbsp;|&nbsp; 
+                <b>Nombre:</b> {info['Nombre']} &nbsp;|&nbsp; 
+                <b>Domicilio:</b> {info['Domicilio']} &nbsp;|&nbsp; 
+                <b>Colonia:</b> {info['Colonia']}
             </div>
 
-            <div style="display: flex; gap: 20px; border-left: 1px solid #30363d; padding-left: 20px;">
+            <div style="display: flex; gap: 25px; border-left: 1px solid #30363d; padding-left: 20px;">
                 <div style="text-align: center;">
                     <div style="font-size: 10px; color: #adb5bd;">Caudal Prom.</div>
-                    <div style="color: #00FFFF; font-weight: 800;">{prom_caudal:.1f} <span style="font-size: 10px; color: #ffffff;">l/s</span></div>
+                    <div style="color: #00FFFF; font-weight: 800; font-size: 16px;">{prom_caudal:.1f} <span style="font-size: 10px; color: #ffffff;">l/s</span></div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 10px; color: #adb5bd;">Vol. Total</div>
-                    <div style="color: #00FFFF; font-weight: 800;">{total_consumo:.1f} <span style="font-size: 10px; color: #ffffff;">m³</span></div>
+                    <div style="color: #00FFFF; font-weight: 800; font-size: 16px;">{total_consumo:.1f} <span style="font-size: 10px; color: #ffffff;">m³</span></div>
                 </div>
                 <div style="text-align: center;">
                     <div style="font-size: 10px; color: #adb5bd;">Presión Prom.</div>
-                    <div style="color: #00FF00; font-weight: 800;">{prom_presion:.2f} <span style="font-size: 10px; color: #ffffff;">kg</span></div>
+                    <div style="color: #00FF00; font-weight: 800; font-size: 16px;">{prom_presion:.2f} <span style="font-size: 10px; color: #ffffff;">kg</span></div>
                 </div>
             </div>
         </div>
