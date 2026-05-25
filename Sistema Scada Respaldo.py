@@ -2749,6 +2749,11 @@ if sectores_data:
     if ver_macromedidores:
         datos_macromedidores = cargar_medidores_desde_db()
         for id_mm, info in datos_macromedidores.items():
+        
+            # --- FILTRO AGREGADO AQUÍ ---
+            if str(id_mm) == '1000':
+                continue 
+
             try:
                 # La URL llama al mismo archivo, pero con los parámetros que interceptamos arriba
                 url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('NOMBRE', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
