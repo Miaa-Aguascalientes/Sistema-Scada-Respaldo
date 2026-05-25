@@ -1109,34 +1109,33 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA: TÍTULO Y DATOS EN UNA SOLA LÍNEA ---
+# --- 2. CABECERA: TÍTULO Y DATOS EN UNA SOLA LÍNEA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px; }}
-            .header-compact {{ 
+            .spin-icon {{ animation: spin 4s linear infinite; margin-right: 8px; }}
+            .header-container {{ 
                 display: flex; 
                 align-items: center; 
                 background-color: #0e1117; 
-                padding: 10px 20px; 
+                padding: 10px 15px; 
                 border-radius: 8px; 
                 border: 1px solid #30363d; 
                 margin-bottom: 20px;
-                white-space: nowrap; /* Evita que el texto salte de línea */
             }}
-            .divider {{ margin: 0 15px; color: #30363d; border-left: 1px solid #30363d; height: 20px; }}
+            .divider {{ border-left: 1px solid #30363d; height: 25px; margin: 0 15px; }}
         </style>
         
-        <div class="header-compact">
-            <svg class="spin-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="header-container">
+            <svg class="spin-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
-            <h2 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: bold;">Medidor</h2>
+            <h2 style="margin: 0; color: #ffffff; font-size: 20px;">Medidor</h2>
             
             <div class="divider"></div>
             
-            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9;">
+            <div style="display: flex; gap: 15px; font-size: 13px; color: #c9d1d9; align-items: center;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
