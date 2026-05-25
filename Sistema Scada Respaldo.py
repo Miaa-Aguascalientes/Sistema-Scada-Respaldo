@@ -1100,9 +1100,18 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. TÍTULO ---
-    
-    st.title(f"📊 Macromedidor: {nombre_mm}")
+    # --- 1. TÍTULO Y DATOS EN UNA SOLA LÍNEA ---
+    st.markdown(f"""
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
+            <h1 style="margin: 0;">📊 Macromedidor: {nombre_mm}</h1>
+            <div style="background-color: #1a1a1a; padding: 10px 15px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0; display: flex; gap: 15px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                <div><b>Colonia:</b> {info['Colonia']}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
 # --- Función actualizada para centrado y diseño tipo tarjeta ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
