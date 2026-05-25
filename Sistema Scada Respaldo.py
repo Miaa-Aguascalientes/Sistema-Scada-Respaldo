@@ -1107,7 +1107,7 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA Y CSS ---
+    # --- 2. CABECERA Y CSS (AJUSTADA A ALTURA MÍNIMA) ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1116,13 +1116,13 @@ if "ver_grafico" in st.query_params:
             div[data-testid="column"] {{ padding-top: 0px !important; }}
             div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
-        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
-            <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
+            <svg class="spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
-            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;"> {nombre_mm}</h2>
-            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
+            <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem;"> {nombre_mm}</h3>
+            <div style="display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
