@@ -1110,14 +1110,32 @@ if "ver_grafico" in st.query_params:
     # --- 2. TÍTULO ---
     st.title(f"📊 {nombre_mm}")
 
-    # --- 3. INDICADORES ---
-    def mostrar_indicador(titulo, valor, unidad, color_borde):
+# --- Función actualizada para el nuevo diseño ---
+    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
-            <div style="border: 2px solid {color_borde}; border-radius: 15px; padding: 20px; text-align: center; background-color: #0e1117; margin: 10px 0;">
-                <div style="color: #888; font-size: 14px; font-weight: bold; margin-bottom: 10px;">{titulo}</div>
-                <div style="color: white; font-size: 28px; font-weight: bold;">{valor} <span style="font-size: 16px; color: {color_borde};">{unidad}</span></div>
+            <div style="border: 1px solid #454d55; border-radius: 8px; padding: 15px; background-color: #0e1117;">
+                <div style="color: #cccccc; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center;">
+                    <span style="margin-right: 8px;">{icon}</span> {titulo}
+                </div>
+                <div style="color: {color_valor}; font-size: 24px; font-weight: bold;">
+                    {valor} <span style="font-size: 16px;">{unidad}</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
+
+    # --- Bloque de visualización (reemplaza la parte de los indicadores) ---
+    if not df.empty:
+        prom_caudal = df['Flujo'].mean()
+        prom_presion = df['Presion'].mean()
+        total_consumo = df['Consumo'].sum()
+
+        k1, k2, k3 = st.columns(3)
+        # Los iconos pueden ser texto, emojis o SVG. Aquí uso emojis por simplicidad.
+        with k1: mostrar_indicador("Caudal total", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
+        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#FFFFFF", "📊")
+        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#FFFF00", "📉")
+        
+        st.write("---")
 
     # --- 4. CONSULTA DE DATOS ---
     engine = get_mysql_telemetria_engine()
