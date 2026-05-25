@@ -1191,14 +1191,31 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- NUEVA INTEGRACIÓN: CONSUMO DIARIO ---
+        # --- MODIFICACIÓN PARA QUE APAREZCAN TODOS LOS DÍAS ---
         st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
         
-        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text_auto='.1f', color_discrete_sequence=['#00FFFF'])
-        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+        # 1. Agrupamos y rellenamos días faltantes con 0 (Vital para que no haya huecos)
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
+        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
+        df_diario.columns = ['FECHA', 'Consumo']
+        
+        # 2. Convertimos FECHA a string para que Plotly los trate como categorías discretas
+        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
+                         color_discrete_sequence=['#00FFFF'])
+        
+        # 3. Forzamos que se muestren todos los ticks del eje X
+        fig_bar.update_layout(
+            template="plotly_dark", 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(tickmode='linear') # Esto fuerza a mostrar cada barra
+        )
+        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
         # ----------------------------------------
 
