@@ -1109,19 +1109,18 @@ if "ver_grafico" in st.query_params:
             <div style="
                 background-color: #0e1117; 
                 border: 1px solid #30363d; 
-                border-radius: 12px; 
-                padding: 15px; 
+                border-radius: 8px; 
+                padding: 8px 5px; 
                 text-align: center;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                justify-content: center;
             ">
-                <div style="color: #adb5bd; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;">
-                    <span style="margin-right: 8px;">{icon}</span> {titulo}
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center;">
+                    <span style="margin-right: 6px;">{icon}</span> {titulo}
                 </div>
-                <div style="color: {color_valor}; font-size: 26px; font-weight: 800;">
-                    {valor} <span style="font-size: 16px; color: #ffffff;">{unidad}</span>
+                <div style="color: {color_valor}; font-size: 20px; font-weight: 800; line-height: 1;">
+                    {valor} <span style="font-size: 12px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
@@ -1177,9 +1176,9 @@ if "ver_grafico" in st.query_params:
         total_consumo = df['Consumo'].sum()
 
         k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("Caudal total", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#FFFFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#FFFF00", "📉")
+        with k1: mostrar_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
+        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
+        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
         
         st.write("---")
 
