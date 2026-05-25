@@ -1119,6 +1119,25 @@ if "ver_grafico" in st.query_params:
             </div>
         """, unsafe_allow_html=True)
     st.write("---")
+    
+    if not df.empty:
+        # --- CÁLCULO DE INDICADORES ---
+        prom_caudal = df['Flujo'].mean()
+        prom_presion = df['Presion'].mean()
+        total_consumo = df['Consumo'].sum()
+
+        # --- TARJETAS DE INDICADORES ---
+        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+        
+        with col_kpi1:
+            st.metric("CAUDAL PROMEDIO", f"{prom_caudal:.2f} Lps")
+        with col_kpi2:
+            st.metric("CONSUMO TOTAL", f"{total_consumo:.2f} m³")
+        with col_kpi3:
+            st.metric("PRESIÓN PROMEDIO", f"{prom_presion:.2f} kg/cm²")
+            
+        st.write("---") # Separador visual
+    
 
     # --- LÓGICA DE FECHAS ---
     hoy_dt = dt.datetime.now()
