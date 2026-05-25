@@ -1100,28 +1100,23 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # Recuperar datos del medidor para el encabezado (ejemplo simple)
-    # Si tienes el diccionario cargado en st.session_state, úsalo. Si no, consultamos:
+    # Obtención de datos actuales desde la BD
     engine = get_mysql_telemetria_engine()
-    datos_header = {"Lat": "N/A", "Lon": "N/A", "Flujo": 0, "Presion": 0, "Consumo": 0}
-    try:
-        df_header = pd.read_sql(f"SELECT Lat, Lon, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
-        if not df_header.empty:
-            datos_header = df_header.iloc[0].to_dict()
-    except: pass
+    df_actual = pd.read_sql(f"SELECT Lat, Lon, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
+    d = df_actual.iloc[0] if not df_actual.empty else {"Lat": 0, "Lon": 0, "Flujo": 0, "Presion": 0, "Consumo": 0}
 
-    # Encabezado Compacto
+    # Encabezado con Diseño Horizontal
     col1, col2 = st.columns([1.5, 2.5])
     with col1:
         st.title(f"📊 {nombre_mm}")
     with col2:
         st.markdown(f"""
-            <div style="background-color: #1e1e1e; padding: 10px; border-radius: 8px; border-left: 5px solid #00FFFF; display: flex; gap: 20px; align-items: center; font-size: 13px;">
-                <div><b>ID:</b> {tag_a_graficar}</div>
-                <div><b>Lat/Lon:</b> {datos_header['Lat']:.4f}, {datos_header['Lon']:.4f}</div>
-                <div><b>Flujo:</b> <span style="color:#00FFFF;">{datos_header['Flujo']} Lps</span></div>
-                <div><b>Presión:</b> <span style="color:#00FF00;">{datos_header['Presion']} Kg/cm²</span></div>
-                <div><b>Consumo:</b> {datos_header['Consumo']} m³</div>
+            <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; display: flex; gap: 20px; align-items: center; font-size: 13px; color: #e0e0e0;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Ubicación:</b> {d['Lat']:.4f}, {d['Lon']:.4f}</div>
+                <div><b>Flujo:</b> <span style="color:#00FFFF; font-weight:bold;">{d['Flujo']} Lps</span></div>
+                <div><b>Presión:</b> <span style="color:#00FF00; font-weight:bold;">{d['Presion']} Kg/cm²</span></div>
+                <div><b>Consumo:</b> <span style="color:#ffffff;">{d['Consumo']} m³</span></div>
             </div>
         """, unsafe_allow_html=True)
     st.write("---")
