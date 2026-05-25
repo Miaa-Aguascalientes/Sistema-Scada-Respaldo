@@ -1118,7 +1118,7 @@ if "ver_grafico" in st.query_params:
                 display: flex; 
                 align-items: center; 
                 background-color: #0e1117; 
-                padding: 10px 20px; /* Reducido de 20px vertical a 10px */
+                padding: 5px 10px; /* Reducido de 20px vertical a 10px */
                 border-radius: 8px; 
                 border: 1px solid #30363d; 
                 margin-bottom: 20px; 
