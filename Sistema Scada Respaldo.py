@@ -2768,7 +2768,7 @@ if sectores_data:
                 </div>
                 """
                 
-                folium.RegularPolygonMarker(
+                folium.CircleMarker(
                     location=info['coord'],
                     number_of_sides=3,
                     radius=8,
@@ -2782,7 +2782,7 @@ if sectores_data:
                 folium.Marker(
                     location=info['coord'], 
                     icon=folium.DivIcon(
-                        icon_anchor=(-15, 15), 
+                        icon_anchor=(-15, 25), 
                         html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
