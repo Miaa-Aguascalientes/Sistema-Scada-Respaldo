@@ -1084,6 +1084,8 @@ if "graficar_pozo" in params:
 import streamlit as st
 import pandas as pd
 import datetime
+import datetime as dt
+from datetime import datetime, timedelta
 
 # INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
 if "ver_grafico" in st.query_params:
