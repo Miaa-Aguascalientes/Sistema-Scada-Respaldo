@@ -1168,6 +1168,7 @@ if "ver_grafico" in st.query_params:
 
     # --- 5. VISUALIZACIÓN ---
     if not df.empty:
+        # Indicadores (Cálculos sobre el DF original)
         prom_caudal = df['Flujo'].mean()
         prom_presion = df['Presion'].mean()
         total_consumo = df['Consumo'].sum()
@@ -1179,15 +1180,24 @@ if "ver_grafico" in st.query_params:
         
         st.write("---")
 
+        # --- PREPARACIÓN: AGRUPACIÓN DIARIA PARA GRÁFICOS ---
+        df['FECHA_DATE'] = pd.to_datetime(df['FECHA']).dt.date
+        df_agrupado = df.groupby('FECHA_DATE').agg({
+            'Flujo': 'mean',
+            'Presion': 'mean',
+            'Consumo': 'sum'
+        }).reset_index()
+        df_agrupado['FECHA_STR'] = df_agrupado['FECHA_DATE'].astype(str)
+
         # GRÁFICO TENDENCIAS
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        fig.add_trace(go.Scatter(x=df_agrupado['FECHA_STR'], y=df_agrupado['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df_agrupado['FECHA_STR'], y=df_agrupado['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
-        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias (Diario)", hovermode="x unified",
+                          xaxis=dict(type='category'), # Fuerza 1 etiqueta por día
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                          xaxis=dict(tickmode='array', tickvals=df['FECHA'].unique(), tickformat='%b %d', tickangle=-45))
+                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
@@ -1195,18 +1205,10 @@ if "ver_grafico" in st.query_params:
 
         # GRÁFICO CONSUMO DIARIO
         st.subheader("Consumo Diario (m³)")
-        df_diario = df.copy()
-        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
-        
-        # Asegurar continuidad en rango
-        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
-        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
-        df_diario.columns = ['FECHA', 'Consumo']
-        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
-
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
-        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
+        fig_bar = px.bar(df_agrupado, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", 
+                              xaxis=dict(type='category'), # Fuerza 1 etiqueta por día
+                              plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
 
