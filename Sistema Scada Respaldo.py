@@ -1086,78 +1086,97 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px
+import plotly.express as px 
 
-# --- Configuración ---
+# --- Configuración de página ---
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
     
+    # Autenticación (Manteniendo tu lógica original)
     if not st.session_state.get('autenticado'):
-        if st.query_params.get("access") == "granted": st.session_state.autenticado = True
+        if st.query_params.get("access") == "granted":
+            st.session_state.autenticado = True
         else: st.stop()
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
+
+    # --- 1. LÓGICA DE DATOS (Original) ---
     engine = get_mysql_telemetria_engine()
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Datos básicos
-    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 1. CABECERA COMPACTA ---
+    # --- 2. CABECERA: DISEÑO MÁS COMPACTO ---
     st.markdown(f"""
-        <div style="background-color: #0e1117; padding: 10px 20px; border-radius: 8px; border: 1px solid #30363d; display: flex; align-items: center; gap: 20px; margin-bottom: 10px;">
-            <h3 style="margin: 0; color: #00FFFF;">{nombre_mm}</h3>
+        <style>
+            .compact-header {{ display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 15px; }}
+            .spin-icon {{ width: 30px; height: 30px; animation: spin 4s linear infinite; margin-right: 15px; }}
+        </style>
+        <div class="compact-header">
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+            </svg>
+            <h3 style="margin: 0; color: #ffffff; margin-right: 20px;">{nombre_mm}</h3>
             <div style="font-size: 12px; color: #c9d1d9; border-left: 1px solid #30363d; padding-left: 15px;">
                 <b>ID:</b> {tag_a_graficar} | <b>Nombre:</b> {info['Nombre']} | <b>Ubicación:</b> {info['Domicilio']}, {info['Colonia']}
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 2. SELECTOR Y FILTROS ---
-    col_sel, col_empty = st.columns([1, 3])
-    with col_sel:
-        opcion_fecha = st.selectbox("Periodo:", ["Hoy", "Últimos 7 días", "Últimos 14 días", "Este Mes"], index=2, label_visibility="collapsed")
-
-    # [Lógica de fechas simplificada]
-    f_ini = medianoche - dt.timedelta(days=14)
+    # --- 3. SELECTOR DE FECHAS ---
+    opcion_fecha = st.selectbox("Rango:", ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3, label_visibility="collapsed")
+    # (Manteniendo tu lógica de cálculo de fechas exacta)
+    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+    # ... [Toda tu lógica de if/elif para f_ini, f_fin se mantiene igual] ...
     if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
     elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
     elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
-    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA >= '{f_ini}' ORDER BY FECHA ASC", engine)
+    elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    elif opcion_fecha == "Personalizado":
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        if isinstance(rango, tuple) and len(rango) == 2: f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # --- 3. DASHBOARD ---
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+
+    # --- 4. VISUALIZACIÓN ---
     if not df.empty:
-        # Indicadores en una sola fila muy compacta
+        # Indicadores en una sola fila (Uso de st.metric para ahorrar espacio vertical)
         k1, k2, k3 = st.columns(3)
-        def mini_ind(col, tit, val, uni):
-            col.metric(tit, f"{val} {uni}")
-        
-        with k1: mini_ind(k1, "Caudal Prom.", f"{df['Flujo'].mean():.1f}", "l/s")
-        with k2: mini_ind(k2, "Consumo Total", f"{df['Consumo'].sum():.1f}", "m³")
-        with k3: mini_ind(k3, "Presión Prom.", f"{df['Presion'].mean():.1f}", "kg")
+        k1.metric("Caudal Prom.", f"{df['Flujo'].mean():.1f} l/s")
+        k2.metric("Volumen Total", f"{df['Consumo'].sum():.1f} m³")
+        k3.metric("Presión Prom.", f"{df['Presion'].mean():.2f} kg")
 
-        # --- GRÁFICOS (Layout eficiente) ---
+        # --- PREPARACIÓN: AGRUPACIÓN DIARIA ---
         df['FECHA_D'] = pd.to_datetime(df['FECHA']).dt.date
         df_g = df.groupby('FECHA_D').agg({'Flujo': 'mean', 'Presion': 'mean', 'Consumo': 'sum'}).reset_index()
-        
-        g1, g2 = st.columns(2)
-        
-        # Tendencias (Reducimos altura)
-        fig1 = make_subplots(specs=[[{"secondary_y": True}]])
-        fig1.add_trace(go.Scatter(x=df_g['FECHA_D'], y=df_g['Flujo'], name="Caudal", line=dict(color='#00FFFF')), secondary_y=False)
-        fig1.add_trace(go.Scatter(x=df_g['FECHA_D'], y=df_g['Presion'], name="Presión", line=dict(color='#00FF00')), secondary_y=True)
-        fig1.update_layout(height=300, margin=dict(l=20, r=20, t=30, b=20), template="plotly_dark", legend=dict(orientation="h", y=1.1))
-        g1.plotly_chart(fig1, use_container_width=True)
+        df_g['FECHA_STR'] = df_g['FECHA_D'].astype(str)
 
-        # Consumo Diario
-        fig2 = px.bar(df_g, x='FECHA_D', y='Consumo', color_discrete_sequence=['#00FFFF'])
-        fig2.update_layout(height=300, margin=dict(l=20, r=20, t=30, b=20), template="plotly_dark")
-        g2.plotly_chart(fig2, use_container_width=True)
+        # --- COLUMNAS PARA GRAFICAR LADO A LADO ---
+        c1, c2 = st.columns(2)
+        
+        # Gráfico Tendencias
+        with c1:
+            fig = make_subplots(specs=[[{"secondary_y": True}]])
+            fig.add_trace(go.Scatter(x=df_g['FECHA_STR'], y=df_g['Flujo'], name="Caudal", line=dict(color='#00FFFF')), secondary_y=False)
+            fig.add_trace(go.Scatter(x=df_g['FECHA_STR'], y=df_g['Presion'], name="Presión", line=dict(color='#00FF00')), secondary_y=True)
+            fig.update_layout(title="Tendencias (Diario)", height=350, margin=dict(l=20, r=20, t=40, b=20), template="plotly_dark", xaxis=dict(type='category'))
+            st.plotly_chart(fig, use_container_width=True)
 
+        # Gráfico Consumo
+        with c2:
+            fig_bar = px.bar(df_g, x='FECHA_STR', y='Consumo', title="Consumo Diario (m³)", color_discrete_sequence=['#00FFFF'])
+            fig_bar.update_layout(height=350, margin=dict(l=20, r=20, t=40, b=20), template="plotly_dark", xaxis=dict(type='category'))
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    else: st.warning("No hay datos en este rango.")
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
