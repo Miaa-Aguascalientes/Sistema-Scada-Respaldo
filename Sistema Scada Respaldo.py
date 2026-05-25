@@ -1083,8 +1083,7 @@ if "graficar_pozo" in params:
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
-import datetime as dt
-
+import datetime as dt # Alias 'dt' para todo el bloque
 
 # INTERCEPCIÓN PARA EL GRÁFICO (EVITA CARGAR TODO EL SISTEMA)
 if "ver_grafico" in st.query_params:
@@ -1099,7 +1098,6 @@ if "ver_grafico" in st.query_params:
             st.error("No autorizado")
             st.stop()
 
-    # AQUÍ VA TU LÓGICA DE GRÁFICO (Copia aquí el código de la sección 5 que tenías)
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
     st.title(f"📊 Análisis de Flujo: {nombre_mm}")
@@ -1114,22 +1112,23 @@ if "ver_grafico" in st.query_params:
             key="mm_selector_fecha"
         )
 
-    hoy = datetime.date.today()
+    # CORRECCIÓN AQUÍ: Usar 'dt.' en lugar de 'datetime.'
+    hoy = dt.date.today()
     
     if opcion_fecha == "Hoy":
         fecha_inicio, fecha_fin = hoy, hoy
     elif opcion_fecha == "Esta Semana":
-        fecha_inicio = hoy - datetime.timedelta(days=hoy.weekday())
+        fecha_inicio = hoy - dt.timedelta(days=hoy.weekday())
         fecha_fin = hoy
     elif opcion_fecha == "Últimos 14 días":
-        fecha_inicio = hoy - datetime.timedelta(days=14)
+        fecha_inicio = hoy - dt.timedelta(days=14)
         fecha_fin = hoy
     elif opcion_fecha == "Este Mes":
         fecha_inicio = hoy.replace(day=1)
         fecha_fin = hoy
     else: 
         with col_f2:
-            rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="mm_cal_fecha")
+            rango = st.date_input("Periodo:", value=(hoy - dt.timedelta(days=7), hoy), max_value=hoy, key="mm_cal_fecha")
             fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
     # 5.2. CONSULTA SQL
@@ -1138,6 +1137,7 @@ if "ver_grafico" in st.query_params:
     
     try:
         engine = get_mysql_telemetria_engine()
+        # Nota: Asegúrate de que la tabla sea la correcta y el nombre de la columna sea ID_MEDIDOR o Medidor según tu BD
         query_mm = f"""
             SELECT FECHA, FLUJO_VALOR 
             FROM MACROMEDIDORES 
@@ -1148,6 +1148,7 @@ if "ver_grafico" in st.query_params:
         df_mm = pd.read_sql(query_mm, engine)
 
         if not df_mm.empty:
+            import plotly.graph_objects as go
             fig = go.Figure()
             fig.add_trace(go.Scatter(
                 x=df_mm['FECHA'], y=df_mm['FLUJO_VALOR'],
