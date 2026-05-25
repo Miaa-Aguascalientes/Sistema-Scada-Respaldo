@@ -1101,7 +1101,7 @@ if "ver_grafico" in st.query_params:
     nombre_mm = st.query_params.get("nombre")
 
     # --- 1. TÍTULO ---
-    st.write(f"DEBUG: El valor de nombre_mm es '{nombre_mm}'")
+    
     st.title(f"📊 Macromedidor: {nombre_mm}")
 
 # --- Función actualizada para centrado y diseño tipo tarjeta ---
