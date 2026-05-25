@@ -1187,6 +1187,27 @@ if "ver_grafico" in st.query_params:
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                           paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         
+        # --- MODIFICACIÓN PARA TENDENCIAS: FORZAR TODOS LOS DÍAS EN EL EJE X ---
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        
+        fig.update_layout(
+            template="plotly_dark", 
+            title="Análisis de Tendencias", 
+            hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+            paper_bgcolor='rgba(0,0,0,0)', 
+            plot_bgcolor='rgba(0,0,0,0)',
+            # Configuramos el eje X para mostrar todos los días
+            xaxis=dict(
+                tickmode='array',
+                tickvals=df['FECHA'].unique(), # Fuerza una marca por cada fecha única en tus datos
+                tickformat='%b %d',           # Formato: Mes y Día (ej: May 21)
+                tickangle=-45                 # Inclinación para que no se encimen los textos
+            )
+        )
+        
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
@@ -1217,11 +1238,8 @@ if "ver_grafico" in st.query_params:
         )
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
-        # ----------------------------------------
-
     else: 
         st.warning("No hay datos registrados en este rango.")
-    
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
