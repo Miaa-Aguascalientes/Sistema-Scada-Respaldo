@@ -1107,13 +1107,16 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA ---
+    # --- 2. CABECERA Y CSS ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
             .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
+            /* Eliminamos márgenes superiores para subir todo al máximo */
+            div[data-testid="column"] {{ padding-top: 0px !important; }}
+            div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
-        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
             <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
@@ -1128,47 +1131,36 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 3. ALINEACIÓN CENTRADA ---
-    # Inyectamos CSS para centrar el selectbox dentro de su columna
-    st.markdown("""
-        <style>
-            div[data-testid="stVerticalBlock"] > div:has(div.stSelectbox) {
-                height: 50px;
-                display: flex;
-                align-items: center;
-                margin-top: 10px;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
+    # --- 3. SELECTOR Y INDICADORES ---
+    st.markdown("**Rango de visualización:**") # Título manual fuera del selector
     col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
 
     with col_sel:
-        opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
+        # label_visibility="collapsed" quita el espacio muerto del label
+        opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3)
+            index=3, label_visibility="collapsed")
 
-    # Lógica de fechas
+    # Lógica de fechas (igual a la anterior)
     f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
-    # ... (tu lógica de fechas aquí) ...
+    # ... (inserta aquí tu lógica de fechas) ...
     
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 4. INDICADORES ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
-            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; height: 75px; display: flex; flex-direction: column; justify-content: center; margin-top: 25px;">
-                <div style="color: #adb5bd; font-size: 11px; margin-bottom: 2px;">{icon} {titulo}</div>
-                <div style="color: {color_valor}; font-size: 20px; font-weight: 800; line-height: 1;">
-                    {valor} <span style="font-size: 12px; color: #ffffff;">{unidad}</span>
-                </div>
+            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 5px; text-align: center; height: 65px; display: flex; flex-direction: column; justify-content: center;">
+                <div style="color: #adb5bd; font-size: 11px;">{icon} {titulo}</div>
+                <div style="color: {color_valor}; font-size: 18px; font-weight: 800;">{valor} <span style="font-size: 11px; color: #ffffff;">{unidad}</span></div>
             </div>
         """, unsafe_allow_html=True)
 
     if not df.empty:
-        with col1: mostrar_indicador("Caudal promedio", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
-        with col2: mostrar_indicador("Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
-        with col3: mostrar_indicador("Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+        with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
+        with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
+        with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+    
+   
         
         # --- 5. GRÁFICOS ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
