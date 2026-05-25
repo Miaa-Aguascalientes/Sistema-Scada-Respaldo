@@ -1098,7 +1098,6 @@ if not st.session_state.get('autenticado'):
     else: 
         st.stop()
 
-# --- Obtención de parámetros ---
 tag_a_graficar = st.query_params.get("ver_grafico")
 nombre_mm = st.query_params.get("nombre")
 
@@ -1114,16 +1113,25 @@ medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
 info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-# --- CABECERA COMPACTA ---
+# --- CABECERA Y TARJETAS CSS ---
 st.markdown(f"""
     <style>
         @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
         .spin-icon {{ animation: spin 4s linear infinite; margin-right: 8px; }}
         .header-container {{ 
             display: flex; align-items: center; background-color: #0e1117; 
-            padding: 10px 15px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 30px;
+            padding: 10px 15px; border-radius: 8px; border: 1px solid #30363d; margin-bottom: 20px;
         }}
         .divider {{ border-left: 1px solid #30363d; height: 25px; margin: 0 15px; }}
+        
+        /* Contenedor Flex para los indicadores */
+        .cards-container {{
+            display: flex; gap: 20px; margin-bottom: 30px;
+        }}
+        .card {{
+            flex: 1; background-color: #0e1117; border: 1px solid #30363d; 
+            border-radius: 8px; padding: 20px; text-align: center;
+        }}
     </style>
     <div class="header-container">
         <svg class="spin-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2">
@@ -1141,47 +1149,36 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# --- SELECTOR DE FECHAS ---
+# --- SELECTOR Y DATOS ---
 opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
     ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
 
+# ... (lógica de fechas igual) ...
 f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
-if opcion_fecha == "Hoy": f_ini = medianoche
-elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
-elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-elif opcion_fecha == "Último Mes":
-    primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    f_fin = primer_dia - dt.timedelta(seconds=1)
-    f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
-elif opcion_fecha == "Personalizado":
-    rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-    if isinstance(rango, tuple) and len(rango) == 2:
-        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+# ... (deja tu lógica de fechas aquí) ...
 
 df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-# --- INDICADORES (Bloque independiente con margen superior) ---
-def render_indicador(titulo, valor, unidad, color, icon):
-    return f"""
-        <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center;">
-            <div style="color: #adb5bd; font-size: 13px; margin-bottom: 8px;">{icon} {titulo}</div>
-            <div style="color: {color}; font-size: 26px; font-weight: 800;">{valor} <span style="font-size: 15px; color: #ffffff;">{unidad}</span></div>
-        </div>
-    """
-
+# --- INDICADORES (HTML PURO) ---
 if not df.empty:
     prom_caudal, prom_presion, total_consumo = df['Flujo'].mean(), df['Presion'].mean(), df['Consumo'].sum()
     
-    # Separación forzada del bloque anterior
-    st.markdown("<div style='margin-top: 20px;'></div>", unsafe_allow_html=True)
-    
-    c1, c2, c3 = st.columns(3)
-    with c1: st.markdown(render_indicador("Caudal promedio", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧"), unsafe_allow_html=True)
-    with c2: st.markdown(render_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊"), unsafe_allow_html=True)
-    with c3: st.markdown(render_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉"), unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="cards-container">
+            <div class="card">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 5px;">💧 Caudal promedio</div>
+                <div style="color: #00FFFF; font-size: 24px; font-weight: 800;">{prom_caudal:.1f} <span style="font-size: 14px; color: #ffffff;">l/s</span></div>
+            </div>
+            <div class="card">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 5px;">📊 Volumen total</div>
+                <div style="color: #00FFFF; font-size: 24px; font-weight: 800;">{total_consumo:.1f} <span style="font-size: 14px; color: #ffffff;">m³</span></div>
+            </div>
+            <div class="card">
+                <div style="color: #adb5bd; font-size: 12px; margin-bottom: 5px;">📉 Presión promedio</div>
+                <div style="color: #00FF00; font-size: 24px; font-weight: 800;">{prom_presion:.2f} <span style="font-size: 14px; color: #ffffff;">kg</span></div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
     
     st.write("---")
 
