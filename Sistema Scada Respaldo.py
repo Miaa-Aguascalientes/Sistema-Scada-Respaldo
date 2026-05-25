@@ -2764,8 +2764,7 @@ if sectores_data:
                     <hr style="border: 0.5px solid #333; margin: 8px 0;">
                     <div style="font-size: 12px;">
                         📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
-                        💧 Flujo: <b>{info.get('flujo', 0):.2f} Lps</b><br>
-                        ⚙️ Presión: <b>{info.get('presion', 0):.2f} Kg/cm²</b>
+
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
                         <a href="{url_pestaña}" target="_blank" style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
