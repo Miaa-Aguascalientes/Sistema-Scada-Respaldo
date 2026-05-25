@@ -2756,7 +2756,7 @@ if sectores_data:
 
             try:
                 # La URL llama al mismo archivo, pero con los parámetros que interceptamos arriba
-                url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('NOMBRE', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('Nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
                 
                 html_popup_mm = f"""
                 <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
