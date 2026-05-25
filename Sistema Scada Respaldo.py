@@ -1103,20 +1103,24 @@ if "ver_grafico" in st.query_params:
     # --- 1. TÍTULO ---
     st.title(f"📊 {nombre_mm}")
 
-# --- Función actualizada para el diseño de la imagen ---
+# --- Función actualizada para centrado y diseño tipo tarjeta ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="
                 background-color: #0e1117; 
                 border: 1px solid #30363d; 
                 border-radius: 12px; 
-                padding: 20px; 
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                padding: 15px; 
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
             ">
-                <div style="color: #adb5bd; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center;">
+                <div style="color: #adb5bd; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center;">
                     <span style="margin-right: 8px;">{icon}</span> {titulo}
                 </div>
-                <div style="color: {color_valor}; font-size: 28px; font-weight: 800; font-family: sans-serif;">
+                <div style="color: {color_valor}; font-size: 26px; font-weight: 800;">
                     {valor} <span style="font-size: 16px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
