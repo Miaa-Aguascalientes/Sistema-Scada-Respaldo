@@ -1120,7 +1120,7 @@ if "ver_grafico" in st.query_params:
                 <circle cx="12" cy="12" r="10"></circle>
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
-            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;">Macromedidor: {nombre_mm}</h2>
+            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;"> {nombre_mm}</h2>
             <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
