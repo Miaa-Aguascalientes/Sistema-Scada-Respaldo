@@ -1133,7 +1133,7 @@ if "ver_grafico" in st.query_params:
     st.markdown("""
         <style>
             div[data-testid="stVerticalBlock"] > div:has(div.stSelectbox) {
-                height: 75px;
+                height: 90px;
                 display: flex;
                 align-items: center;
                 margin-top: 25px;
@@ -1170,8 +1170,6 @@ if "ver_grafico" in st.query_params:
         with col2: mostrar_indicador("Volumen total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
         with col3: mostrar_indicador("Presión promedio", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
         
-        st.write("---")
-
         # --- 5. GRÁFICOS ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
