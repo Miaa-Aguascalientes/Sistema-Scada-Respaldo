@@ -1089,96 +1089,40 @@ import datetime as dt # Alias 'dt' para todo el bloque
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Historial")
     
-    # Autenticación rápida por parámetros
+    # Autenticación
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
             st.session_state.rol = st.query_params.get("role", "usuario")
         else:
-            st.error("No autorizado")
             st.stop()
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
     st.title(f"📊 Análisis de Flujo: {nombre_mm}")
     
-    # 5.1. FILTROS DE FECHA
-    col_f1, col_f2 = st.columns([1, 2])
-    with col_f1:
-        opcion_fecha = st.selectbox(
-            "Selecciona un rango:",
-            ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-            index=2,
-            key="mm_selector_fecha"
-        )
-
-    # CORRECCIÓN AQUÍ: Usar 'dt.' en lugar de 'datetime.'
-    hoy = dt.date.today()
-    
-    if opcion_fecha == "Hoy":
-        fecha_inicio, fecha_fin = hoy, hoy
-    elif opcion_fecha == "Esta Semana":
-        fecha_inicio = hoy - dt.timedelta(days=hoy.weekday())
-        fecha_fin = hoy
-    elif opcion_fecha == "Últimos 14 días":
-        fecha_inicio = hoy - dt.timedelta(days=14)
-        fecha_fin = hoy
-    elif opcion_fecha == "Este Mes":
-        fecha_inicio = hoy.replace(day=1)
-        fecha_fin = hoy
-    else: 
-        with col_f2:
-            rango = st.date_input("Periodo:", value=(hoy - dt.timedelta(days=7), hoy), max_value=hoy, key="mm_cal_fecha")
-            fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
-
-    # 5.2. CONSULTA SQL
-    f_desde = f"{fecha_inicio} 00:00:00"
-    f_hasta = f"{fecha_fin} 23:59:59"
-    
-    try:
-        engine = get_mysql_telemetria_engine()
-        # Nota: Asegúrate de que la tabla sea la correcta y el nombre de la columna sea ID_MEDIDOR o Medidor según tu BD
-        query_mm = f"""
-            SELECT FECHA, FLUJO_VALOR 
-            FROM MACROMEDIDORES 
-            WHERE ID_MEDIDOR = '{tag_a_graficar}'
-            AND FECHA BETWEEN '{f_desde}' AND '{f_hasta}'
-            ORDER BY FECHA ASC
-        """
-        df_mm = pd.read_sql(query_mm, engine)
-
-        if not df_mm.empty:
-            import plotly.graph_objects as go
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                x=df_mm['FECHA'], y=df_mm['FLUJO_VALOR'],
-                mode='lines',
-                line=dict(color='#800080', width=2),
-                fill='tozeroy',
-                fillcolor='rgba(128, 0, 128, 0.2)'
-            ))
+    engine = get_mysql_telemetria_engine()
+    if engine:
+        try:
+            # Aquí va tu consulta SQL específica para el gráfico
+            query = f"SELECT FECHA, FLUJO_VALOR FROM MACROMEDIDORES WHERE ID_MEDIDOR = '{tag_a_graficar}' ORDER BY FECHA ASC"
+            df = pd.read_sql(query, engine)
             
-            fig.update_layout(
-                template="plotly_dark", 
-                title=f"Historial de Flujo: {nombre_mm} (Lps)",
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            with st.expander("Ver tabla de datos detallada"):
-                st.dataframe(df_mm.sort_values(by='FECHA', ascending=False), use_container_width=True)
-        else:
-            st.warning("No hay datos registrados para el periodo seleccionado.")
-            
-    except Exception as e:
-        st.error(f"Error en la consulta: {e}")
-    
-    # 5.3. NAVEGACIÓN
+            if not df.empty:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df['FECHA'], y=df['FLUJO_VALOR'], fill='tozeroy', line=dict(color='#800080')))
+                fig.update_layout(template="plotly_dark", title=f"Flujo: {nombre_mm}")
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No hay datos.")
+        except Exception as e:
+            st.error(f"Error en consulta: {e}")
+    else:
+        st.error("Error de conexión a la base de datos.")
+
     if st.button("⬅️ Volver al Mapa"):
         st.query_params.clear()
         st.rerun()
-
     st.stop()
 
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
