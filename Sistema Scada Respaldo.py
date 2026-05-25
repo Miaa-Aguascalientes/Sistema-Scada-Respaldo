@@ -1105,7 +1105,6 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Consulta de Info (se hace primero para usarla en el título)
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
@@ -1152,7 +1151,6 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # Carga de datos principales
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
     # --- 4. FUNCIÓN INDICADORES ---
@@ -1179,6 +1177,8 @@ if "ver_grafico" in st.query_params:
         with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
         with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
         
+        st.write("---")
+
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
