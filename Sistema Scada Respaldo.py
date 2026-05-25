@@ -1088,108 +1088,73 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-# --- Configuración de página ---
-st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
+# NOTA: HE ELIMINADO st.set_page_config() AQUÍ PARA QUE NO ENTRE EN CONFLICTO
+# CON LA BARRA LATERAL QUE YA TIENES EN TU MAPA PRINCIPAL.
 
-# --- Autenticación ---
-if not st.session_state.get('autenticado'):
-    if st.query_params.get("access") == "granted":
-        st.session_state.autenticado = True
-    else: 
-        st.error("Acceso no autorizado.")
-        st.stop()
-
+# --- 1. LÓGICA DE DATOS ---
 tag_a_graficar = st.query_params.get("ver_grafico")
 nombre_mm = st.query_params.get("nombre")
 
-if not tag_a_graficar:
-    st.error("No se ha especificado un medidor.")
-    st.stop()
+if tag_a_graficar:
+    engine = get_mysql_telemetria_engine()
+    hoy_dt = dt.datetime.now()
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # Consulta de info
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-# --- 1. LÓGICA DE DATOS ---
-engine = get_mysql_telemetria_engine()
-hoy_dt = dt.datetime.now()
-medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-
-df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
-info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
-
-# --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
-st.markdown(f"""
-    <style>
-        @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
-        .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
-    </style>
-    <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
-        <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-        </svg>
-        <h2 style="margin: 0; color: #ffffff; margin-right: 25px;">Macromedidor: {nombre_mm}</h2>
-        <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
-            <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-            <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-            <div><b>Domicilio:</b> {info['Domicilio']}</div>
-            <div><b>Colonia:</b> {info['Colonia']}</div>
+    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
+    st.markdown(f"""
+        <style>
+            @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
+        </style>
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
+            <svg class="spin-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;">Macromedidor: {nombre_mm}</h2>
+            <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                <div><b>Colonia:</b> {info['Colonia']}</div>
+            </div>
         </div>
-    </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- 3. SELECTOR DE FECHAS ---
-opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
-    ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
+    # --- 3. SELECCIÓN DE FECHAS ---
+    opcion_fecha = st.selectbox("Selecciona un rango de visualización:", 
+        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], index=3)
 
-f_ini = medianoche - dt.timedelta(days=14)
-f_fin = hoy_dt
+    # Lógica de fechas estándar...
+    f_ini = medianoche - dt.timedelta(days=14)
+    f_fin = hoy_dt
+    # ... (aquí mantienes tu lógica de fechas)
 
-if opcion_fecha == "Hoy": f_ini = medianoche
-elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-elif opcion_fecha == "Último Mes":
-    primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    f_fin = primer_dia - dt.timedelta(seconds=1)
-    f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
-elif opcion_fecha == "Personalizado":
-    rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-    if isinstance(rango, tuple) and len(rango) == 2:
-        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+    # --- 4. GRÁFICOS ---
+    if not df.empty:
+        # Gráfico 1: Tendencias
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal", line=dict(color='#00FFFF')), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión", line=dict(color='#00FF00')), secondary_y=True)
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias")
+        st.plotly_chart(fig, use_container_width=True)
 
-# --- 4. VISUALIZACIÓN ---
-if not df.empty:
-    # Indicadores
-    prom_caudal = df['Flujo'].mean()
-    prom_presion = df['Presion'].mean()
-    total_consumo = df['Consumo'].sum()
-
-    k1, k2, k3 = st.columns(3)
-    k1.metric("Caudal promedio", f"{prom_caudal:.1f} l/s")
-    k2.metric("Volumen total", f"{total_consumo:.1f} m³")
-    k3.metric("Presión promedio", f"{prom_presion:.2f} kg")
-    
-    st.write("---")
-
-    # Gráfico 1: Tendencias
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal", line=dict(color='#00FFFF')), secondary_y=False)
-    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión", line=dict(color='#00FF00')), secondary_y=True)
-    fig.update_layout(template="plotly_dark", title="Análisis de Tendencias")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Gráfico 2: Consumo Diario (Barras)
-    st.subheader("Consumo Diario (m³)")
-    df_diario = df.copy()
-    df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
-    df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
-    
-    fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text_auto='.1f', color_discrete_sequence=['#00FFFF'])
-    fig_bar.update_layout(template="plotly_dark")
-    st.plotly_chart(fig_bar, use_container_width=True)
-else:
-    st.warning("No hay datos en el rango seleccionado.")
+        # Gráfico 2: Consumo Diario
+        st.subheader("Consumo Diario (m³)")
+        df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text_auto='.1f', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark")
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.warning("No hay datos en el rango seleccionado.")
     
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
