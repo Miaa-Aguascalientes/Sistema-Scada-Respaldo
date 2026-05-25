@@ -1188,8 +1188,6 @@ if "ver_grafico" in st.query_params:
         with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#00FFFF", "📊")
         with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#00FF00", "📉")
         
-        st.write("---")
-
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
