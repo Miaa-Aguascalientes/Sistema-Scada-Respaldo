@@ -1133,7 +1133,7 @@ if "ver_grafico" in st.query_params:
     st.markdown("""
         <style>
             div[data-testid="stVerticalBlock"] > div:has(div.stSelectbox) {
-                height: 90px;
+                height: 50px;
                 display: flex;
                 align-items: center;
                 margin-top: 10px;
