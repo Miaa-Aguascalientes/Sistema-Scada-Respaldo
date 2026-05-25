@@ -1097,17 +1097,36 @@ if "ver_grafico" in st.query_params:
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
-    st.title(f"📊 Análisis de Flujo: {nombre_mm}")
 
-    # Variables de tiempo
+    # --- CONSULTA DE DATOS TÉCNICOS PARA ENCABEZADO ---
+    engine = get_mysql_telemetria_engine()
+    # Obtenemos info básica de la tabla MACROMEDIDORES
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' LIMIT 1", engine)
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": nombre_mm, "Domicilio": "N/A", "Colonia": "N/A"}
+
+    # --- ENCABEZADO CON DATOS TÉCNICOS ---
+    col1, col2 = st.columns([1.5, 2.5])
+    with col1:
+        st.title(f"📊 {nombre_mm}")
+    with col2:
+        st.markdown(f"""
+            <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0;">
+                <div style="display: flex; gap: 15px;">
+                    <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                    <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                    <div><b>Colonia:</b> {info['Colonia']}</div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    st.write("---")
+
+    # --- LÓGICA DE FECHAS ---
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    
     opcion_fecha = st.selectbox("Selecciona un rango:", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
         index=3)
 
-    # Lógica de fechas
     f_ini, f_fin = medianoche, hoy_dt
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
@@ -1124,32 +1143,19 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # Consulta y Gráfico
-    engine = get_mysql_telemetria_engine()
+    # --- GRÁFICO ---
     try:
-        query = f"""
-            SELECT FECHA, Flujo, Presion 
-            FROM MACROMEDIDORES 
-            WHERE Medidor = '{tag_a_graficar}' 
-            AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
-            ORDER BY FECHA ASC
-        """
+        query = f"SELECT FECHA, Flujo, Presion FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
         df = pd.read_sql(query, engine)
         
         if not df.empty:
             fig = make_subplots(specs=[[{"secondary_y": True}]])
-            
-            # Caudal: Azul claro (Cian) y tipo área
             fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", 
-                                     line=dict(color='#00FFFF', width=2), 
-                                     fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-            
-            # Presión: Verde brillante
+                                     line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
             fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", 
                                      line=dict(color='#00FF00', width=2)), secondary_y=True)
             
-            # Layout: Leyenda ARRIBA a la IZQUIERDA (x=0)
-            fig.update_layout(template="plotly_dark", title=f"Historial: {nombre_mm}", hovermode="x unified",
+            fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
                               legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                               paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
             
@@ -1157,7 +1163,7 @@ if "ver_grafico" in st.query_params:
             fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
             st.plotly_chart(fig, use_container_width=True)
         else: st.warning("No hay datos en este rango.")
-    except Exception as e: st.error(f"Error en BD: {e}")
+    except Exception as e: st.error(f"Error: {e}")
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
