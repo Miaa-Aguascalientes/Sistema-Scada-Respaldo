@@ -2782,8 +2782,8 @@ if sectores_data:
                 folium.Marker(
                     location=info['coord'], 
                     icon=folium.DivIcon(
-                        icon_anchor=(-15, 5), 
-                        html=f'<div style="font-size: 10px; font-weight: bold; color: #800080; text-shadow: 1px 1px #000;">{id_mm}</div>'
+                        icon_anchor=(-15, 10), 
+                        html=f'<div style="font-size: 11px; font-weight: bold; color: #FFFFFF; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
             except Exception as e:
