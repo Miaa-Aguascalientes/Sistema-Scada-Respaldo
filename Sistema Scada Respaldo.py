@@ -1089,14 +1089,6 @@ import datetime as dt # Alias 'dt' para todo el bloque
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Historial")
     
-    # Autenticación
-    if not st.session_state.get('autenticado'):
-        if st.query_params.get("access") == "granted":
-            st.session_state.autenticado = True
-            st.session_state.rol = st.query_params.get("role", "usuario")
-        else:
-            st.stop()
-
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
     st.title(f"📊 Análisis de Flujo: {nombre_mm}")
@@ -1104,22 +1096,30 @@ if "ver_grafico" in st.query_params:
     engine = get_mysql_telemetria_engine()
     if engine:
         try:
-            # Aquí va tu consulta SQL específica para el gráfico
-            query = f"SELECT FECHA, FLUJO_VALOR FROM MACROMEDIDORES WHERE ID_MEDIDOR = '{tag_a_graficar}' ORDER BY FECHA ASC"
+            # CORRECCIÓN AQUÍ: Usando nombres reales de tu tabla
+            # Nota: Asegúrate de tener una tabla que guarde HISTÓRICOS. 
+            # Si 'MACROMEDIDORES' solo guarda el último valor, esta consulta fallará.
+            # Si tienes una tabla de históricos (ej: 'HISTORICO_MACROMEDIDORES'), cámbialo aquí.
+            query = f"""
+                SELECT FECHA, Flujo 
+                FROM MACROMEDIDORES 
+                WHERE Medidor = '{tag_a_graficar}' 
+                ORDER BY FECHA ASC
+            """
             df = pd.read_sql(query, engine)
             
             if not df.empty:
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(x=df['FECHA'], y=df['FLUJO_VALOR'], fill='tozeroy', line=dict(color='#800080')))
-                fig.update_layout(template="plotly_dark", title=f"Flujo: {nombre_mm}")
+                fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], fill='tozeroy', line=dict(color='#800080')))
+                fig.update_layout(template="plotly_dark", title=f"Historial Flujo: {nombre_mm}")
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning("No hay datos.")
+                st.warning("No hay datos históricos para este medidor.")
         except Exception as e:
             st.error(f"Error en consulta: {e}")
     else:
-        st.error("Error de conexión a la base de datos.")
-
+        st.error("Error de conexión.")
+        
     if st.button("⬅️ Volver al Mapa"):
         st.query_params.clear()
         st.rerun()
