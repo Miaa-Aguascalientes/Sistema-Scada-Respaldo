@@ -1087,7 +1087,7 @@ import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-# INTERCEPCIÓN PARA EL GRÁFICO
+# --- Configuración de página ---
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Historial")
     
@@ -1100,17 +1100,10 @@ if "ver_grafico" in st.query_params:
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. LÓGICA DE FECHAS (Cálculo inicial) ---
-    hoy_dt = dt.datetime.now()
-    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    # Definir valores temporales para la primera carga antes del selectbox
-    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
-
-    # --- 2. TÍTULO ---
+    # --- 1. TÍTULO ---
     st.title(f"📊 {nombre_mm}")
 
-# --- Función actualizada para el nuevo diseño ---
+    # --- 2. FUNCIÓN DE INDICADORES (Diseño Solicitado) ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="border: 1px solid #454d55; border-radius: 8px; padding: 15px; background-color: #0e1117;">
@@ -1118,50 +1111,23 @@ if "ver_grafico" in st.query_params:
                     <span style="margin-right: 8px;">{icon}</span> {titulo}
                 </div>
                 <div style="color: {color_valor}; font-size: 24px; font-weight: bold;">
-                    {valor} <span style="font-size: 16px;">{unidad}</span>
+                    {valor} <span style="font-size: 16px; color: #ffffff;">{unidad}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- Bloque de visualización (reemplaza la parte de los indicadores) ---
-    if not df.empty:
-        prom_caudal = df['Flujo'].mean()
-        prom_presion = df['Presion'].mean()
-        total_consumo = df['Consumo'].sum()
-
-        k1, k2, k3 = st.columns(3)
-        # Los iconos pueden ser texto, emojis o SVG. Aquí uso emojis por simplicidad.
-        with k1: mostrar_indicador("Caudal total", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
-        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#FFFFFF", "📊")
-        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#FFFF00", "📉")
-        
-        st.write("---")
-
-    # --- 4. CONSULTA DE DATOS ---
+    # --- 3. LÓGICA DE FECHAS Y DATOS ---
     engine = get_mysql_telemetria_engine()
+    hoy_dt = dt.datetime.now()
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Obtener Info de Ubicación
-    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
-    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
-
-    # --- 5. PANEL DE INFORMACIÓN ---
-    st.markdown(f"""
-        <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0; margin-bottom: 20px;">
-            <div style="display: flex; gap: 15px;">
-                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-                <div><b>Domicilio:</b> {info['Domicilio']}</div>
-                <div><b>Colonia:</b> {info['Colonia']}</div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # --- 6. SELECTOR DE FECHAS ---
+    # Selector de fechas
     opcion_fecha = st.selectbox("Selecciona un rango:", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
         index=3)
 
-    # Actualización de fechas según el selector
+    # Ajuste de fechas
+    f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
     elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
@@ -1177,24 +1143,37 @@ if "ver_grafico" in st.query_params:
         if isinstance(rango, tuple) and len(rango) == 2:
             f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-    # --- 7. CARGA Y VISUALIZACIÓN ---
-    query = f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
-    df = pd.read_sql(query, engine)
-    
-    st.write("---")
+    # Consultas
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
+    # --- 4. PANEL DE INFORMACIÓN ---
+    st.markdown(f"""
+        <div style="background-color: #1a1a1a; padding: 12px; border-radius: 8px; border-left: 5px solid #00FFFF; font-size: 13px; color: #e0e0e0; margin-bottom: 20px;">
+            <div style="display: flex; gap: 15px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
+                <div><b>Domicilio:</b> {info['Domicilio']}</div>
+                <div><b>Colonia:</b> {info['Colonia']}</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- 5. INDICADORES ---
     if not df.empty:
-        # Calcular Indicadores
         prom_caudal = df['Flujo'].mean()
         prom_presion = df['Presion'].mean()
         total_consumo = df['Consumo'].sum()
 
         k1, k2, k3 = st.columns(3)
-        with k1: mostrar_indicador("CAUDAL PROMEDIO", f"{prom_caudal:.2f}", "Lps", "#00FFFF")
-        with k2: mostrar_indicador("VOLUMEN", f"{total_consumo:.2f}", "m³", "#00FFFF")
-        with k3: mostrar_indicador("PRESIÓN PROMEDIO", f"{prom_presion:.2f}", "kg/cm²", "#00FF00")
+        with k1: mostrar_indicador("Caudal total", f"{prom_caudal:.1f}", "l/s", "#00FFFF", "💧")
+        with k2: mostrar_indicador("Volumen total", f"{total_consumo:.1f}", "m³", "#FFFFFF", "📊")
+        with k3: mostrar_indicador("Presión promedio", f"{prom_presion:.2f}", "kg", "#FFFF00", "📉")
+        
+        st.write("---")
 
-        # Gráfico
+        # --- 6. GRÁFICO ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
