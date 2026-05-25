@@ -1108,12 +1108,11 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. TÍTULO Y PANEL DE DATOS CON ANIMACIÓN ---
-    # Inyectamos el estilo CSS para que el icono gire
+    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA DE DATOS ---
     st.markdown("""
         <style>
             @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-            .spin-icon { animation: spin 4s linear infinite; }
+            .spin-icon { animation: spin 4s linear infinite; display: inline-block; margin-right: 15px; }
         </style>
     """, unsafe_allow_html=True)
 
@@ -1125,9 +1124,9 @@ if "ver_grafico" in st.query_params:
     """
 
     st.markdown(f"""
-        <div style="display: flex; align-items: center; gap: 20px; background-color: #0e1117; padding: 15px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 25px;">
             {svg_animado}
-            <h2 style="margin: 0; color: #ffffff;">Macromedidor: {nombre_mm}</h2>
+            <h2 style="margin: 0; color: #ffffff; margin-right: 25px;">Macromedidor: {nombre_mm}</h2>
             <div style="display: flex; gap: 20px; font-size: 13px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 20px;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
