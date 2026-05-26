@@ -1177,11 +1177,15 @@ if "ver_grafico" in st.query_params:
 
         # 2. Renderizado de indicadores (dentro del placeholder)
         with placeholder_indicadores.container():
-            _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
+            _, col_m1, col_m2, col_m3, _ = st.columns([1, 2, 2, 2, 1])
             # Estilos: padding reducido (altura), font-size reducido (tamaño)
             estilo_div = "text-align: center; padding: 5px;"
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
+
+            entera = int(total_consumo)
+            decimal = int(round((total_consumo - entera) * 100))
+            consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
 
             with col_m1:
                 st.markdown(f"""
@@ -1198,6 +1202,14 @@ if "ver_grafico" in st.query_params:
                         <div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div>
                     </div>
                 """, unsafe_allow_html=True)
+                
+            with col_m3:
+                st.markdown(f"""
+                    <div style="text-align: center; padding: 5px;">
+                        <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">Consumo total</div>
+                        <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff;">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div>
+                    </div>
+                """, unsafe_allow_html=True)   
             
         
         # 3--. Gráfico de Flujo y Presión (una sola vez)
