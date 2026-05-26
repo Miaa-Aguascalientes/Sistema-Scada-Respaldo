@@ -1171,9 +1171,34 @@ if "ver_grafico" in st.query_params:
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
+        st.markdown("""
+            <style>
+            .tarjeta-caudal {
+                border: 2px solid #00FFFF;
+                border-radius: 15px;
+                padding: 15px;
+                text-align: center;
+            }
+            .tarjeta-presion {
+                border: 2px solid #00FF00;
+                border-radius: 15px;
+                padding: 15px;
+                text-align: center;
+            }
+            </style>
+        """, unsafe_allow_html=True)
+
         col_m1, col_m2, _ = st.columns([1, 1, 2])
-        col_m1.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
-        col_m2.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
+        
+        with col_m1:
+            st.markdown('<div class="tarjeta-caudal">', unsafe_allow_html=True)
+            st.metric("CAUDAL PROMEDIO", f"{avg_caudal:.2f} Lps")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_m2:
+            st.markdown('<div class="tarjeta-presion">', unsafe_allow_html=True)
+            st.metric("PRESIÓN PROMEDIO", f"{avg_presion:.2f} kg/cm²")
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # Agregamos un pequeño espacio antes del gráfico
         st.markdown("<br>", unsafe_allow_html=True)
