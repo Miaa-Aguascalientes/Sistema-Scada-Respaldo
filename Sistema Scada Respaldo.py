@@ -1168,6 +1168,16 @@ if "ver_grafico" in st.query_params:
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
     if not df.empty:
+        avg_caudal = df['Flujo'].mean()
+        avg_presion = df['Presion'].mean()
+
+        col_m1, col_m2, _ = st.columns([1, 1, 2])
+        col_m1.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
+        col_m2.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
+        
+        # Agregamos un pequeño espacio antes del gráfico
+        st.markdown("<br>", unsafe_allow_html=True)
+        
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
@@ -1213,7 +1223,7 @@ if "ver_grafico" in st.query_params:
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
             xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio  
-            yaxis=dict(title="Consumo m3"),
+            yaxis=dict(title="Consumo (m3)"),
             margin=dict(t=30, b=20, l=20, r=20),
             showlegend=True,                           # Esto activa la leyenda
             legend=dict(
