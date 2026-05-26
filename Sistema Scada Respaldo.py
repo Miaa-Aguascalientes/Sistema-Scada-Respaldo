@@ -1135,12 +1135,31 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     # --- Selector de fechas ---
-    col_sel, _ = st.columns([0.8, 4])
+    col_sel, col_ind = st.columns([1, 3])
+
     with col_sel:
-        st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
+        # Ajusta el padding para que coincida visualmente con la altura de los indicadores
+        st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
+
+    with col_ind:
+        # Aquí definimos un sub-placeholder para los indicadores dentro de la columna de la derecha
+        placeholder_indicadores = st.empty()
+        
+        # Lógica de renderizado (asegúrate de que esto esté vinculado a placeholder_indicadores)
+        with placeholder_indicadores.container():
+            # Dividimos el espacio de col_ind en 3 para los indicadores
+            c1, c2, c3 = st.columns(3)
+            
+            # (Aquí va tu lógica de st.markdown para los 3 indicadores...)
+            with c1:
+                st.markdown(f"Caudal: {avg_caudal:.2f} Lps")
+            with c2:
+                st.markdown(f"Presión: {avg_presion:.2f} kg/cm²")
+            with c3:
+                st.markdown(f"Consumo: {consumo_fmt} m³")
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
