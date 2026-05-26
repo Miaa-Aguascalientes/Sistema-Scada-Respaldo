@@ -1135,20 +1135,42 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     # --- Selector de fechas ---
-    col_sel, _ = st.columns([0.8, 4])
+    col_sel, col_ind, col_btn = st.columns([1.2, 3.5, 1.8])
+    
     with col_sel:
-        st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
+        st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, label_visibility="collapsed")
+            index=3, label_visibility="collapsed", key="selector_fechas_unico")
+
+    # --- Lógica de fechas (Simplificada) ---
+    if opcion_fecha == "Hoy": f_ini = medianoche; f_fin = hoy_dt
+    elif opcion_fecha == "Ayer": f_ini = medianoche - dt.timedelta(days=1); f_fin = medianoche - dt.timedelta(seconds=1)
+    # ... (resto de tus elif igual) ...
+    else: 
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+
+    # --- Consulta de datos ---
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+
+    # --- Renderizado Indicadores ---
+    with col_ind:
+        placeholder_indicadores = st.empty()
+
+    # --- Renderizado Botones de Exportación ---
     with col_btn:
-        # Alineamos los botones debajo del espacio de indicadores, pero en su propia columna
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
-        c_btn1, c_btn2 = st.columns(2)
-        with c_btn1:
-            st.download_button("📥", df.to_csv(index=False).encode('utf-8'), "datos.csv", "text/csv", use_container_width=True)
-        with c_btn2:
-            st.download_button("📊", df_diario.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)    
+        c_b1, c_b2 = st.columns(2)
+        if not df.empty:
+            with c_b1:
+                st.download_button("📥 Data", df.to_csv(index=False).encode('utf-8'), "datos.csv", "text/csv", use_container_width=True)
+            with c_b2:
+                # Calculamos consumo para el segundo botón
+                df_d = df.copy()
+                df_d['FECHA'] = pd.to_datetime(df_d['FECHA']).dt.date
+                df_d = df_d.groupby('FECHA')['Consumo'].sum().reset_index()
+                st.download_button("📊 Consumo", df_d.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)  
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
