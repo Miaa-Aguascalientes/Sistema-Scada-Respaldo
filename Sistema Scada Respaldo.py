@@ -1137,15 +1137,6 @@ if "ver_grafico" in st.query_params:
     
     placeholder_indicadores = st.empty()
 
-    # 2. Selector e indicadores en la misma fila
-    col_sel, col_ind = st.columns([1, 3])
-
-    with col_sel:
-        st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
-        opcion_fecha = st.selectbox("rango", 
-            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, label_visibility="collapsed")
-
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
