@@ -1146,35 +1146,6 @@ if "ver_grafico" in st.query_params:
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
 
-    # 3. Renderizamos los indicadores dentro del placeholder que vive en col_ind
-    with col_ind:
-        # Movemos la lógica de cálculo aquí para asegurar que 'df' exista
-        if not df.empty:
-            avg_caudal = df['Flujo'].mean()
-            avg_presion = df['Presion'].mean()
-        
-        # Cálculo de consumo total para el indicador
-        df_diario_calc = df.copy()
-        df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
-        total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
-        
-        # Formato manual para asegurar punto decimal y coma de miles
-        entera = int(total_consumo)
-        decimal = int(round((total_consumo - entera) * 100))
-        consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
-        
-        # Lógica de renderizado (asegúrate de que esto esté vinculado a placeholder_indicadores)
-        with placeholder_indicadores.container():
-            # Dividimos el espacio de col_ind en 3 para los indicadores
-            c1, c2, c3 = st.columns(3)
-            
-            # (Aquí va tu lógica de st.markdown para los 3 indicadores...)
-            with c1:
-                st.markdown(f"Caudal: {avg_caudal:.2f} Lps")
-            with c2:
-                st.markdown(f"Presión: {avg_presion:.2f} kg/cm²")
-            with c3:
-                st.markdown(f"Consumo: {consumo_fmt} m³")
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
