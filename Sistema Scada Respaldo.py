@@ -1198,9 +1198,7 @@ if "ver_grafico" in st.query_params:
                 st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
             with col_m3:
                 st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
-                
-            
-        
+                        
         # 3--. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
@@ -1224,10 +1222,6 @@ if "ver_grafico" in st.query_params:
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
         
-        
-
-
-
         fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(
             height=300, template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
@@ -1284,7 +1278,7 @@ if "ver_grafico" in st.query_params:
             y='Consumo', 
             text='Consumo', 
             color_discrete_sequence=['#00FFFF'],
-            
+            labels={'Consumo': 'Consumo (m³)'}
         )      
         fig_bar.update_layout(
             height=300, 
@@ -1298,20 +1292,19 @@ if "ver_grafico" in st.query_params:
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.1,                                 # Ajustado para que se vea bien
+                y=1.2,                                 # Ajustado para que se vea bien
                 xanchor="right",
                 x=1
             )
         )
-        
+    
         fig_bar.update_traces(
             texttemplate='%{text:.1f}', 
             textposition='outside',
             name='Consumo (m³)'
         )
         st.plotly_chart(fig_bar, use_container_width=True)
-    
-    
+
     st.stop()
     
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
