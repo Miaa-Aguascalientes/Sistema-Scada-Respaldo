@@ -1170,11 +1170,15 @@ if "ver_grafico" in st.query_params:
     placeholder_indicadores = st.empty()
 
     if not df.empty:
-        # Calcular los valores actualizados
+        # VALIDACIÓN: Aseguramos que los datos sean numéricos antes de calcular
+        df['Flujo'] = pd.to_numeric(df['Flujo'], errors='coerce')
+        df['Presion'] = pd.to_numeric(df['Presion'], errors='coerce')
+        
+        # Calculamos promedios ignorando valores nulos
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
-        # Usar el placeholder para renderizar los indicadores con los nuevos valores
+        # Usamos un contenedor limpio para los indicadores
         with placeholder_indicadores.container():
             _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
             
