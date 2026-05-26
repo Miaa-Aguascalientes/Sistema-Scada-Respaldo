@@ -1280,6 +1280,7 @@ if "ver_grafico" in st.query_params:
             color_discrete_sequence=['#00FFFF'],
             labels={'Consumo': 'Consumo (m³)'}
         )      
+        fig_bar.update_traces(name="Consumo (m³)", showlegend=True)
         fig_bar.update_layout(
             height=300, 
             template="plotly_dark", 
@@ -1287,13 +1288,13 @@ if "ver_grafico" in st.query_params:
             paper_bgcolor='rgba(0,0,0,0)', 
             xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio  
             yaxis=dict(title="Consumo (m3)"),
-            margin=dict(t=30, b=20, l=20, r=20),
+            margin=dict(t=40, b=20, l=20, r=20),
             showlegend=True,                           # Esto activa la leyenda
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
                 y=1.2,                                 # Ajustado para que se vea bien
-                xanchor="right",
+                xanchor="left",
                 x=1
             )
         )
