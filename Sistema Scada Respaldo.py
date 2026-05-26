@@ -1081,9 +1081,6 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
-Aquí tienes el código con la indentación corregida y una estructura más limpia para mejorar la legibilidad y evitar errores de ejecución comunes en Streamlit.
-
-Python
 import streamlit as st
 import pandas as pd
 import datetime as dt
