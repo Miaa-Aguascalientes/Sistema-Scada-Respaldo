@@ -1086,7 +1086,7 @@ import pandas as pd
 import datetime as dt
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import plotly.express as px 
+import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -1109,7 +1109,7 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA: TU DISEÑO ORIGINAL ---
+    # --- 2. CABECERA: TÍTULO, ICONO ANIMADO Y TARJETA ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1153,7 +1153,7 @@ if "ver_grafico" in st.query_params:
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    # --- 4. FUNCIÓN INDICADORES (TU DISEÑO ORIGINAL) ---
+    # --- 4. FUNCIÓN INDICADORES ---
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
             <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px 5px; text-align: center; display: flex; flex-direction: column; align-items: center;">
@@ -1168,6 +1168,7 @@ if "ver_grafico" in st.query_params:
 
     # --- 5. VISUALIZACIÓN ---
     if not df.empty:
+        # Indicadores (Cálculos sobre el DF original)
         prom_caudal = df['Flujo'].mean()
         prom_presion = df['Presion'].mean()
         total_consumo = df['Consumo'].sum()
@@ -1179,10 +1180,14 @@ if "ver_grafico" in st.query_params:
         
         st.write("---")
 
-        # --- PREPARACIÓN: AGRUPACIÓN DIARIA PARA LIMPIEZA DE EJE X ---
-        df['FECHA_D'] = pd.to_datetime(df['FECHA']).dt.date
-        df_agrupado = df.groupby('FECHA_D').agg({'Flujo': 'mean', 'Presion': 'mean', 'Consumo': 'sum'}).reset_index()
-        df_agrupado['FECHA_STR'] = df_agrupado['FECHA_D'].astype(str)
+        # --- PREPARACIÓN: AGRUPACIÓN DIARIA PARA GRÁFICOS ---
+        df['FECHA_DATE'] = pd.to_datetime(df['FECHA']).dt.date
+        df_agrupado = df.groupby('FECHA_DATE').agg({
+            'Flujo': 'mean',
+            'Presion': 'mean',
+            'Consumo': 'sum'
+        }).reset_index()
+        df_agrupado['FECHA_STR'] = df_agrupado['FECHA_DATE'].astype(str)
 
         # GRÁFICO TENDENCIAS
         fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -1190,7 +1195,7 @@ if "ver_grafico" in st.query_params:
         fig.add_trace(go.Scatter(x=df_agrupado['FECHA_STR'], y=df_agrupado['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
         fig.update_layout(template="plotly_dark", title="Análisis de Tendencias (Diario)", hovermode="x unified",
-                          xaxis=dict(type='category'), 
+                          xaxis=dict(type='category'), # Fuerza 1 etiqueta por día
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
                           paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         
@@ -1202,7 +1207,7 @@ if "ver_grafico" in st.query_params:
         st.subheader("Consumo Diario (m³)")
         fig_bar = px.bar(df_agrupado, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(template="plotly_dark", 
-                              xaxis=dict(type='category'), 
+                              xaxis=dict(type='category'), # Fuerza 1 etiqueta por día
                               plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
