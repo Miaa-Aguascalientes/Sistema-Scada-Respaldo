@@ -1140,7 +1140,7 @@ if "ver_grafico" in st.query_params:
     with col_sel:
         st.markdown("""
             <style>
-                div[data-testid="column"]:nth-of-type(1) { padding-right: 20px !important; }
+                div[data-testid="column"]:nth-of-type(1) { padding-right: 30px !important; }
             </style>
         """, unsafe_allow_html=True)
         
@@ -1180,7 +1180,12 @@ if "ver_grafico" in st.query_params:
 
     # --- Botones en col_btn ---
     with col_btn:
-        st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
+        st.markdown("""
+            <style>
+                div[data-testid="column"]:nth-of-type(1) { padding-right: 20px !important; }
+            </style>
+        """, unsafe_allow_html=True)
+        
         c_b1, c_b2 = st.columns(2)
         if not df.empty:
             with c_b1:
