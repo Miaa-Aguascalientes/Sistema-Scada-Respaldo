@@ -1169,56 +1169,44 @@ if "ver_grafico" in st.query_params:
 
     if not df.empty:
         avg_caudal = df['Flujo'].mean()
-        avg_presion = df['Presion'].mean()
+    avg_presion = df['Presion'].mean()
 
-        # --- CSS optimizado ---
-        st.markdown("""
-            <style>
-            .container-kpi {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-                padding: 10px;
-                border-radius: 10px;
-                background-color: rgba(255,255,255,0.05);
-            }
-            .titulo-kpi {
-                font-size: 0.8rem;
-                color: #888888;
-                font-weight: bold;
-                margin-bottom: 5px;
-            }
-            .valor-kpi {
-                font-size: 1.5rem;
-                font-weight: bold;
-                color: #ffffff;
-            }
-            .borde-caudal { border: 2px solid #00FFFF; }
-            .borde-presion { border: 2px solid #00FF00; }
-            </style>
+    # --- Estilos CSS (solo se definen una vez) ---
+    st.markdown("""
+        <style>
+        .container-kpi {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 10px; border-radius: 10px; background-color: rgba(255,255,255,0.05);
+        }
+        .titulo-kpi { font-size: 0.8rem; color: #888888; font-weight: bold; margin-bottom: 5px; }
+        .valor-kpi { font-size: 1.5rem; font-weight: bold; color: #ffffff; }
+        .borde-caudal { border: 2px solid #00FFFF; }
+        .borde-presion { border: 2px solid #00FF00; }
+        </style>
+    """, unsafe_allow_html=True)
+
+    # --- INDICADORES DINÁMICOS ---
+    # Al colocar esto dentro del if not df.empty, cada vez que el 
+    # selectbox cambia y el df se recalcula, este bloque se vuelve a renderizar con los nuevos valores.
+    _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
+
+    with col_m1:
+        st.markdown(f"""
+            <div class="container-kpi borde-caudal">
+                <div class="titulo-kpi">CAUDAL PROMEDIO</div>
+                <div class="valor-kpi">{avg_caudal:.2f} <span style="font-size: 1rem; color: #00FFFF;">Lps</span></div>
+            </div>
         """, unsafe_allow_html=True)
 
-        # --- Visualización ---
-        col_m1, col_m2, _ = st.columns([1, 1, 2])
-
-        with col_m1:
-            st.markdown(f"""
-                <div class="container-kpi borde-caudal">
-                    <div class="titulo-kpi">CAUDAL PROMEDIO</div>
-                    <div class="valor-kpi">{avg_caudal:.2f} <span style="font-size: 1rem; color: #00FFFF;">Lps</span></div>
-                </div>
-            """, unsafe_allow_html=True)
-
-        with col_m2:
-            st.markdown(f"""
-                <div class="container-kpi borde-presion">
-                    <div class="titulo-kpi">PRESIÓN PROMEDIO</div>
-                    <div class="valor-kpi">{avg_presion:.2f} <span style="font-size: 1rem; color: #00FF00;">kg/cm²</span></div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-        st.markdown("<br>", unsafe_allow_html=True)
+    with col_m2:
+        st.markdown(f"""
+            <div class="container-kpi borde-presion">
+                <div class="titulo-kpi">PRESIÓN PROMEDIO</div>
+                <div class="valor-kpi">{avg_presion:.2f} <span style="font-size: 1rem; color: #00FF00;">kg/cm²</span></div>
+            </div>
+        """, unsafe_allow_html=True)
+        
+    st.markdown("<br>", unsafe_allow_html=True)
         
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
