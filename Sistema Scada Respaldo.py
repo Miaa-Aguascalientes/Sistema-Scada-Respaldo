@@ -1265,7 +1265,7 @@ if "ver_grafico" in st.query_params:
             name="Presión (Kg/cm²)",
             mode='lines+markers',
             marker=dict(size=4),
-            line=dict(color='#00FF00', width=2)
+            line=dict(color='#00FF00', width=2),
             hovertemplate="%{y:.2f} Kg/cm²<extra></extra>"
         ), secondary_y=True)
         
