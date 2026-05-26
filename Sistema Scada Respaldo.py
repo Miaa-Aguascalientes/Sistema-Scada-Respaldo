@@ -1232,16 +1232,6 @@ if "ver_grafico" in st.query_params:
         consumo_formateado = f"{entera:,d}.{decimal:02d}"
         consumo_formateado = consumo_formateado.replace(",", "TEMP").replace(".", ",").replace("TEMP", ",")
 
-        # --- Indicador de Consumo ---
-        st.markdown(f"""
-            <div style="text-align: center; margin-bottom: 10px;">
-                <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">Consumo total</div>
-                <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff;">
-                    {consumo_formateado} <span style="font-size: 0.9rem; color: #00FFFF;">m³</span>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
 
         fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(
