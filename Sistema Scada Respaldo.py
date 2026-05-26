@@ -1225,14 +1225,18 @@ if "ver_grafico" in st.query_params:
         
         
         total_consumo = df_diario['Consumo'].sum()
-        consumo_str = "{:,.2f}".format(total_consumo).replace(",", "X").replace(".", ",").replace("X", ".")
+        entera = int(total_consumo)
+        decimal = int(round((total_consumo - entera) * 100))
+
+        consumo_formateado = f"{entera:,d}.{decimal:02d}"
+        consumo_formateado = consumo_formateado.replace(",", "TEMP").replace(".", ",").replace("TEMP", ",")
 
         # --- Indicador de Consumo ---
         st.markdown(f"""
             <div style="text-align: center; margin-bottom: 10px;">
                 <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">Consumo total</div>
                 <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff;">
-                    {consumo_str} <span style="font-size: 0.9rem; color: #00FFFF;">m³</span>
+                    {consumo_formateado} <span style="font-size: 0.9rem; color: #00FFFF;">m³</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
