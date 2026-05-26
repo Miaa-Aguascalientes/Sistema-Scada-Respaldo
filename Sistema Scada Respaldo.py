@@ -1171,53 +1171,49 @@ if "ver_grafico" in st.query_params:
     
     # --- Consulta y Gráficos ---
     col_sel, col_ind = st.columns([1.5, 4.5])
+    with col_sel:
+        st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
+        opcion_fecha = st.selectbox("rango", 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+            index=3, label_visibility="collapsed")
 
-with col_sel:
-    # Ajuste de margen superior para alinear verticalmente con los indicadores
-    st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
-    opcion_fecha = st.selectbox("rango", 
-        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-        index=3, label_visibility="collapsed")
+    # --- Área de Indicadores (Columna derecha) ---
+    with col_ind:
+        placeholder_indicadores = st.empty()
 
-with col_ind:
-    # El placeholder reside dentro de la columna de los indicadores
-    placeholder_indicadores = st.empty()
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-# --- Consulta y Procesamiento ---
-df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+    if not df.empty:
+        # 1. Cálculos de indicadores
+        avg_caudal = df['Flujo'].mean()
+        avg_presion = df['Presion'].mean()
+        
+        # Cálculo de consumo total
+        df_diario_calc = df.copy()
+        df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
+        total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
+        
+        # Formato manual
+        entera = int(total_consumo)
+        decimal = int(round((total_consumo - entera) * 100))
+        consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-if not df.empty:
-    # 1. Cálculos
-    avg_caudal = df['Flujo'].mean()
-    avg_presion = df['Presion'].mean()
-    
-    df_diario_calc = df.copy()
-    df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
-    total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
-    
-    # Formato manual matemático
-    entera = int(total_consumo)
-    decimal = int(round((total_consumo - entera) * 100))
-    consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
+        # 2. Renderizado dentro del placeholder en col_ind
+        with placeholder_indicadores.container():
+            col_m1, col_m2, col_m3 = st.columns(3)
+            estilo_div = "text-align: center; padding: 5px;"
+            estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
+            estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
 
-    # 2. Renderizado dentro del placeholder en col_ind
-    with placeholder_indicadores.container():
-        # Creamos las 3 columnas de indicadores DENTRO del contenedor
-        i1, i2, i3 = st.columns(3)
-        estilo_div = "text-align: center; padding: 5px;"
-        estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
-        estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
-
-        with i1:
-            st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Caudal promedio</div><div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div></div>', unsafe_allow_html=True)
-        with i2:
-            st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
-        with i3:
-            st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
-
-else:
-    placeholder_indicadores.empty()
-    st.warning("No hay datos registrados en este rango.")
+            with col_m1:
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Caudal promedio</div><div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div></div>', unsafe_allow_html=True)
+            with col_m2:
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
+            with col_m3:
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
+    else:
+        placeholder_indicadores.empty()
+        st.warning("No hay datos registrados en este rango.")
         # 3--. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
