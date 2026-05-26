@@ -1248,8 +1248,26 @@ if "ver_grafico" in st.query_params:
                         
         # 3--. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        
+        fig.add_trace(go.Scatter(
+            x=df['FECHA'], y=df['Flujo'],
+            name="Caudal (Lps)",
+            mode='lines+markers',
+            marker=dict(size=4),
+            line=dict(color='#00FFFF', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(0, 255, 255, 0.2)',
+            hovertemplate="%{y:.2f} Lps<extra></extra>"
+        ), secondary_y=False)
+        
+        fig.add_trace(go.Scatter(
+            x=df['FECHA'], y=df['Presion'],
+            name="Presión (Kg/cm²)",
+            mode='lines+markers',
+            marker=dict(size=4),
+            line=dict(color='#00FF00', width=2)
+            hovertemplate="%{y:.2f} Kg/cm²<extra></extra>"
+        ), secondary_y=True)
         
         fig.update_layout(
             height=400, template="plotly_dark", hovermode="x unified",
