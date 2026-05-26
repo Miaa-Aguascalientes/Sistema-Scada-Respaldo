@@ -1107,10 +1107,10 @@ if "ver_grafico" in st.query_params:
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-        with col_sel:
-        opcion_fecha = st.selectbox("rango", 
-            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, label_visibility="collapsed")
+    with col_sel:
+    opcion_fecha = st.selectbox("rango", 
+        ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+        index=3, label_visibility="collapsed")
 
     # --- AQUÍ ESTABA EL ERROR: ASIGNACIÓN DE FECHAS ---
     f_fin = hoy_dt
