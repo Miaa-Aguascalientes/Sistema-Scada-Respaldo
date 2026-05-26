@@ -1161,7 +1161,11 @@ if "ver_grafico" in st.query_params:
 
     # --- Consulta de datos ---
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-    df = df.drop_duplicates()
+    df = df.groupby('FECHA').agg({
+        'Flujo': 'mean',
+        'Presion': 'mean',
+        'Consumo': 'sum'
+    }).reset_index()
     
     df_diario_exp = pd.DataFrame()
     if not df.empty:
