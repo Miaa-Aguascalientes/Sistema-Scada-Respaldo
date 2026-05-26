@@ -1170,35 +1170,21 @@ if "ver_grafico" in st.query_params:
     placeholder_indicadores = st.empty()
 
     if not df.empty:
-        # VALIDACIÓN: Aseguramos que los datos sean numéricos antes de calcular
-        df['Flujo'] = pd.to_numeric(df['Flujo'], errors='coerce')
-        df['Presion'] = pd.to_numeric(df['Presion'], errors='coerce')
-        
-        # Calculamos promedios ignorando valores nulos
+        # --- NUEVO: Indicadores de promedio ---
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
-        # Usamos un contenedor limpio para los indicadores
-        with placeholder_indicadores.container():
-            _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
-            
-            with col_m1:
-                st.markdown(f"""
-                    <div class="container-kpi borde-caudal">
-                        <div class="titulo-kpi">CAUDAL PROMEDIO</div>
-                        <div class="valor-kpi">{avg_caudal:.2f} <span style="font-size: 1rem; color: #00FFFF;">Lps</span></div>
-                    </div>
-                """, unsafe_allow_html=True)
+        col_m1, col_m2, _ = st.columns([1, 1, 2])
+        col_m1.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
+        col_m2.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
+        
+        # Agregamos un pequeño espacio antes del gráfico
+        st.markdown("<br>", unsafe_allow_html=True)
 
-            with col_m2:
-                st.markdown(f"""
-                    <div class="container-kpi borde-presion">
-                        <div class="titulo-kpi">PRESIÓN PROMEDIO</div>
-                        <div class="valor-kpi">{avg_presion:.2f} <span style="font-size: 1rem; color: #00FF00;">kg/cm²</span></div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
+        # --- Gráfico de Flujo y Presión ---
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
