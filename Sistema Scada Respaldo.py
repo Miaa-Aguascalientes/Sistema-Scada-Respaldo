@@ -1172,18 +1172,38 @@ if "ver_grafico" in st.query_params:
     if not df.empty:
         # --- NUEVO: Indicadores de promedio ---
         avg_caudal = df['Flujo'].mean()
-        avg_presion = df['Presion'].mean()
+    avg_presion = df['Presion'].mean()
 
-        _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
-        with col_m1:
-            st.write("Caudal Promedio")
-            st.markdown(f"### {avg_caudal:.2f} <span style='color:#00FFFF;'>Lps</span>", unsafe_allow_html=True)
-        
-        with col_m2:
-            st.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
-        
-        # Agregamos un pequeño espacio antes del gráfico
-        st.markdown("<br>", unsafe_allow_html=True)
+    # 2. Definimos el HTML como una cadena de texto (f-string) que usa las variables actuales
+    html_caudal = f"""
+    <div style="border: 2px solid #00FFFF; border-radius: 15px; padding: 15px; text-align: center;">
+        <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">CAUDAL PROMEDIO</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">
+            {avg_caudal:.2f} <span style="color: #00FFFF;">Lps</span>
+        </div>
+    </div>
+    """
+
+    html_presion = f"""
+    <div style="border: 2px solid #00FF00; border-radius: 15px; padding: 15px; text-align: center;">
+        <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">PRESIÓN PROMEDIO</div>
+        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">
+            {avg_presion:.2f} <span style="color: #00FF00;">kg/cm²</span>
+        </div>
+    </div>
+    """
+
+    # 3. Dibujamos las columnas y renderizamos
+    _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
+
+    with col_m1:
+        st.markdown(html_caudal, unsafe_allow_html=True)
+    
+    with col_m2:
+        st.markdown(html_presion, unsafe_allow_html=True)
+
+    # 4. Espaciado
+    st.markdown("<br>", unsafe_allow_html=True)
 
         # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
