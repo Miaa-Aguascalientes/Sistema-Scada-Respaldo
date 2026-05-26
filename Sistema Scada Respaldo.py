@@ -1081,8 +1081,6 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ----------------------------------------------------------------
-# 4.7. GRAFICAR LOS MACROMEDIDORES --------------------------------------------
-
 import streamlit as st
 import pandas as pd
 import datetime as dt
@@ -1092,554 +1090,108 @@ import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
-
-    st.set_page_config(
-        layout="wide",
-        page_title="Miaa - Macromedidores"
-    )
-
-    # -------------------------------------------------------------------------
-    # AUTENTICACION
-    # -------------------------------------------------------------------------
+    st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
+    
     if not st.session_state.get('autenticado'):
-
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
-        else:
-            st.stop()
+        else: st.stop()
 
-    # -------------------------------------------------------------------------
-    # PARAMETROS
-    # -------------------------------------------------------------------------
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
     engine = get_mysql_telemetria_engine()
-
     hoy_dt = dt.datetime.now()
-
-    medianoche = hoy_dt.replace(
-        hour=0,
-        minute=0,
-        second=0,
-        microsecond=0
-    )
-
-    # -------------------------------------------------------------------------
-    # INFORMACION DEL MEDIDOR
-    # -------------------------------------------------------------------------
-    query_info = f"""
-    SELECT
-        Nombre,
-        Domicilio,
-        Colonia
-    FROM MACROMEDIDORES
-    WHERE Medidor = '{tag_a_graficar}'
-    AND Medidor != '1000'
-    LIMIT 1
-    """
-
-    df_info = pd.read_sql(query_info, engine)
-
-    info = (
-        df_info.iloc[0]
-        if not df_info.empty
-        else {
-            "Nombre": "N/A",
-            "Domicilio": "N/A",
-            "Colonia": "N/A"
-        }
-    )
-
-    # -------------------------------------------------------------------------
-    # CSS + CABECERA
-    # -------------------------------------------------------------------------
-    st.markdown(
-        f"""
+    medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # --- CABECERA Y CSS ---
+    st.markdown(f"""
         <style>
-
-            @keyframes spin {{
-                from {{ transform: rotate(0deg); }}
-                to {{ transform: rotate(360deg); }}
-            }}
-
-            .spin-icon {{
-                animation: spin 4s linear infinite;
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 15px;
-            }}
-
-            div[data-testid="column"] {{
-                padding-top: 0px !important;
-            }}
-
-            div[data-testid="stVerticalBlock"] {{
-                gap: 0px !important;
-            }}
-
+            @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
+            .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
+            div[data-testid="column"] {{ padding-top: 0px !important; }}
+            div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
-
-        <div style="
-            display:flex;
-            align-items:center;
-            background-color:#0e1117;
-            padding:10px 20px;
-            border-radius:10px;
-            border:1px solid #30363d;
-            margin-bottom:10px;
-        ">
-
-            <svg class="spin-icon"
-                width="30"
-                height="30"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#00FFFF"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round">
-
+        <div style="display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
+            <svg class="spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"></circle>
-
-                <path d="
-                    M12 2v4
-                    M12 18v4
-                    M4.93 4.93l2.83 2.83
-                    M16.24 16.24l2.83 2.83
-                    M2 12h4
-                    M18 12h4
-                    M4.93 19.07l2.83-2.83
-                    M16.24 7.76l2.83-2.83
-                "></path>
-
+                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
-
-            <h3 style="
-                margin:0;
-                color:#ffffff;
-                margin-right:20px;
-                font-size:1.2rem;
-            ">
-                {nombre_mm}
-            </h3>
-
-            <div style="
-                display:flex;
-                gap:15px;
-                font-size:12px;
-                color:#c9d1d9;
-                border-left:2px solid #00FFFF;
-                padding-left:15px;
-            ">
-
-                <div>
-                    <b>ID:</b>
-                    <span style="color:#ffffff;">
-                        {tag_a_graficar}
-                    </span>
-                </div>
-
-                <div>
-                    <b>Nombre:</b>
-                    <span style="color:#ffffff;">
-                        {info['Nombre']}
-                    </span>
-                </div>
-
-                <div>
-                    <b>Domicilio:</b>
-                    {info['Domicilio']}
-                </div>
-
-                <div>
-                    <b>Colonia:</b>
-                    {info['Colonia']}
-                </div>
-
+            <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem;"> {nombre_mm}</h3>
+            <div style="display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px;">
+                <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
             </div>
-
         </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # -------------------------------------------------------------------------
-    # COLUMNAS
-    # -------------------------------------------------------------------------
+    """, unsafe_allow_html=True)
+    
     col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
 
-    # -------------------------------------------------------------------------
-    # SELECTOR DE FECHAS
-    # -------------------------------------------------------------------------
     with col_sel:
+        opcion_fecha = st.selectbox("rango", 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+            index=3, label_visibility="collapsed")
 
-        opcion_fecha = st.selectbox(
-            "rango",
-            [
-                "Hoy",
-                "Ayer",
-                "Últimos 7 días",
-                "Últimos 14 días",
-                "Este Mes",
-                "Último Mes",
-                "Últimos 6 meses",
-                "Personalizado"
-            ],
-            index=3,
-            key="selector_fecha_mm",
-            label_visibility="collapsed"
-        )
-
-    # -------------------------------------------------------------------------
-    # RANGO DE FECHAS
-    # -------------------------------------------------------------------------
+    # Lógica de fechas
     f_fin = hoy_dt
-
-    if opcion_fecha == "Hoy":
-
-        f_ini = medianoche
-
-    elif opcion_fecha == "Ayer":
-
-        f_ini = medianoche - dt.timedelta(days=1)
-
-        f_fin = medianoche - dt.timedelta(seconds=1)
-
-    elif opcion_fecha == "Últimos 7 días":
-
-        f_ini = medianoche - dt.timedelta(days=7)
-
-    elif opcion_fecha == "Últimos 14 días":
-
-        f_ini = medianoche - dt.timedelta(days=14)
-
-    elif opcion_fecha == "Este Mes":
-
-        f_ini = hoy_dt.replace(
-            day=1,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-
+    if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": 
+        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    else: 
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+    
+    # CONSULTA: Se ejecuta justo después de definir el rango
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-        primer_dia_mes = hoy_dt.replace(
-            day=1,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-
-        f_fin = primer_dia_mes - dt.timedelta(seconds=1)
-
-        f_ini = (
-            primer_dia_mes - dt.timedelta(days=1)
-        ).replace(
-            day=1,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-
-    elif opcion_fecha == "Últimos 6 meses":
-
-        f_ini = medianoche - dt.timedelta(days=180)
-
-    else:
-
-        rango = st.date_input(
-            "Periodo:",
-            value=(
-                hoy_dt.date() - dt.timedelta(days=7),
-                hoy_dt.date()
-            )
-        )
-
-        f_ini = dt.datetime.combine(
-            rango[0],
-            dt.time.min
-        )
-
-        f_fin = dt.datetime.combine(
-            rango[1],
-            dt.time.max
-        )
-
-    # -------------------------------------------------------------------------
-    # CONSULTA SQL
-    # -------------------------------------------------------------------------
-    query = f"""
-    SELECT
-        FECHA,
-        Flujo,
-        Presion,
-        Consumo
-    FROM MACROMEDIDORES
-    WHERE Medidor = '{tag_a_graficar}'
-    AND Medidor != '1000'
-    AND FECHA >= '{f_ini.strftime('%Y-%m-%d %H:%M:%S')}'
-    AND FECHA <= '{f_fin.strftime('%Y-%m-%d %H:%M:%S')}'
-    ORDER BY FECHA ASC
-    """
-
-    df = pd.read_sql(query, engine)
-
-    # -------------------------------------------------------------------------
-    # FORZAR DATETIME
-    # -------------------------------------------------------------------------
-    if not df.empty:
-
-        df['FECHA'] = pd.to_datetime(df['FECHA'])
-
-    # -------------------------------------------------------------------------
-    # FUNCION INDICADORES
-    # -------------------------------------------------------------------------
-    def mostrar_indicador(
-        titulo,
-        valor,
-        unidad,
-        color_valor,
-        icon
-    ):
-
-        st.markdown(
-            f"""
-            <div style="
-                background-color:#0e1117;
-                border:1px solid #30363d;
-                border-radius:8px;
-                padding:5px;
-                text-align:center;
-                height:65px;
-                display:flex;
-                flex-direction:column;
-                justify-content:center;
-            ">
-
-                <div style="
-                    color:#adb5bd;
-                    font-size:11px;
-                ">
-                    {icon} {titulo}
-                </div>
-
-                <div style="
-                    color:{color_valor};
-                    font-size:18px;
-                    font-weight:800;
-                ">
-                    {valor}
-
-                    <span style="
-                        font-size:11px;
-                        color:#ffffff;
-                    ">
-                        {unidad}
-                    </span>
-
-                </div>
-
+    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
+        st.markdown(f"""
+            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 5px; text-align: center; height: 65px; display: flex; flex-direction: column; justify-content: center;">
+                <div style="color: #adb5bd; font-size: 11px;">{icon} {titulo}</div>
+                <div style="color: {color_valor}; font-size: 18px; font-weight: 800;">{valor} <span style="font-size: 11px; color: #ffffff;">{unidad}</span></div>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+        """, unsafe_allow_html=True)
 
-    # -------------------------------------------------------------------------
-    # VALIDAR DATOS
-    # -------------------------------------------------------------------------
     if not df.empty:
+        with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
+        with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
+        with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+            
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        
+        fig.update_layout(template="plotly_dark", title="Análisis de Tendencias", hovermode="x unified",
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+                          paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        
+        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
+        fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+        st.plotly_chart(fig, use_container_width=True)
 
-        # ---------------------------------------------------------------------
-        # INDICADORES
-        # ---------------------------------------------------------------------
-        with col1:
-
-            mostrar_indicador(
-                "Caudal prom.",
-                f"{df['Flujo'].mean():.1f}",
-                "l/s",
-                "#00FFFF",
-                "💧"
-            )
-
-        with col2:
-
-            mostrar_indicador(
-                "Vol. total",
-                f"{df['Consumo'].sum():,.1f}",
-                "m³",
-                "#00FFFF",
-                "📊"
-            )
-
-        with col3:
-
-            mostrar_indicador(
-                "Presión prom.",
-                f"{df['Presion'].mean():.2f}",
-                "kg",
-                "#00FF00",
-                "📉"
-            )
-
-        # ---------------------------------------------------------------------
-        # GRAFICA PRINCIPAL
-        # ---------------------------------------------------------------------
-        fig = make_subplots(
-            specs=[[{"secondary_y": True}]]
-        )
-
-        fig.add_trace(
-
-            go.Scatter(
-                x=df['FECHA'],
-                y=df['Flujo'],
-                name="Caudal (Lps)",
-                line=dict(
-                    color='#00FFFF',
-                    width=2
-                ),
-                fill='tozeroy',
-                fillcolor='rgba(0,255,255,0.2)'
-            ),
-
-            secondary_y=False
-        )
-
-        fig.add_trace(
-
-            go.Scatter(
-                x=df['FECHA'],
-                y=df['Presion'],
-                name="Presión (Kg/cm²)",
-                line=dict(
-                    color='#00FF00',
-                    width=2
-                )
-            ),
-
-            secondary_y=True
-        )
-
-        fig.update_layout(
-
-            template="plotly_dark",
-
-            title="Análisis de Tendencias",
-
-            hovermode="x unified",
-
-            legend=dict(
-                orientation="h",
-                yanchor="bottom",
-                y=1.02,
-                xanchor="left",
-                x=0
-            ),
-
-            paper_bgcolor='rgba(0,0,0,0)',
-
-            plot_bgcolor='rgba(0,0,0,0)'
-        )
-
-        fig.update_yaxes(
-            title_text="Caudal (Lps)",
-            secondary_y=False
-        )
-
-        fig.update_yaxes(
-            title_text="Presión (Kg/cm²)",
-            secondary_y=True
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-        # ---------------------------------------------------------------------
-        # CONSUMO DIARIO
-        # ---------------------------------------------------------------------
         st.subheader("Consumo Diario (m³)")
-
         df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
+        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
+        df_diario.columns = ['FECHA', 'Consumo']
+        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        df_diario['FECHA'] = (
-            pd.to_datetime(df_diario['FECHA']).dt.date
-        )
-
-        df_diario = (
-            df_diario
-            .groupby('FECHA')['Consumo']
-            .sum()
-            .reset_index()
-        )
-
-        rango_completo = pd.date_range(
-            start=df_diario['FECHA'].min(),
-            end=df_diario['FECHA'].max()
-        )
-
-        df_diario = (
-            df_diario
-            .set_index('FECHA')
-            .reindex(rango_completo, fill_value=0)
-            .reset_index()
-        )
-
-        df_diario.columns = [
-            'FECHA',
-            'Consumo'
-        ]
-
-        df_diario['FECHA_STR'] = (
-            df_diario['FECHA']
-            .dt.strftime('%b %d')
-        )
-
-        fig_bar = px.bar(
-            df_diario,
-            x='FECHA_STR',
-            y='Consumo',
-            text='Consumo',
-            color_discrete_sequence=['#00FFFF']
-        )
-
-        fig_bar.update_layout(
-
-            template="plotly_dark",
-
-            plot_bgcolor='rgba(0,0,0,0)',
-
-            paper_bgcolor='rgba(0,0,0,0)',
-
-            xaxis=dict(
-                tickmode='linear'
-            )
-
-        )
-
-        fig_bar.update_traces(
-            texttemplate='%{text:.1f}',
-            textposition='outside'
-        )
-
-        st.plotly_chart(
-            fig_bar,
-            use_container_width=True
-        )
-
-    else:
-
-        st.warning(
-            "No hay datos registrados en este rango."
-        )
-
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
+        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else: 
+        st.warning("No hay datos registrados en este rango.")
+    
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
