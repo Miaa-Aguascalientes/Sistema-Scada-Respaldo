@@ -1199,9 +1199,8 @@ if "ver_grafico" in st.query_params:
                     </div>
                 """, unsafe_allow_html=True)
             
-            
-
-        # 3. Gráfico de Flujo y Presión (una sola vez)
+        
+        # 3--. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
@@ -1214,7 +1213,7 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
-
+        
         # 4. Gráfico de Barras (Consumo)
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
@@ -1223,6 +1222,20 @@ if "ver_grafico" in st.query_params:
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+
+        # --- Cálculo del Consumo Total ---
+        total_consumo = df_diario['Consumo'].sum()
+
+        # --- Indicador de Consumo ---
+        st.markdown(f"""
+            <div style="text-align: center; margin-bottom: 10px;">
+                <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">CONSUMO TOTAL</div>
+                <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff;">
+                    {total_consumo:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
 
         fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(
@@ -1309,6 +1322,7 @@ if "ver_grafico" in st.query_params:
     
     
     st.stop()
+    
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
