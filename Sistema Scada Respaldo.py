@@ -1171,36 +1171,53 @@ if "ver_grafico" in st.query_params:
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
+        # --- CSS optimizado ---
         st.markdown("""
             <style>
-            .tarjeta-caudal {
-                border: 2px solid #00FFFF;
-                border-radius: 15px;
-                padding: 15px;
-                text-align: center;
+            .container-kpi {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 10px;
+                border-radius: 10px;
+                background-color: rgba(255,255,255,0.05);
             }
-            .tarjeta-presion {
-                border: 2px solid #00FF00;
-                border-radius: 15px;
-                padding: 15px;
-                text-align: center;
+            .titulo-kpi {
+                font-size: 0.8rem;
+                color: #888888;
+                font-weight: bold;
+                margin-bottom: 5px;
             }
+            .valor-kpi {
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: #ffffff;
+            }
+            .borde-caudal { border: 2px solid #00FFFF; }
+            .borde-presion { border: 2px solid #00FF00; }
             </style>
         """, unsafe_allow_html=True)
 
+        # --- Visualización ---
         col_m1, col_m2, _ = st.columns([1, 1, 2])
-        
+
         with col_m1:
-            st.markdown('<div class="tarjeta-caudal">', unsafe_allow_html=True)
-            st.metric("CAUDAL PROMEDIO", f"{avg_caudal:.2f} Lps")
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+                <div class="container-kpi borde-caudal">
+                    <div class="titulo-kpi">CAUDAL PROMEDIO</div>
+                    <div class="valor-kpi">{avg_caudal:.2f} <span style="font-size: 1rem; color: #00FFFF;">Lps</span></div>
+                </div>
+            """, unsafe_allow_html=True)
 
         with col_m2:
-            st.markdown('<div class="tarjeta-presion">', unsafe_allow_html=True)
-            st.metric("PRESIÓN PROMEDIO", f"{avg_presion:.2f} kg/cm²")
-            st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Agregamos un pequeño espacio antes del gráfico
+            st.markdown(f"""
+                <div class="container-kpi borde-presion">
+                    <div class="titulo-kpi">PRESIÓN PROMEDIO</div>
+                    <div class="valor-kpi">{avg_presion:.2f} <span style="font-size: 1rem; color: #00FF00;">kg/cm²</span></div>
+                </div>
+            """, unsafe_allow_html=True)
+            
         st.markdown("<br>", unsafe_allow_html=True)
         
         fig = make_subplots(specs=[[{"secondary_y": True}]])
