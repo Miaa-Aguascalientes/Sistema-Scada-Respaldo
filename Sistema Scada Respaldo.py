@@ -1247,9 +1247,7 @@ if "ver_grafico" in st.query_params:
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside', name='Consumo (m³)')
         st.plotly_chart(fig_bar, use_container_width=True)
 
-    else:
-        placeholder_indicadores.empty() # Limpia si no hay datos
-        st.warning("No hay datos registrados en este rango.")
+
 
         # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
