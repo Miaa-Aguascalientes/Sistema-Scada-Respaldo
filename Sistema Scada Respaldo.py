@@ -1208,18 +1208,18 @@ if "ver_grafico" in st.query_params:
             
         )      
         fig_bar.update_layout(
-            height=300,  # Ajusta este valor (ej. 250, 300, 350) para cambiar la altura
+            height=300, 
             template="plotly_dark", 
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
-            xaxis=dict(tickmode='linear'),title=None),
-            yaxis=dict(title=None),
-            margin=dict(t=20, b=20, l=20, r=20),
-            showlegend=True,  # Activa la leyenda
+            xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio
+            yaxis=dict(title=None),                    # Quitamos título eje Y
+            margin=dict(t=30, b=20, l=20, r=20),
+            showlegend=True,                           # Esto activa la leyenda
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.1,
+                y=1.1,                                 # Ajustado para que se vea bien
                 xanchor="right",
                 x=1
             )
