@@ -1277,8 +1277,7 @@ if "ver_grafico" in st.query_params:
             name='Consumo (m³)'
         )
         st.plotly_chart(fig_bar, use_container_width=True)
-    else: 
-        st.warning("No hay datos registrados en este rango.")
+    
     
     st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
