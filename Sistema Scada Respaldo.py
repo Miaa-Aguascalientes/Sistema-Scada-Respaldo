@@ -1178,7 +1178,8 @@ if "ver_grafico" in st.query_params:
         # 2. Renderizado de indicadores (dentro del placeholder)
         with placeholder_indicadores.container():
             _, col_m1, col_m2, col_m3, _ = st.columns([1, 2, 2, 2, 1])
-            # Estilos: padding reducido (altura), font-size reducido (tamaño)
+            
+            # Variables de estilo (deben estar definidas antes del markdown)
             estilo_div = "text-align: center; padding: 5px;"
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
@@ -1194,8 +1195,16 @@ if "ver_grafico" in st.query_params:
             with col_m2:
                 st.markdown(f"""
                     <div style="{estilo_div}">
-                        <div style="{estilo_titulo}">Presion promedio</div>
+                        <div style="{estilo_titulo}">Presión promedio</div>
                         <div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
+            with col_m3:
+                st.markdown(f"""
+                    <div style="{estilo_div}">
+                        <div style="{estilo_titulo}">Consumo total</div>
+                        <div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div>
                     </div>
                 """, unsafe_allow_html=True)
                 
