@@ -1088,23 +1088,23 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 
-# 1. Configuración inicial
+# --- Configuración de página ---
 st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
 
-# 2. Autenticación
+# --- Autenticación ---
 if not st.session_state.get('autenticado'):
     if st.query_params.get("access") == "granted":
         st.session_state.autenticado = True
     else: st.stop()
 
-# 3. Obtención de parámetros
+# --- Parámetros ---
 tag_a_graficar = st.query_params.get("ver_grafico")
 nombre_mm = st.query_params.get("nombre")
 engine = get_mysql_telemetria_engine()
 hoy_dt = dt.datetime.now()
 medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
 
-# --- CABECERA Y CSS ---
+# --- CABECERA COMPACTA ---
 st.markdown(f"""
     <style>
         .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
@@ -1112,45 +1112,42 @@ st.markdown(f"""
         div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
     </style>
     <div style="display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px;">
-        <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem;"> {nombre_mm}</h3>
+        <h3 style="margin: 0; color: #ffffff; font-size: 1.2rem;">{nombre_mm}</h3>
     </div>
 """, unsafe_allow_html=True)
 
-# 4. SELECTOR (Disparador de reactividad)
+# --- SELECTOR ---
 col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
-
 with col_sel:
     opcion_fecha = st.selectbox("rango", 
         ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-        index=3, label_visibility="collapsed")
+        index=3, label_visibility="collapsed", key="selector_fecha")
 
-# 5. LÓGICA DE FECHAS (Cálculo dinámico)
-f_fin = hoy_dt
-if opcion_fecha == "Hoy": f_ini = medianoche
+# --- LÓGICA DE FECHAS (Cálculo directo) ---
+if opcion_fecha == "Hoy": f_ini, f_fin = medianoche, hoy_dt
 elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche
-elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
-elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0)
+elif opcion_fecha == "Últimos 7 días": f_ini, f_fin = medianoche - dt.timedelta(days=7), hoy_dt
+elif opcion_fecha == "Últimos 14 días": f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
+elif opcion_fecha == "Este Mes": f_ini, f_fin = hoy_dt.replace(day=1, hour=0), hoy_dt
 elif opcion_fecha == "Último Mes":
-    primer_dia = hoy_dt.replace(day=1, hour=0, minute=0)
+    primer_dia = hoy_dt.replace(day=1, hour=0)
     f_fin = primer_dia
-    f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1)
-elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    f_ini = (primer_dia - dt.timedelta(days=1)).replace(day=1, hour=0)
+elif opcion_fecha == "Últimos 6 meses": f_ini, f_fin = medianoche - dt.timedelta(days=180), hoy_dt
 else:
     rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
     f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
-# 6. CONSULTA DE DATOS (Se ejecuta cada vez que cambia el selector)
-df = pd.read_sql(f"""SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES 
-                    WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' 
-                    ORDER BY FECHA ASC""", engine)
+# --- CONSULTA SQL (Se ejecuta cada vez que cambia 'opcion_fecha') ---
+query = f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
+df = pd.read_sql(query, engine)
 
-# 7. INDICADORES (Se recalculan con el DF filtrado)
+# --- INDICADORES ---
 def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
     st.markdown(f"""
-        <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 5px; text-align: center; height: 65px; display: flex; flex-direction: column; justify-content: center;">
+        <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 10px; text-align: center; height: 75px; display: flex; flex-direction: column; justify-content: center;">
             <div style="color: #adb5bd; font-size: 11px;">{icon} {titulo}</div>
-            <div style="color: {color_valor}; font-size: 18px; font-weight: 800;">{valor} <span style="font-size: 11px; color: #ffffff;">{unidad}</span></div>
+            <div style="color: {color_valor}; font-size: 20px; font-weight: 800;">{valor} <span style="font-size: 12px; color: #ffffff;">{unidad}</span></div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -1159,16 +1156,14 @@ if not df.empty:
     with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
     with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
     
-    # 8. GRÁFICOS
+    # --- GRÁFICA ---
     fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF')), secondary_y=False)
-    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00')), secondary_y=True)
-    fig.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal", line=dict(color='#00FFFF')), secondary_y=False)
+    fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión", line=dict(color='#00FF00')), secondary_y=True)
+    fig.update_layout(template="plotly_dark", paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.warning("No hay datos en el rango seleccionado.")
-    
-    st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
