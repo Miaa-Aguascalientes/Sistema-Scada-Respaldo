@@ -1229,9 +1229,9 @@ if "ver_grafico" in st.query_params:
         # --- Indicador de Consumo ---
         st.markdown(f"""
             <div style="text-align: center; margin-bottom: 10px;">
-                <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">CONSUMO TOTAL</div>
+                <div style="font-size: 0.7rem; color: #ffffff; font-weight: bold;">Consumo total</div>
                 <div style="font-size: 1.2rem; font-weight: bold; color: #ffffff;">
-                    {total_consumo:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span>
+                    {total_consumo:,.2f} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
