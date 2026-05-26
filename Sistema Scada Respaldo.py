@@ -1089,65 +1089,25 @@ from plotly.subplots import make_subplots
 import plotly.express as px
 
 # --- Configuración de página ---
-# Se verifica si el parámetro 'ver_grafico' existe para proceder
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
     
-    # Autenticación requerida
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
-        else:
-            st.stop()
+        else: st.stop()
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
 
-    # --- 1. Lógica de Fechas ---
+    engine = get_mysql_telemetria_engine()
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # Selector de rango
-    col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
-    
-    with col_sel:
-        opcion_fecha = st.selectbox("rango", 
-            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=2, label_visibility="collapsed")
-
-    # Asignación de fechas según selección
-    if opcion_fecha == "Hoy": 
-        f_ini, f_fin = medianoche, hoy_dt
-    elif opcion_fecha == "Ayer": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=7), hoy_dt
-    elif opcion_fecha == "Últimos 14 días": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=14), hoy_dt
-    elif opcion_fecha == "Este Mes": 
-        f_ini, f_fin = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0), hoy_dt
-    elif opcion_fecha == "Último Mes":
-        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        f_fin = primer_dia - dt.timedelta(seconds=1)
-        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-    elif opcion_fecha == "Últimos 6 meses": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=180), hoy_dt
-    else: 
-        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-
-    # --- 2. Carga de Datos ---
-    engine = get_mysql_telemetria_engine()
-    
-    # Consulta de información básica
     df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
-    
-    # Consulta de datos principales (se refresca con cada cambio de fecha)
-    query = f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC"
-    df = pd.read_sql(query, engine)
 
-    # --- 3. Cabecera y CSS ---
+    # --- CABECERA Y CSS ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1169,6 +1129,33 @@ if "ver_grafico" in st.query_params:
             </div>
         </div>
     """, unsafe_allow_html=True)
+    
+    col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
+
+    with col_sel:
+        opcion_fecha = st.selectbox("rango", 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+            index=3, label_visibility="collapsed")
+
+    # Lógica de Fechas
+    f_fin = hoy_dt
+    if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": 
+        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    else: 
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+    
+    # Consulta de datos actualizada al rango
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
     def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
         st.markdown(f"""
@@ -1178,7 +1165,6 @@ if "ver_grafico" in st.query_params:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- 4. Indicadores y Gráficos ---
     if not df.empty:
         with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
         with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
@@ -1205,18 +1191,10 @@ if "ver_grafico" in st.query_params:
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
-                         color_discrete_sequence=['#00FFFF'])
-        
-        fig_bar.update_layout(
-            template="plotly_dark", 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickmode='linear')
-        )
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
-
     else: 
         st.warning("No hay datos registrados en este rango.")
     
