@@ -1081,6 +1081,9 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
+Aquí tienes el código con la indentación corregida y una estructura más limpia para mejorar la legibilidad y evitar errores de ejecución comunes en Streamlit.
+
+Python
 import streamlit as st
 import pandas as pd
 import datetime as dt
@@ -1095,7 +1098,8 @@ if "ver_grafico" in st.query_params:
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
-        else: st.stop()
+        else:
+            st.stop()
 
     tag_a_graficar = st.query_params.get("ver_grafico")
     nombre_mm = st.query_params.get("nombre")
@@ -1104,15 +1108,17 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    df_info = pd.read_sql(f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", engine)
+    df_info = pd.read_sql(
+        f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", 
+        engine
+    )
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
 
-    # --- 2. CABECERA Y CSS (AJUSTADA A ALTURA MÍNIMA) ---
+    # --- Cabecera y CSS ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
             .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; margin-right: 15px; }}
-            /* Eliminamos márgenes superiores para subir todo al máximo */
             div[data-testid="column"] {{ padding-top: 0px !important; }}
             div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
@@ -1131,36 +1137,39 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # ---. SELECTOR Y INDICADORES ---
-   
-    col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
-
+    # --- Selector de fechas ---
+    col_sel, _ = st.columns([1.5, 3])
     with col_sel:
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
 
-    # --- AQUÍ ESTABA EL ERROR: ASIGNACIÓN DE FECHAS ---
+    # --- Lógica de fechas ---
     f_fin = hoy_dt
-    if opcion_fecha == "Hoy": f_ini = medianoche
+    if opcion_fecha == "Hoy": 
+        f_ini = medianoche
     elif opcion_fecha == "Ayer": 
         f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
-    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Últimos 7 días": 
+        f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": 
+        f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": 
+        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     elif opcion_fecha == "Último Mes":
         primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         f_fin = primer_dia - dt.timedelta(seconds=1)
         f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    elif opcion_fecha == "Últimos 6 meses": 
+        f_ini = medianoche - dt.timedelta(days=180)
     else: 
         rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
     
-    
+    # --- Consulta y Gráficos ---
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-        # --- 5. GRÁFICOS ---
+    if not df.empty:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
@@ -1177,23 +1186,18 @@ if "ver_grafico" in st.query_params:
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
         fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
-                         color_discrete_sequence=['#00FFFF'])
+                          color_discrete_sequence=['#00FFFF'])
         
-        fig_bar.update_layout(
-            template="plotly_dark", 
-            plot_bgcolor='rgba(0,0,0,0)', 
-            paper_bgcolor='rgba(0,0,0,0)',
-            xaxis=dict(tickmode='linear')
-        )
+        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
-
     else: 
         st.warning("No hay datos registrados en este rango.")
     
