@@ -1171,10 +1171,29 @@ if "ver_grafico" in st.query_params:
             </div>
         """, unsafe_allow_html=True)
 
+    df = pd.read_sql(
+        f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES "
+        f"WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' "
+        f"AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", 
+        engine
+    )
+
+    # 4. Indicadores Dinámicos
+    # Usamos las columnas para mostrar los cálculos basados en el df filtrado
     if not df.empty:
-        with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
-        with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
-        with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
+        # Caudal: Promedio del periodo
+        caudal_prom = df['Flujo'].mean()
+        # Volumen: Suma total del periodo
+        volumen_total = df['Consumo'].sum()
+        # Presión: Promedio del periodo
+        presion_prom = df['Presion'].mean()
+
+        with col1: 
+            mostrar_indicador("Caudal prom.", f"{caudal_prom:.1f}", "l/s", "#00FFFF", "💧")
+        with col2: 
+            mostrar_indicador("Vol. total", f"{volumen_total:.1f}", "m³", "#00FFFF", "📊")
+        with col3: 
+            mostrar_indicador("Presión prom.", f"{presion_prom:.2f}", "kg", "#00FF00", "📉")
             
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
