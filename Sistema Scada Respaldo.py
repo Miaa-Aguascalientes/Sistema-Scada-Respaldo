@@ -1134,81 +1134,72 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    
-    placeholder_indicadores = st.empty()
+    # --- Columnas principales (Selector + Indicadores) ---
+    col_sel, col_ind = st.columns([1.5, 4.5])
 
+    with col_sel:
+        st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
+        opcion_fecha = st.selectbox("rango", 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
+            index=3, label_visibility="collapsed", key="selector_fechas_unico")
 
     # --- Lógica de fechas ---
-    f_fin = hoy_dt
-    if opcion_fecha == "Hoy": 
-        f_ini = medianoche
-    elif opcion_fecha == "Ayer": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": 
-        f_ini = medianoche - dt.timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": 
-        f_ini = medianoche - dt.timedelta(days=14)
-    elif opcion_fecha == "Este Mes": 
-        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if opcion_fecha == "Hoy": f_ini = medianoche; f_fin = hoy_dt
+    elif opcion_fecha == "Ayer": f_ini = medianoche - dt.timedelta(days=1); f_fin = medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7); f_fin = hoy_dt
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14); f_fin = hoy_dt
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0); f_fin = hoy_dt
     elif opcion_fecha == "Último Mes":
         primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         f_fin = primer_dia - dt.timedelta(seconds=1)
         f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-    elif opcion_fecha == "Últimos 6 meses": 
-        f_ini = medianoche - dt.timedelta(days=180)
-    else: 
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180); f_fin = hoy_dt
+    else:
         rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-    
-    # --- Consulta y Gráficos ---
-    col_sel, col_ind = st.columns([1.5, 4.5])
-    with col_sel:
-        st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
-        opcion_fecha = st.selectbox(
-            "rango", 
-            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, 
-            label_visibility="collapsed",
-            key="selector_fechas_unico"  # <--- ESTA ES LA SOLUCIÓN
-        )
 
-    # --- Área de Indicadores (Columna derecha) ---
+    # --- Carga y Renderizado ---
     with col_ind:
         placeholder_indicadores = st.empty()
 
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
     if not df.empty:
-        # 1. Cálculos de indicadores
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
-        
-        # Cálculo de consumo total
         df_diario_calc = df.copy()
         df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
         total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
         
-        # Formato manual
         entera = int(total_consumo)
         decimal = int(round((total_consumo - entera) * 100))
         consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-        # 2. Renderizado dentro del placeholder en col_ind
         with placeholder_indicadores.container():
-            col_m1, col_m2, col_m3 = st.columns(3)
+            c1, c2, c3 = st.columns(3)
             estilo_div = "text-align: center; padding: 5px;"
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
+            with c1: st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Caudal promedio</div><div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div></div>', unsafe_allow_html=True)
+            with c2: st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
+            with c3: st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
 
-            with col_m1:
-                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Caudal promedio</div><div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div></div>', unsafe_allow_html=True)
-            with col_m2:
-                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
-            with col_m3:
-                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
+        # Gráficos
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        fig.update_layout(height=400, template="plotly_dark", hovermode="x unified", legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig, use_container_width=True)
+
+        df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        fig_bar = px.bar(df_diario, x=df_diario['FECHA'].astype(str), y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_traces(name="Consumo (m³)", showlegend=True)
+        fig_bar.update_layout(height=300, template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(title=None), yaxis=dict(title="Consumo (m³)"), legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="left", x=0))
+        st.plotly_chart(fig_bar, use_container_width=True)
     else:
-        placeholder_indicadores.empty()
-        st.warning("No hay datos registrados en este rango.")
+        st.warning("No hay datos en este rango.")
         # 3--. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
