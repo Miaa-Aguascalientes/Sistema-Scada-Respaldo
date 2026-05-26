@@ -1143,29 +1143,43 @@ if "ver_grafico" in st.query_params:
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed", key="selector_fechas_unico")
 
-    # 2. Consultamos los datos UNA SOLA VEZ
+    # --- Lógica de fechas (DEBE IR ANTES DE LA CONSULTA SQL) ---
+    f_fin = hoy_dt
+    if opcion_fecha == "Hoy": f_ini = medianoche
+    elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 7 días": f_ini = medianoche - dt.timedelta(days=7)
+    elif opcion_fecha == "Últimos 14 días": f_ini = medianoche - dt.timedelta(days=14)
+    elif opcion_fecha == "Este Mes": f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif opcion_fecha == "Último Mes":
+        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        f_fin = primer_dia - dt.timedelta(seconds=1)
+        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+    elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
+    else: 
+        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
+        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
+
+    # --- Consulta de datos ---
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
     
-    # Preparamos los datos de consumo para el segundo botón
-    df_diario_exp = df.copy()
-    df_diario_exp['FECHA'] = pd.to_datetime(df_diario_exp['FECHA']).dt.date
-    df_diario_exp = df_diario_exp.groupby('FECHA')['Consumo'].sum().reset_index()
+    df_diario_exp = pd.DataFrame()
+    if not df.empty:
+        df_diario_exp = df.copy()
+        df_diario_exp['FECHA'] = pd.to_datetime(df_diario_exp['FECHA']).dt.date
+        df_diario_exp = df_diario_exp.groupby('FECHA')['Consumo'].sum().reset_index()
 
-    with col_ind:
-        placeholder_indicadores = st.empty()
-
-    # 3. Colocamos los botones en la tercera columna, usando el mismo 'df' y 'df_diario_exp'
+    # --- Botones en col_btn ---
     with col_btn:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
         c_b1, c_b2 = st.columns(2)
         if not df.empty:
             with c_b1:
-                st.download_button("📥 Datos", df.to_csv(index=False).encode('utf-8'), "reporte_caudal_presion.csv", "text/csv", use_container_width=True)
+                st.download_button("📥 Datos", df.to_csv(index=False).encode('utf-8'), "datos.csv", "text/csv", use_container_width=True)
             with c_b2:
-                st.download_button("📊 Consumo", df_diario_exp.to_csv(index=False).encode('utf-8'), "reporte_consumo.csv", "text/csv", use_container_width=True)
+                st.download_button("📊 Consumo", df_diario_exp.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)
         else:
             with c_b1: st.button("📥", disabled=True)
-            with c_b2: st.button("📊", disabled=True) 
+            with c_b2: st.button("📊", disabled=True)
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
