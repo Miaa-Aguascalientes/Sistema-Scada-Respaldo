@@ -1174,39 +1174,30 @@ if "ver_grafico" in st.query_params:
         # 1. Cálculos de indicadores
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
+        
+        # Cálculo de consumo total para el indicador
+        df_diario_calc = df.copy()
+        df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
+        total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
+        
+        # Formato manual para asegurar punto decimal y coma de miles
+        entera = int(total_consumo)
+        decimal = int(round((total_consumo - entera) * 100))
+        consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-        # 2. Renderizado de indicadores (dentro del placeholder)
+        # 2. Renderizado de los 3 indicadores JUNTOS
         with placeholder_indicadores.container():
             _, col_m1, col_m2, col_m3, _ = st.columns([1, 2, 2, 2, 1])
-            
-            # Variables de estilo (deben estar definidas antes del markdown)
             estilo_div = "text-align: center; padding: 5px;"
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
 
             with col_m1:
-                st.markdown(f"""
-                    <div style="{estilo_div}">
-                        <div style="{estilo_titulo}">Caudal promedio</div>
-                        <div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Caudal promedio</div><div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div></div>', unsafe_allow_html=True)
             with col_m2:
-                st.markdown(f"""
-                    <div style="{estilo_div}">
-                        <div style="{estilo_titulo}">Presión promedio</div>
-                        <div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div>
-                    </div>
-                """, unsafe_allow_html=True)
-            
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Presión promedio</div><div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div></div>', unsafe_allow_html=True)
             with col_m3:
-                st.markdown(f"""
-                    <div style="{estilo_div}">
-                        <div style="{estilo_titulo}">Consumo total</div>
-                        <div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div>
-                    </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
                 
             with col_m3:
                 st.markdown(f"""
