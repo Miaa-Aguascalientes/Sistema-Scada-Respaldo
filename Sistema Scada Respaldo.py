@@ -1135,7 +1135,7 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     # --- Selector de fechas ---
-    col_sel, col_ind, col_btn = st.columns([1.5, 0.5, 6.0])
+    col_sel, col_ind, col_btn = st.columns([1.0, 0.5, 6.0])
 
     with col_sel:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
@@ -1181,7 +1181,7 @@ if "ver_grafico" in st.query_params:
             with c_b1:
                 st.download_button("📥 Exportar datos de caudal (lps) y presión (kg7cm2)", df.to_csv(index=False).encode('utf-8'), "datos.csv", "text/csv", use_container_width=True)
             with c_b2:
-                st.download_button("📊 Exposrtar datos de consumo (m3)", df_diario_exp.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)
+                st.download_button("📊 Exportar datos de consumo (m3)", df_diario_exp.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)
         else:
             with c_b1: st.button("📥", disabled=True)
             with c_b2: st.button("📊", disabled=True)
