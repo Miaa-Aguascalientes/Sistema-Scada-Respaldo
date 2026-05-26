@@ -1203,8 +1203,8 @@ if "ver_grafico" in st.query_params:
         fig_bar = px.bar(
             df_diario, 
             x='FECHA_STR', 
-            y='Consumo m3', 
-            text='Consumo m3', 
+            y='Consumo', 
+            text='Consumo', 
             color_discrete_sequence=['#00FFFF'],
             labels={'Consumo': 'Consumo (m³)'}
         )      
