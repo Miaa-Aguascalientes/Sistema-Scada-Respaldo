@@ -1278,7 +1278,7 @@ if "ver_grafico" in st.query_params:
             y='Consumo', 
             text='Consumo', 
             color_discrete_sequence=['#00FFFF'],
-            labels={'Consumo': 'Consumo (m³)'}
+            
         )      
         fig_bar.update_traces(name="Consumo (m³)", showlegend=True)
         fig_bar.update_layout(
@@ -1293,16 +1293,10 @@ if "ver_grafico" in st.query_params:
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.2,                                 # Ajustado para que se vea bien
+                y=1.1,                                 # Ajustado para que se vea bien
                 xanchor="left",
-                x=1
+                x=0
             )
-        )
-    
-        fig_bar.update_traces(
-            texttemplate='%{text:.1f}', 
-            textposition='outside',
-            name='Consumo (m³)'
         )
         st.plotly_chart(fig_bar, use_container_width=True)
 
