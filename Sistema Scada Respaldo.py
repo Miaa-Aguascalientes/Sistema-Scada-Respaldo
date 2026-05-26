@@ -1165,24 +1165,19 @@ if "ver_grafico" in st.query_params:
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
     
     # --- Consulta y Gráficos ---
-    placeholder_indicadores = st.empty()
-
-    # 2. Si el usuario cambió la fecha, el script se reinicia desde aquí
-    # Al hacer esto, el placeholder se vacía si ponemos el comando adecuado
-    if "opcion_fecha" in st.session_state:
-        placeholder_indicadores.empty()
-
-    # 3. Consulta SQL
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
+    # Creamos el placeholder para indicadores
+    placeholder_indicadores = st.empty()
+
     if not df.empty:
+        # 1. Cálculos de indicadores
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
-        # 4. Renderizamos los indicadores DENTRO del placeholder
+        # 2. Renderizado de indicadores (dentro del placeholder)
         with placeholder_indicadores.container():
             _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
-            
             with col_m1:
                 st.markdown(f"""
                     <div style="border: 2px solid #00FFFF; border-radius: 15px; padding: 15px; text-align: center;">
@@ -1190,7 +1185,6 @@ if "ver_grafico" in st.query_params:
                         <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{avg_caudal:.2f} <span style="color: #00FFFF;">Lps</span></div>
                     </div>
                 """, unsafe_allow_html=True)
-
             with col_m2:
                 st.markdown(f"""
                     <div style="border: 2px solid #00FF00; border-radius: 15px; padding: 15px; text-align: center;">
@@ -1198,15 +1192,43 @@ if "ver_grafico" in st.query_params:
                         <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{avg_presion:.2f} <span style="color: #00FF00;">kg/cm²</span></div>
                     </div>
                 """, unsafe_allow_html=True)
-            
             st.markdown("<br>", unsafe_allow_html=True)
 
-        # --- Gráfico (se carga después de que los indicadores aparezcan) ---
+        # 3. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
-        # ... resto de tu gráfico
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        
+        fig.update_layout(
+            height=400, template="plotly_dark", hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        )
+        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
+        fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+        st.plotly_chart(fig, use_container_width=True)
+
+        # 4. Gráfico de Barras (Consumo)
+        df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
+        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
+        df_diario.columns = ['FECHA', 'Consumo']
+        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+
+        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar.update_layout(
+            height=300, template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
+            xaxis=dict(tickmode='linear', title=None), yaxis=dict(title="Consumo (m3)"),
+            margin=dict(t=30, b=20, l=20, r=20), showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="right", x=1)
+        )
+        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside', name='Consumo (m³)')
+        st.plotly_chart(fig_bar, use_container_width=True)
+
     else:
-        # Si no hay datos, el contenedor se mantiene vacío
-        placeholder_indicadores.empty()
+        placeholder_indicadores.empty() # Limpia si no hay datos
         st.warning("No hay datos registrados en este rango.")
 
         # --- Gráfico de Flujo y Presión ---
