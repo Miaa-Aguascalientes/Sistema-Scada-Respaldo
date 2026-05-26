@@ -1176,7 +1176,10 @@ if "ver_grafico" in st.query_params:
 
         _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
         with col_m1:
-            st.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
+            st.metric(
+                label="Caudal Promedio", 
+                value=f"{avg_caudal:.2f} <span style='color:#00FFFF;'>Lps</span>"
+            )
         
         with col_m2:
             st.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
