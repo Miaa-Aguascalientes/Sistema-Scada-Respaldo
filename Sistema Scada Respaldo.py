@@ -1131,7 +1131,7 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- 3. SELECTOR Y INDICADORES ---
+    # ---. SELECTOR Y INDICADORES ---
    
     col_sel, col1, col2, col3 = st.columns([1.5, 1, 1, 1])
 
@@ -1153,28 +1153,13 @@ if "ver_grafico" in st.query_params:
         f_fin = primer_dia - dt.timedelta(seconds=1)
         f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
     elif opcion_fecha == "Últimos 6 meses": f_ini = medianoche - dt.timedelta(days=180)
-    else: # Personalizado
+    else: 
         rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-    # ... (inserta aquí tu lógica de fechas) ...
+    
     
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
 
-    def mostrar_indicador(titulo, valor, unidad, color_valor, icon):
-        st.markdown(f"""
-            <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 8px; padding: 5px; text-align: center; height: 65px; display: flex; flex-direction: column; justify-content: center;">
-                <div style="color: #adb5bd; font-size: 11px;">{icon} {titulo}</div>
-                <div style="color: {color_valor}; font-size: 18px; font-weight: 800;">{valor} <span style="font-size: 11px; color: #ffffff;">{unidad}</span></div>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if not df.empty:
-        with col1: mostrar_indicador("Caudal prom.", f"{df['Flujo'].mean():.1f}", "l/s", "#00FFFF", "💧")
-        with col2: mostrar_indicador("Vol. total", f"{df['Consumo'].sum():.1f}", "m³", "#00FFFF", "📊")
-        with col3: mostrar_indicador("Presión prom.", f"{df['Presion'].mean():.2f}", "kg", "#00FF00", "📉")
-    
-   
-        
         # --- 5. GRÁFICOS ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
