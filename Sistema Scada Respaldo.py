@@ -1205,20 +1205,21 @@ if "ver_grafico" in st.query_params:
             y='Consumo', 
             text='Consumo', 
             color_discrete_sequence=['#00FFFF'],
-            labels={'Consumo': 'Consumo (m³)'}
+            
         )      
         fig_bar.update_layout(
             height=300,  # Ajusta este valor (ej. 250, 300, 350) para cambiar la altura
             template="plotly_dark", 
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
-            xaxis=dict(tickmode='linear'),
+            xaxis=dict(tickmode='linear'),title=None),
+            yaxis=dict(title=None),
             margin=dict(t=20, b=20, l=20, r=20),
             showlegend=True,  # Activa la leyenda
             legend=dict(
                 orientation="h",
                 yanchor="bottom",
-                y=1.02,
+                y=1.1,
                 xanchor="right",
                 x=1
             )
