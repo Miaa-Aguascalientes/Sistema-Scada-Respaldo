@@ -1201,11 +1201,11 @@ if "ver_grafico" in st.query_params:
                 
             with col_m3:
                 st.markdown(f"""
-                    <div style="text-align: center; padding: 5px;">
+                    <div style="{estilo_div}">
                         <div style="{estilo_titulo}">Consumo total</div>
                         <div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div>
                     </div>
-                """, unsafe_allow_html=True)   
+                """, unsafe_allow_html=True) 
             
         
         # 3--. Gráfico de Flujo y Presión (una sola vez)
