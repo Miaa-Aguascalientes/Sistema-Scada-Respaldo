@@ -1174,9 +1174,12 @@ if "ver_grafico" in st.query_params:
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
-        col_m1, col_m2, _ = st.columns([1, 1, 2])
-        col_m1.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
-        col_m2.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
+        _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
+        with col_m1:
+            st.metric("Caudal Promedio", f"{avg_caudal:.2f} Lps")
+        
+        with col_m2:
+            st.metric("Presión Promedio", f"{avg_presion:.2f} Kg/cm²")
         
         # Agregamos un pequeño espacio antes del gráfico
         st.markdown("<br>", unsafe_allow_html=True)
