@@ -1203,23 +1203,33 @@ if "ver_grafico" in st.query_params:
         fig_bar = px.bar(
             df_diario, 
             x='FECHA_STR', 
-            y='Consumo', 
-            text='Consumo', 
+            y='Consumo m3', 
+            text='Consumo m3', 
             color_discrete_sequence=['#00FFFF'],
-            title=None
-        )
-            
-        
+            labels={'Consumo': 'Consumo (m³)'}
+        )      
         fig_bar.update_layout(
             height=300,  # Ajusta este valor (ej. 250, 300, 350) para cambiar la altura
             template="plotly_dark", 
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
             xaxis=dict(tickmode='linear'),
-            margin=dict(t=20, b=20, l=20, r=20) # Ajusta los márgenes para aprovechar el espacio
+            margin=dict(t=20, b=20, l=20, r=20),
+            showlegend=True,  # Activa la leyenda
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
         
-        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
+        fig_bar.update_traces(
+            texttemplate='%{text:.1f}', 
+            textposition='outside',
+            name='Consumo (m³)'
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
     else: 
         st.warning("No hay datos registrados en este rango.")
