@@ -1135,7 +1135,7 @@ if "ver_grafico" in st.query_params:
     """, unsafe_allow_html=True)
 
     # --- Selector de fechas ---
-    col_sel, col_ind, col_btn = st.columns([1.2, 3.5, 1.8])
+    col_sel, col_ind, col_btn = st.columns([1.2, 1.0, 3.5])
 
     with col_sel:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
