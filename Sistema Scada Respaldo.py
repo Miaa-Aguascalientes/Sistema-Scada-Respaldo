@@ -1190,7 +1190,6 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
 
-        st.subheader("Consumo Diario (m³)")
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
