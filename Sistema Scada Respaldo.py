@@ -1200,10 +1200,23 @@ if "ver_grafico" in st.query_params:
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
 
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', 
-                          color_discrete_sequence=['#00FFFF'])
+        fig_bar = px.bar(
+            df_diario, 
+            x='FECHA_STR', 
+            y='Consumo', 
+            text='Consumo', 
+            color_discrete_sequence=['#00FFFF'])
+            title=None
         
-        fig_bar.update_layout(template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(tickmode='linear'))
+        fig_bar.update_layout(
+            height=300,  # Ajusta este valor (ej. 250, 300, 350) para cambiar la altura
+            template="plotly_dark", 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            xaxis=dict(tickmode='linear'),
+            margin=dict(t=20, b=20, l=20, r=20) # Ajusta los márgenes para aprovechar el espacio
+        )
+        
         fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside')
         st.plotly_chart(fig_bar, use_container_width=True)
     else: 
