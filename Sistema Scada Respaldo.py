@@ -1134,22 +1134,24 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- Selector de fechas ---
+    
+    placeholder_indicadores = st.empty()
+
+    # 2. Selector e indicadores en la misma fila
     col_sel, col_ind = st.columns([1, 3])
 
     with col_sel:
-        # Ajusta el padding para que coincida visualmente con la altura de los indicadores
         st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
 
+    # 3. Renderizamos los indicadores dentro del placeholder que vive en col_ind
     with col_ind:
-        # Aquí definimos un sub-placeholder para los indicadores dentro de la columna de la derecha
-        placeholder_indicadores = st.empty()
-        
-        avg_caudal = df['Flujo'].mean()
-        avg_presion = df['Presion'].mean()
+        # Movemos la lógica de cálculo aquí para asegurar que 'df' exista
+        if not df.empty:
+            avg_caudal = df['Flujo'].mean()
+            avg_presion = df['Presion'].mean()
         
         # Cálculo de consumo total para el indicador
         df_diario_calc = df.copy()
