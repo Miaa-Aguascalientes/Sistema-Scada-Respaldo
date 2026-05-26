@@ -1137,6 +1137,7 @@ if "ver_grafico" in st.query_params:
     # --- Selector de fechas ---
     col_sel, _ = st.columns([1.5, 3])
     with col_sel:
+        st.markdown('<div style="margin-top: 30px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
