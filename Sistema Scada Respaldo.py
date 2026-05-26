@@ -1183,10 +1183,6 @@ if "ver_grafico" in st.query_params:
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
 
-            entera = int(total_consumo)
-            decimal = int(round((total_consumo - entera) * 100))
-            consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
-
             with col_m1:
                 st.markdown(f"""
                     <div style="{estilo_div}">
