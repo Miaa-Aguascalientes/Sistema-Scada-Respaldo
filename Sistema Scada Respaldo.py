@@ -1199,7 +1199,7 @@ if "ver_grafico" in st.query_params:
                     </div>
                 """, unsafe_allow_html=True)
             
-            st.markdown("<br>", unsafe_allow_html=True)
+            
 
         # 3. Gráfico de Flujo y Presión (una sola vez)
         fig = make_subplots(specs=[[{"secondary_y": True}]])
