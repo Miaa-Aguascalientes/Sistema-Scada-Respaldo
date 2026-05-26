@@ -1179,13 +1179,13 @@ if "ver_grafico" in st.query_params:
         with placeholder_indicadores.container():
             _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
             # Estilos: padding reducido (altura), font-size reducido (tamaño)
-            estilo_div = "border: 2px solid; border-radius: 10px; padding: 8px 10px; text-align: center;"
+            estilo_div = "text-align: center; padding: 5px;"
             estilo_titulo = "font-size: 0.7rem; color: #ffffff; font-weight: bold; margin-bottom: 2px;"
             estilo_valor = "font-size: 1.2rem; font-weight: bold; color: #ffffff;"
 
             with col_m1:
                 st.markdown(f"""
-                    <div style="{estilo_div} border-color: #00FFFF;">
+                    <div style="{estilo_div}">
                         <div style="{estilo_titulo}">Caudal promedio</div>
                         <div style="{estilo_valor}">{avg_caudal:.2f} <span style="font-size: 0.8rem; color: #00FFFF;">Lps</span></div>
                     </div>
@@ -1193,7 +1193,7 @@ if "ver_grafico" in st.query_params:
             
             with col_m2:
                 st.markdown(f"""
-                    <div style="{estilo_div} border-color: #00FF00;">
+                    <div style="{estilo_div}">
                         <div style="{estilo_titulo}">Presion promedio</div>
                         <div style="{estilo_valor}">{avg_presion:.2f} <span style="font-size: 0.8rem; color: #00FF00;">kg/cm²</span></div>
                     </div>
