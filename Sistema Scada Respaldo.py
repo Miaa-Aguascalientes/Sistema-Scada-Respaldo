@@ -1173,9 +1173,13 @@ if "ver_grafico" in st.query_params:
     col_sel, col_ind = st.columns([1.5, 4.5])
     with col_sel:
         st.markdown('<div style="margin-top: 25px;"></div>', unsafe_allow_html=True)
-        opcion_fecha = st.selectbox("rango", 
+        opcion_fecha = st.selectbox(
+            "rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, label_visibility="collapsed")
+            index=3, 
+            label_visibility="collapsed",
+            key="selector_fechas_unico"  # <--- ESTA ES LA SOLUCIÓN
+        )
 
     # --- Área de Indicadores (Columna derecha) ---
     with col_ind:
