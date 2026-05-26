@@ -1212,8 +1212,7 @@ if "ver_grafico" in st.query_params:
             template="plotly_dark", 
             plot_bgcolor='rgba(0,0,0,0)', 
             paper_bgcolor='rgba(0,0,0,0)', 
-            xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio
-            yaxis=dict(title=True),                    # Quitamos título eje Y
+            xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio                 
             margin=dict(t=30, b=20, l=20, r=20),
             showlegend=True,                           # Esto activa la leyenda
             legend=dict(
