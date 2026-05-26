@@ -1205,8 +1205,10 @@ if "ver_grafico" in st.query_params:
             x='FECHA_STR', 
             y='Consumo', 
             text='Consumo', 
-            color_discrete_sequence=['#00FFFF'])
+            color_discrete_sequence=['#00FFFF'],
             title=None
+        )
+            
         
         fig_bar.update_layout(
             height=300,  # Ajusta este valor (ej. 250, 300, 350) para cambiar la altura
