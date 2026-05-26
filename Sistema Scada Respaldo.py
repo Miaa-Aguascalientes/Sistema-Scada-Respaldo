@@ -1165,42 +1165,49 @@ if "ver_grafico" in st.query_params:
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
     
     # --- Consulta y Gráficos ---
-    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-
     placeholder_indicadores = st.empty()
 
+    # 2. Si el usuario cambió la fecha, el script se reinicia desde aquí
+    # Al hacer esto, el placeholder se vacía si ponemos el comando adecuado
+    if "opcion_fecha" in st.session_state:
+        placeholder_indicadores.empty()
+
+    # 3. Consulta SQL
+    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
+
     if not df.empty:
-        # 2. El cálculo debe estar DENTRO del IF
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
 
-        # 3. Definimos el HTML dinámico
-        html_caudal = f"""
-        <div style="border: 2px solid #00FFFF; border-radius: 15px; padding: 15px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">CAUDAL PROMEDIO</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">
-                {avg_caudal:.2f} <span style="color: #00FFFF;">Lps</span>
-            </div>
-        </div>
-        """
-
-        html_presion = f"""
-        <div style="border: 2px solid #00FF00; border-radius: 15px; padding: 15px; text-align: center;">
-            <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">PRESIÓN PROMEDIO</div>
-            <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">
-                {avg_presion:.2f} <span style="color: #00FF00;">kg/cm²</span>
-            </div>
-        </div>
-        """
-
-        # 4. Usamos el placeholder para renderizar DENTRO del IF
+        # 4. Renderizamos los indicadores DENTRO del placeholder
         with placeholder_indicadores.container():
             _, col_m1, col_m2, _ = st.columns([1, 2, 2, 1])
+            
             with col_m1:
-                st.markdown(html_caudal, unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="border: 2px solid #00FFFF; border-radius: 15px; padding: 15px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">CAUDAL PROMEDIO</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{avg_caudal:.2f} <span style="color: #00FFFF;">Lps</span></div>
+                    </div>
+                """, unsafe_allow_html=True)
+
             with col_m2:
-                st.markdown(html_presion, unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style="border: 2px solid #00FF00; border-radius: 15px; padding: 15px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: #888888; font-weight: bold;">PRESIÓN PROMEDIO</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #ffffff;">{avg_presion:.2f} <span style="color: #00FF00;">kg/cm²</span></div>
+                    </div>
+                """, unsafe_allow_html=True)
+            
             st.markdown("<br>", unsafe_allow_html=True)
+
+        # --- Gráfico (se carga después de que los indicadores aparezcan) ---
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        # ... resto de tu gráfico
+    else:
+        # Si no hay datos, el contenedor se mantiene vacío
+        placeholder_indicadores.empty()
+        st.warning("No hay datos registrados en este rango.")
 
         # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
