@@ -1164,6 +1164,7 @@ if not df.empty:
     st.plotly_chart(fig, use_container_width=True)
 else:
     st.warning("No hay datos en el rango seleccionado.")
+st.stop()
 # 5. SECCION------------------------------------------------------------------------------5. ESTILO CSS ----------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
