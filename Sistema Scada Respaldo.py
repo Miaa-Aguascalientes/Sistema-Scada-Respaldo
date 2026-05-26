@@ -1141,6 +1141,14 @@ if "ver_grafico" in st.query_params:
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=3, label_visibility="collapsed")
+    with col_btn:
+        # Alineamos los botones debajo del espacio de indicadores, pero en su propia columna
+        st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
+        c_btn1, c_btn2 = st.columns(2)
+        with c_btn1:
+            st.download_button("📥", df.to_csv(index=False).encode('utf-8'), "datos.csv", "text/csv", use_container_width=True)
+        with c_btn2:
+            st.download_button("📊", df_diario.to_csv(index=False).encode('utf-8'), "consumo.csv", "text/csv", use_container_width=True)    
 
     # --- Lógica de fechas ---
     f_fin = hoy_dt
