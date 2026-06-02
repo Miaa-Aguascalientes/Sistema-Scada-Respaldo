@@ -2555,16 +2555,16 @@ with st.sidebar:
     datos_macros = cargar_medidores_desde_db()
 
     if datos_macros:
-        # Filtramos "Sin instalar" Y el ID '1000', luego ordenamos
+        # 1. Creamos la lista filtrada primero
         lista_filtrada = sorted(
             [(id_medidor, info) for id_medidor, info in datos_macros.items() 
              if info['nombre'] != "Sin instalar" and id_medidor != '1000']
         )
         
-        with st.expander(f"🟣 Macromedidores ({len(lista_filtrada)})", expanded=False):
+        # 2. Usamos len(lista_filtrada) para que el número sea exacto
+        with st.expander(f"📏 Macromedidores ({len(lista_filtrada)})", expanded=False):
             for id_medidor, info in lista_filtrada:
-                # Mostramos solo el número del medidor como texto simple
-                st.write(f"🟣 {id_medidor}")
+                st.write(f"📏 {id_medidor}")
     else:
         st.warning("No hay macromedidores disponibles.")
                 
