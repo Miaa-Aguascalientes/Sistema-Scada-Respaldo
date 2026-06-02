@@ -2551,7 +2551,11 @@ with st.sidebar:
             for p in sorted(pozos_sin_telemetria): 
                 st.write(f"⚪ {p}")
 
-           
+    if 'lista_macromedidores' in locals() and lista_macromedidores:
+        with st.expander(f"📏 Macromedidores ({len(lista_macromedidores)})", expanded=False):
+            for m in sorted(lista_macromedidores): 
+                # Ajusta 'm' según la estructura de tus datos (si es un diccionario o string)
+                st.write(f"📏 {m}")            
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA SCADA - AGUASCALIENTES</div>', unsafe_allow_html=True)
