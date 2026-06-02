@@ -2555,15 +2555,20 @@ with st.sidebar:
     datos_macros = cargar_medidores_desde_db()
 
     if datos_macros:
-        # Ordenamos por nombre
-        lista_ordenada = sorted([(info['nombre'], id_medidor) for id_medidor, info in datos_macros.items()])
+        # Filtramos primero para quitar los que tienen nombre "Sin instalar"
+        # y ordenamos por el ID del medidor
+        lista_filtrada = sorted(
+            [(id_medidor, info) for id_medidor, info in datos_macros.items() 
+             if info['nombre'] != "Sin instalar"]
+        )
         
-        with st.expander(f"📏 Macromedidores ({len(lista_ordenada)})", expanded=False):
-            for nombre, id_medidor in lista_ordenada:
-                # Usamos el enlace con query_params para activar el gráfico
-                st.markdown(f"📏 [{nombre}](?ver_grafico={id_medidor}&nombre={nombre})")
+        with st.expander(f"📏 Macromedidores ({len(lista_filtrada)})", expanded=False):
+            for id_medidor, info in lista_filtrada:
+                # Mostramos solo el ID, pero el enlace lleva el nombre real
+                nombre = info['nombre']
+                st.markdown(f"📏 [{id_medidor}](?ver_grafico={id_medidor}&nombre={nombre})")
     else:
-        st.warning("No hay macromedidores disponibles.")        
+        st.warning("No hay macromedidores disponibles.")       
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA SCADA - AGUASCALIENTES</div>', unsafe_allow_html=True)
