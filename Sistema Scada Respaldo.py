@@ -2555,8 +2555,7 @@ with st.sidebar:
     datos_macros = cargar_medidores_desde_db()
 
     if datos_macros:
-        # Filtramos primero para quitar los que tienen nombre "Sin instalar"
-        # y ordenamos por el ID del medidor
+        # Filtramos "Sin instalar" y ordenamos
         lista_filtrada = sorted(
             [(id_medidor, info) for id_medidor, info in datos_macros.items() 
              if info['nombre'] != "Sin instalar"]
@@ -2564,11 +2563,15 @@ with st.sidebar:
         
         with st.expander(f"📏 Macromedidores ({len(lista_filtrada)})", expanded=False):
             for id_medidor, info in lista_filtrada:
-                # Mostramos solo el ID, pero el enlace lleva el nombre real
                 nombre = info['nombre']
-                st.markdown(f"📏 [{id_medidor}](?ver_grafico={id_medidor}&nombre={nombre})")
+                # Codificamos el nombre para que la URL no se rompa (ej: POZO - P119A -> POZO%20-%20P119A)
+                nombre_seguro = urllib.parse.quote(nombre)
+                
+                # Construimos el link asegurándonos de que esté en una sola línea
+                # Al hacer clic, solo verás el número del medidor en la UI
+                st.markdown(f"📏 [{id_medidor}](?ver_grafico={id_medidor}&nombre={nombre_seguro})")
     else:
-        st.warning("No hay macromedidores disponibles.")       
+        st.warning("No hay macromedidores disponibles.")   
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA SCADA - AGUASCALIENTES</div>', unsafe_allow_html=True)
