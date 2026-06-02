@@ -2360,6 +2360,7 @@ if sector_seleccionado:
         st.stop()
     
 # 8. SECCION ------------------------------------------------------------------------------- 8. SIDEBAR BARRA LATERAL IZQUIERDA ------------------------------------------------------------------------------------------
+
 st.set_page_config(layout="wide", initial_sidebar_state="expanded")
 st.markdown("""
     <style>
@@ -2549,6 +2550,11 @@ with st.sidebar:
         with st.expander(f"⚪ Sin Telemetría ({len(pozos_sin_telemetria)})", expanded=False):
             for p in sorted(pozos_sin_telemetria): 
                 st.write(f"⚪ {p}")
+
+    if macromedidores: # Asegúrate de que esta lista tenga contenido o valide su existencia
+        with st.expander(f"🟣 Macromedidores ({len(macromedidores)})", expanded=False):
+            for m in sorted(macromedidores):
+                st.write(f"🟣 {m}")            
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA SCADA - AGUASCALIENTES</div>', unsafe_allow_html=True)
