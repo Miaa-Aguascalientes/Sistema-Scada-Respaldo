@@ -521,13 +521,19 @@ def cargar_vrp_desde_db():
     except: return {}
 
 # 3.5. Funcion para optener los macromedidores desde la base de datos
+
 @st.cache_data(ttl=3600)
 def cargar_medidores_desde_db():
     engine = get_mysql_telemetria_engine()
     if not engine: return {}
     try:
-        # Ajusta la consulta a tu tabla real de macromedidores
-        query = "SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo FROM MACROMEDIDORES"
+        # Consulta modificada para obtener la fecha más reciente por medidor
+        # Agrupamos por Medidor para obtener el último registro de cada uno
+        query = """
+            SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo, MAX(FECHA) as UltimaFecha 
+            FROM MACROMEDIDORES 
+            GROUP BY Medidor
+        """
         df = pd.read_sql(query, engine)
         
         datos_medidores = {}
@@ -537,7 +543,8 @@ def cargar_medidores_desde_db():
                 "coord": (float(row['Lat']), float(row['Lon'])),
                 "flujo": row['Flujo'],
                 "presion": row['Presion'],
-                "consumo": row['Consumo']
+                "consumo": row['Consumo'],
+                "ultima_fecha": pd.to_datetime(row['UltimaFecha']) # Convertimos a formato fecha
             }
         return datos_medidores
     except Exception as e:
@@ -2958,27 +2965,36 @@ if sectores_data:
 
 # 9.9. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ----------------------------------------------------------------------
     if ver_macromedidores:
+        from datetime import datetime, timedelta
         datos_macromedidores = cargar_medidores_desde_db()
+        fecha_limite = datetime.now() - timedelta(days=5)
+
         for id_mm, info in datos_macromedidores.items():
-        
-            # --- FILTRO AGREGADO AQUÍ ---
-            if str(id_mm) == '1000':
-                continue 
+            # --- FILTRO ---
+            if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar':
+                continue
+
+            # --- LÓGICA DE COLOR ---
+            # Si ultima_fecha es anterior a la fecha límite, es Falla (Rojo)
+            es_falla = info['ultima_fecha'] < fecha_limite
+            
+            color_borde = '#FF0000' if es_falla else '#B19CD9'
+            color_relleno = '#8B0000' if es_falla else '#800080'
+            color_popup = '#FF0000' if es_falla else '#800080'
 
             try:
-                # La URL llama al mismo archivo, pero con los parámetros que interceptamos arriba
-                url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('Nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
                 
                 html_popup_mm = f"""
-                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid #800080; font-family: sans-serif;">
-                    <b style="color: #bf40bf; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid {color_popup}; font-family: sans-serif;">
+                    <b style="color: {color_popup}; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
                     <hr style="border: 0.5px solid #333; margin: 8px 0;">
                     <div style="font-size: 12px;">
                         📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
-
+                        📡 Última transmisión: <b>{info['ultima_fecha'].strftime('%Y-%m-%d')}</b>
                     </div>
                     <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_pestaña}" target="_blank" style="background-color: #800080; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
+                        <a href="{url_pestaña}" target="_blank" style="background-color: {color_popup}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
                     </div>
                 </div>
                 """
@@ -2987,18 +3003,20 @@ if sectores_data:
                     location=info['coord'],
                     number_of_sides=3,
                     radius=5,
-                    color='#B19CD9',
+                    color=color_borde,
                     fill=True,
-                    fill_color='#800080',
+                    fill_color=color_relleno,
                     fill_opacity=0.9,
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
+                # Opcional: Cambiar también el color del texto si es falla
+                color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 folium.Marker(
                     location=info['coord'], 
                     icon=folium.DivIcon(
                         icon_anchor=(-15, 10), 
-                        html=f'<div style="font-size: 11px; font-weight: bold; color: #FFFFFF; text-shadow: 1px 1px #000;">{id_mm}</div>'
+                        html=f'<div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
             except Exception as e:
