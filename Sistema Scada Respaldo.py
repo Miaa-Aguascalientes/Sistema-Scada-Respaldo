@@ -2996,7 +2996,8 @@ if sectores_data:
             color_popup = '#FF0000' if es_falla else '#800080'
             
             # --- CLASE PARA EL PARPADEO ---
-            # Si es falla, añadimos la clase 'parpadeo-marker' que definiste en tu CSS
+            # Si tienes una clase definida en tu CSS para los pozos, úsala aquí. 
+            # He usado 'parpadeo-marker' como estándar.
             clase_animacion = "parpadeo-marker" if es_falla else ""
 
             try:
@@ -3016,25 +3017,19 @@ if sectores_data:
                 </div>
                 """
                 
-                # REEMPLAZO DE CIRCLEMARKER POR DIVICON PARA GARANTIZAR EL PARPADEO
-                # Usamos un SVG embebido con la clase CSS aplicada directamente
-                html_svg = f"""
-                <svg class="{clase_animacion}" height="20" width="20">
-                    <circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9" />
-                </svg>
-                """
-                
-                folium.Marker(
+                folium.CircleMarker(
                     location=info['coord'],
-                    icon=folium.DivIcon(
-                        icon_size=(20, 20),
-                        icon_anchor=(10, 10),
-                        html=html_svg
-                    ),
+                    number_of_sides=3,
+                    radius=5,
+                    color=color_borde,
+                    fill=True,
+                    fill_color=color_relleno,
+                    fill_opacity=0.9,
+                    className=clase_animacion, # <--- AQUÍ SE APLICA LA MISMA LÓGICA QUE EN LOS POZOS
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
-                # --- ETIQUETA DE TEXTO ---
+                # Opcional: Cambiar también el color del texto si es falla
                 color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 folium.Marker(
                     location=info['coord'], 
@@ -3043,7 +3038,6 @@ if sectores_data:
                         html=f'<div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
-                
             except Exception as e:
                 continue
            
