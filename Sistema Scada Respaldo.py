@@ -3032,7 +3032,7 @@ if sectores_data:
 
                 
                 
-                color_texto = "#FFFFFF"
+                color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 nombre_mostrado = info.get('nombre', 'N/A')
                 
                 html_etiqueta = f"""
