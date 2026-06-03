@@ -3029,14 +3029,24 @@ if sectores_data:
                     ),
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
+
                 
-                # Texto ID
+                
                 color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
+                nombre_mostrado = info.get('nombre', 'N/A')
+                
+                html_etiqueta = f"""
+                <div style="font-size: 11px; font-weight: bold; color: {color_texto}; 
+                            text-shadow: 1px 1px #000; white-space: nowrap;">
+                    {id_mm} - {nombre_mostrado}
+                </div>
+                """
+                
                 folium.Marker(
                     location=info['coord'], 
                     icon=folium.DivIcon(
                         icon_anchor=(-15, 10), 
-                        html=f'<div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000;">{id_mm}</div>'
+                        html=html_etiqueta
                     )
                 ).add_to(m)
                 
