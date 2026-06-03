@@ -2990,13 +2990,12 @@ if sectores_data:
             # --- LÓGICA DE ESTADO ---
             es_falla = info['ultima_fecha'] < fecha_limite
             
-            # MISMOS COLORES Y ESTILO QUE TUS POZOS
             color_borde = '#FF0000' if es_falla else '#B19CD9'
             color_relleno = '#8B0000' if es_falla else '#800080'
             color_popup = '#FF0000' if es_falla else '#800080'
             
-            # APLICA AQUÍ EL NOMBRE DE LA CLASE QUE USAN TUS POZOS PARA EL PARPADEO
-            # Por ejemplo, si tus pozos usan 'pulsante', pon 'pulsante' aquí:
+            # --- CLASE CSS ---
+            # Si es falla, asignamos la clase que ya hace parpadear a tus pozos
             clase_animacion = "pulsante" if es_falla else ""
 
             try:
@@ -3010,26 +3009,28 @@ if sectores_data:
                         📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
                         📡 Última transmisión: <b>{info['ultima_fecha'].strftime('%Y-%m-%d')}</b>
                     </div>
-                    <div style="margin-top: 10px; text-align: center;">
-                        <a href="{url_pestaña}" target="_blank" style="background-color: {color_popup}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
-                    </div>
                 </div>
                 """
+
+                # FORZAMOS EL PARPADEO USANDO UN DIVICON CON SVG PERSONALIZADO
+                # Esto garantiza que el navegador aplique la clase 'pulsante' al círculo
+                html_svg = f"""
+                <svg width="20" height="20" class="{clase_animacion}">
+                    <circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9" />
+                </svg>
+                """
                 
-                # CÍRCULO CON EL ESTILO IDENTICO AL DE LOS POZOS
-                folium.CircleMarker(
+                folium.Marker(
                     location=info['coord'],
-                    radius=5,
-                    color=color_borde,
-                    weight=2,             # Asegúrate de que el peso del borde coincida
-                    fill=True,
-                    fill_color=color_relleno,
-                    fill_opacity=0.9,
-                    className=clase_animacion, # <--- AQUÍ SE ACTIVA EL PARPADEO
+                    icon=folium.DivIcon(
+                        icon_size=(20, 20),
+                        icon_anchor=(10, 10),
+                        html=html_svg
+                    ),
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
-                # ETIQUETA DE TEXTO
+                # Texto ID
                 color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 folium.Marker(
                     location=info['coord'], 
@@ -3038,6 +3039,7 @@ if sectores_data:
                         html=f'<div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
+                
             except Exception as e:
                 continue
            
