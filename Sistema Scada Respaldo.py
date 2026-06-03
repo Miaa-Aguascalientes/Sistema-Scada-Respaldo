@@ -1514,6 +1514,16 @@ st.markdown("""
         @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
         .blink_me { animation: blink 1.2s infinite; }
 
+        /* Animación de parpadeo para los macromedidores en falla */
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1; }
+        }
+        .parpadeo-marker {
+            animation: parpadeo 1.5s infinite;
+        }
+
     </style>
 """, unsafe_allow_html=True)
 # 6. SECCION----------------------------------------------------------------- 6. PROCESAMIENTO (MODIFICADO) -----------------------------------------------------------------
