@@ -1140,7 +1140,7 @@ if "ver_grafico" in st.query_params:
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
                 <div><b>Colonia:</b> {info['Colonia']}</div>
-                <div><b>Diámetro:</b> {info['Diametro']}</div>
+                <div><b>Diámetro:</b> <span style="color:#ffffff;">{info['Diametro']}</span></div>
             </div>
         </div>
     """, unsafe_allow_html=True)
