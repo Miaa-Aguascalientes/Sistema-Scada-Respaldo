@@ -1113,7 +1113,7 @@ if "ver_grafico" in st.query_params:
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
     df_info = pd.read_sql(
-        f"SELECT Nombre, Domicilio, Colonia, Diametro FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", 
+        f"SELECT Nombre, Domicilio, Colonia, FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", 
         engine
     )
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A", "Diametro": "N/A"}
@@ -1140,7 +1140,7 @@ if "ver_grafico" in st.query_params:
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
                 <div><b>Colonia:</b> {info['Colonia']}</div>
-                <div><b>Diámetro:</b> {info['Diametro']}</span></div>
+                <div><b>Diámetro:</b> {info['Diametro']}</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
