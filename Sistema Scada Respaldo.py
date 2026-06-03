@@ -1112,13 +1112,23 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
-    # 1. Modificación: Se agrega 'Diametro' a la selección
-    df_info = pd.read_sql(
-        f"SELECT Nombre, Domicilio, Colonia, Diametro FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", 
-        engine
-    )
+    # Consulta con JOIN para traer el Diámetro desde la otra tabla
+    query = f"""
+        SELECT 
+            m.Nombre, 
+            m.Domicilio, 
+            m.Colonia, 
+            b.Diametro 
+        FROM MACROMEDIDORES m
+        LEFT JOIN Base_macromedidores b ON m.Medidor = b.Medidor
+        WHERE m.Medidor = '{tag_a_graficar}' 
+        AND m.Medidor != '1000' 
+        LIMIT 1
+    """
     
-    # 2. Actualización: Se incluye 'Diametro' en el diccionario por defecto
+    df_info = pd.read_sql(query, engine)
+    
+    # Asignación segura de variables
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A", "Diametro": "N/A"}
 
     # --- Cabecera y CSS ---
