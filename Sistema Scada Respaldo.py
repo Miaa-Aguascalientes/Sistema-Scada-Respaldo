@@ -3015,17 +3015,17 @@ if sectores_data:
                 </div>
                 """
                 
-                folium.CircleMarker(
+                folium.Marker(
                     location=info['coord'],
-                    radius=5,
-                    color=color_borde,
-                    fill=True,
-                    fill_color=color_relleno,
-                    fill_opacity=0.9,
-                    className=clase_css, # <--- AQUÍ SE APLICA EL PARPADEO
+                    icon=folium.DivIcon(
+                        icon_size=(20, 20),
+                        icon_anchor=(10, 10),
+                        html=html_svg
+                    ),
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
+                # --- ETIQUETA DE TEXTO ---
                 color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 folium.Marker(
                     location=info['coord'], 
@@ -3034,6 +3034,7 @@ if sectores_data:
                         html=f'<div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000;">{id_mm}</div>'
                     )
                 ).add_to(m)
+                
             except Exception as e:
                 continue
            
