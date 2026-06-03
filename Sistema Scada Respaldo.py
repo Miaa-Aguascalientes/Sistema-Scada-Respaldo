@@ -1116,7 +1116,7 @@ if "ver_grafico" in st.query_params:
         f"SELECT Nombre, Domicilio, Colonia FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' LIMIT 1", 
         engine
     )
-    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A"}
+    info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A", "Diametro": "N/A"}
 
     # --- Cabecera y CSS ---
     st.markdown(f"""
@@ -1124,7 +1124,7 @@ if "ver_grafico" in st.query_params:
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
             .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; }}
             .logo-miaa {{ height: 35px; margin-right: 15px; vertical-align: middle; }}
-            .cabecera-contenedor {{ display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px; flex-wrap: nowrap; }}
+            .cabecera-contenedor {{ display: flex; align-items: center; background-color: #000000; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px; flex-wrap: nowrap; }}
             div[data-testid="column"] {{ padding-top: 0px !important; }}
             div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
@@ -1140,6 +1140,7 @@ if "ver_grafico" in st.query_params:
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
                 <div><b>Colonia:</b> {info['Colonia']}</div>
+                <div><b>Diámetro:</b> <span style="color:#ffffff;">{info['Diametro']}</span></div>
             </div>
         </div>
     """, unsafe_allow_html=True)
