@@ -2219,7 +2219,7 @@ if sector_seleccionado:
                 except Exception as e:
                     st.error(f"Error Scada (Derecha): {e}")
 
-# 7.11. ------------------------------------------------------------------------- FILA INFERIOR: VRP ----------------------------------------------
+# 7.11. ------------------------------------------------------------------------- ZONA : VRP ----------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
 
         with col_vrp:
@@ -2318,7 +2318,7 @@ if sector_seleccionado:
                 except Exception as e:
                     st.error(f"Error Scada VRP: {e}")
                     
-# 7.12. ------------------ GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
+# 7.12. ---------------------------------------------------------- GRÁFICO: HISTÓRICO PUNTOS CRÍTICOS -------------------------------------------------------------------------------------
         with col_pc:
             if dict_pc_sec:
                 tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
@@ -2429,6 +2429,10 @@ st.markdown("""
                 margin-left: 350px !important;
                 width: calc(100% - 350px) !important;
             }
+        }
+        /* Modificar tamaño de fuente general en la sidebar */
+        section[data-testid="stSidebar"] {
+            font-size: 14px !important; /* Ajusta este valor a tu gusto */
         }
     </style>
 """, unsafe_allow_html=True)
