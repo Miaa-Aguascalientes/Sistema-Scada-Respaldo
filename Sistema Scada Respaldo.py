@@ -1155,7 +1155,7 @@ if "ver_grafico" in st.query_params:
                 <div><b>Colonia:</b> {info['Colonia']}</div>
                 <div style="display: flex; align-items: baseline; gap: 5px;">
                     <b style="color: #c9d1d9;">Diámetro:</b> 
-                    <span style="color:#00FFFF; font-size: 18px; font-weight: bold;">{info['Diametro']}</span>
+                    <span style="color:#00FFFF; font-size: 16px; font-weight: bold;">{info['Diametro']} Ø</span>
                 </div>
             </div>
         </div>
