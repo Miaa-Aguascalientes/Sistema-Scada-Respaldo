@@ -2988,17 +2988,17 @@ if sectores_data:
             if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar':
                 continue
 
-            # --- LÓGICA DE ESTADO Y COLOR ---
+            # --- LÓGICA DE ESTADO ---
             es_falla = info['ultima_fecha'] < fecha_limite
             
+            # MISMOS COLORES Y ESTILO QUE TUS POZOS
             color_borde = '#FF0000' if es_falla else '#B19CD9'
             color_relleno = '#8B0000' if es_falla else '#800080'
             color_popup = '#FF0000' if es_falla else '#800080'
             
-            # --- CLASE PARA EL PARPADEO ---
-            # Si tienes una clase definida en tu CSS para los pozos, úsala aquí. 
-            # He usado 'parpadeo-marker' como estándar.
-            clase_animacion = "parpadeo-marker" if es_falla else ""
+            # APLICA AQUÍ EL NOMBRE DE LA CLASE QUE USAN TUS POZOS PARA EL PARPADEO
+            # Por ejemplo, si tus pozos usan 'pulsante', pon 'pulsante' aquí:
+            clase_animacion = "pulsante" if es_falla else ""
 
             try:
                 url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
@@ -3017,19 +3017,20 @@ if sectores_data:
                 </div>
                 """
                 
+                # CÍRCULO CON EL ESTILO IDENTICO AL DE LOS POZOS
                 folium.CircleMarker(
                     location=info['coord'],
-                    number_of_sides=3,
                     radius=5,
                     color=color_borde,
+                    weight=2,             # Asegúrate de que el peso del borde coincida
                     fill=True,
                     fill_color=color_relleno,
                     fill_opacity=0.9,
-                    className=clase_animacion, # <--- AQUÍ SE APLICA LA MISMA LÓGICA QUE EN LOS POZOS
+                    className=clase_animacion, # <--- AQUÍ SE ACTIVA EL PARPADEO
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
-                # Opcional: Cambiar también el color del texto si es falla
+                # ETIQUETA DE TEXTO
                 color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
                 folium.Marker(
                     location=info['coord'], 
