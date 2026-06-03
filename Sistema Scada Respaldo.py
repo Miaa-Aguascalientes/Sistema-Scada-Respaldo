@@ -1196,31 +1196,7 @@ if "ver_grafico" in st.query_params:
             with c_b1: st.button("📥", disabled=True)
             with c_b2: st.button("📊", disabled=True)
 
-    # --- Lógica de fechas ---
-    f_fin = hoy_dt
-    if opcion_fecha == "Hoy": 
-        f_ini = medianoche
-    elif opcion_fecha == "Ayer": 
-        f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
-    elif opcion_fecha == "Últimos 7 días": 
-        f_ini = medianoche - dt.timedelta(days=7)
-    elif opcion_fecha == "Últimos 14 días": 
-        f_ini = medianoche - dt.timedelta(days=14)
-    elif opcion_fecha == "Este Mes": 
-        f_ini = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    elif opcion_fecha == "Último Mes":
-        primer_dia = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        f_fin = primer_dia - dt.timedelta(seconds=1)
-        f_ini = (primer_dia.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-    elif opcion_fecha == "Últimos 6 meses": 
-        f_ini = medianoche - dt.timedelta(days=180)
-    else: 
-        rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
-        f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
-    
-    # --- Consulta y Gráficos ---
-    df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-
+   
     # Creamos el placeholder para indicadores
     placeholder_indicadores = st.empty()
 
