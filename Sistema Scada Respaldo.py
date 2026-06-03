@@ -1125,22 +1125,16 @@ if "ver_grafico" in st.query_params:
             .spin-icon {{ animation: spin 4s linear infinite; display: inline-block; vertical-align: middle; }}
             .logo-miaa {{ height: 35px; margin-right: 15px; vertical-align: middle; }}
             .cabecera-contenedor {{ display: flex; align-items: center; background-color: #0e1117; padding: 10px 20px; border-radius: 10px; border: 1px solid #30363d; margin-bottom: 10px; flex-wrap: nowrap; }}
-            div[data-testid="column"] {{ padding-top: 0px !important; }}
-            div[data-testid="stVerticalBlock"] {{ gap: 0px !important; }}
         </style>
         <div class="cabecera-contenedor">
             <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" class="logo-miaa">
-            <svg class="spin-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00FFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 15px;">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
-            </svg>
-            <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem; white-space: nowrap;"> MACROMEDIDOR</h3>
+            <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem;"> MACROMEDIDOR</h3>
             <div style="display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px; align-items: center;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
-                <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
-                <div><b>Domicilio:</b> {info['Domicilio']}</div>
-                <div><b>Colonia:</b> {info['Colonia']}</div>
-                <div><b>Diámetro:</b> <span style="color:#ffffff;">{info['Diametro']}</span></div>
+                <div><b>Nombre:</b> <span style="color:#ffffff;">{info.get('Nombre', 'N/A')}</span></div>
+                <div><b>Domicilio:</b> {info.get('Domicilio', 'N/A')}</div>
+                <div><b>Colonia:</b> {info.get('Colonia', 'N/A')}</div>
+                <div><b>Diámetro:</b> <span style="color:#ffffff;">{info.get('Diametro', 'N/A')}</span></div>
             </div>
         </div>
     """, unsafe_allow_html=True)
