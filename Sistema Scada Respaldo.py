@@ -1148,14 +1148,16 @@ if "ver_grafico" in st.query_params:
                 <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
             </svg>
             <h3 style="margin: 0; color: #ffffff; margin-right: 20px; font-size: 1.2rem; white-space: nowrap;"> Macro medidor</h3>
-            <div style="display: flex; gap: 15px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px; align-items: center;">
+            <div style="display: flex; gap: 20px; font-size: 12px; color: #c9d1d9; border-left: 2px solid #00FFFF; padding-left: 15px; align-items: center; text-transform: none !important;">
                 <div><b>ID:</b> <span style="color:#ffffff;">{tag_a_graficar}</span></div>
                 <div><b>Nombre:</b> <span style="color:#ffffff;">{info['Nombre']}</span></div>
                 <div><b>Domicilio:</b> {info['Domicilio']}</div>
                 <div><b>Colonia:</b> {info['Colonia']}</div>
-                <div style="text-transform: none !important;">
-                <b>Diámetro:</b> <span style="color:#00FFFF;">{info['Diametro']}</span>
-           </div>
+                <div style="display: flex; align-items: baseline; gap: 5px;">
+                    <b style="color: #c9d1d9;">Diámetro:</b> 
+                    <span style="color:#00FFFF; font-size: 18px; font-weight: bold;">{info['Diametro']}</span>
+                </div>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
