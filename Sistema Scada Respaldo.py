@@ -2995,8 +2995,9 @@ if sectores_data:
             color_relleno = '#8B0000' if es_falla else '#800080'
             color_popup = '#FF0000' if es_falla else '#800080'
             
-            # Determinamos si el marcador debe parpadear
-            clase_css = "parpadeo-marker" if es_falla else ""
+            # --- CLASE PARA EL PARPADEO ---
+            # Si es falla, añadimos la clase 'parpadeo-marker' que definiste en tu CSS
+            clase_animacion = "parpadeo-marker" if es_falla else ""
 
             try:
                 url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
@@ -3013,6 +3014,14 @@ if sectores_data:
                         <a href="{url_pestaña}" target="_blank" style="background-color: {color_popup}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
                     </div>
                 </div>
+                """
+                
+                # REEMPLAZO DE CIRCLEMARKER POR DIVICON PARA GARANTIZAR EL PARPADEO
+                # Usamos un SVG embebido con la clase CSS aplicada directamente
+                html_svg = f"""
+                <svg class="{clase_animacion}" height="20" width="20">
+                    <circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9" />
+                </svg>
                 """
                 
                 folium.Marker(
