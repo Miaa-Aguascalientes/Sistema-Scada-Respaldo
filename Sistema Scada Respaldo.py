@@ -631,15 +631,12 @@ if tag_a_graficar:
             ))
 
             fig.update_xaxes(
-                # Usamos el formato %A para día completo, %d para número, %B para mes
-                # Esto es lo más estándar que Plotly entiende
-                tickformat="%H:%M<br>%A %d de %B de %Y",
+                # 1. Definimos el formato numérico y de fecha básica que Plotly sí maneja bien
+                tickformat="%H:%M<br>%d-%m-%Y",
                 
-                # Desactivamos el auto-ajuste de Plotly para evitar errores
+                # 2. Mantenemos el resto de tus ajustes de legibilidad
                 tickangle=0, 
                 automargin=True,
-                
-                # Configuración de las líneas verticales
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
@@ -650,23 +647,25 @@ if tag_a_graficar:
                 gridcolor='#333'
             )
 
-            # --- CORRECCIÓN FORZADA DE IDIOMA (Post-renderizado) ---
-            # Si al renderizar sigue saliendo en inglés, esto lo fuerza a español
-            # sin importar lo que el motor de Plotly intente hacer.
-            dias_map = {'Lunes': 'Monday', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
-            meses_map = {'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo', 'April': 'Abril', 'May': 'Mayo', 'June': 'Junio', 'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre', 'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'}
+            # 3. TRADUCCIÓN FORZADA (El "hack" necesario para Plotly)
+            # Esto intercepta las etiquetas generadas y las traduce manualmente
+            def aplicar_traduccion_espanol(fig):
+                dias_map = {'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
+                
+                # Este pequeño bloque asegura que cada etiqueta tenga su día en español
+                # Obtenemos las fechas de los tickvals y las convertimos a nombres en español
+                if fig.layout.xaxis.tickvals:
+                    nuevos_textos = []
+                    for val in fig.layout.xaxis.tickvals:
+                        # Convertimos el timestamp a fecha de Python
+                        d = pd.to_datetime(val)
+                        dia_es = dias_map.get(d.day_name(), d.day_name())
+                        # Creamos el formato: Hora <br> NombreDía DD-MM-AAAA
+                        nuevos_textos.append(f"{d.strftime('%H:%M')}<br>{dia_es} {d.strftime('%d-%m-%Y')}")
+                    
+                    fig.layout.xaxis.ticktext = nuevos_textos
 
-            # Este paso es el que limpia el texto final
-            def aplicar_traduccion(fig):
-                if fig.layout.xaxis.ticktext:
-                    nuevos = []
-                    for t in fig.layout.xaxis.ticktext:
-                        for eng, esp in {**dias_map, **meses_map}.items():
-                            t = t.replace(eng, esp)
-                        nuevos.append(t)
-                    fig.layout.xaxis.ticktext = nuevos
-            
-            aplicar_traduccion(fig)
+            aplicar_traduccion_espanol(fig)
             
             fig.update_layout(
                 template="plotly_dark",
