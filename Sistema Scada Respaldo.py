@@ -630,22 +630,21 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-    
+            import locale
             try:
                 locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8') # O 'es_ES.UTF-8'
             except:
                 pass
             # 3. Aplicamos al gráfico
             fig.update_xaxes(
-                # El <br> coloca el tiempo en una línea superior a la fecha
                 tickformatstops=[
-                    dict(dtickrange=[None, 3600000], value="%H:%M"),         # Zoom horario
-                    dict(dtickrange=[3600000, 86400000], value="%H:%M"),     # Zoom diario
-                    dict(dtickrange=[86400000, 604800000], value="%H:%M<br>%a %d-%b"),  # Tiempo sobre fecha
-                    dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),   # Tiempo sobre fecha completo
+                    dict(dtickrange=[None, 3600000], value="%H:%M"), 
+                    dict(dtickrange=[3600000, 86400000], value="%H:%M<br>%a"), 
+                    dict(dtickrange=[86400000, 604800000], value="%H:%M<br>%a %d-%b-%Y"), 
+                    dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),
                 ],
                 
-                # Formato por defecto para el Range Slider y vista general
+                # Formato por defecto (forzando año y día completo en español)
                 tickformat="%H:%M<br>%a %d-%b-%Y",
                 
                 tickangle=0, 
