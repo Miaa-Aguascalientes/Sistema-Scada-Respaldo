@@ -2317,7 +2317,7 @@ if sector_seleccionado:
 
                         fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), 
                                                       end=df_h['FECHA'].max().ceil('D'), freq='D')
-                        paso = 2 
+                        paso = 3 
                         ticks_visualizar = fechas_lineas[::paso]
                         
                         etiquetas_filtradas = [
