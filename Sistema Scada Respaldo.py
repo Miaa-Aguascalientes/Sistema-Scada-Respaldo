@@ -686,9 +686,9 @@ if tag_a_graficar:
                 fig.add_vline(
                     x=dia, 
                     line_width=1, 
-                    line_dash="solid", 
+                    line_dash="dot",
                     line_color="white", 
-                    opacity=1  # Ajusta la opacidad si la prefieres más tenue
+                    layer="above"
                 )
                 
             st.plotly_chart(fig, use_container_width=True)
