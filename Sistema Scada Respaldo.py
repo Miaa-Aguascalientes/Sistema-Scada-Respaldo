@@ -1452,14 +1452,19 @@ if "ver_grafico" in st.query_params:
         df_diario.columns = ['FECHA', 'Consumo']
         df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
         
-        fig_bar = px.bar(df_diario, x='FECHA_STR', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
+        fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(
             height=300, template="plotly_dark", plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
             xaxis=dict(tickmode='linear', title=None), yaxis=dict(title="Consumo (m3)"),
             margin=dict(t=30, b=20, l=20, r=20), showlegend=True,
             legend=dict(orientation="h", yanchor="bottom", y=1.1, xanchor="right", x=1)
         )
-        fig_bar.update_traces(texttemplate='%{text:.1f}', textposition='outside', name='Consumo (m³)')
+        fig_bar.update_traces(
+            texttemplate='%{text:.1f}',
+            textposition='outside',
+            name='Consumo (m³)'),
+            hovertemplate="<b>Día:</b> %{x}<br><b>Consumo:</b> %{y:.2f} m³<extra></extra>"
+        )
         st.plotly_chart(fig_bar, use_container_width=True)
 
     else:
