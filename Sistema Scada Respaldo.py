@@ -1117,8 +1117,8 @@ if "graficar_pozo" in params:
                         spikedash="dash",
                         spikemode="across",
                         spikecolor="rgba(255, 255, 255, 0.6)"          
-                    )
-                )
+                    ),
+                
                     
                     # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
                     yaxis5=dict(
