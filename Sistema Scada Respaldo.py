@@ -630,36 +630,34 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # Diccionario para mapeo de días en español
+            # 1. Generamos las fechas
+            tick_freq = '24h'  # Ajustado a 24h para que no se saturen tantas etiquetas
+            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
+
+            # 2. Creamos la lista de etiquetas traducidas manualmente
             dias_es = {
                 'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 
                 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'
             }
-
-            def formatear_fecha(dt):
-                # Obtenemos el nombre del día en inglés
-                dia_en = dt.strftime('%a')
-                # Mapeamos al español
-                dia_es = dias_es.get(dia_en, dia_en)
-                # Retornamos el formato completo
-                return f"{dia_es} {dt.strftime('%d-%b %H:%M')}"
             
-            tick_freq = '24h' 
-            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
+            # Generamos las etiquetas: "Lun 26-May"
+            etiquetas_finales = []
+            for d in fechas_ticks:
+                dia_traducido = dias_es.get(d.strftime('%a'), d.strftime('%a'))
+                etiquetas_finales.append(f"{dia_traducido} {d.strftime('%d-%b')}")
 
-            # Formato: Día de la semana (abreviado), día, mes y hora
-            # Ejemplo: "Lun 16-May 00:00"
+            # 3. Aplicamos directamente al gráfico
             fig.update_xaxes(
                 tickvals=fechas_ticks,
-                ticktext=[d.strftime('%a %d-%b %H:%M') for d in fechas_ticks],
-                tickangle=-45, # Ángulo para que no se encimen los textos
+                ticktext=etiquetas_finales, # <--- Usamos la lista de strings traducidos
+                tickangle=-45,
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
                 spikemode="across", 
                 spikesnap="cursor",
                 spikedash="dash", 
-                showgrid=True, # Activamos grid para ver la división clara
+                showgrid=True, 
                 gridcolor='#333'
             )
             
