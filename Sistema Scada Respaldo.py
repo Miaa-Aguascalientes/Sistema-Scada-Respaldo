@@ -630,11 +630,23 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
+            # 1. Definimos los días en español para asegurar la traducción
+            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+
+            # 2. Generamos los puntos donde queremos marcas (ticks)
+            # Esto mantiene la interactividad del Range Slider
+            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, periods=6)
+            
+            # 3. Construimos los textos finales (Hora <br> Día Español DD-MM-AAAA)
+            etiquetas = [
+                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.strftime('%d-%m-%Y')}" 
+                for d in fechas_ticks
+            ]
+
+            # 4. Aplicamos al gráfico
             fig.update_xaxes(
-                # 1. Definimos el formato numérico y de fecha básica que Plotly sí maneja bien
-                tickformat="%H:%M<br>%d-%m-%Y",
-                
-                # 2. Mantenemos el resto de tus ajustes de legibilidad
+                tickvals=fechas_ticks,
+                ticktext=etiquetas,
                 tickangle=0, 
                 automargin=True,
                 showspikes=True, 
@@ -646,26 +658,6 @@ if tag_a_graficar:
                 showgrid=True, 
                 gridcolor='#333'
             )
-
-            # 3. TRADUCCIÓN FORZADA (El "hack" necesario para Plotly)
-            # Esto intercepta las etiquetas generadas y las traduce manualmente
-            def aplicar_traduccion_espanol(fig):
-                dias_map = {'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
-                
-                # Este pequeño bloque asegura que cada etiqueta tenga su día en español
-                # Obtenemos las fechas de los tickvals y las convertimos a nombres en español
-                if fig.layout.xaxis.tickvals:
-                    nuevos_textos = []
-                    for val in fig.layout.xaxis.tickvals:
-                        # Convertimos el timestamp a fecha de Python
-                        d = pd.to_datetime(val)
-                        dia_es = dias_map.get(d.day_name(), d.day_name())
-                        # Creamos el formato: Hora <br> NombreDía DD-MM-AAAA
-                        nuevos_textos.append(f"{d.strftime('%H:%M')}<br>{dia_es} {d.strftime('%d-%m-%Y')}")
-                    
-                    fig.layout.xaxis.ticktext = nuevos_textos
-
-            aplicar_traduccion_espanol(fig)
             
             fig.update_layout(
                 template="plotly_dark",
