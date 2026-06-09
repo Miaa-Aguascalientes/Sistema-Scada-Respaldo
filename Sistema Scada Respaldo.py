@@ -1085,21 +1085,27 @@ if "graficar_pozo" in params:
                     for d in ticks_filtrados
                 ]
 
-                # 2. LÍNEAS CON SOMBRA (Doble capa: Sombra detrás, Línea nítida delante)
+                # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
+                delta = pd.Timedelta(hours=4) # Ancho del halo detrás de la línea
                 for d in fechas_lineas:
-                    # Sombra (Halo: más gruesa y opaca para crear el efecto de la imagen)
-                    fig_line.add_vline(
-                        x=d, 
-                        line_width=4, 
-                        line_dash="dash", 
-                        line_color="rgba(255, 255, 255, 0.15)"
+                    es_lunes = (d.dayofweek == 0)
+                    
+                    # Sombra (vrect)
+                    fig_line.add_vrect(
+                        x0=d - delta,
+                        x1=d + delta,
+                        fillcolor="gray",
+                        opacity=0.2,
+                        layer="below",
+                        line_width=0
                     )
-                    # Línea principal (Amarilla para lunes, gris para otros)
+                    
+                    # Línea punteada principal (vline)
                     fig_line.add_vline(
                         x=d, 
                         line_width=1.5, 
                         line_dash="dash", 
-                        line_color="#fffb00" if d.dayofweek == 0 else "gray"
+                        line_color="#fffb00" if es_lunes else "white"
                     )
 
                 # 3. CONFIGURACIÓN DEL EJE X
@@ -1128,7 +1134,7 @@ if "graficar_pozo" in params:
                         spikethickness=1, 
                         spikedash="dash",
                         spikemode="across",
-                        spikecolor="rgba(255, 255, 255, 0.6)"          
+                        spikecolor="rgba(255, 255, 255, 0.6)"    
                     ),
                 
                     
