@@ -2574,36 +2574,45 @@ if sector_seleccionado:
 
                         if not df_pc_h.empty:
                             st.markdown(f"<h3 style='color:#ff0000; font-size:18px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
+                            
+                            # --- 1. LÓGICA DE FECHAS (Estandarizada) ---
+                            df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
+                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                            
+                            fechas_lineas = pd.date_range(start=df_pc_h['FECHA'].min().floor('D'), end=df_pc_h['FECHA'].max().ceil('D'), freq='D')
+                            num_dias = len(fechas_lineas)
+                            paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                            ticks_filtrados = fechas_lineas[::paso]
+                            etiquetas_filtradas = [f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}" for d in ticks_filtrados]
+
                             fig_pc = go.Figure()
                             
-                            # CAMBIO 1: Usar 'Domicilio' en lugar de 'nombre' (Colonia) para el mapeo
+                            # --- 2. DIBUJO DE LÍNEAS DIVISORIAS ---
+                            for d in fechas_lineas:
+                                es_lunes = (d.dayofweek == 0)
+                                fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.3)
+
                             tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'S/D')) for v in dict_pc_sec.values()}
 
                             for tag in tags_pc_list:
                                 df_temp = df_pc_h[df_pc_h['TAG'] == tag]
                                 if not df_temp.empty:
                                     fig_pc.add_trace(go.Scatter(
-                                        x=df_temp['FECHA'], 
-                                        y=df_temp['VALUE'], 
-                                        name=tag_to_name.get(tag, tag), 
-                                        mode='lines+markers',
-                                        marker=dict(size=4, symbol='circle'),
-                                        line=dict(width=2),
-                                        # CAMBIO 2: Formatear a dos decimales con :.2f
+                                        x=df_temp['FECHA'], y=df_temp['VALUE'], 
+                                        name=tag_to_name.get(tag, tag), mode='lines+markers',
+                                        marker=dict(size=4, symbol='circle'), line=dict(width=2),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} kg<extra></extra>'
                                     ))
 
                             fig_pc.update_layout(
-                                paper_bgcolor='rgba(0,0,0,0)', 
-                                plot_bgcolor='rgba(0,0,0,0)', 
-                                height=300, 
-                                margin=dict(l=50, r=50, t=40, b=10), 
-                                hovermode="x unified", 
-                                # CAMBIO 3: Asegurar que el eje Y también muestre dos decimales
+                                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, 
+                                margin=dict(l=50, r=50, t=40, b=10), hovermode="x unified",
+                                # --- 3. CONFIGURACIÓN EJE X (Formato Día-Mes-Año) ---
+                                xaxis=dict(color="white", tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
                                 yaxis=dict(tickformat=".2f", color="white"),
-                                xaxis=dict(color="white"),
-                                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color="white", size=12)))
-                            
+                                legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10))
+                            )
                             st.plotly_chart(fig_pc, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error PC: {e}")
