@@ -2317,6 +2317,8 @@ if sector_seleccionado:
 
                         fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), 
                                                       end=df_h['FECHA'].max().ceil('D'), freq='D')
+                        paso = 2 
+                        ticks_visualizar = fechas_lineas[::paso]
                         
                         etiquetas_filtradas = [
                             f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
@@ -2392,7 +2394,7 @@ if sector_seleccionado:
                             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10)),
                             xaxis=dict(
                                 color="white", showgrid=False,
-                                tickvals=fechas_lineas,
+                                tickvals=ticks_visualizar,
                                 ticktext=etiquetas_filtradas,
                                 tickangle=0
                             ),
