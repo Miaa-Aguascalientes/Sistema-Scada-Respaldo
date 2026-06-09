@@ -1092,7 +1092,7 @@ if "graficar_pozo" in params:
                         x=d, 
                         line_width=4, 
                         line_dash="dash", 
-                        line_color="rgba(255, 255, 255, 0.50)" # Sombra sutil blanca
+                        line_color="rgba(255, 255, 255, 0.0)" # Sombra sutil blanca
                     )
                     # Luego la línea principal encima
                     fig_line.add_vline(
