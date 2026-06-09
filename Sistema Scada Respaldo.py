@@ -1462,7 +1462,7 @@ if "ver_grafico" in st.query_params:
         fig_bar.update_traces(
             texttemplate='%{text:.1f}',
             textposition='outside',
-            name='Consumo (m³)'),
+            name='Consumo (m³)')
             hovertemplate="<b>Día:</b> %{x}<br><b>Consumo:</b> %{y:.2f} m³<extra></extra>"
         )
         st.plotly_chart(fig_bar, use_container_width=True)
