@@ -1430,8 +1430,8 @@ if "ver_grafico" in st.query_params:
         dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
         meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
                     7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
-        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D')
+        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'),end=df['FECHA'].max().ceil('D'), freq='D')
+                                      
         num_dias = len(fechas_lineas)                              
         paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
         ticks_filtrados = fechas_lineas[::paso]
