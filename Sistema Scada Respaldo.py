@@ -2412,7 +2412,7 @@ if sector_seleccionado:
                                 showgrid=False,
                                 tickvals=ticks_filtrados,      # <--- Tu lista filtrada
                                 ticktext=etiquetas_filtradas,  # <--- Tus etiquetas con fecha/hora
-                                tickangle=0
+                                tickangle=0,
                                 tickformat="%d-%b-%Y %H:%M"
                             ),
                             yaxis=dict(
