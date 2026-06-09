@@ -1085,7 +1085,24 @@ if "graficar_pozo" in params:
                     for d in ticks_filtrados
                 ]
 
-                # 2. CONFIGURACIÓN DEL EJE X CON EFECTO DE LÍNEA (SIN ADD_VLINE)
+                # 2. LÍNEAS CON SOMBRA (Doble capa: Sombra detrás, Línea nítida delante)
+                for d in fechas_lineas:
+                    # Sombra (Halo: más gruesa y opaca para crear el efecto de la imagen)
+                    fig_line.add_vline(
+                        x=d, 
+                        line_width=4, 
+                        line_dash="dash", 
+                        line_color="rgba(255, 255, 255, 0.15)"
+                    )
+                    # Línea principal (Amarilla para lunes, gris para otros)
+                    fig_line.add_vline(
+                        x=d, 
+                        line_width=1.5, 
+                        line_dash="dash", 
+                        line_color="#fffb00" if d.dayofweek == 0 else "gray"
+                    )
+
+                # 3. CONFIGURACIÓN DEL EJE X
                 fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
@@ -1103,11 +1120,6 @@ if "graficar_pozo" in params:
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
-                        
-                        # --- ESTO GENERA LA LÍNEA CON SU SOMBRA AUTOMÁTICA ---
-                        showgrid=True,
-                        gridcolor='rgba(255, 255, 255, 0.15)', # Color base de la sombra
-                        gridwidth=2,                            # Ancho de la sombra
                         
                         showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
