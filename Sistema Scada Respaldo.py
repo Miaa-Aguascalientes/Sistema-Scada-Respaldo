@@ -669,6 +669,16 @@ if tag_a_graficar:
                 yaxis_title="Nivel (m)",
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
+                # --- CONFIGURACIÓN DEL EJE X CON RANGE SLIDER ---
+                xaxis=dict(
+                    rangeslider=dict(
+                        visible=True,
+                        thickness=0.08
+                    ),
+                    type="date",
+                    showgrid=True,
+                    gridcolor='#333'
+                ),
                 yaxis=dict(
                     tickformat=".2f",
                     showgrid=True,
