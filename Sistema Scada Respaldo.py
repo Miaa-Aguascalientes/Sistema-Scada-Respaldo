@@ -1084,9 +1084,17 @@ if "graficar_pozo" in params:
                     f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
                     for d in ticks_filtrados
                 ]
-
-                # 2. DIBUJO DE LÍNEAS (Amarillo para Lunes, gris punteado para los demás)
+                
+                # 2. DIBUJO DE LÍNEAS CON SOMBRA (Bucle con doble traza)
                 for d in fechas_lineas:
+                    # Primero la sombra (línea gruesa con opacidad)
+                    fig_line.add_vline(
+                        x=d, 
+                        line_width=4, 
+                        line_dash="dash", 
+                        line_color="rgba(255, 255, 255, 0.15)" # Sombra sutil blanca
+                    )
+                    # Luego la línea principal encima
                     fig_line.add_vline(
                         x=d, 
                         line_width=1.5, 
