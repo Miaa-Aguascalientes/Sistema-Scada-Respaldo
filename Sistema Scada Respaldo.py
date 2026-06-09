@@ -658,21 +658,7 @@ if tag_a_graficar:
                 gridcolor='#333'
             )
 
-            # 3. TRADUCCIÓN EFECTIVA (Se ejecuta después de crear el gráfico)
-            # Esto traduce los nombres de días sin romper el layout
-            def forzar_traduccion(fig):
-                if fig.layout.xaxis.ticktext:
-                    nuevos_textos = []
-                    for t in fig.layout.xaxis.ticktext:
-                        # Reemplazo directo de nombres en inglés a español
-                        t = t.replace('Mon', 'Lun').replace('Tue', 'Mar').replace('Wed', 'Mié')\
-                             .replace('Thu', 'Jue').replace('Fri', 'Vie').replace('Sat', 'Sáb')\
-                             .replace('Sun', 'Dom')
-                        nuevos_textos.append(t)
-                    fig.layout.xaxis.ticktext = nuevos_textos
-            
-            # Aplicamos la función
-            forzar_traduccion(fig)
+
             
             fig.update_layout(
                 template="plotly_dark",
