@@ -1431,12 +1431,14 @@ if "ver_grafico" in st.query_params:
         meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
                     7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), 
-                                      end=df['FECHA'].max().ceil('D'), freq='D')
+        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D')
+        num_dias = len(fechas_lineas)                              
+        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+        ticks_filtrados = fechas_lineas[::paso]
         
-        ticks_filtrados = fechas_lineas
+        
         etiquetas_filtradas = [
-            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
             for d in ticks_filtrados
         ]
 
@@ -1463,8 +1465,12 @@ if "ver_grafico" in st.query_params:
 
         # 3. CONFIGURACIÓN FINAL
         fig.update_layout(
-            height=400, template="plotly_dark", hovermode="x unified",
-            xaxis=dict(rangeslider=dict(visible=True, thickness=0.07),
+            height=400,
+            template="plotly_dark",
+            hovermode="x unified",
+            
+            xaxis=dict(
+                rangeslider=dict(visible=True, thickness=0.07),
                        tickvals=ticks_filtrados, ticktext=etiquetas_filtradas,
                        tickangle=0, showline=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
