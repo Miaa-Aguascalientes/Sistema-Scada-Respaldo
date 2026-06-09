@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
-
+import locale
 
 
 st.set_page_config(
@@ -650,10 +650,20 @@ if tag_a_graficar:
 
             # 3. Aplicamos al gráfico
             fig.update_xaxes(
-                tickvals=fechas_ticks,
-                ticktext=etiquetas,
-                tickangle=-45,          # Forzamos inclinación para legibilidad
-                automargin=True,        # ESTO evita que las etiquetas corten el gráfico
+                # Configuración automática de legibilidad
+                tickangle=0,           # Empieza horizontal, automargin lo ajusta si es necesario
+                automargin=True,       # Evita que las etiquetas corten el gráfico
+                
+                # Formato inteligente según el nivel de zoom
+                tickformatstops=[
+                    dict(dtickrange=[None, 3600000], value="%H:%M"),         # Zoom horario
+                    dict(dtickrange=[3600000, 86400000], value="%H:%M"),     # Zoom diario
+                    dict(dtickrange=[86400000, 604800000], value="%a %d-%b"),# Zoom semanal
+                    dict(dtickrange=[604800000, "M1"], value="%a %d-%b-%Y"), # Zoom mensual
+                ],
+                
+                # Formato por defecto y configuración de líneas guía
+                tickformat="%a %d-%b-%Y %H:%M",
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
