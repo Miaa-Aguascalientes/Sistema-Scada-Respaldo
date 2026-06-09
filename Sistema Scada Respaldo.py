@@ -1100,16 +1100,21 @@ if "graficar_pozo" in params:
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         
-                        # Inyección de los días en español y filtrado para no amontonar
+                        # Fechas y etiquetas
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
+                        
+                        # --- ESTO HACE QUE APAREZCAN LAS LÍNEAS ---
+                        showgrid=True,           # Forzar cuadrícula
+                        gridcolor='#333',        # Color de las líneas
+                        gridwidth=1,
                         
                         showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
                         autorange=True,
                         showspikes=True,
-                        spikethickness=0.05, 
+                        spikethickness=1,        # Aumentamos grosor para que se vea
                         spikedash="dash",
                         spikemode="across",
                         spikecolor="rgba(255, 255, 255, 0.6)"          
