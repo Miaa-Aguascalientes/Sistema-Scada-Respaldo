@@ -669,8 +669,6 @@ if tag_a_graficar:
                 gridcolor='#333'
             )
 
-
-            
             fig.update_layout(
                 template="plotly_dark",
                 hovermode="x unified",
@@ -1126,9 +1124,12 @@ if "graficar_pozo" in params:
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         
+                        rangeslider=dict(visible=True),
+                        
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
+                        ticklabelmode="instant",
                         
                         showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
