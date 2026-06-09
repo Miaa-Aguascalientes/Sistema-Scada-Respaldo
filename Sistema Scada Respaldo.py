@@ -630,13 +630,9 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            import locale
-            try:
-                locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8') # O 'es_ES.UTF-8'
-            except:
-                pass
-            # 3. Aplicamos al gráfico
             fig.update_xaxes(
+                # Usamos formatos estándar (inglés) y luego los mapeamos
+                # Plotly forzará estos formatos según el rango de zoom
                 tickformatstops=[
                     dict(dtickrange=[None, 3600000], value="%H:%M"), 
                     dict(dtickrange=[3600000, 86400000], value="%H:%M<br>%a"), 
@@ -644,9 +640,10 @@ if tag_a_graficar:
                     dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),
                 ],
                 
-                # Formato por defecto (forzando año y día completo en español)
+                # Formato base forzando año y día
                 tickformat="%H:%M<br>%a %d-%b-%Y",
                 
+                # Ajustes de legibilidad
                 tickangle=0, 
                 automargin=True,
                 showspikes=True, 
@@ -658,6 +655,18 @@ if tag_a_graficar:
                 showgrid=True, 
                 gridcolor='#333'
             )
+
+            # --- TRUCO PARA EL ESPAÑOL (Post-procesamiento) ---
+            # Si Plotly insiste en inglés, este pequeño bloque inyecta la traducción
+            # a las etiquetas que ya se renderizaron en el eje X:
+            fig.for_each_xaxis(lambda axis: axis.update(
+                ticktext=[
+                    t.replace('Mon', 'Lun').replace('Tue', 'Mar').replace('Wed', 'Mié')
+                     .replace('Thu', 'Jue').replace('Fri', 'Vie').replace('Sat', 'Sáb')
+                     .replace('Sun', 'Dom')
+                    for t in (axis.ticktext or [])
+                ]
+            ))
             
             fig.update_layout(
                 template="plotly_dark",
