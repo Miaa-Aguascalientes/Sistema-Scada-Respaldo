@@ -2413,11 +2413,12 @@ if sector_seleccionado:
                                 tickvals=ticks_filtrados,      # <--- Tu lista filtrada
                                 ticktext=etiquetas_filtradas,  # <--- Tus etiquetas con fecha/hora
                                 tickangle=0
+                                tickformat="%d-%b-%Y %H:%M"
                             ),
                             yaxis=dict(
                                 title="Caudales (m³/h)", 
                                 color="#00d4ff", 
-                                tickformat="%d-%b-%Y %H:%M:%S",
+                                tickformat=".2f"
                             ),
                             yaxis2=dict(
                                 title="Presiones (kg)", 
@@ -2425,7 +2426,7 @@ if sector_seleccionado:
                                 overlaying="y", 
                                 color="#00ff00", 
                                 showgrid=False, 
-                                tickformat="%d-%b-%Y %H:%M:%S",
+                                tickformat=".2f"
                             )
                         )
                         
