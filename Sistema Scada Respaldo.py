@@ -667,7 +667,7 @@ if tag_a_graficar:
                     line_width=1, 
                     line_dash="solid", 
                     line_color="white", 
-                    opacity=1.3  # Ajusta la opacidad si la prefieres más tenue
+                    opacity=1  # Ajusta la opacidad si la prefieres más tenue
                 )
                 
             st.plotly_chart(fig, use_container_width=True)
