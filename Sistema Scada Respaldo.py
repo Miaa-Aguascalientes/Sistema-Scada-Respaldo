@@ -631,25 +631,26 @@ if tag_a_graficar:
             ))
 
             # 1. Generamos las fechas
-            tick_freq = '24h'  # Ajustado a 24h para que no se saturen tantas etiquetas
+            tick_freq = '24h'  
             fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
 
-            # 2. Creamos la lista de etiquetas traducidas manualmente
+            # 2. Mapeo de días en español
             dias_es = {
                 'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 
                 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'
             }
             
-            # Generamos las etiquetas: "Lun 26-May"
+            # 3. Generamos las etiquetas: "Lun 26-May-2026 00:00"
             etiquetas_finales = []
             for d in fechas_ticks:
                 dia_traducido = dias_es.get(d.strftime('%a'), d.strftime('%a'))
-                etiquetas_finales.append(f"{dia_traducido} {d.strftime('%d-%b')}")
+                # Se añade el año con %Y
+                etiquetas_finales.append(f"{dia_traducido} {d.strftime('%d-%b-%Y %H:%M')}")
 
-            # 3. Aplicamos directamente al gráfico
+            # 4. Aplicamos al gráfico
             fig.update_xaxes(
                 tickvals=fechas_ticks,
-                ticktext=etiquetas_finales, # <--- Usamos la lista de strings traducidos
+                ticktext=etiquetas_finales,
                 tickangle=-45,
                 showspikes=True, 
                 spikecolor="gray", 
