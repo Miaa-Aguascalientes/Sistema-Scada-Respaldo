@@ -1086,7 +1086,7 @@ if "graficar_pozo" in params:
                 ]
 
                 # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
-                delta = pd.Timedelta(hours=4) # Ancho del halo detrás de la línea
+                delta = pd.Timedelta(hours=1) # Ancho del halo detrás de la línea
                 for d in fechas_lineas:
                     es_lunes = (d.dayofweek == 0)
                     
@@ -1105,7 +1105,8 @@ if "graficar_pozo" in params:
                         x=d, 
                         line_width=1.5, 
                         line_dash="dash", 
-                        line_color="#fffb00" if es_lunes else "white"
+                        line_color="#fffb00" if es_lunes else "white",
+                        layer="above"
                     )
 
                 # 3. CONFIGURACIÓN DEL EJE X
