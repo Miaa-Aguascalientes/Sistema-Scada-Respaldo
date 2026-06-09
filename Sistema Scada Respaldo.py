@@ -2487,6 +2487,25 @@ if sector_seleccionado:
                         ]
                         
                         fig_v = go.Figure()
+
+                        # --- 2. DIBUJO DE SOMBRAS Y LÍNEAS (Separador de días) ---
+                        delta = pd.Timedelta(hours=1) # Ajusta este ancho según necesites
+                        for d in fechas_lineas:
+                            es_lunes = (d.dayofweek == 0)
+                            
+                            # AÑADIR LA SOMBRA (El fondo gris para resaltar el día)
+                            fig_v.add_vrect(
+                                x0=d - delta, x1=d + delta, 
+                                fillcolor="gray", opacity=0.2, 
+                                layer="below", line_width=0
+                            )
+                            
+                            # AÑADIR LA LÍNEA (El separador)
+                            fig_v.add_vline(
+                                x=d, line_width=0.5, line_dash="dash", 
+                                line_color="#fffb00" if es_lunes else "white", 
+                                opacity=0.5, layer="above"
+                            )
                         
                         idx_vq = 0
                         idx_vp = 0
