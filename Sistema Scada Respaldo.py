@@ -1095,7 +1095,7 @@ if "graficar_pozo" in params:
                         x0=d - delta,
                         x1=d + delta,
                         fillcolor="gray",
-                        opacity=0.2,
+                        opacity=1.0,
                         layer="below",
                         line_width=0
                     )
@@ -1106,6 +1106,7 @@ if "graficar_pozo" in params:
                         line_width=1.5, 
                         line_dash="dash", 
                         line_color="#fffb00" if es_lunes else "white",
+                        opacity=0.2,
                         layer="above"
                     )
 
