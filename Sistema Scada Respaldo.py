@@ -1441,12 +1441,25 @@ if "ver_grafico" in st.query_params:
         ]
 
         # 2. DIBUJO DE LÍNEAS CON SOMBRA
-        delta = pd.Timedelta(hours=4)
+        delta = pd.Timedelta(hours=1)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
-            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.15, layer="below", line_width=0)
-            fig.add_vline(x=d, line_width=1.5, line_dash="dash", 
-                          line_color="#fffb00" if es_lunes else "white", opacity=0.7, layer="above")
+            
+            fig.add_vrect(
+                x0=d - delta,
+                x1=d + delta,
+                fillcolor="gray",
+                opacity=0.2,
+                layer="below",
+                line_width=0)
+            
+            fig.add_vline(
+                x=d,
+                line_width=1.5,
+                line_dash="dash", 
+                line_color="#fffb00" if es_lunes else "white",
+                opacity=0.5,
+                layer="above")
 
         # 3. CONFIGURACIÓN FINAL
         fig.update_layout(
