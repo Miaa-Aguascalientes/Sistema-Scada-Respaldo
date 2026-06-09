@@ -682,16 +682,29 @@ if tag_a_graficar:
 
             dias_intermedios = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
             
-            for dia in dias_intermedios:
-                # Comprobamos si el día es lunes (weekday 0 corresponde a lunes en pandas)
-                es_lunes = dia.weekday() == 0
+            for i in range(len(dias_intermedios) - 1):
+                inicio_dia = dias_intermedios[i]
+                fin_dia = dias_intermedios[i+1]
                 
+                # Sombreamos días alternos para crear el efecto de "bandas"
+                if i % 2 == 0:
+                    fig.add_vrect(
+                        x0=inicio_dia, 
+                        x1=fin_dia, 
+                        fillcolor="white", 
+                        opacity=0.05, # Sombreado muy suave
+                        layer="below", # Debajo de los datos
+                        line_width=0
+                    )
+
+            # --- AGREGAR LÍNEAS VERTICALES (Lunes = Amarillo, Resto = Blanco) ---
+            for dia in dias_intermedios:
+                es_lunes = dia.weekday() == 0
                 fig.add_vline(
                     x=dia, 
-                    line_width=1.5,
+                    line_width=1.5 if es_lunes else 1,
                     line_dash="dot",
-                    # Si es lunes, color amarillo; si no, blanco
-                    line_color="yellow" if es_lunes else "white", 
+                    line_color="yellow" if es_lunes else "gray", 
                     layer="above"
                 )
                 
