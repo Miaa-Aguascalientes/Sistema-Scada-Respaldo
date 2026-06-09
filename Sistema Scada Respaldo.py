@@ -1116,20 +1116,25 @@ if "graficar_pozo" in params:
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
+                    # Mantiene el estado del gráfico al interactuar
+                    uirevision='constant', 
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
                     
-                    # --- CONFIGURACIÓN DEL EJE X ---
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         
-                        rangeslider=dict(visible=True),
+                        # --- RANGESLIDER OPTIMIZADO ---
+                        rangeslider=dict(
+                            visible=True,
+                            thickness=0.07, # Más delgado para menos carga visual
+                            bgcolor="#111"
+                        ),
                         
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
-                        ticklabelmode="instant",
                         
                         showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
@@ -1138,7 +1143,7 @@ if "graficar_pozo" in params:
                         spikethickness=1, 
                         spikedash="dash",
                         spikemode="across",
-                        spikecolor="rgba(255, 255, 255, 0.6)"    
+                        spikecolor="rgba(255, 255, 255, 0.6)"   
                     ),
                 
                     
