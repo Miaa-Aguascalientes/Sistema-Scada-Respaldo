@@ -2382,7 +2382,7 @@ if sector_seleccionado:
                                     # La opacidad se mantiene en 0.15 (15%)
                                     fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
                                     
-                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_pc}<extra></extra>'
+                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
 
                         delta = pd.Timedelta(hours=1)
