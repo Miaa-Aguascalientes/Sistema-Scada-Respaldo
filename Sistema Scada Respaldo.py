@@ -682,29 +682,28 @@ if tag_a_graficar:
 
             dias_intermedios = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
             
-            for i in range(len(dias_intermedios) - 1):
-                inicio_dia = dias_intermedios[i]
-                fin_dia = dias_intermedios[i+1]
-                
-                # Sombreamos días alternos para crear el efecto de "bandas"
-                if i % 2 == 0:
-                    fig.add_vrect(
-                        x0=inicio_dia, 
-                        x1=fin_dia, 
-                        fillcolor="white", 
-                        opacity=0.05, # Sombreado muy suave
-                        layer="below", # Debajo de los datos
-                        line_width=0
-                    )
-
-            # --- AGREGAR LÍNEAS VERTICALES (Lunes = Amarillo, Resto = Blanco) ---
             for dia in dias_intermedios:
                 es_lunes = dia.weekday() == 0
+                
+                # 1. El sombreado gris (la "sombra" detrás de la línea)
+                # Usamos un ancho fijo (delta) para que sea una franja pequeña
+                delta = pd.Timedelta(hours=2) # Ajusta este valor para hacer la sombra más ancha o angosta
+                
+                fig.add_vrect(
+                    x0=dia - delta,
+                    x1=dia + delta,
+                    fillcolor="gray",
+                    opacity=0.2, # Ajusta esta opacidad para que sea más clara o más oscura
+                    layer="below",
+                    line_width=0
+                )
+                
+                # 2. La línea punteada encima
                 fig.add_vline(
                     x=dia, 
-                    line_width=1.5 if es_lunes else 1,
+                    line_width=1.5,
                     line_dash="dot",
-                    line_color="yellow" if es_lunes else "gray", 
+                    line_color="yellow" if es_lunes else "white", 
                     layer="above"
                 )
                 
