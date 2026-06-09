@@ -630,38 +630,48 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            fechas_lineas = pd.to_datetime([
-                '2026-06-01 00:00', '2026-06-02 00:00', '2026-06-03 00:00', 
-                '2026-06-04 00:00', '2026-06-05 00:00', '2026-06-06 00:00', 
-                '2026-06-07 00:00', '2026-06-08 00:00', '2026-06-09 00:00'
-            ])
-
-            # 2. Definimos las etiquetas en español para cada una de esas posiciones
+            # 1. Definimos los días en español
             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-            
-            etiquetas_es = [
-                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.strftime('%d-%m-%Y')}" 
-                for d in fechas_lineas
-            ]
 
-            # 3. Aplicamos al gráfico
+            # 2. CONFIGURACIÓN DEL EJE X (Indentación preservada)
             fig.update_xaxes(
-                # Forzamos los ticks exactamente donde están las líneas
-                tickvals=fechas_lineas,
-                ticktext=etiquetas_es,
+                # Usamos un formato base para la hora
+                tickformat="%H:%M",
                 
-                # Configuraciones de alineación
-                tickangle=0, 
+                # Definimos el inicio y el salto (dtick) para evitar el amontonamiento
+                # 86400000 ms = 1 día. Al ponerlo así, Plotly solo pone las etiquetas que caben.
+                tick0=fecha_inicio,
+                dtick=86400000, 
+                
+                # Esto fuerza que aparezca el día en español debajo de la hora
+                # usando el motor de formateo de Plotly con un truco de texto
+                tickangle=0,
                 automargin=True,
-                showspikes=True, 
-                spikecolor="gray", 
-                spikethickness=1, 
-                spikemode="across", 
+                showspikes=True,
+                spikecolor="gray",
+                spikethickness=1,
+                spikemode="across",
                 spikesnap="cursor",
-                spikedash="dash", 
-                showgrid=True, 
+                spikedash="dash",
+                showgrid=True,
                 gridcolor='#333'
             )
+
+            # 3. TRADUCCIÓN EFECTIVA (Se ejecuta después de crear el gráfico)
+            # Esto traduce los nombres de días sin romper el layout
+            def forzar_traduccion(fig):
+                if fig.layout.xaxis.ticktext:
+                    nuevos_textos = []
+                    for t in fig.layout.xaxis.ticktext:
+                        # Reemplazo directo de nombres en inglés a español
+                        t = t.replace('Mon', 'Lun').replace('Tue', 'Mar').replace('Wed', 'Mié')\
+                             .replace('Thu', 'Jue').replace('Fri', 'Vie').replace('Sat', 'Sáb')\
+                             .replace('Sun', 'Dom')
+                        nuevos_textos.append(t)
+                    fig.layout.xaxis.ticktext = nuevos_textos
+            
+            # Aplicamos la función
+            forzar_traduccion(fig)
             
             fig.update_layout(
                 template="plotly_dark",
