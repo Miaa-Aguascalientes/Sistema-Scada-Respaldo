@@ -629,6 +629,20 @@ if tag_a_graficar:
                 fillcolor='rgba(0, 212, 255, 0.2)', # Efecto desvanecido
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
+
+            # Diccionario para mapeo de días en español
+            dias_es = {
+                'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 
+                'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'
+            }
+
+            def formatear_fecha(dt):
+                # Obtenemos el nombre del día en inglés
+                dia_en = dt.strftime('%a')
+                # Mapeamos al español
+                dia_es = dias_es.get(dia_en, dia_en)
+                # Retornamos el formato completo
+                return f"{dia_es} {dt.strftime('%d-%b %H:%M')}"
             
             tick_freq = '24h' 
             fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
