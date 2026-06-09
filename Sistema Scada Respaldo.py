@@ -1085,16 +1085,16 @@ if "graficar_pozo" in params:
                     for d in ticks_filtrados
                 ]
                 
-                # 2. DIBUJO DE LÍNEAS CON SOMBRA (Bucle con doble traza)
+                # 2. DIBUJO DE LÍNEAS CON EFECTO DE SOMBRA (GLOW)
                 for d in fechas_lineas:
-                    # Primero la sombra (línea gruesa con opacidad)
+                    # Sombra (más ancha y difusa)
                     fig_line.add_vline(
                         x=d, 
-                        line_width=4, 
+                        line_width=6, 
                         line_dash="dash", 
-                        line_color="rgba(255, 255, 255, 0.0)" # Sombra sutil blanca
+                        line_color="rgba(255, 255, 255, 0.1)"
                     )
-                    # Luego la línea principal encima
+                    # Línea principal (definida y nítida)
                     fig_line.add_vline(
                         x=d, 
                         line_width=1.5, 
