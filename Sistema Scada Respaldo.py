@@ -1106,7 +1106,7 @@ if "graficar_pozo" in params:
                         line_width=1.5, 
                         line_dash="dash", 
                         line_color="#fffb00" if es_lunes else "white",
-                        opacity=0.1,
+                        opacity=0.5,
                         layer="above"
                     )
 
