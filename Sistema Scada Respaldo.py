@@ -693,7 +693,7 @@ if tag_a_graficar:
                     x0=dia - delta,
                     x1=dia + delta,
                     fillcolor="gray",
-                    opacity=0.2, # Ajusta esta opacidad para que sea más clara o más oscura
+                    opacity=0.1, # Ajusta esta opacidad para que sea más clara o más oscura
                     layer="below",
                     line_width=0
                 )
