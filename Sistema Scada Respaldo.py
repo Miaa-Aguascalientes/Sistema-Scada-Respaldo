@@ -1095,7 +1095,7 @@ if "graficar_pozo" in params:
                         x0=d - delta,
                         x1=d + delta,
                         fillcolor="gray",
-                        opacity=1.0,
+                        opacity=0.5,
                         layer="below",
                         line_width=0
                     )
