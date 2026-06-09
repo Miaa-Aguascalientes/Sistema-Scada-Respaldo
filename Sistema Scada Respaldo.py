@@ -2429,6 +2429,9 @@ if sector_seleccionado:
                         )
                         
                         st.plotly_chart(fig, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error Scada (Derecha): {e}")
+                        
 
 # 7.11. ------------------------------------------------------------------------- ZONA : VRP ----------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
