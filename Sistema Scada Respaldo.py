@@ -630,23 +630,27 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # 1. Definimos los días en español para asegurar la traducción
-            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+            fechas_lineas = pd.to_datetime([
+                '2026-06-01 00:00', '2026-06-02 00:00', '2026-06-03 00:00', 
+                '2026-06-04 00:00', '2026-06-05 00:00', '2026-06-06 00:00', 
+                '2026-06-07 00:00', '2026-06-08 00:00', '2026-06-09 00:00'
+            ])
 
-            # 2. Generamos los puntos donde queremos marcas (ticks)
-            # Esto mantiene la interactividad del Range Slider
-            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, periods=6)
+            # 2. Definimos las etiquetas en español para cada una de esas posiciones
+            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
             
-            # 3. Construimos los textos finales (Hora <br> Día Español DD-MM-AAAA)
-            etiquetas = [
+            etiquetas_es = [
                 f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.strftime('%d-%m-%Y')}" 
-                for d in fechas_ticks
+                for d in fechas_lineas
             ]
 
-            # 4. Aplicamos al gráfico
+            # 3. Aplicamos al gráfico
             fig.update_xaxes(
-                tickvals=fechas_ticks,
-                ticktext=etiquetas,
+                # Forzamos los ticks exactamente donde están las líneas
+                tickvals=fechas_lineas,
+                ticktext=etiquetas_es,
+                
+                # Configuraciones de alineación
                 tickangle=0, 
                 automargin=True,
                 showspikes=True, 
