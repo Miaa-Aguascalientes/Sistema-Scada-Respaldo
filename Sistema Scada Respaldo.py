@@ -630,22 +630,16 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # 1. Diccionario de traducción (Asegúrate de que esté definido arriba)
-            dias_es = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
-            meses_es = {'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr', 'May': 'May', 'Jun': 'Jun', 
-                        'Jul': 'Jul', 'Aug': 'Ago', 'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'}
-
-            # 2. Configuración del eje X (Sin tickvals fijos para permitir el zoom)
             fig.update_xaxes(
-                tickformatstops=[
-                    dict(dtickrange=[None, 3600000], value="%H:%M"), 
-                    dict(dtickrange=[3600000, 86400000], value="%H:%M<br>%a"), 
-                    dict(dtickrange=[86400000, 604800000], value="%H:%M<br>%a %d-%b-%Y"), 
-                    dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),
-                ],
-                tickformat="%H:%M<br>%a %d-%b-%Y",
+                # Usamos el formato %A para día completo, %d para número, %B para mes
+                # Esto es lo más estándar que Plotly entiende
+                tickformat="%H:%M<br>%A %d de %B de %Y",
+                
+                # Desactivamos el auto-ajuste de Plotly para evitar errores
                 tickangle=0, 
                 automargin=True,
+                
+                # Configuración de las líneas verticales
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
@@ -656,22 +650,23 @@ if tag_a_graficar:
                 gridcolor='#333'
             )
 
-            # 3. EL HACK DEFINITIVO (Esto fuerza el español)
-            # Como Plotly genera los textos, los reemplazamos al vuelo:
-            def traducir_eje_x(fig):
-                # Aplicamos a los ticks del eje X
-                if fig.layout.xaxis.ticktext:
-                    nuevos_textos = []
-                    for t in fig.layout.xaxis.ticktext:
-                        texto_traducido = t
-                        for eng, esp in {**dias_es, **meses_es}.items():
-                            texto_traducido = texto_traducido.replace(eng, esp)
-                        nuevos_textos.append(texto_traducido)
-                    fig.layout.xaxis.ticktext = nuevos_textos
+            # --- CORRECCIÓN FORZADA DE IDIOMA (Post-renderizado) ---
+            # Si al renderizar sigue saliendo en inglés, esto lo fuerza a español
+            # sin importar lo que el motor de Plotly intente hacer.
+            dias_map = {'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
+            meses_map = {'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo', 'April': 'Abril', 'May': 'Mayo', 'June': 'Junio', 'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre', 'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'}
 
-            # Nota: Si usas Streamlit, este paso de traducción debe llamarse
-            # justo antes de mostrar la figura.
-            traducir_eje_x(fig)
+            # Este paso es el que limpia el texto final
+            def aplicar_traduccion(fig):
+                if fig.layout.xaxis.ticktext:
+                    nuevos = []
+                    for t in fig.layout.xaxis.ticktext:
+                        for eng, esp in {**dias_map, **meses_map}.items():
+                            t = t.replace(eng, esp)
+                        nuevos.append(t)
+                    fig.layout.xaxis.ticktext = nuevos
+            
+            aplicar_traduccion(fig)
             
             fig.update_layout(
                 template="plotly_dark",
