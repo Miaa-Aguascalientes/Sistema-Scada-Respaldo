@@ -635,35 +635,25 @@ if tag_a_graficar:
             fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
 
             # 2. Mapeo de días en español
-            dias_es = {
-                'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 
-                'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'
-            }
+            dias_es = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
             
-            # 3. Generamos las etiquetas: "Lun 26-May-2026 00:00"
-            etiquetas_finales = []
+            # Ajustamos la frecuencia según el rango para no amontonar
+            # Si el rango es mayor a 7 días, usamos 24h, sino 6h
+            frecuencia = '24h' if (fecha_fin - fecha_inicio).days > 7 else '6h'
+            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=frecuencia)
+            
+            # 2. Generamos las etiquetas traducidas y con el tiempo
+            etiquetas = []
             for d in fechas_ticks:
-                dia_traducido = dias_es.get(d.strftime('%a'), d.strftime('%a'))
-                # Se añade el año con %Y
-                etiquetas_finales.append(f"{dia_traducido} {d.strftime('%d-%b-%Y %H:%M')}")
+                dia_trad = dias_es.get(d.strftime('%a'), d.strftime('%a'))
+                etiquetas.append(f"{dia_trad} {d.strftime('%d-%b-%Y %H:%M')}")
 
-            # 4. Aplicamos al gráfico
+            # 3. Aplicamos al gráfico
             fig.update_xaxes(
-                # Usamos un número (0 grados) en lugar de 'auto' para evitar el error
-                tickangle=0, 
-                ticklabelmode='period',
-                automargin=True,
-                
-                # Definición de formatos según el zoom/rango
-                tickformatstops=[
-                    dict(dtickrange=[None, 1000], value="%H:%M:%S"),
-                    dict(dtickrange=[1000, 60000], value="%H:%M"),
-                    dict(dtickrange=[60000, 86400000], value="%a %d-%b"),      
-                    dict(dtickrange=[86400000, 604800000], value="%a %d-%b"),  
-                    dict(dtickrange=[604800000, "M1"], value="%b %Y"),         
-                ],
-                
-                # Tus líneas guía
+                tickvals=fechas_ticks,
+                ticktext=etiquetas,
+                tickangle=-45,          # Forzamos inclinación para legibilidad
+                automargin=True,        # ESTO evita que las etiquetas corten el gráfico
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
