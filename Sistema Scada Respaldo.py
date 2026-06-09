@@ -634,20 +634,19 @@ if tag_a_graficar:
 
             # 3. Aplicamos al gráfico
             fig.update_xaxes(
-                # Configuración automática de legibilidad
-                tickangle=0,           # Empieza horizontal, automargin lo ajusta si es necesario
-                automargin=True,       # Evita que las etiquetas corten el gráfico
-                
-                # Formato inteligente según el nivel de zoom
+                # El <br> coloca el tiempo en una línea superior a la fecha
                 tickformatstops=[
                     dict(dtickrange=[None, 3600000], value="%H:%M"),         # Zoom horario
                     dict(dtickrange=[3600000, 86400000], value="%H:%M"),     # Zoom diario
-                    dict(dtickrange=[86400000, 604800000], value="%a %d-%b"),# Zoom semanal
-                    dict(dtickrange=[604800000, "M1"], value="%a %d-%b-%Y"), # Zoom mensual
+                    dict(dtickrange=[86400000, 604800000], value="%H:%M<br>%a %d-%b"),  # Tiempo sobre fecha
+                    dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),   # Tiempo sobre fecha completo
                 ],
                 
-                # Formato por defecto y configuración de líneas guía
-                tickformat="%a %d-%b-%Y %H:%M",
+                # Formato por defecto para el Range Slider y vista general
+                tickformat="%H:%M<br>%a %d-%b-%Y",
+                
+                tickangle=0, 
+                automargin=True,
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
