@@ -683,11 +683,15 @@ if tag_a_graficar:
             dias_intermedios = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
             
             for dia in dias_intermedios:
+                # Comprobamos si el día es lunes (weekday 0 corresponde a lunes en pandas)
+                es_lunes = dia.weekday() == 0
+                
                 fig.add_vline(
                     x=dia, 
-                    line_width=1, 
+                    line_width=1.5,
                     line_dash="dot",
-                    line_color="white", 
+                    # Si es lunes, color amarillo; si no, blanco
+                    line_color="yellow" if es_lunes else "white", 
                     layer="above"
                 )
                 
