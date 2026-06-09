@@ -1450,7 +1450,7 @@ if "ver_grafico" in st.query_params:
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
-        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+        df_diario['FECHA'] = df_diario['FECHA'].dt.strftime('%d %b %Y')
         
         fig_bar = px.bar(df_diario, x='FECHA', y='Consumo', text='Consumo', color_discrete_sequence=['#00FFFF'])
         fig_bar.update_layout(
