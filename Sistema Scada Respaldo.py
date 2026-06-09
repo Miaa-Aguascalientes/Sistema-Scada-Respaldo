@@ -1124,14 +1124,7 @@ if "graficar_pozo" in params:
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
-                        
-                        # --- RANGESLIDER OPTIMIZADO ---
-                        rangeslider=dict(
-                            visible=True,
-                            thickness=0.07, # Más delgado para menos carga visual
-                            bgcolor="#111"
-                        ),
-                        
+                                                
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
