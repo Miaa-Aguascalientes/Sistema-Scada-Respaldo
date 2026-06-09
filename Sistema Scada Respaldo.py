@@ -630,21 +630,22 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # 1. Definimos los días en español
+            # 1. Definimos las fechas de tus líneas y el diccionario de traducción
             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+            
+            # Generamos las posiciones exactas de tus líneas (inicio de cada día)
+            fechas_lineas = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
+            
+            # 2. Construimos etiquetas explícitas: Hora <br> Día Español DD-MM-AAAA
+            etiquetas_finales = [
+                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.strftime('%d-%m-%Y')}"
+                for d in fechas_lineas
+            ]
 
-            # 2. CONFIGURACIÓN DEL EJE X (Indentación preservada)
+            # 3. CONFIGURACIÓN DEL EJE X (Indentación preservada)
             fig.update_xaxes(
-                # Usamos un formato base para la hora
-                tickformat="%H:%M",
-                
-                # Definimos el inicio y el salto (dtick) para evitar el amontonamiento
-                # 86400000 ms = 1 día. Al ponerlo así, Plotly solo pone las etiquetas que caben.
-                tick0=fecha_inicio,
-                dtick=86400000, 
-                
-                # Esto fuerza que aparezca el día en español debajo de la hora
-                # usando el motor de formateo de Plotly con un truco de texto
+                tickvals=fechas_lineas,
+                ticktext=etiquetas_finales,
                 tickangle=0,
                 automargin=True,
                 showspikes=True,
