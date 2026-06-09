@@ -2309,6 +2309,20 @@ if sector_seleccionado:
                     df_h = pd.read_sql(q_hist, engine_h)
                     
                     if not df_h.empty:
+                    
+                        df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
+                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                        fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), 
+                                                      end=df_h['FECHA'].max().ceil('D'), freq='D')
+                        
+                        etiquetas_filtradas = [
+                            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                            for d in fechas_lineas
+                        ]
+                    
                         fig = go.Figure()
                         
                         # Contadores para variar la intensidad
@@ -2361,6 +2375,13 @@ if sector_seleccionado:
                                     
                                     hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_pc}<extra></extra>'
                                 ))
+
+                        delta = pd.Timedelta(hours=1)
+                        for d in fechas_lineas:
+                            es_lunes = (d.dayofweek == 0)
+                            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                            fig.add_vline(x=d, line_width=1.5, line_dash="dash", 
+                                          line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
                         
                         fig.update_layout(
                             paper_bgcolor='rgba(0,0,0,0)', 
@@ -2369,7 +2390,12 @@ if sector_seleccionado:
                             margin=dict(l=50, r=50, t=10, b=10), 
                             hovermode="x unified", 
                             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                            xaxis=dict(color="white", showgrid=False),
+                            xaxis=dict(
+                                color="white", showgrid=False,
+                                tickvals=fechas_lineas,
+                                ticktext=etiquetas_filtradas,
+                                tickangle=0
+                            ),
                             yaxis=dict(title="Caudales (m³/h)", color="#00d4ff", tickformat=".2f"),
                             yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
                         )
