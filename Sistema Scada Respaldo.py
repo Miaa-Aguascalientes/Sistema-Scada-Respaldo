@@ -1426,64 +1426,37 @@ if "ver_grafico" in st.query_params:
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
         
         # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR PARA TODOS)
-                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
-                            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR)
+        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                # Generar líneas a las 00:00 de cada día
-                fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), 
-                                              end=df['FECHA'].max().ceil('D'), freq='D')
-                
-                # Etiquetas para el eje X
-                ticks_filtrados = fechas_lineas
-                etiquetas_filtradas = [
-                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                    for d in ticks_filtrados
-                ]
+        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), 
+                                      end=df['FECHA'].max().ceil('D'), freq='D')
+        
+        ticks_filtrados = fechas_lineas
+        etiquetas_filtradas = [
+            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+            for d in ticks_filtrados
+        ]
 
-                # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
-                delta = pd.Timedelta(hours=4)
-                for d in fechas_lineas:
-                    es_lunes = (d.dayofweek == 0)
-                    
-                    # Sombra gris detrás
-                    fig.add_vrect(
-                        x0=d - delta, x1=d + delta,
-                        fillcolor="gray", opacity=0.15,
-                        layer="below", line_width=0
-                    )
-                    
-                    # Línea punteada nítida
-                    fig.add_vline(
-                        x=d, 
-                        line_width=1.5, 
-                        line_dash="dash", 
-                        line_color="#fffb00" if es_lunes else "white",
-                        opacity=0.7,
-                        layer="above"
-                    )
+        # 2. DIBUJO DE LÍNEAS CON SOMBRA
+        delta = pd.Timedelta(hours=4)
+        for d in fechas_lineas:
+            es_lunes = (d.dayofweek == 0)
+            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.15, layer="below", line_width=0)
+            fig.add_vline(x=d, line_width=1.5, line_dash="dash", 
+                          line_color="#fffb00" if es_lunes else "white", opacity=0.7, layer="above")
 
-                # 3. CONFIGURACIÓN FINAL DEL LAYOUT (Unificada)
-                fig.update_layout(
-                    height=400, 
-                    template="plotly_dark", 
-                    hovermode="x unified",
-                    xaxis=dict(
-                        rangeslider=dict(visible=True, thickness=0.07),
-                        tickvals=ticks_filtrados,
-                        ticktext=etiquetas_filtradas,
-                        tickangle=0,
-                        showline=False
-                    ),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    uirevision='constant'
-                ),
-
-            
-            paper_bgcolor='rgba(0,0,0,0)', 
-            plot_bgcolor='rgba(0,0,0,0)')
+        # 3. CONFIGURACIÓN FINAL
+        fig.update_layout(
+            height=400, template="plotly_dark", hovermode="x unified",
+            xaxis=dict(rangeslider=dict(visible=True, thickness=0.07),
+                       tickvals=ticks_filtrados, ticktext=etiquetas_filtradas,
+                       tickangle=0, showline=False),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', uirevision='constant'
+        )
         
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
