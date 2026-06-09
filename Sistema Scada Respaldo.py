@@ -630,7 +630,7 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
             
-            tick_freq = '24H' 
+            tick_freq = '24h' 
             fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
 
             # Formato: Día de la semana (abreviado), día, mes y hora
