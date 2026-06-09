@@ -1362,33 +1362,48 @@ if "ver_grafico" in st.query_params:
                 st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
                         
         # 3--. Gráfico de Flujo y Presión (una sola vez)
+        # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        fig.add_trace(go.Scatter(
-            x=df['FECHA'], y=df['Flujo'],
-            name="Caudal (Lps)",
-            mode='lines+markers',
-            marker=dict(size=4),
-            line=dict(color='#00FFFF', width=2),
-            fill='tozeroy',
-            fillcolor='rgba(0, 255, 255, 0.2)',
-            hovertemplate="%{y:.2f} Lps<extra></extra>"
-        ), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", 
+                                 line=dict(color='#00FFFF', width=2), fill='tozeroy', 
+                                 fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         
-        fig.add_trace(go.Scatter(
-            x=df['FECHA'], y=df['Presion'],
-            name="Presión (Kg/cm²)",
-            mode='lines+markers',
-            marker=dict(size=4),
-            line=dict(color='#00FF00', width=2),
-            hovertemplate="%{y:.2f} Kg/cm²<extra></extra>"
-        ), secondary_y=True)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", 
+                                 line=dict(color='#00FF00', width=2)), secondary_y=True)
+
+        # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR)
+        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), 
+                                      end=df['FECHA'].max().ceil('D'), freq='D')
         
+        ticks_filtrados = fechas_lineas
+        etiquetas_filtradas = [
+            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+            for d in ticks_filtrados
+        ]
+
+        # 2. DIBUJO DE LÍNEAS CON SOMBRA
+        delta = pd.Timedelta(hours=1)
+        for d in fechas_lineas:
+            es_lunes = (d.dayofweek == 0)
+            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.15, layer="below", line_width=0)
+            fig.add_vline(x=d, line_width=1.5, line_dash="dash", 
+                          line_color="#fffb00" if es_lunes else "white", opacity=0.7, layer="above")
+
+        # 3. CONFIGURACIÓN FINAL
         fig.update_layout(
             height=400, template="plotly_dark", hovermode="x unified",
+            xaxis=dict(rangeslider=dict(visible=True, thickness=0.07),
+                       tickvals=ticks_filtrados, ticktext=etiquetas_filtradas,
+                       tickangle=0, showline=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', uirevision='constant'
         )
+        
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
@@ -1424,59 +1439,7 @@ if "ver_grafico" in st.query_params:
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
         fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
-        
-        # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR PARA TODOS)
-                # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR)
-        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
-                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'),end=df['FECHA'].max().ceil('D'), freq='D')
-                                      
-        num_dias = len(fechas_lineas)                              
-        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-        ticks_filtrados = fechas_lineas[::paso]
-        
-        
-        etiquetas_filtradas = [
-            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-            for d in ticks_filtrados
-        ]
-
-        # 2. DIBUJO DE LÍNEAS CON SOMBRA
-        delta = pd.Timedelta(hours=1)
-        for d in fechas_lineas:
-            es_lunes = (d.dayofweek == 0)
-            
-            fig.add_vrect(
-                x0=d - delta,
-                x1=d + delta,
-                fillcolor="gray",
-                opacity=0.2,
-                layer="below",
-                line_width=0)
-            
-            fig.add_vline(
-                x=d,
-                line_width=1.5,
-                line_dash="dash", 
-                line_color="#fffb00" if es_lunes else "white",
-                opacity=0.5,
-                layer="above")
-
-        # 3. CONFIGURACIÓN FINAL
-        fig.update_layout(
-            height=400,
-            template="plotly_dark",
-            hovermode="x unified",
-            
-            xaxis=dict(
-                rangeslider=dict(visible=True, thickness=0.07),
-                       tickvals=ticks_filtrados, ticktext=etiquetas_filtradas,
-                       tickangle=0, showline=False),
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', uirevision='constant'
-        )
-        
+                
         fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
