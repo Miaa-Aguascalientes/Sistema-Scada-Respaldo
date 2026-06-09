@@ -649,8 +649,8 @@ if tag_a_graficar:
 
             # 4. Aplicamos al gráfico
             fig.update_xaxes(
-                # Propiedades para manejo automático de etiquetas
-                tickangle='auto',
+                # Usamos un número (0 grados) en lugar de 'auto' para evitar el error
+                tickangle=0, 
                 ticklabelmode='period',
                 automargin=True,
                 
@@ -658,12 +658,12 @@ if tag_a_graficar:
                 tickformatstops=[
                     dict(dtickrange=[None, 1000], value="%H:%M:%S"),
                     dict(dtickrange=[1000, 60000], value="%H:%M"),
-                    dict(dtickrange=[60000, 86400000], value="%a %e-%b"),      # Días (ej: Lun 26-May)
-                    dict(dtickrange=[86400000, 604800000], value="%a %e-%b"),  # Rango semanal
-                    dict(dtickrange=[604800000, "M1"], value="%b %Y"),         # Meses
+                    dict(dtickrange=[60000, 86400000], value="%a %d-%b"),      
+                    dict(dtickrange=[86400000, 604800000], value="%a %d-%b"),  
+                    dict(dtickrange=[604800000, "M1"], value="%b %Y"),         
                 ],
                 
-                # Mantener tus configuraciones de líneas guía (spikes)
+                # Tus líneas guía
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
