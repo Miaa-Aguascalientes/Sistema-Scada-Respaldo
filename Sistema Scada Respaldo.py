@@ -2308,21 +2308,28 @@ if sector_seleccionado:
                     q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
                     df_h = pd.read_sql(q_hist, engine_h)
                     
-                    if not df_h.empty:
+                    df_h = pd.read_sql(q_hist, engine_h)
                     
+                    if not df_h.empty:
+                        # --- INICIO DE LA LÓGICA DE FECHAS (Indentación ajustada) ---
                         df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                         dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                         meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
                                     7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
+                        # Rango para las líneas divisorias
                         fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), 
                                                       end=df_h['FECHA'].max().ceil('D'), freq='D')
-                        paso = 3 
-                        ticks_visualizar = fechas_lineas[::paso]
                         
+                        # Cálculo del paso para evitar amontonamiento
+                        num_dias = len(fechas_lineas)
+                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                        ticks_filtrados = fechas_lineas[::paso]
+
+                        # Creación de etiquetas en español
                         etiquetas_filtradas = [
-                            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                            for d in fechas_lineas
+                            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                            for d in ticks_filtrados
                         ]
                     
                         fig = go.Figure()
@@ -2391,19 +2398,37 @@ if sector_seleccionado:
                             height=350, 
                             margin=dict(l=50, r=50, t=10, b=10), 
                             hovermode="x unified", 
-                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                            legend=dict(
+                                orientation="h", 
+                                yanchor="bottom", 
+                                y=1.05, 
+                                x=0.5, 
+                                xanchor="center", 
+                                font=dict(color="white", size=10)
+                            ),
                             xaxis=dict(
-                                color="white", showgrid=False,
-                                tickvals=ticks_visualizar,
-                                ticktext=etiquetas_filtradas,
+                                color="white", 
+                                showgrid=False,
+                                tickvals=ticks_filtrados,      # <--- Tu lista filtrada
+                                ticktext=etiquetas_filtradas,  # <--- Tus etiquetas con fecha/hora
                                 tickangle=0
                             ),
-                            yaxis=dict(title="Caudales (m³/h)", color="#00d4ff", tickformat=".2f"),
-                            yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
+                            yaxis=dict(
+                                title="Caudales (m³/h)", 
+                                color="#00d4ff", 
+                                tickformat=".2f"
+                            ),
+                            yaxis2=dict(
+                                title="Presiones (kg)", 
+                                side="right", 
+                                overlaying="y", 
+                                color="#00ff00", 
+                                showgrid=False, 
+                                tickformat=".2f"
+                            )
                         )
+                        
                         st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error Scada (Derecha): {e}")
 
 # 7.11. ------------------------------------------------------------------------- ZONA : VRP ----------------------------------------------
         col_vrp, col_pc = st.columns([1.0, 1.0])
