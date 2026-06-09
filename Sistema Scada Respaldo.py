@@ -630,23 +630,7 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # 1. Generamos las fechas
-            tick_freq = '24h'  
-            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
-
-            # 2. Mapeo de días en español
-            dias_es = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
-            
-            # Ajustamos la frecuencia según el rango para no amontonar
-            # Si el rango es mayor a 7 días, usamos 24h, sino 6h
-            frecuencia = '24h' if (fecha_fin - fecha_inicio).days > 7 else '6h'
-            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=frecuencia)
-            
-            # 2. Generamos las etiquetas traducidas y con el tiempo
-            etiquetas = []
-            for d in fechas_ticks:
-                dia_trad = dias_es.get(d.strftime('%a'), d.strftime('%a'))
-                etiquetas.append(f"{dia_trad} {d.strftime('%d-%b-%Y %H:%M')}")
+    
 
             # 3. Aplicamos al gráfico
             fig.update_xaxes(
