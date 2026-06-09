@@ -1069,7 +1069,23 @@ if "graficar_pozo" in params:
                             )
                         )
                     )
-                
+
+                # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (BLOQUE DE APOYO)
+                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
+                num_dias = len(fechas_lineas)
+                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                ticks_filtrados = fechas_lineas[::paso]
+
+                etiquetas_filtradas = [
+                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    for d in ticks_filtrados
+                ]
+
+                # 2. CONFIGURACIÓN FINAL CON LA INDENTACIÓN SOLICITADA
                 fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
@@ -1083,7 +1099,13 @@ if "graficar_pozo" in params:
                     xaxis=dict(
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
-                        showline=False,       # Sin recuadros externos
+                        
+                        # Inyección de los días en español y filtrado para no amontonar
+                        tickvals=ticks_filtrados,
+                        ticktext=etiquetas_filtradas,
+                        tickangle=0,
+                        
+                        showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
                         autorange=True,
                         showspikes=True,
