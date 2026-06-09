@@ -2469,6 +2469,23 @@ if sector_seleccionado:
                     
                     if not df_v.empty:
                         st.markdown(f"<h3 style='color:#00ffcc; font-size:20px; margin-bottom:10px; text-align: center;'>Análisis Integral de VRPs del Sector</h3>", unsafe_allow_html=True)
+
+                        # --- 1. LÓGICA DE FECHAS (Estandarizada) ---
+                        df_v['FECHA'] = pd.to_datetime(df_v['FECHA'])
+                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                        
+                        fechas_lineas = pd.date_range(start=df_v['FECHA'].min().floor('D'), 
+                                                      end=df_v['FECHA'].max().ceil('D'), freq='D')
+                        num_dias = len(fechas_lineas)
+                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                        ticks_filtrados = fechas_lineas[::paso]
+                        etiquetas_filtradas = [
+                            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                            for d in ticks_filtrados
+                        ]
+                        
                         fig_v = go.Figure()
                         
                         idx_vq = 0
@@ -2512,6 +2529,11 @@ if sector_seleccionado:
                                     hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_final}<extra></extra>'
                                 ))
 
+                        for d in fechas_lineas:
+                            es_lunes = (d.dayofweek == 0)
+                            fig_v.add_vline(x=d, line_width=1.5, line_dash="dash", 
+                                          line_color="#fffb00" if es_lunes else "white", opacity=0.3)
+                                          
                         fig_v.update_layout(
                             paper_bgcolor='rgba(0,0,0,0)', 
                             plot_bgcolor='rgba(0,0,0,0)', 
@@ -2524,7 +2546,14 @@ if sector_seleccionado:
                             y=1.05,
                             x=0.5,
                             xanchor="center", font=dict(color="white", size=9)),
-                            xaxis=dict(color="white", showgrid=False),
+                            xaxis=dict(color="white", 
+                                showgrid=False,
+                                tickvals=ticks_filtrados,
+                                ticktext=etiquetas_filtradas,
+                                tickangle=0,
+                                tickformat="%d-%b-%Y %H:%M" # Encabezado del hover en orden
+                            ),
+                            
                             yaxis=dict(title="Caudal (Lps)", color="#00d4ff", tickformat=".2f"),
                             yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
                         )
