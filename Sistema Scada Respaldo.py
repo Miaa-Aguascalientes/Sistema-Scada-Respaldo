@@ -1361,16 +1361,29 @@ if "ver_grafico" in st.query_params:
             with col_m3:
                 st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
                         
-        # 3--. Gráfico de Flujo y Presión (una sola vez)
         # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
         
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", 
-                                 line=dict(color='#00FFFF', width=2), fill='tozeroy', 
-                                 fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(
+            x=df['FECHA'], y=df['Flujo'],
+            name="Caudal (Lps)",
+            mode='lines+markers',                # <--- MODO LÍNEAS Y PUNTOS
+            marker=dict(size=5),                 # Tamaño de los puntos
+            line=dict(color='#00FFFF', width=2),
+            fill='tozeroy',
+            fillcolor='rgba(0, 255, 255, 0.2)',
+            hovertemplate="%{y:.2f} Lps<extra></extra>"
+        ), secondary_y=False)
         
-        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", 
-                                 line=dict(color='#00FF00', width=2)), secondary_y=True)
+        # Presión: líneas + puntos
+        fig.add_trace(go.Scatter(
+            x=df['FECHA'], y=df['Presion'],
+            name="Presión (Kg/cm²)",
+            mode='lines+markers',                # <--- MODO LÍNEAS Y PUNTOS
+            marker=dict(size=5),                 # Tamaño de los puntos
+            line=dict(color='#00FF00', width=2),
+            hovertemplate="%{y:.2f} Kg/cm²<extra></extra>"
+        ), secondary_y=True)
 
         # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR)
         dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -1415,7 +1428,7 @@ if "ver_grafico" in st.query_params:
             hovermode="x unified",
             xaxis=dict(
                 rangeslider=dict(visible=True,
-                thickness=0.15),
+                thickness=0.10),
                 tickvals=ticks_filtrados,
                 ticktext=etiquetas_filtradas,
                 tickangle=0, showline=False),
