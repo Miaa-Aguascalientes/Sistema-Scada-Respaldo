@@ -649,9 +649,21 @@ if tag_a_graficar:
 
             # 4. Aplicamos al gráfico
             fig.update_xaxes(
-                tickvals=fechas_ticks,
-                ticktext=etiquetas_finales,
-                tickangle=-45,
+                # Propiedades para manejo automático de etiquetas
+                tickangle='auto',
+                ticklabelmode='period',
+                automargin=True,
+                
+                # Definición de formatos según el zoom/rango
+                tickformatstops=[
+                    dict(dtickrange=[None, 1000], value="%H:%M:%S"),
+                    dict(dtickrange=[1000, 60000], value="%H:%M"),
+                    dict(dtickrange=[60000, 86400000], value="%a %e-%b"),      # Días (ej: Lun 26-May)
+                    dict(dtickrange=[86400000, 604800000], value="%a %e-%b"),  # Rango semanal
+                    dict(dtickrange=[604800000, "M1"], value="%b %Y"),         # Meses
+                ],
+                
+                # Mantener tus configuraciones de líneas guía (spikes)
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
