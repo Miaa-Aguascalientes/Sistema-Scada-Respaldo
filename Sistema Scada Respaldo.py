@@ -723,7 +723,8 @@ if tag_a_graficar:
                     x=dia, 
                     line_width=1.5,
                     line_dash="dash",
-                    line_color="yellow" if es_lunes else "white", 
+                    line_color="yellow" if es_lunes else "white",
+                    opacity=0.5,
                     layer="above"
                 )
                 
