@@ -1112,7 +1112,7 @@ if "graficar_pozo" in params:
                 # 3. CONFIGURACIÓN DEL EJE X
                 fig_line.update_layout(
                     template="plotly_dark", 
-                    height=600, 
+                    height=580, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
                     
