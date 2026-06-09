@@ -2589,7 +2589,7 @@ if sector_seleccionado:
                             fig_pc = go.Figure()
                             
                             # --- 2. DIBUJO DE SOMBRAS Y LÍNEAS (Separador de días) ---
-                            delta = pd.Timedelta(hours=12)
+                            delta = pd.Timedelta(hours=1)
                             for d in fechas_lineas:
                                 es_lunes = (d.dayofweek == 0)
                                 fig_pc.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
