@@ -632,22 +632,29 @@ if tag_a_graficar:
 
             # 1. Definimos las fechas de tus líneas y el diccionario de traducción
             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
-                        7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-            
-            # Generamos las posiciones exactas de tus líneas (inicio de cada día)
             fechas_lineas = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
+
+            # 2. Lógica de filtrado dinámico para evitar amontonamiento
+            # Si seleccionas muchos días, mostramos solo una etiqueta cada X días
+            num_dias = len(fechas_lineas)
+            if num_dias > 15:
+                paso = 2 if num_dias <= 30 else 5  # Muestra cada 2 días o cada 5
+            else:
+                paso = 1
             
-            # 2. Construimos etiquetas explícitas: Hora <br> Día Español DD-MM-AAAA
-            etiquetas_finales = [
-                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.strftime('%d-%b-%Y')}"
-                for d in fechas_lineas
+            # Aplicamos el filtro al rango
+            ticks_filtrados = fechas_lineas[::paso]
+
+            # 3. Construimos etiquetas solo para los ticks filtrados
+            etiquetas_filtradas = [
+                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                for d in ticks_filtrados
             ]
 
-            # 3. CONFIGURACIÓN DEL EJE X (Indentación preservada)
+            # 4. CONFIGURACIÓN DEL EJE X
             fig.update_xaxes(
-                tickvals=fechas_lineas,
-                ticktext=etiquetas_finales,
+                tickvals=ticks_filtrados,
+                ticktext=etiquetas_filtradas,
                 tickangle=0,
                 automargin=True,
                 showspikes=True,
