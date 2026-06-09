@@ -653,7 +653,7 @@ if tag_a_graficar:
             # --- CORRECCIÓN FORZADA DE IDIOMA (Post-renderizado) ---
             # Si al renderizar sigue saliendo en inglés, esto lo fuerza a español
             # sin importar lo que el motor de Plotly intente hacer.
-            dias_map = {'Monday': 'Lunes', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
+            dias_map = {'Lunes': 'Monday', 'Tuesday': 'Martes', 'Wednesday': 'Miércoles', 'Thursday': 'Jueves', 'Friday': 'Viernes', 'Saturday': 'Sábado', 'Sunday': 'Domingo'}
             meses_map = {'January': 'Enero', 'February': 'Febrero', 'March': 'Marzo', 'April': 'Abril', 'May': 'Mayo', 'June': 'Junio', 'July': 'Julio', 'August': 'Agosto', 'September': 'Septiembre', 'October': 'Octubre', 'November': 'Noviembre', 'December': 'Diciembre'}
 
             # Este paso es el que limpia el texto final
