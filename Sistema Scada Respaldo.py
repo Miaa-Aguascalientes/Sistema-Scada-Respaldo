@@ -687,7 +687,7 @@ if tag_a_graficar:
                 
                 # 1. El sombreado gris (la "sombra" detrás de la línea)
                 # Usamos un ancho fijo (delta) para que sea una franja pequeña
-                delta = pd.Timedelta(hours=2) # Ajusta este valor para hacer la sombra más ancha o angosta
+                delta = pd.Timedelta(hours=1) # Ajusta este valor para hacer la sombra más ancha o angosta
                 
                 fig.add_vrect(
                     x0=dia - delta,
@@ -702,7 +702,7 @@ if tag_a_graficar:
                 fig.add_vline(
                     x=dia, 
                     line_width=1.5,
-                    line_dash="dot",
+                    line_dash="dash",
                     line_color="yellow" if es_lunes else "white", 
                     layer="above"
                 )
