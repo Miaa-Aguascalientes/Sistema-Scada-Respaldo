@@ -1084,25 +1084,8 @@ if "graficar_pozo" in params:
                     f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
                     for d in ticks_filtrados
                 ]
-                
-                # 2. DIBUJO DE LÍNEAS CON EFECTO DE SOMBRA (GLOW)
-                for d in fechas_lineas:
-                    # Sombra (más ancha y difusa)
-                    fig_line.add_vline(
-                        x=d, 
-                        line_width=6, 
-                        line_dash="dash", 
-                        line_color="rgba(255, 255, 255, 0.1)"
-                    )
-                    # Línea principal (definida y nítida)
-                    fig_line.add_vline(
-                        x=d, 
-                        line_width=1.5, 
-                        line_dash="dash", 
-                        line_color="#fffb00" if d.dayofweek == 0 else "gray"
-                    )
 
-                # 3. CONFIGURACIÓN DEL EJE X (Con tu indentación exacta)
+                # 2. CONFIGURACIÓN DEL EJE X CON EFECTO DE LÍNEA (SIN ADD_VLINE)
                 fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
@@ -1117,12 +1100,16 @@ if "graficar_pozo" in params:
                         title=dict(text="<b>Línea de Tiempo</b>"),
                         domain=[0.07, 0.91],
                         
-                        # Fechas y etiquetas
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
                         
-                        showline=False,       # Sin recuadros externos
+                        # --- ESTO GENERA LA LÍNEA CON SU SOMBRA AUTOMÁTICA ---
+                        showgrid=True,
+                        gridcolor='rgba(255, 255, 255, 0.15)', # Color base de la sombra
+                        gridwidth=2,                            # Ancho de la sombra
+                        
+                        showline=False,
                         range=[df['FECHA'].min(), df['FECHA'].max()],
                         autorange=True,
                         showspikes=True,
@@ -1130,7 +1117,8 @@ if "graficar_pozo" in params:
                         spikedash="dash",
                         spikemode="across",
                         spikecolor="rgba(255, 255, 255, 0.6)"          
-                    ),
+                    )
+                )
                     
                     # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
                     yaxis5=dict(
