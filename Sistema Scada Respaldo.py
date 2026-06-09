@@ -2416,7 +2416,7 @@ if sector_seleccionado:
                             yaxis=dict(
                                 title="Caudales (m³/h)", 
                                 color="#00d4ff", 
-                                tickformat=".2f"
+                                tickformat=""
                             ),
                             yaxis2=dict(
                                 title="Presiones (kg)", 
@@ -2424,7 +2424,7 @@ if sector_seleccionado:
                                 overlaying="y", 
                                 color="#00ff00", 
                                 showgrid=False, 
-                                tickformat=".2f"
+                                tickformat=""
                             )
                         )
                         
