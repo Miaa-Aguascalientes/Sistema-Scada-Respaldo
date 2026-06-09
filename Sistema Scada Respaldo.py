@@ -630,19 +630,13 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
-            # 1. Definimos el diccionario de traducción al inicio
+            # 1. Diccionario de traducción exacto
             dias_es = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
-            meses_es = {'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr', 'May': 'May', 'Jun': 'Jun', 
-                        'Jul': 'Jul', 'Aug': 'Ago', 'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'}
 
             # 2. Aplicamos al gráfico
             fig.update_xaxes(
-                tickformatstops=[
-                    dict(dtickrange=[None, 3600000], value="%H:%M"), 
-                    dict(dtickrange=[3600000, 86400000], value="%H:%M<br>%a"), 
-                    dict(dtickrange=[86400000, 604800000], value="%H:%M<br>%a %d-%b-%Y"), 
-                    dict(dtickrange=[604800000, "M1"], value="%H:%M<br>%a %d-%b-%Y"),
-                ],
+                # Usamos el formato %a (día) y %d-%b-%Y (fecha)
+                # Plotly generará "Mon 09-Jun-2026"
                 tickformat="%H:%M<br>%a %d-%b-%Y",
                 tickangle=0, 
                 automargin=True,
@@ -656,23 +650,16 @@ if tag_a_graficar:
                 gridcolor='#333'
             )
 
-            # 3. TRADUCCIÓN FORZADA (El "hack" necesario para Plotly)
-            # Esto intercepta las etiquetas generadas y las traduce ANTES de mostrarse
-            def traducir_etiquetas(fig):
-                for xaxis in fig.layout:
-                    if xaxis.startswith('xaxis'):
-                        # Obtenemos los textos actuales
-                        textos = fig.layout[xaxis].ticktext
-                        if textos:
-                            nuevos_textos = []
-                            for t in textos:
-                                for eng, esp in {**dias_es, **meses_es}.items():
-                                    t = t.replace(eng, esp)
-                                nuevos_textos.append(t)
-                            fig.layout[xaxis].ticktext = nuevos_textos
-            
-            # Aplicamos la función
-            traducir_etiquetas(fig)
+            # 3. EL HACK DE TRADUCCIÓN: 
+            # Esto se ejecuta después de que Plotly crea el eje y reemplaza los textos
+            fig.for_each_xaxis(lambda axis: axis.update(
+                ticktext=[
+                    # Reemplazamos los días usando el diccionario
+                    # La estructura es: el día (3 letras) + el resto de la fecha
+                    " ".join([dias_es.get(part, part) if part in dias_es else part for part in t.split(" ")])
+                    for t in (axis.ticktext or [])
+                ]
+            ))
             
             fig.update_layout(
                 template="plotly_dark",
