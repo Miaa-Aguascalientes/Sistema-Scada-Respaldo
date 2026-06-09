@@ -658,7 +658,18 @@ if tag_a_graficar:
                     font_size=12
                 )
             )
+
+            dias_intermedios = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
             
+            for dia in dias_intermedios:
+                fig.add_vline(
+                    x=dia, 
+                    line_width=1, 
+                    line_dash="solid", 
+                    line_color="white", 
+                    opacity=0.3  # Ajusta la opacidad si la prefieres más tenue
+                )
+                
             st.plotly_chart(fig, use_container_width=True)
             
             with st.expander("Ver tabla de datos detallada"):
