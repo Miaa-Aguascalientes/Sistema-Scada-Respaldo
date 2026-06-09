@@ -1085,7 +1085,16 @@ if "graficar_pozo" in params:
                     for d in ticks_filtrados
                 ]
 
-                # 2. CONFIGURACIÓN FINAL CON LA INDENTACIÓN SOLICITADA
+                # 2. DIBUJO DE LÍNEAS (Amarillo para Lunes, gris punteado para los demás)
+                for d in fechas_lineas:
+                    fig_line.add_vline(
+                        x=d, 
+                        line_width=1.5, 
+                        line_dash="dash", 
+                        line_color="#fffb00" if d.dayofweek == 0 else "gray"
+                    )
+
+                # 3. CONFIGURACIÓN DEL EJE X (Con tu indentación exacta)
                 fig_line.update_layout(
                     template="plotly_dark", 
                     height=650, 
@@ -1105,16 +1114,11 @@ if "graficar_pozo" in params:
                         ticktext=etiquetas_filtradas,
                         tickangle=0,
                         
-                        # --- ESTO HACE QUE APAREZCAN LAS LÍNEAS ---
-                        showgrid=True,           # Forzar cuadrícula
-                        gridcolor='#333',        # Color de las líneas
-                        gridwidth=1,
-                        
-                        showline=False,
+                        showline=False,       # Sin recuadros externos
                         range=[df['FECHA'].min(), df['FECHA'].max()],
                         autorange=True,
                         showspikes=True,
-                        spikethickness=1,        # Aumentamos grosor para que se vea
+                        spikethickness=1, 
                         spikedash="dash",
                         spikemode="across",
                         spikecolor="rgba(255, 255, 255, 0.6)"          
