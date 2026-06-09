@@ -630,15 +630,23 @@ if tag_a_graficar:
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
             
-            # 4.5. CONFIGURACIÓN DE LA LÍNEA GUÍA (PUNTEADA GRIS)
+            tick_freq = '6H' 
+            fechas_ticks = pd.date_range(start=fecha_inicio, end=fecha_fin, freq=tick_freq)
+
+            # Formato: Día de la semana (abreviado), día, mes y hora
+            # Ejemplo: "Lun 16-May 00:00"
             fig.update_xaxes(
+                tickvals=fechas_ticks,
+                ticktext=[d.strftime('%a %d-%b %H:%M') for d in fechas_ticks],
+                tickangle=-45, # Ángulo para que no se encimen los textos
                 showspikes=True, 
                 spikecolor="gray", 
                 spikethickness=1, 
                 spikemode="across", 
                 spikesnap="cursor",
                 spikedash="dash", 
-                showgrid=False
+                showgrid=True, # Activamos grid para ver la división clara
+                gridcolor='#333'
             )
             
             fig.update_layout(
