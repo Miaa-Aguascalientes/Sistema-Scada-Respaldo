@@ -631,7 +631,10 @@ if tag_a_graficar:
             ))
 
     
-
+            try:
+                locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8') # O 'es_ES.UTF-8'
+            except:
+                pass
             # 3. Aplicamos al gráfico
             fig.update_xaxes(
                 # El <br> coloca el tiempo en una línea superior a la fecha
