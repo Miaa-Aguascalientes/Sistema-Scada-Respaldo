@@ -1415,7 +1415,7 @@ if "ver_grafico" in st.query_params:
             hovermode="x unified",
             xaxis=dict(
                 rangeslider=dict(visible=True,
-                thickness=0.10),
+                thickness=0.30),
                 tickvals=ticks_filtrados,
                 ticktext=etiquetas_filtradas,
                 tickangle=0, showline=False),
