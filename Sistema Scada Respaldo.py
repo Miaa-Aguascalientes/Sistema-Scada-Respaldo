@@ -1443,7 +1443,7 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
         
-        # 4. Gráfico de Barras (Consumo)
+        # 4. Gráfico de Barras (Consumo) --------------------------------------------------------------------------------------------------------------------
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
@@ -1486,11 +1486,11 @@ if "ver_grafico" in st.query_params:
         rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
         df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
         df_diario.columns = ['FECHA', 'Consumo']
-        df_diario['FECHA_STR'] = df_diario['FECHA'].dt.strftime('%b %d')
+        df_diario['FECHA'] = df_diario['FECHA'].dt.strftime('%b %d')
 
         fig_bar = px.bar(
             df_diario, 
-            x='FECHA_STR', 
+            x='FECHA', 
             y='Consumo', 
             text='Consumo', 
             color_discrete_sequence=['#00FFFF'],
