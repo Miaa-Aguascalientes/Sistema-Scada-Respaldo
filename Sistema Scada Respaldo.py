@@ -2972,7 +2972,14 @@ def get_sector_style(feature, visible):
         'fillOpacity': 0.12 if visible else 0.01,
     }
 
-sectores_data = cargar_sectores_poligonos()
+# --- MANEJO SEGURO DE LA CARGA DE DATOS ---
+sectores_data = None
+try:
+    # Intentamos obtener los datos. Si falla aquí, no rompe el flujo.
+    sectores_data = cargar_sectores_poligonos()
+except Exception as e:
+    st.error("⚠️ No se pudieron cargar los sectores hidráulicos (Error de conexión a BD).")
+    sectores_data = None
 
 if sectores_data:
     fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
@@ -3000,15 +3007,16 @@ if sectores_data:
                    style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
                           text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
                           border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
+                    🚀 ABRIR SECTOR
                 </a>
             </div>
             """
+            
             estilo = {
                 'fillColor': '#00d4ff',
                 'color': '#00d4ff' if ver_sectores else 'transparent',
                 'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
+                'fillOpacity': 0.12 if ver_sectores else 0.0001
             }
 
             folium.GeoJson(
@@ -3028,6 +3036,9 @@ if sectores_data:
             continue
 
     fg_sectores.add_to(m)
+else:
+    # Si la lista está vacía o hubo error, omitimos los polígonos pero dejamos el mapa vivo
+    pass
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
