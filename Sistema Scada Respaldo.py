@@ -1000,7 +1000,8 @@ if "graficar_pozo" in params:
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
 
-
+                    if len(dft_l) <= 2:
+                        continue
                     
                     if dft_l.empty:
                         fecha_limite = f_ini - timedelta(days=30)
