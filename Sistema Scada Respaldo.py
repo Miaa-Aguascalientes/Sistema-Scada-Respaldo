@@ -2896,11 +2896,12 @@ st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 col_mapa, col_capas = st.columns([0.94, 0.06])
 
 with col_mapa:
-    m = folium.Map(
-        location=st.session_state.centro_mapa, 
-        zoom_start=st.session_state.zoom_inicial, 
-        
-    )
+    # 1. CREACIÓN BLINDADA DEL MAPA
+    try:
+        m = folium.Map(
+            location=st.session_state.get('centro_mapa', [21.8818, -102.2912]), 
+            zoom_start=st.session_state.get('zoom_inicial', 12)
+        )
 
     folium.TileLayer(
         tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
@@ -3035,10 +3036,9 @@ if sectores_data:
         except Exception:
             continue
 
-    fg_sectores.add_to(m)
-else:
-    # Si la lista está vacía o hubo error, omitimos los polígonos pero dejamos el mapa vivo
-    pass
+    st_folium(m, use_container_width=True, height=600)
+    else:
+        st.write("El mapa no pudo ser cargado.")
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
