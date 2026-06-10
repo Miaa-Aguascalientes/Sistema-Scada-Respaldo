@@ -768,7 +768,7 @@ if "graficar_pozo" in params:
     with col_f1:
         opcion_fecha = st.selectbox(
             "Rango de tiempo:", 
-            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"], 
+            ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"], 
             index=3, 
             key="fecha_pozo_v8"
         )
@@ -792,6 +792,8 @@ if "graficar_pozo" in params:
     elif opcion_fecha == "Último Mes":
         f_ini = (hoy_dt.replace(day=1) - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         f_fin = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(seconds=1)
+    elif opcion_fecha == "Últimos 3 meses":
+        f_ini = (medianoche - timedelta(days=90))    
     elif opcion_fecha == "Últimos 6 meses":
         f_ini = (medianoche - timedelta(days=180))
     elif opcion_fecha == "Personalizado":
