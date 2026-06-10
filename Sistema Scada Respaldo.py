@@ -1196,7 +1196,8 @@ if "graficar_pozo" in params:
                         position=1.00,
                         showline=True,        # Línea activa: Divide Niveles Pozo de Eléctricos
                         linecolor='white',
-                        linewidth=1.5
+                        linewidth=1.5,
+                        rangemode="tozero"
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
