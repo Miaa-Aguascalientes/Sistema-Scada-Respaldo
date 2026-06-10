@@ -2896,12 +2896,11 @@ st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 col_mapa, col_capas = st.columns([0.94, 0.06])
 
 with col_mapa:
-    # 1. CREACIÓN BLINDADA DEL MAPA
-    try:
-        m = folium.Map(
-            location=st.session_state.get('centro_mapa', [21.8818, -102.2912]), 
-            zoom_start=st.session_state.get('zoom_inicial', 12)
-        )
+    m = folium.Map(
+        location=st.session_state.centro_mapa, 
+        zoom_start=st.session_state.zoom_inicial, 
+        
+    )
 
     folium.TileLayer(
         tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
@@ -2973,14 +2972,7 @@ def get_sector_style(feature, visible):
         'fillOpacity': 0.12 if visible else 0.01,
     }
 
-# --- MANEJO SEGURO DE LA CARGA DE DATOS ---
-sectores_data = None
-try:
-    # Intentamos obtener los datos. Si falla aquí, no rompe el flujo.
-    sectores_data = cargar_sectores_poligonos()
-except Exception as e:
-    st.error("⚠️ No se pudieron cargar los sectores hidráulicos (Error de conexión a BD).")
-    sectores_data = None
+sectores_data = cargar_sectores_poligonos()
 
 if sectores_data:
     fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
@@ -3008,16 +3000,15 @@ if sectores_data:
                    style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
                           text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
                           border-radius: 5px; transition: 0.3s;">
-                    🚀 ABRIR SECTOR
+                   🚀 ABRIR SECTOR
                 </a>
             </div>
             """
-            
             estilo = {
                 'fillColor': '#00d4ff',
                 'color': '#00d4ff' if ver_sectores else 'transparent',
                 'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.12 if ver_sectores else 0.0001
+                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
             }
 
             folium.GeoJson(
@@ -3036,9 +3027,7 @@ if sectores_data:
         except Exception:
             continue
 
-    st_folium(m, use_container_width=True, height=600)
-    else:
-        st.write("El mapa no pudo ser cargado.")
+    fg_sectores.add_to(m)
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
