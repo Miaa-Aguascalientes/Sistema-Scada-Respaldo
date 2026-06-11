@@ -1747,7 +1747,7 @@ for id_p, info in mapa_pozos_dict.items():
         pozos_falla_com.append(id_p)
     else:
         val_bba, _ = data_scada.get(info['bomba'], (0, "N/A"))
-        if val_bba == 1:
+        if val_bba >= 1:
             info.update({'status_label': 'OPERANDO', 'color_final': '#00FF00', 'blink': False})
             pozos_on.append(id_p)
             total_q += data_scada.get(info['caudal'], (0, ""))[0]
