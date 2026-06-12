@@ -1135,11 +1135,11 @@ if "graficar_pozo" in params:
                     spikedash="dash",
                     spikemode="across",
                     spikecolor="rgba(255, 255, 255, 0.6)",
+                    # Configuración para mostrar día y hora automáticamente
                     tickformatstops=[
-                        dict(dtickrange=[None, 1000], value="%H:%M:%S"),
-                        dict(dtickrange=[1000, 60000], value="%H:%M"),
-                        dict(dtickrange=[60000, 86400000], value="%d-%b"),
-                        dict(dtickrange=[86400000, 604800000], value="%d-%b-%Y"),
+                        dict(dtickrange=[None, 86400000], value="%H:%M <br>%a %d-%b"), # Menos de 1 día: Hora y Día
+                        dict(dtickrange=[86400000, 604800000], value="%a %d-%b"),      # De 1 día a 1 semana: Solo Día
+                        dict(dtickrange=[604800000, None], value="%d-%b-%Y")          # Más de 1 semana: Fecha completa
                     ]
                 ),
                 
