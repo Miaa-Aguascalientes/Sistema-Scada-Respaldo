@@ -1124,7 +1124,7 @@ if "graficar_pozo" in params:
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
 
-                    tickvals = pd.date_range(start=f_ini, end=f_fin, periods=8) # Máximo 8 ticks para no amontonar
+                    tickvals = pd.date_range(start=f_ini, end=f_fin, periods=8), # Máximo 8 ticks para no amontonar
                     ticktext = [
                         f"{dias_es[d.strftime('%a')]} {d.day}-{meses_es[d.strftime('%b')]}"
                         for d in tickvals
