@@ -1125,7 +1125,7 @@ if "graficar_pozo" in params:
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
-                        title=dict(text="<b>Línea de Tiempo</b>"),
+                        title=dict(text="<b>Tiempo</b>"),
                         domain=[0.07, 0.91],
                                                 
                         tickvals=ticks_filtrados,
@@ -1133,7 +1133,7 @@ if "graficar_pozo" in params:
                         tickangle=0,
                         
                         showline=False,
-                        range=[df['FECHA'].min(), df['FECHA'].max()],
+                        
                         autorange=True,
                         showspikes=True,
                         spikethickness=1, 
