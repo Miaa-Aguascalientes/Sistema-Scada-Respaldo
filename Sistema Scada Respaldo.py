@@ -1088,7 +1088,7 @@ if "graficar_pozo" in params:
                 ]
 
                 # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
-                delta = pd.Timedelta(hours=1) # Ancho del halo detrás de la línea
+                delta = pd.Timedelta(hours=0.15) # Ancho del halo detrás de la línea
                 for d in fechas_lineas:
                     es_lunes = (d.dayofweek == 0)
                     
