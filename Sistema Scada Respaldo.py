@@ -1080,13 +1080,20 @@ if "graficar_pozo" in params:
                         direction='backward'
                     )
                     
-                    if t['tag'] == tag_caudal_real: 
-                        # fillna(0) pondrá 0 donde no hubo datos
+                    if t['tag'] == tag_caudal_real:
+                        # Definimos que si la diferencia de tiempo es mayor a 2 horas, es dato inválido
+                        mask = (df_tag_maestro['FECHA_INDEX'] - df_tag_maestro['FECHA']) > pd.Timedelta(hours=2)
+                        
+                        # Donde no haya dato reciente, forzamos a 0
+                        df_tag_maestro.loc[mask, 'VALUE'] = 0
                         df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].fillna(0)
-                        # También podrías querer que la hora sea nula o indicar que no hay dato
-                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].fillna('Sin registro')
+                        
+                        # Limpiamos la etiqueta de hora
+                        df_tag_maestro.loc[mask, 'HORA_REAL'] = 'SIN TRANSMISIÓN'
+                        # Aseguramos el resto con bfill para los casos que sí son válidos
+                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     else:
-                        # Comportamiento normal para Presión, Voltaje, etc.
+                        # Para presión/nivel, comportamiento normal
                         df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
                         df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
