@@ -987,87 +987,12 @@ if "graficar_pozo" in params:
                     else: st.info("Sin datos.")
 
             # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
+# ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
+
 try:
-    # 1. Inicialización constante del lienzo y configuración de ejes
     fig_line = go.Figure()
-
-    fig_line.update_layout(
-        template="plotly_dark", 
-        height=580, 
-        paper_bgcolor='rgba(0,0,0,0)', 
-        plot_bgcolor='rgba(0,0,0,0)', 
-        uirevision='constant', 
-        hovermode="x unified", 
-        legend=dict(orientation="h", y=1.08),
-        xaxis=dict(
-            title=dict(text="<b>Tiempo</b>"),
-            domain=[0.07, 0.91],
-            showline=False,
-            autorange=True,
-            showspikes=True,
-            spikethickness=1, 
-            spikedash="dash",
-            spikemode="across",
-            spikecolor="rgba(255, 255, 255, 0.6)"   
-        ),
-        yaxis5=dict(
-            title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
-            tickfont=dict(color="#00ffcc"), 
-            side="left",
-            overlaying="y",
-            anchor="free",
-            position=0.00,
-            showline=True,
-            linecolor='white',
-            linewidth=1.5
-        ),
-        yaxis=dict(
-            title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
-            tickfont=dict(color="#00d4ff"),
-            side="left",
-            anchor="free",
-            position=0.07,
-            showline=True,
-            linecolor='white',
-            linewidth=1.5
-        ),
-        yaxis2=dict(
-            title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
-            tickfont=dict(color="#00ff00"), 
-            side="right",
-            overlaying="y",
-            anchor="free",
-            position=0.92,
-            showline=True,
-            linecolor='white',
-            linewidth=1.5
-        ),
-        yaxis3=dict(
-            title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
-            tickfont=dict(color="#ff00b4"), 
-            side="right",
-            overlaying="y",
-            anchor="free",
-            position=0.955,
-            showline=True,
-            linecolor='white',
-            linewidth=1.5
-        ),
-        yaxis4=dict(
-            title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
-            tickfont=dict(color="#ff8000"), 
-            side="right",
-            overlaying="y",
-            anchor="free",
-            position=1.00,
-            showline=True,
-            linecolor='white',
-            linewidth=1.5,
-            rangemode="tozero"
-        )
-    )
-
-    # 2. Lógica de datos solo si el dataframe tiene contenido
+    
+    # --- PROCESAMIENTO DE DATOS ---
     if not df.empty:
         df['FECHA'] = pd.to_datetime(df['FECHA'])
         eje_tiempo_global = sorted(df['FECHA'].unique())
@@ -1075,6 +1000,7 @@ try:
         
         for t in tags_grafico:
             dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+
             if len(dft_l) <= 3:
                 fecha_limite = f_ini - timedelta(days=30)
                 q_ultimo = f"""
@@ -1087,51 +1013,190 @@ try:
                     LIMIT 1
                 """
                 df_ultimo_reg = pd.read_sql(q_ultimo, engine)
+                
                 if not df_ultimo_reg.empty:
                     df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                     dft_l = df_ultimo_reg
                 else:
-                    dft_l = pd.DataFrame([{'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini)}])
+                    dft_l = pd.DataFrame([{
+                        'TagName': t['tag'],
+                        'VALUE': 0.0,
+                        'FECHA': pd.to_datetime(f_ini)
+                    }])
 
-            # GEOMETRÍA VISUAL REAL
-            fig_line.add_trace(go.Scatter(
-                x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines+markers',
-                line=dict(color=t['color'], width=2.2), marker=dict(size=4, symbol='circle'),
-                yaxis=t['axis'], showlegend=True, hoverinfo="skip"
-            ))
+            # 1. GEOMETRÍA VISUAL REAL
+            fig_line.add_trace(
+                go.Scatter(
+                    x=dft_l['FECHA'], 
+                    y=dft_l['VALUE'], 
+                    name=t['label'], 
+                    mode='lines+markers',
+                    line=dict(color=t['color'], width=2.2),
+                    marker=dict(size=4, symbol='circle'),
+                    yaxis=t['axis'],
+                    showlegend=True,
+                    hoverinfo="skip"
+                )
+            )
             
             dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%d-%m-%Y %H:%M:%S')
-            df_tag_maestro = pd.merge_asof(df_interactivo, dft_l, left_on='FECHA_INDEX', right_on='FECHA', direction='backward')
+            
+            df_tag_maestro = pd.merge_asof(
+                df_interactivo, 
+                dft_l, 
+                left_on='FECHA_INDEX', 
+                right_on='FECHA', 
+                direction='backward'
+            )
             df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
             df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
             
-            # TRAZA DE HOVER BLINDADA
-            fig_line.add_trace(go.Scatter(
-                x=df_interactivo['FECHA_INDEX'], y=df_tag_maestro['VALUE'], name=t['label'],
-                mode='lines', line=dict(color=t['color'], width=0.01), yaxis=t['axis'],
-                showlegend=False, customdata=df_tag_maestro['HORA_REAL'].tolist(),
-                hovertext=df_tag_maestro['VALUE'].tolist(),
-                hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
-                hoverlabel=dict(bordercolor=t['color'])
-            ))
+            # 2. TRAZA DE HOVER BLINDADA
+            fig_line.add_trace(
+                go.Scatter(
+                    x=df_interactivo['FECHA_INDEX'],
+                    y=df_tag_maestro['VALUE'],
+                    name=t['label'],
+                    mode='lines',
+                    line=dict(color=t['color'], width=0.01), 
+                    yaxis=t['axis'],
+                    showlegend=False,
+                    customdata=df_tag_maestro['HORA_REAL'].tolist(),
+                    hovertext=df_tag_maestro['VALUE'].tolist(),
+                    hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
+                    hoverlabel=dict(
+                        bordercolor=t['color']
+                    )
+                )
+            )
 
-        # DIBUJO DE LÍNEAS TEMPORALES
+        # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (BLOQUE DE APOYO)
         dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
         fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
+        num_dias = len(fechas_lineas)
+        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+        ticks_filtrados = fechas_lineas[::paso]
+
+        etiquetas_filtradas = [
+            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+            for d in ticks_filtrados
+        ]
+
+        # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
         delta = pd.Timedelta(hours=0.15)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
-            fig_line.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-            fig_line.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+            
+            fig_line.add_vrect(
+                x0=d - delta,
+                x1=d + delta,
+                fillcolor="gray",
+                opacity=0.2,
+                layer="below",
+                line_width=0
+            )
+            
+            fig_line.add_vline(
+                x=d, 
+                line_width=1.5, 
+                line_dash="dash", 
+                line_color="#fffb00" if es_lunes else "white",
+                opacity=0.5,
+                layer="above"
+            )
 
-    # 3. Renderizado final
+    # 3. CONFIGURACIÓN DEL EJE X y LAYOUT
+    fig_line.update_layout(
+        template="plotly_dark", 
+        height=580, 
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)', 
+        uirevision='constant', 
+        hovermode="x unified", 
+        legend=dict(orientation="h", y=1.08),
+        
+        xaxis=dict(
+            title=dict(text="<b>Tiempo</b>"),
+            domain=[0.07, 0.91],
+            tickvals=ticks_filtrados if not df.empty else None,
+            ticktext=etiquetas_filtradas if not df.empty else None,
+            tickangle=0,
+            showline=False,
+            range=[df['FECHA'].min(), df['FECHA'].max()] if not df.empty else None,
+            autorange=True,
+            showspikes=True,
+            spikethickness=1, 
+            spikedash="dash",
+            spikemode="across",
+            spikecolor="rgba(255, 255, 255, 0.6)"   
+        ),
+        
+        yaxis5=dict(
+            title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
+            tickfont=dict(color="#00ffcc"), 
+            side="left",
+            overlaying="y",
+            anchor="free",
+            position=0.00,
+            showline=True, 
+            linecolor='white',
+            linewidth=1.5
+        ),
+        yaxis=dict(
+            title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
+            tickfont=dict(color="#00d4ff"),
+            side="left",
+            anchor="free",
+            position=0.07,
+            showline=True, 
+            linecolor='white',
+            linewidth=1.5
+        ),
+        yaxis2=dict(
+            title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
+            tickfont=dict(color="#00ff00"), 
+            side="right",
+            overlaying="y",
+            anchor="free",
+            position=0.92,
+            showline=True, 
+            linecolor='white',
+            linewidth=1.5
+        ),
+        yaxis3=dict(
+            title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
+            tickfont=dict(color="#ff00b4"), 
+            side="right",
+            overlaying="y",
+            anchor="free",
+            position=0.955,
+            showline=True, 
+            linecolor='white',
+            linewidth=1.5
+        ),
+        yaxis4=dict(
+            title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
+            tickfont=dict(color="#ff8000"), 
+            side="right",
+            overlaying="y",
+            anchor="free",
+            position=1.00,
+            showline=True, 
+            linecolor='white',
+            linewidth=1.5,
+            rangemode="tozero"
+        )
+    )
+    
     st.plotly_chart(fig_line, use_container_width=True)
 
 except Exception as e:
     st.error(f"Error procesando el gráfico: {e}")
-            
-    st.stop()
+
+st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
