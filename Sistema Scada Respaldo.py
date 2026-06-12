@@ -837,69 +837,58 @@ if "graficar_pozo" in params:
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
 
     if tags_query:
-            try:
-                engine = get_mysql_scada_engine()
-                lista_tags_str = f"','".join(list(set(tags_query)))
-                
-                q = f"""
-                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                    FROM vfitagnumhistory h 
-                    JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                    WHERE r.NAME IN ('{lista_tags_str}') 
-                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
-                """
-                df = pd.read_sql(q, engine)
+        try:
+            engine = get_mysql_scada_engine()
+            lista_tags_str = f"','".join(list(set(tags_query)))
+            
+            q = f"""
+                SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                FROM vfitagnumhistory h 
+                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                WHERE r.NAME IN ('{lista_tags_str}') 
+                AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
+            """
+            df = pd.read_sql(q, engine)
+            
+            if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
                 # --- FILTRO EXCLUSIVO PARA CAUDAL ---
-                # Identifica cuáles de tus tags son de caudal (ejemplo: 'CAUDAL_POZO_1', 'FLUJO_X')
-                # Ajusta esta lista según los nombres exactos que tengan tus tags de caudal
                 tags_caudal = [t for t in tags_query if 'CAUDAL' in t.upper() or 'FLUJO' in t.upper()]
-                
                 dfs_finales = []
                 
                 for tag in df['TagName'].unique():
                     temp_df = df[df['TagName'] == tag].copy()
-                    
-                    # Solo aplicamos la lógica de rellenar con ceros si el tag es de caudal
                     if tag in tags_caudal:
                         temp_df = temp_df.set_index('FECHA')
                         idx = pd.date_range(start=f_ini, end=f_fin, freq='5T')
                         temp_df = temp_df.reindex(idx).fillna(0)
                         temp_df = temp_df.reset_index().rename(columns={'index': 'FECHA'})
                         temp_df['TagName'] = tag
-                    
                     dfs_finales.append(temp_df)
                 
                 df = pd.concat(dfs_finales)
-                # --- FIN DEL FILTRO ---
-                
                 df = df.sort_values('FECHA', ascending=True)
-            else:
-                # Opcional: manejar el caso donde no hay datos
-                df = pd.DataFrame()
-
+            
         except Exception as e:
-            # Esto es lo que faltaba. Captura el error y evita que el programa se cierre
             st.error(f"Error al consultar la base de datos: {e}")
             df = pd.DataFrame()
-            # --- CORRECCIÓN LÓGICA AQUÍ ---
-            if df.empty:
-                # Si está vacío, mostramos el aviso y salimos de esta parte
-                st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado.")
-                
-            else:
-                # --- LÓGICA DE INDICADORES (Solo se ejecuta si hay datos) ---
-                val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
-                val_v_prom, val_a_prom = "0.00", "0.00"
-                val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
-                val_nt_ultimo = "0.00"
 
-                if tag_totalizado in df['TagName'].values:
-                    df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
-                    if len(df_tot) >= 2:
-                        consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
-                        val_vol = f"{consumo_neta:,.2f}"
+        # --- AHORA ESTO VA FUERA DEL TRY/EXCEPT ---
+        if df.empty:
+            st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado.")
+        else:
+            # --- LÓGICA DE INDICADORES (Solo se ejecuta si hay datos) ---
+            val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
+            val_v_prom, val_a_prom = "0.00", "0.00"
+            val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
+            val_nt_ultimo = "0.00"
+
+            if tag_totalizado in df['TagName'].values:
+                df_tot = df[df['TagName'] == tag_totalizado].sort_values('FECHA')
+                if len(df_tot) >= 2:
+                    consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
+                    val_vol = f"{consumo_neta:,.2f}"
                     
                 
                 if tag_caudal_real in df['TagName'].values:
