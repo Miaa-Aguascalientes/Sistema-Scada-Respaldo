@@ -1193,7 +1193,15 @@ if "graficar_pozo" in params:
                         linewidth=1.5,
                         rangemode="tozero"
                     )
-                )
+
+                # Definimos el rango del eje X de forma segura
+                fig_line.update_xaxes(range=[df['FECHA'].min(), df['FECHA'].max()])
+
+                # Lógica de trazas (mantenemos tu estructura)
+                for t in tags_grafico:
+                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                    fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', yaxis=t['axis'], line=dict(color=t['color'])))
+
                 st.plotly_chart(fig_line, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
