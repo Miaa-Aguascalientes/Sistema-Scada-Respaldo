@@ -1128,7 +1128,7 @@ if "graficar_pozo" in params:
                     ticktext = [
                         f"{dias_es[d.strftime('%a')]} {d.day}-{meses_es[d.strftime('%b')]}"
                         for d in tickvals
-                    ]
+                    ],
                 
                     xaxis=dict(
                     title=dict(text="<b>Tiempo</b>"),
