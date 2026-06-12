@@ -848,9 +848,40 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df = pd.read_sql(q, engine)
-            df['FECHA'] = pd.to_datetime(df['FECHA'])
-            df = df.sort_values('FECHA', ascending=True)
+            df_raw = pd.read_sql(q, engine)
+            
+            if not df_raw.empty:
+                df_raw['FECHA'] = pd.to_datetime(df_raw['FECHA'])
+                
+                # Identificamos qué tags corresponden a caudal
+                tags_caudal = [t for t in tags_query if 'CAUDAL' in t.upper() or 'FLUJO' in t.upper()]
+                
+                lista_dfs = []
+                
+                # Procesamos cada tag individualmente
+                for nombre_tag in tags_query:
+                    temp_df = df_raw[df_raw['TagName'] == nombre_tag].copy()
+                    
+                    if nombre_tag in tags_caudal:
+                        # LÓGICA DE RELLENO CON CEROS PARA CAUDAL
+                        # Creamos el índice de tiempo completo (cada 5 minutos)
+                        idx = pd.date_range(start=f_ini, end=f_fin, freq='5T')
+                        
+                        # Si el tag de caudal no tiene datos, reindexamos y rellenamos con 0
+                        temp_df = temp_df.set_index('FECHA').reindex(idx).fillna(0)
+                        temp_df = temp_df.reset_index().rename(columns={'index': 'FECHA'})
+                        temp_df['TagName'] = nombre_tag
+                    
+                    lista_dfs.append(temp_df)
+                
+                # Consolidamos todo de nuevo
+                df = pd.concat(lista_dfs).sort_values('FECHA', ascending=True)
+            else:
+                df = pd.DataFrame() # Caso donde la consulta SQL no devuelve nada
+
+        except Exception as e:
+            st.error(f"Error al consultar la base de datos: {e}")
+            df = pd.DataFrame()
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
