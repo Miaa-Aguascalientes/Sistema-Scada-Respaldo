@@ -848,38 +848,40 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df_raw = pd.read_sql(q, engine)
+            # Cargamos directamente en df
+            df = pd.read_sql(q, engine)
             
             if not df.empty:
-            df['FECHA'] = pd.to_datetime(df['FECHA'])
-            
-            # --- LÓGICA PARA INYECTAR CEROS SI NO HAY DATOS ---
-            if tag_caudal_real in df['TagName'].values:
-                # Verificamos los días que faltan
-                df_caudal = df[df['TagName'] == tag_caudal_real].copy()
-                df_caudal['DIA'] = df_caudal['FECHA'].dt.date
+                df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
-                # Generamos el rango de días del reporte
-                dias_totales = pd.date_range(start=f_ini, end=f_fin).date
-                dias_con_datos = df_caudal['DIA'].unique()
-                dias_faltantes = [d for d in dias_totales if d not in dias_con_datos]
-                
-                # Si faltan días, creamos registros de 0
-                if dias_faltantes:
-                    nuevos_datos = []
-                    for dia in dias_faltantes:
-                        nuevos_datos.append({
-                            'TagName': tag_caudal_real,
-                            'VALUE': 0.0,
-                            'FECHA': pd.Timestamp(dia).replace(hour=12, minute=0) # Valor al mediodía
-                        })
+                # --- LÓGICA PARA INYECTAR CEROS SI NO HAY DATOS ---
+                # Solo ejecutamos si el tag de caudal está presente en la configuración
+                if tag_caudal_real and tag_caudal_real in df['TagName'].values:
+                    df_caudal = df[df['TagName'] == tag_caudal_real].copy()
+                    df_caudal['DIA'] = df_caudal['FECHA'].dt.date
                     
-                    # Unimos los nuevos ceros al DataFrame original
-                    df = pd.concat([df, pd.DataFrame(nuevos_datos)], ignore_index=True)
-            
-            df = df.sort_values('FECHA', ascending=True)
-        else:
-            df = pd.DataFrame()
+                    # Generamos el rango de días del reporte
+                    dias_totales = pd.date_range(start=f_ini, end=f_fin).date
+                    dias_con_datos = df_caudal['DIA'].unique()
+                    dias_faltantes = [d for d in dias_totales if d not in dias_con_datos]
+                    
+                    # Si faltan días, creamos registros de 0
+                    if dias_faltantes:
+                        nuevos_datos = []
+                        for dia in dias_faltantes:
+                            nuevos_datos.append({
+                                'TagName': tag_caudal_real,
+                                'VALUE': 0.0,
+                                'FECHA': pd.Timestamp(dia).replace(hour=12, minute=0)
+                            })
+                        
+                        # Unimos los nuevos ceros al DataFrame original
+                        df = pd.concat([df, pd.DataFrame(nuevos_datos)], ignore_index=True)
+                
+                df = df.sort_values('FECHA', ascending=True)
+            else:
+                # Si la consulta no trae datos, aseguramos que df esté vacío
+                df = pd.DataFrame()
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
