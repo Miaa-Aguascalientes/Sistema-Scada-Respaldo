@@ -1079,8 +1079,16 @@ if "graficar_pozo" in params:
                         right_on='FECHA', 
                         direction='backward'
                     )
-                    df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
-                    df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
+                    
+                    if t['tag'] == tag_caudal_real: 
+                        # fillna(0) pondrá 0 donde no hubo datos
+                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].fillna(0)
+                        # También podrías querer que la hora sea nula o indicar que no hay dato
+                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].fillna('Sin registro')
+                    else:
+                        # Comportamiento normal para Presión, Voltaje, etc.
+                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
                     # 2. TRAZA DE HOVER BLINDADA CON FORZADO EN COLOR DE MARCADORES Y BORDES
                     fig_line.add_trace(
