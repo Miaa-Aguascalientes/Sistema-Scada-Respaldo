@@ -1073,20 +1073,9 @@ if "graficar_pozo" in params:
                     )
 
                 # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (BLOQUE DE APOYO)
-                dias_es = {
-                    'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 
-                    'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'
-                }
-                meses_es = {
-                    'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr', 'May': 'May', 'Jun': 'Jun', 
-                    'Jul': 'Jul', 'Aug': 'Ago', 'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'
-                }
-
-                tickvals = pd.date_range(start=f_ini, end=f_fin, periods=8)
-                ticktext = [
-                    f"{dias_es.get(d.strftime('%a'), d.strftime('%a'))} {d.day}-{meses_es.get(d.strftime('%b'), d.strftime('%b'))}"
-                    for d in tickvals
-                ]
+                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
                 fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
                 num_dias = len(fechas_lineas)
@@ -1134,14 +1123,10 @@ if "graficar_pozo" in params:
                     uirevision='constant', 
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
-
                     
-                
                     xaxis=dict(
                     title=dict(text="<b>Tiempo</b>"),
                     domain=[0.07, 0.91],
-                    tickvals=tickvals,
-                    ticktext=ticktext,   
                     tickangle=0,
                     showline=False,
                     autorange=True,
