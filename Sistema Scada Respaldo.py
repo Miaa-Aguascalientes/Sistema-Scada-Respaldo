@@ -1122,8 +1122,9 @@ if "graficar_pozo" in params:
                     uirevision='constant', 
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
+                    
                     xaxis=dict(
-                        title=dict(text="<b>Línea de Tiempo</b>"),
+                        title=dict(text="<b>Tiempo</b>"),
                         domain=[0.07, 0.91],
                         tickvals=ticks_filtrados,
                         ticktext=etiquetas_filtradas,
@@ -1155,9 +1156,13 @@ if "graficar_pozo" in params:
                         side="left",
                         anchor="free",
                         position=0.07,
-                        showline=True,        # Línea activa: Cierre del área de gráfica izquierda
+                        showline=True,
                         linecolor='white',
-                        linewidth=1.5
+                        linewidth=1.5,
+                        # --- AGREGA ESTO ---
+                        overlaying="y", # Importante para ejes desplazados
+                        showticklabels=True,
+                        visible=True
                     ),
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
