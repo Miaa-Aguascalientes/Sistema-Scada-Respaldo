@@ -836,6 +836,7 @@ if "graficar_pozo" in params:
     tags_query = [t['tag'] for t in tags_grafico]
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
 
+    df = pd.DataFrame() # Inicializamos df vacío
     if tags_query:
         try:
             engine = get_mysql_scada_engine()
@@ -848,17 +849,17 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df = pd.read_sql(q, engine)
+            df_raw = pd.read_sql(q, engine)
             
-            if not df.empty:
-                df['FECHA'] = pd.to_datetime(df['FECHA'])
+            if not df_raw.empty:
+                df_raw['FECHA'] = pd.to_datetime(df_raw['FECHA'])
                 
-                # --- FILTRO EXCLUSIVO PARA CAUDAL ---
-                tags_caudal = [t for t in tags_query if 'CAUDAL' in t.upper() or 'FLUJO' in t.upper()]
+                # --- Lógica de rellenado solo para CAUDAL ---
+                tags_caudal = [t['tag'] for t in tags_grafico if 'CAUDAL' in t['label'].upper() or 'FLUJO' in t['label'].upper()]
                 dfs_finales = []
                 
-                for tag in df['TagName'].unique():
-                    temp_df = df[df['TagName'] == tag].copy()
+                for tag in df_raw['TagName'].unique():
+                    temp_df = df_raw[df_raw['TagName'] == tag].copy()
                     if tag in tags_caudal:
                         temp_df = temp_df.set_index('FECHA')
                         idx = pd.date_range(start=f_ini, end=f_fin, freq='5T')
@@ -867,8 +868,7 @@ if "graficar_pozo" in params:
                         temp_df['TagName'] = tag
                     dfs_finales.append(temp_df)
                 
-                df = pd.concat(dfs_finales)
-                df = df.sort_values('FECHA', ascending=True)
+                df = pd.concat(dfs_finales).sort_values('FECHA', ascending=True)
             
         except Exception as e:
             st.error(f"Error al consultar la base de datos: {e}")
