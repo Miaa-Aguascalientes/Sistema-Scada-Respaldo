@@ -850,37 +850,35 @@ if "graficar_pozo" in params:
             """
             df_raw = pd.read_sql(q, engine)
             
-            if not df_raw.empty:
-                df_raw['FECHA'] = pd.to_datetime(df_raw['FECHA'])
+            if not df.empty:
+            df['FECHA'] = pd.to_datetime(df['FECHA'])
+            
+            # --- LÓGICA PARA INYECTAR CEROS SI NO HAY DATOS ---
+            if tag_caudal_real in df['TagName'].values:
+                # Verificamos los días que faltan
+                df_caudal = df[df['TagName'] == tag_caudal_real].copy()
+                df_caudal['DIA'] = df_caudal['FECHA'].dt.date
                 
-                # Identificamos qué tags corresponden a caudal
-                tags_caudal = [t for t in tags_query if 'CAUDAL' in t.upper() or 'FLUJO' in t.upper()]
+                # Generamos el rango de días del reporte
+                dias_totales = pd.date_range(start=f_ini, end=f_fin).date
+                dias_con_datos = df_caudal['DIA'].unique()
+                dias_faltantes = [d for d in dias_totales if d not in dias_con_datos]
                 
-                lista_dfs = []
-                
-                # Procesamos cada tag individualmente
-                for nombre_tag in tags_query:
-                    temp_df = df_raw[df_raw['TagName'] == nombre_tag].copy()
+                # Si faltan días, creamos registros de 0
+                if dias_faltantes:
+                    nuevos_datos = []
+                    for dia in dias_faltantes:
+                        nuevos_datos.append({
+                            'TagName': tag_caudal_real,
+                            'VALUE': 0.0,
+                            'FECHA': pd.Timestamp(dia).replace(hour=12, minute=0) # Valor al mediodía
+                        })
                     
-                    if nombre_tag in tags_caudal:
-                        # LÓGICA DE RELLENO CON CEROS PARA CAUDAL
-                        # Creamos el índice de tiempo completo (cada 5 minutos)
-                        idx = pd.date_range(start=f_ini, end=f_fin, freq='5T')
-                        
-                        # Si el tag de caudal no tiene datos, reindexamos y rellenamos con 0
-                        temp_df = temp_df.set_index('FECHA').reindex(idx).fillna(0)
-                        temp_df = temp_df.reset_index().rename(columns={'index': 'FECHA'})
-                        temp_df['TagName'] = nombre_tag
-                    
-                    lista_dfs.append(temp_df)
-                
-                # Consolidamos todo de nuevo
-                df = pd.concat(lista_dfs).sort_values('FECHA', ascending=True)
-            else:
-                df = pd.DataFrame() # Caso donde la consulta SQL no devuelve nada
-
-        except Exception as e:
-            st.error(f"Error al consultar la base de datos: {e}")
+                    # Unimos los nuevos ceros al DataFrame original
+                    df = pd.concat([df, pd.DataFrame(nuevos_datos)], ignore_index=True)
+            
+            df = df.sort_values('FECHA', ascending=True)
+        else:
             df = pd.DataFrame()
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
