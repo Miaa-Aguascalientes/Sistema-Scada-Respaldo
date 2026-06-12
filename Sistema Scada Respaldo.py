@@ -1077,7 +1077,15 @@ if "graficar_pozo" in params:
                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
                             7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
+                fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
+                num_dias = len(fechas_lineas)
+                
+                ticks_filtrados = fechas_lineas[::paso]
 
+                etiquetas_filtradas = [
+                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    for d in ticks_filtrados
+                ]
 
                 # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
                 delta = pd.Timedelta(hours=0.15) # Ancho del halo detrás de la línea
