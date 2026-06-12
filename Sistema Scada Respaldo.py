@@ -1148,10 +1148,10 @@ if "graficar_pozo" in params:
                     spikecolor="rgba(255, 255, 255, 0.6)",
                     # Configuración para mostrar día y hora automáticamente
                     tickformatstops=[
-                        dict(dtickrange=[None, 86400000], value="%H:%M <br>%a %d-%b-%Y"), # Día, Mes y AÑO
-                        dict(dtickrange=[86400000, 604800000], value="%a %d-%b-%Y"),      # Día, Mes y AÑO
-                        dict(dtickrange=[604800000, None], value="%d-%b-%Y")             # Mes y AÑO
-                    ]
+                    dict(dtickrange=[None, 86400000], value="%H:%M <br>%A %d-%b-%Y"),
+                    dict(dtickrange=[86400000, 604800000], value="%H:%M <br>%A %d-%b-%Y"),
+                    dict(dtickrange=[604800000, None], value="%H:%M <br>%d-%b-%Y")
+                ]
                 ),
                 
                     
