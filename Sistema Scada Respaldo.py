@@ -848,40 +848,9 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            # Cargamos directamente en df
             df = pd.read_sql(q, engine)
-            
-            if not df.empty:
-                df['FECHA'] = pd.to_datetime(df['FECHA'])
-                
-                # --- LÓGICA PARA INYECTAR CEROS SI NO HAY DATOS ---
-                # Solo ejecutamos si el tag de caudal está presente en la configuración
-                if tag_caudal_real and tag_caudal_real in df['TagName'].values:
-                    df_caudal = df[df['TagName'] == tag_caudal_real].copy()
-                    df_caudal['DIA'] = df_caudal['FECHA'].dt.date
-                    
-                    # Generamos el rango de días del reporte
-                    dias_totales = pd.date_range(start=f_ini, end=f_fin).date
-                    dias_con_datos = df_caudal['DIA'].unique()
-                    dias_faltantes = [d for d in dias_totales if d not in dias_con_datos]
-                    
-                    # Si faltan días, creamos registros de 0
-                    if dias_faltantes:
-                        nuevos_datos = []
-                        for dia in dias_faltantes:
-                            nuevos_datos.append({
-                                'TagName': tag_caudal_real,
-                                'VALUE': 0.0,
-                                'FECHA': pd.Timestamp(dia).replace(hour=12, minute=0)
-                            })
-                        
-                        # Unimos los nuevos ceros al DataFrame original
-                        df = pd.concat([df, pd.DataFrame(nuevos_datos)], ignore_index=True)
-                
-                df = df.sort_values('FECHA', ascending=True)
-            else:
-                # Si la consulta no trae datos, aseguramos que df esté vacío
-                df = pd.DataFrame()
+            df['FECHA'] = pd.to_datetime(df['FECHA'])
+            df = df.sort_values('FECHA', ascending=True)
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
@@ -1079,23 +1048,8 @@ if "graficar_pozo" in params:
                         right_on='FECHA', 
                         direction='backward'
                     )
-                    
-                    if t['tag'] == tag_caudal_real:
-                        # Definimos que si la diferencia de tiempo es mayor a 2 horas, es dato inválido
-                        mask = (df_tag_maestro['FECHA_INDEX'] - df_tag_maestro['FECHA']) > pd.Timedelta(hours=2)
-                        
-                        # Donde no haya dato reciente, forzamos a 0
-                        df_tag_maestro.loc[mask, 'VALUE'] = 0
-                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].fillna(0)
-                        
-                        # Limpiamos la etiqueta de hora
-                        df_tag_maestro.loc[mask, 'HORA_REAL'] = 'SIN TRANSMISIÓN'
-                        # Aseguramos el resto con bfill para los casos que sí son válidos
-                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
-                    else:
-                        # Para presión/nivel, comportamiento normal
-                        df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
-                        df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
+                    df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                    df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
                     # 2. TRAZA DE HOVER BLINDADA CON FORZADO EN COLOR DE MARCADORES Y BORDES
                     fig_line.add_trace(
