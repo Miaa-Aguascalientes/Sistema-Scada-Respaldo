@@ -1079,7 +1079,7 @@ if "graficar_pozo" in params:
 
                 fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
                 num_dias = len(fechas_lineas)
-                
+                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
                 ticks_filtrados = fechas_lineas[::paso]
 
                 etiquetas_filtradas = [
