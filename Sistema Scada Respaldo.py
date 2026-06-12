@@ -875,7 +875,14 @@ if "graficar_pozo" in params:
                 # --- FIN DEL FILTRO ---
                 
                 df = df.sort_values('FECHA', ascending=True)
+            else:
+                # Opcional: manejar el caso donde no hay datos
+                df = pd.DataFrame()
 
+        except Exception as e:
+            # Esto es lo que faltaba. Captura el error y evita que el programa se cierre
+            st.error(f"Error al consultar la base de datos: {e}")
+            df = pd.DataFrame()
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
                 # Si está vacío, mostramos el aviso y salimos de esta parte
