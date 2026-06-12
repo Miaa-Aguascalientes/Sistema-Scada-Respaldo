@@ -2838,7 +2838,7 @@ with st.sidebar:
     with st.expander("🗺️ Control de Capas", expanded=False):
         ver_sectores = st.checkbox("Mostrar Sectores", value=True)
         ver_pozos = st.checkbox("Mostrar Pozos", value=True)
-        ver_tanques = st.checkbox("Mostrar Tanques", value=True)
+        ver_tanques = st.checkbox("Mostrar Tanques", value=False)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
         ver_macromedidores = st.checkbox("Macromedidores", value=False)
     
