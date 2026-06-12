@@ -987,7 +987,7 @@ if "graficar_pozo" in params:
                     else: st.info("Sin datos.")
 
             # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
-            # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
+# ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO ------------------------
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
@@ -997,228 +997,66 @@ if "graficar_pozo" in params:
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                        dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
-                        if not dft_l.empty:
-                            fig_line.add_trace(go.Scatter(
-                                x=dft_l['FECHA'], 
-                                y=dft_l['VALUE'], 
-                                name=t['label'], 
-                                mode='lines', 
-                                yaxis=t['axis'], 
-                                line=dict(color=t['color'])
-                            ))
-
-                    if len(dft_l) <= 3:
-                        continue
+                    tag_name = t['tag']
+                    tag_label = t.get('label', tag_name)
+                    tag_color = t.get('color', '#ffffff')
+                    tag_axis = t.get('axis', 'y')
+                    
+                    dft_l = df[df['TagName'] == tag_name].sort_values('FECHA').copy()
                     
                     if dft_l.empty:
                         fecha_limite = f_ini - timedelta(days=30)
-                        q_ultimo = f"""
-                            SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                            FROM vfitagnumhistory h 
-                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME = '{t['tag']}' 
-                            AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}'
-                            ORDER BY h.FECHA DESC 
-                            LIMIT 1
-                        """
+                        q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{tag_name}' AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
-                        
-                        if not df_ultimo_reg.empty:
-                            df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
-                            dft_l = df_ultimo_reg
-                        else:
-                            dft_l = pd.DataFrame([{
-                                'TagName': t['tag'],
-                                'VALUE': 0.0,
-                                'FECHA': pd.to_datetime(f_ini)
-                            }])
+                        dft_l = df_ultimo_reg if not df_ultimo_reg.empty else pd.DataFrame([{'TagName': tag_name, 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini)}])
+                        dft_l['FECHA'] = pd.to_datetime(dft_l['FECHA'])
 
                     # 1. GEOMETRÍA VISUAL REAL
-                    fig_line.add_trace(
-                        go.Scatter(
-                            x=dft_l['FECHA'], 
-                            y=dft_l['VALUE'], 
-                            name=t['label'], 
-                            mode='lines+markers',
-                            line=dict(color=t['color'], width=2.2),
-                            marker=dict(size=4, symbol='circle'),
-                            yaxis=t['axis'],
-                            showlegend=True,
-                            hoverinfo="skip"
-                        )
-                    )
+                    fig_line.add_trace(go.Scatter(
+                        x=dft_l['FECHA'], y=dft_l['VALUE'], name=tag_label, 
+                        mode='lines+markers', line=dict(color=tag_color, width=2.2),
+                        marker=dict(size=4, symbol='circle'), yaxis=tag_axis,
+                        showlegend=True, hoverinfo="skip"
+                    ))
                     
                     dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%d-%m-%Y %H:%M:%S')
-                    
-                    df_tag_maestro = pd.merge_asof(
-                        df_interactivo, 
-                        dft_l, 
-                        left_on='FECHA_INDEX', 
-                        right_on='FECHA', 
-                        direction='backward'
-                    )
+                    df_tag_maestro = pd.merge_asof(df_interactivo, dft_l, left_on='FECHA_INDEX', right_on='FECHA', direction='backward')
                     df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
                     df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
                     
-                    # 2. TRAZA DE HOVER BLINDADA CON FORZADO EN COLOR DE MARCADORES Y BORDES
-                    fig_line.add_trace(
-                        go.Scatter(
-                            x=df_interactivo['FECHA_INDEX'],
-                            y=df_tag_maestro['VALUE'],
-                            name=t['label'],
-                            mode='lines',
-                            # Ponemos un ancho minúsculo (0.01) para obligar a Plotly a reconocer el color en el hover
-                            line=dict(color=t['color'], width=0.01), 
-                            yaxis=t['axis'],
-                            showlegend=False,
-                            customdata=df_tag_maestro['HORA_REAL'].tolist(),
-                            hovertext=df_tag_maestro['VALUE'].tolist(),
-                            # Estructuramos el texto inyectándole etiquetas HTML con el color hexadecimal exacto
-                            hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
-                            hoverlabel=dict(
-                                bordercolor=t['color']
-                            )
-                        )
-                    )
+                    # 2. TRAZA DE HOVER
+                    fig_line.add_trace(go.Scatter(
+                        x=df_interactivo['FECHA_INDEX'], y=df_tag_maestro['VALUE'],
+                        name=tag_label, mode='lines', line=dict(color=tag_color, width=0.01), 
+                        yaxis=tag_axis, showlegend=False,
+                        hovertemplate=f"<span style='color:{tag_color};'>■</span> <b>{tag_label}</b>: %{{y:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
+                        customdata=df_tag_maestro['HORA_REAL'].tolist()
+                    ))
 
-                # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (BLOQUE DE APOYO)
+                # 3. GENERACIÓN DE ETIQUETAS Y FECHAS
                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
-                            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
                 fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
-                num_dias = len(fechas_lineas)
-                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                ticks_filtrados = fechas_lineas[::paso]
+                ticks_filtrados = fechas_lineas[::(1 if len(fechas_lineas) <= 15 else (2 if len(fechas_lineas) <= 30 else 5))]
+                etiquetas_filtradas = [f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}" for d in ticks_filtrados]
 
-                etiquetas_filtradas = [
-                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                    for d in ticks_filtrados
-                ]
-
-                # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
-                delta = pd.Timedelta(hours=0.15) # Ancho del halo detrás de la línea
+                # 4. SOMBRAS Y LÍNEAS
+                delta = pd.Timedelta(hours=0.15)
                 for d in fechas_lineas:
-                    es_lunes = (d.dayofweek == 0)
-                    
-                    # Sombra (vrect)
-                    fig_line.add_vrect(
-                        x0=d - delta,
-                        x1=d + delta,
-                        fillcolor="gray",
-                        opacity=0.2,
-                        layer="below",
-                        line_width=0
-                    )
-                    
-                    # Línea punteada principal (vline)
-                    fig_line.add_vline(
-                        x=d, 
-                        line_width=1.5, 
-                        line_dash="dash", 
-                        line_color="#fffb00" if es_lunes else "white",
-                        opacity=0.5,
-                        layer="above"
-                    )
+                    fig_line.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                    fig_line.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if d.dayofweek == 0 else "white", opacity=0.5, layer="above")
 
-                # 3. CONFIGURACIÓN DEL EJE X
+                # 5. CONFIGURACIÓN LAYOUT
                 fig_line.update_layout(
-                    template="plotly_dark", 
-                    height=580, 
-                    paper_bgcolor='rgba(0,0,0,0)', 
-                    plot_bgcolor='rgba(0,0,0,0)', 
-                    uirevision='constant', 
-                    hovermode="x unified", 
-                    legend=dict(orientation="h", y=1.08),
-                    
-                    xaxis=dict(
-                        title=dict(text="<b>Tiempo</b>"),
-                        domain=[0.07, 0.91],
-                        tickvals=ticks_filtrados,
-                        ticktext=etiquetas_filtradas,
-                        tickangle=0,
-                        showline=False,
-                        showspikes=True,
-                        spikethickness=1, 
-                        spikedash="dash",
-                        spikemode="across",
-                        spikecolor="rgba(255, 255, 255, 0.6)"  
-                    ),
-                
-                    
-                    # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
-                    yaxis5=dict(
-                        title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
-                        tickfont=dict(color="#00ffcc"), 
-                        side="left",
-                        overlaying="y",
-                        anchor="free",
-                        position=0.00,
-                        showline=True,        # Línea activa: Divide Nivel Tanque de Caudal
-                        linecolor='white',
-                        linewidth=1.5
-                    ),
-                    yaxis=dict(
-                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
-                        tickfont=dict(color="#00d4ff"),
-                        side="left",
-                        anchor="free",
-                        position=0.07,
-                        showline=True,
-                        linecolor='white',
-                        linewidth=1.5,
-                        # --- AGREGA ESTO ---
-                        overlaying="y", # Importante para ejes desplazados
-                        showticklabels=True,
-                        visible=True
-                    ),
-                    yaxis2=dict(
-                        title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
-                        tickfont=dict(color="#00ff00"), 
-                        side="right",
-                        overlaying="y",
-                        anchor="free",
-                        position=0.92,
-                        showline=True,        # Línea activa: Cierre del área de gráfica derecha
-                        linecolor='white',
-                        linewidth=1.5
-                    ),
-                    yaxis3=dict(
-                        title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
-                        tickfont=dict(color="#ff00b4"), 
-                        side="right",
-                        overlaying="y",
-                        anchor="free",
-                        position=0.955,
-                        showline=True,        # Línea activa: Divide Presión de Niveles Pozo
-                        linecolor='white',
-                        linewidth=1.5
-                    ),
-                    yaxis4=dict(
-                        title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
-                        tickfont=dict(color="#ff8000"), 
-                        side="right",
-                        overlaying="y",
-                        anchor="free",
-                        position=1.00,
-                        showline=True,        # Línea activa: Divide Niveles Pozo de Eléctricos
-                        linecolor='white',
-                        linewidth=1.5,
-                        rangemode="tozero"
-                    )
-
+                    template="plotly_dark", height=580, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    hovermode="x unified", xaxis=dict(domain=[0.07, 0.91], tickvals=ticks_filtrados, ticktext=etiquetas_filtradas),
+                    yaxis=dict(title="Caudal (Lps)", side="left", position=0.07, overlaying=None, showline=True),
+                    yaxis5=dict(title="Nivel Tanque (m)", side="left", position=0.00, overlaying="y", showline=True),
+                    yaxis2=dict(title="Presión (Kg/cm²)", side="right", position=0.92, overlaying="y", showline=True),
+                    yaxis3=dict(title="Niveles Pozo (m)", side="right", position=0.955, overlaying="y", showline=True),
+                    yaxis4=dict(title="Eléctricos (V / A)", side="right", position=1.00, overlaying="y", showline=True)
                 )
-                fig_line.add_trace(go.Scatter(
-                    x=[None], 
-                    y=[None], 
-                    mode='lines', 
-                    yaxis='y', 
-                    showlegend=False, 
-                    hoverinfo='skip'
-                ))
 
-                # Finalmente, renderizas el gráfico
                 st.plotly_chart(fig_line, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
