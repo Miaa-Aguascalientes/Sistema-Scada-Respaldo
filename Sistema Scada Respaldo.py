@@ -1167,33 +1167,15 @@ if "graficar_pozo" in params:
                         linecolor='white',
                         linewidth=1.5
                     ),
-
-                    if len(df) == 0 or df["Caudal"].dropna().empty:
-                        rango_y = [0, 10]
-                    else:
-                        rango_y = [0, df["Caudal"].max() * 1.1]
-
                     yaxis=dict(
-                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")),
+                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
                         tickfont=dict(color="#00d4ff"),
                         side="left",
                         anchor="free",
                         position=0.07,
-                    
-                    # Mostrar eje siempre
-                        showline=True,
-                        linecolor="white",
-                        linewidth=1.5,
-                        showgrid=True,
-                        zeroline=True,
-                    
-                    # Forzar rango aunque no haya datos
-                        range=[0, 10],
-                        fixedrange=False,
-                    
-                    # Mantener eje visible
-                        visible=True,
-                        automargin=True
+                        showline=True,        # Línea activa: Cierre del área de gráfica izquierda
+                        linecolor='white',
+                        linewidth=1.5
                     ),
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
