@@ -987,7 +987,6 @@ if "graficar_pozo" in params:
                     else: st.info("Sin datos.")
 
             # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
-            # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 
@@ -1202,6 +1201,11 @@ if "graficar_pozo" in params:
                     )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
+
+        except Exception as e: st.error(f"Error: {e}")
+            
+    st.stop()
+
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
