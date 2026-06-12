@@ -1194,13 +1194,27 @@ if "graficar_pozo" in params:
                         rangemode="tozero"
                     )
 
-                # Definimos el rango del eje X de forma segura
-                fig_line.update_xaxes(range=[df['FECHA'].min(), df['FECHA'].max()])
+                # 4. CONFIGURACIÓN DINÁMICA SEGURA
+                if not df.empty:
+                    # Solo actualizamos rangos si hay datos
+                    fig_line.update_xaxes(
+                        tickvals=ticks_filtrados,
+                        ticktext=etiquetas_filtradas,
+                        range=[df['FECHA'].min(), df['FECHA'].max()]
+                    )
 
-                # Lógica de trazas (mantenemos tu estructura)
-                for t in tags_grafico:
-                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
-                    fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines', yaxis=t['axis'], line=dict(color=t['color'])))
+                    # Trazas
+                    for t in tags_grafico:
+                        dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                        if not dft_l.empty:
+                            fig_line.add_trace(go.Scatter(
+                                x=dft_l['FECHA'], 
+                                y=dft_l['VALUE'], 
+                                name=t['label'], 
+                                mode='lines', 
+                                yaxis=t['axis'], 
+                                line=dict(color=t['color'])
+                            ))
 
                 st.plotly_chart(fig_line, use_container_width=True)
 
