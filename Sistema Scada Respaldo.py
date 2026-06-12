@@ -871,7 +871,7 @@ if "graficar_pozo" in params:
                 df = pd.concat(dfs_finales).sort_values('FECHA', ascending=True)
             
         except Exception as e:
-            st.error(f"Error al consultar la base de datos: {e}")
+            
             df = pd.DataFrame()
 
         # --- AHORA ESTO VA FUERA DEL TRY/EXCEPT ---
