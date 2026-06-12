@@ -988,10 +988,9 @@ if "graficar_pozo" in params:
 
             # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
 # 1. INICIALIZACIÓN: Creamos el objeto Figure y el Layout SIEMPRE, sin importar si hay datos o no.
-# 1. INICIALIZACIÓN FUERA DEL IF: El lienzo y sus ejes se definen SIEMPRE.
+# 1. INICIALIZAMOS EL LIENZO Y DEFINIMOS EL LAYOUT SIEMPRE
 fig_line = go.Figure()
 
-# Definimos el Layout completo aquí. Esto obliga a Plotly a pintar los ejes (incluyendo yaxis/caudal)
 fig_line.update_layout(
     template="plotly_dark", 
     height=580, 
@@ -1011,6 +1010,7 @@ fig_line.update_layout(
         spikemode="across",
         spikecolor="rgba(255, 255, 255, 0.6)"   
     ),
+    # Estos ejes se definen aquí para que el gráfico sea visible SIEMPRE
     yaxis5=dict(title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), tickfont=dict(color="#00ffcc"), side="left", overlaying="y", anchor="free", position=0.00, showline=True, linecolor='white', linewidth=1.5),
     yaxis=dict(title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), tickfont=dict(color="#00d4ff"), side="left", anchor="free", position=0.07, showline=True, linecolor='white', linewidth=1.5),
     yaxis2=dict(title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), tickfont=dict(color="#00ff00"), side="right", overlaying="y", anchor="free", position=0.92, showline=True, linecolor='white', linewidth=1.5),
@@ -1018,7 +1018,7 @@ fig_line.update_layout(
     yaxis4=dict(title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), tickfont=dict(color="#ff8000"), side="right", overlaying="y", anchor="free", position=1.00, showline=True, linecolor='white', linewidth=1.5, rangemode="tozero")
 )
 
-# 2. LÓGICA DE DATOS: Solo poblamos si el DataFrame tiene contenido
+# 2. LÓGICA DE DATOS: Solo poblamos las líneas si hay datos
 if not df.empty:
     df['FECHA'] = pd.to_datetime(df['FECHA'])
     eje_tiempo_global = sorted(df['FECHA'].unique())
@@ -1027,23 +1027,21 @@ if not df.empty:
     for t in tags_grafico:
         dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
         
-        # Filtro de registros mínimos
+        # Lógica de respaldo SQL (si len <= 3)
         if len(dft_l) <= 3:
-            # Aquí va tu lógica de respaldo SQL
             fecha_limite = f_ini - timedelta(days=30)
             q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
             df_ultimo_reg = pd.read_sql(q_ultimo, engine)
-            
             if not df_ultimo_reg.empty:
                 df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                 dft_l = df_ultimo_reg
             else:
                 dft_l = pd.DataFrame([{'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini)}])
 
-        # Añadir trazas de datos
+        # Añadir trazado
         fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines+markers', line=dict(color=t['color'], width=2.2), yaxis=t['axis'], showlegend=True, hoverinfo="skip"))
         
-        # Lógica de merge_asof para el hover
+        # Merge y Hover
         dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%d-%m-%Y %H:%M:%S')
         df_tag_maestro = pd.merge_asof(df_interactivo, dft_l, left_on='FECHA_INDEX', right_on='FECHA', direction='backward')
         df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
@@ -1051,12 +1049,12 @@ if not df.empty:
         
         fig_line.add_trace(go.Scatter(x=df_interactivo['FECHA_INDEX'], y=df_tag_maestro['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=0.01), yaxis=t['axis'], showlegend=False, customdata=df_tag_maestro['HORA_REAL'].tolist(), hovertext=df_tag_maestro['VALUE'].tolist(), hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>", hoverlabel=dict(bordercolor=t['color'])))
 
-    # Líneas verticales
+    # Líneas de tiempo
     fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
     for d in fechas_lineas:
         fig_line.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="white", opacity=0.5)
 
-# 3. RENDERIZADO FINAL: Se ejecuta SIEMPRE
+# 3. RENDERIZADO FINAL
 st.plotly_chart(fig_line, use_container_width=True)
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
