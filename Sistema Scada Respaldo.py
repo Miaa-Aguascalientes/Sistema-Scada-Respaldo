@@ -1167,6 +1167,12 @@ if "graficar_pozo" in params:
                         linecolor='white',
                         linewidth=1.5
                     ),
+
+                    if len(df) == 0 or df["Caudal"].dropna().empty:
+                        rango_y = [0, 10]
+                    else:
+                        rango_y = [0, df["Caudal"].max() * 1.1]
+
                     yaxis=dict(
                         title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")),
                         tickfont=dict(color="#00d4ff"),
