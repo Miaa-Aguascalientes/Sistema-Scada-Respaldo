@@ -837,20 +837,44 @@ if "graficar_pozo" in params:
     if tag_totalizado and tag_totalizado != 'N/A': tags_query.append(tag_totalizado)
 
     if tags_query:
-        try:
-            engine = get_mysql_scada_engine()
-            lista_tags_str = f"','".join(list(set(tags_query)))
-            
-            q = f"""
-                SELECT r.NAME as TagName, h.VALUE, h.FECHA 
-                FROM vfitagnumhistory h 
-                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                WHERE r.NAME IN ('{lista_tags_str}') 
-                AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
-            """
-            df = pd.read_sql(q, engine)
-            df['FECHA'] = pd.to_datetime(df['FECHA'])
-            df = df.sort_values('FECHA', ascending=True)
+            try:
+                engine = get_mysql_scada_engine()
+                lista_tags_str = f"','".join(list(set(tags_query)))
+                
+                q = f"""
+                    SELECT r.NAME as TagName, h.VALUE, h.FECHA 
+                    FROM vfitagnumhistory h 
+                    JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                    WHERE r.NAME IN ('{lista_tags_str}') 
+                    AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
+                """
+                df = pd.read_sql(q, engine)
+                df['FECHA'] = pd.to_datetime(df['FECHA'])
+                
+                # --- FILTRO EXCLUSIVO PARA CAUDAL ---
+                # Identifica cuáles de tus tags son de caudal (ejemplo: 'CAUDAL_POZO_1', 'FLUJO_X')
+                # Ajusta esta lista según los nombres exactos que tengan tus tags de caudal
+                tags_caudal = [t for t in tags_query if 'CAUDAL' in t.upper() or 'FLUJO' in t.upper()]
+                
+                dfs_finales = []
+                
+                for tag in df['TagName'].unique():
+                    temp_df = df[df['TagName'] == tag].copy()
+                    
+                    # Solo aplicamos la lógica de rellenar con ceros si el tag es de caudal
+                    if tag in tags_caudal:
+                        temp_df = temp_df.set_index('FECHA')
+                        idx = pd.date_range(start=f_ini, end=f_fin, freq='5T')
+                        temp_df = temp_df.reindex(idx).fillna(0)
+                        temp_df = temp_df.reset_index().rename(columns={'index': 'FECHA'})
+                        temp_df['TagName'] = tag
+                    
+                    dfs_finales.append(temp_df)
+                
+                df = pd.concat(dfs_finales)
+                # --- FIN DEL FILTRO ---
+                
+                df = df.sort_values('FECHA', ascending=True)
 
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
