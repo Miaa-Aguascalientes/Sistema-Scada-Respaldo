@@ -1168,14 +1168,26 @@ if "graficar_pozo" in params:
                         linewidth=1.5
                     ),
                     yaxis=dict(
-                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
+                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")),
                         tickfont=dict(color="#00d4ff"),
                         side="left",
                         anchor="free",
                         position=0.07,
-                        showline=True,        # Línea activa: Cierre del área de gráfica izquierda
-                        linecolor='white',
-                        linewidth=1.5
+                    
+                    # Mostrar eje siempre
+                        showline=True,
+                        linecolor="white",
+                        linewidth=1.5,
+                        showgrid=True,
+                        zeroline=True,
+                    
+                    # Forzar rango aunque no haya datos
+                        range=[0, 10],
+                        fixedrange=False,
+                    
+                    # Mantener eje visible
+                        visible=True,
+                        automargin=True
                     ),
                     yaxis2=dict(
                         title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
