@@ -1125,22 +1125,23 @@ if "graficar_pozo" in params:
                     legend=dict(orientation="h", y=1.08),
                     
                     xaxis=dict(
-                        title=dict(text="<b>Tiempo</b>"),
-                        domain=[0.07, 0.91],
-                                                
-                        tickvals=ticks_filtrados,
-                        ticktext=etiquetas_filtradas,
-                        tickangle=0,
-                        
-                        showline=False,
-                        
-                        autorange=True,
-                        showspikes=True,
-                        spikethickness=1, 
-                        spikedash="dash",
-                        spikemode="across",
-                        spikecolor="rgba(255, 255, 255, 0.6)"   
-                    ),
+                    title=dict(text="<b>Tiempo</b>"),
+                    domain=[0.07, 0.91],
+                    tickangle=0,
+                    showline=False,
+                    autorange=True,
+                    showspikes=True,
+                    spikethickness=1,
+                    spikedash="dash",
+                    spikemode="across",
+                    spikecolor="rgba(255, 255, 255, 0.6)",
+                    tickformatstops=[
+                        dict(dtickrange=[None, 1000], value="%H:%M:%S"),
+                        dict(dtickrange=[1000, 60000], value="%H:%M"),
+                        dict(dtickrange=[60000, 86400000], value="%d-%b"),
+                        dict(dtickrange=[86400000, 604800000], value="%d-%b-%Y"),
+                    ]
+                ),
                 
                     
                     # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
