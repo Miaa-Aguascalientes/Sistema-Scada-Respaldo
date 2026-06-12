@@ -997,7 +997,16 @@ if "graficar_pozo" in params:
                 fig_line = go.Figure()
                 
                 for t in tags_grafico:
-                    dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                        dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+                        if not dft_l.empty:
+                            fig_line.add_trace(go.Scatter(
+                                x=dft_l['FECHA'], 
+                                y=dft_l['VALUE'], 
+                                name=t['label'], 
+                                mode='lines', 
+                                yaxis=t['axis'], 
+                                line=dict(color=t['color'])
+                            ))
 
                     if len(dft_l) <= 3:
                         continue
@@ -1200,6 +1209,16 @@ if "graficar_pozo" in params:
                     )
 
                 )
+                fig_line.add_trace(go.Scatter(
+                    x=[None], 
+                    y=[None], 
+                    mode='lines', 
+                    yaxis='y', 
+                    showlegend=False, 
+                    hoverinfo='skip'
+                ))
+
+                # Finalmente, renderizas el gráfico
                 st.plotly_chart(fig_line, use_container_width=True)
 
         except Exception as e: st.error(f"Error: {e}")
