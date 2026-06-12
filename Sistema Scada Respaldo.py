@@ -990,6 +990,8 @@ if "graficar_pozo" in params:
 # 1. INICIALIZACIÓN: Creamos el objeto Figure y el Layout SIEMPRE, sin importar si hay datos o no.
 fig_line = go.Figure()
             
+            # 2. DEFINICIÓN DE EJES FORZADA
+            # Al definir el range, forzamos a Plotly a mantener el eje visible aunque no haya datos
             fig_line.update_layout(
                 template="plotly_dark",
                 height=580,
@@ -1009,14 +1011,15 @@ fig_line = go.Figure()
                     spikemode="across",
                     spikecolor="rgba(255, 255, 255, 0.6)"
                 ),
-                yaxis5=dict(title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), tickfont=dict(color="#00ffcc"), side="left", overlaying="y", anchor="free", position=0.00, showline=True, linecolor='white', linewidth=1.5),
-                yaxis=dict(title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), tickfont=dict(color="#00d4ff"), side="left", anchor="free", position=0.07, showline=True, linecolor='white', linewidth=1.5),
-                yaxis2=dict(title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), tickfont=dict(color="#00ff00"), side="right", overlaying="y", anchor="free", position=0.92, showline=True, linecolor='white', linewidth=1.5),
-                yaxis3=dict(title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), tickfont=dict(color="#ff00b4"), side="right", overlaying="y", anchor="free", position=0.955, showline=True, linecolor='white', linewidth=1.5),
-                yaxis4=dict(title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), tickfont=dict(color="#ff8000"), side="right", overlaying="y", anchor="free", position=1.00, showline=True, linecolor='white', linewidth=1.5, rangemode="tozero")
+                # El eje Y del Caudal (yaxis) es el que queremos asegurar
+                yaxis5=dict(title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), tickfont=dict(color="#00ffcc"), side="left", overlaying="y", anchor="free", position=0.00, showline=True, linecolor='white', linewidth=1.5, range=[0, 100]),
+                yaxis=dict(title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), tickfont=dict(color="#00d4ff"), side="left", anchor="free", position=0.07, showline=True, linecolor='white', linewidth=1.5, range=[0, 100]),
+                yaxis2=dict(title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), tickfont=dict(color="#00ff00"), side="right", overlaying="y", anchor="free", position=0.92, showline=True, linecolor='white', linewidth=1.5, range=[0, 50]),
+                yaxis3=dict(title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), tickfont=dict(color="#ff00b4"), side="right", overlaying="y", anchor="free", position=0.955, showline=True, linecolor='white', linewidth=1.5, range=[0, 300]),
+                yaxis4=dict(title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), tickfont=dict(color="#ff8000"), side="right", overlaying="y", anchor="free", position=1.00, showline=True, linecolor='white', linewidth=1.5, rangemode="tozero", range=[0, 500])
             )
 
-            # LÓGICA DE DATOS: Solo si hay datos, añadimos las trazas al lienzo ya creado.
+            # 3. LÓGICA DE DATOS
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
                 eje_tiempo_global = sorted(df['FECHA'].unique())
@@ -1026,39 +1029,29 @@ fig_line = go.Figure()
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
                     
                     if len(dft_l) <= 3:
-                        # Lógica de respaldo de SQL
                         fecha_limite = f_ini - timedelta(days=30)
                         q_ultimo = f"SELECT r.NAME as TagName, h.VALUE, h.FECHA FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME = '{t['tag']}' AND h.FECHA BETWEEN '{fecha_limite}' AND '{f_ini}' ORDER BY h.FECHA DESC LIMIT 1"
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
-                        
                         if not df_ultimo_reg.empty:
                             df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                             dft_l = df_ultimo_reg
                         else:
                             dft_l = pd.DataFrame([{'TagName': t['tag'], 'VALUE': 0.0, 'FECHA': pd.to_datetime(f_ini)}])
 
-                    # Traza con datos
                     fig_line.add_trace(go.Scatter(x=dft_l['FECHA'], y=dft_l['VALUE'], name=t['label'], mode='lines+markers', line=dict(color=t['color'], width=2.2), yaxis=t['axis'], showlegend=True, hoverinfo="skip"))
-
-                    # Lógica de merge y hover (tu código original)
                     dft_l['HORA_REAL'] = dft_l['FECHA'].dt.strftime('%d-%m-%Y %H:%M:%S')
                     df_tag_maestro = pd.merge_asof(df_interactivo, dft_l, left_on='FECHA_INDEX', right_on='FECHA', direction='backward')
                     df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
                     df_tag_maestro['HORA_REAL'] = df_tag_maestro['HORA_REAL'].bfill()
-                    
                     fig_line.add_trace(go.Scatter(x=df_interactivo['FECHA_INDEX'], y=df_tag_maestro['VALUE'], name=t['label'], mode='lines', line=dict(color=t['color'], width=0.01), yaxis=t['axis'], showlegend=False, customdata=df_tag_maestro['HORA_REAL'].tolist(), hovertext=df_tag_maestro['VALUE'].tolist(), hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>", hoverlabel=dict(bordercolor=t['color'])))
 
-                # Dibujo de líneas temporales (vrect/vline)
                 fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
                 for d in fechas_lineas:
                     fig_line.add_vrect(x0=d - pd.Timedelta(hours=0.15), x1=d + pd.Timedelta(hours=0.15), fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                     fig_line.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if d.dayofweek == 0 else "white", opacity=0.5, layer="above")
 
-            # RENDERIZADO FINAL: Se ejecuta SIEMPRE, el gráfico siempre se muestra.
             st.plotly_chart(fig_line, use_container_width=True)
-            
             st.stop()
-
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
