@@ -307,8 +307,14 @@ def cargar_sectores_poligonos():
             conn.close()
 
 # 2.7. Funcion para cambiar el formato de horas
-
-    
+def formato_hora(decimal):
+    try:
+        if decimal == "N/A" or decimal is None: return "00:00"
+        horas = int(float(decimal))
+        minutos = int((float(decimal) - horas) * 60)
+        return f"{horas:02d}:{minutos:02d}"
+    except:
+        return "00:00"
 
 # 2.8. Funcion para el color de los sectores
 def get_blink_icon(color):
@@ -3046,9 +3052,10 @@ if sectores_data:
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-            data_arranque = d(info['h_arranque'])[0]
-            data_paro = d(info['h_paro'])[0]
-            
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            h_arr_fmt = formato_hora(h_arr_val)
+            h_par_fmt = formato_hora(h_par_val)
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
@@ -3123,12 +3130,12 @@ if sectores_data:
                         </table>
                         <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>▶️ Arranque: <b>{data_arranque}</b></span>
-                            
+                            <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>⏹️ Paro: <b>{data_paro}</b></span>
-                            
+                            <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
                         </div>
 
                         <div style="border-top: 1px solid #333; padding-top: 10px;">
