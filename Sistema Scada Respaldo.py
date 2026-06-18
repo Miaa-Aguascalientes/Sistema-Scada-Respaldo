@@ -375,16 +375,6 @@ def cargar_mapa_pozos_desde_db():
     except:
         return {}
         
-def obtener_hora_real(valor):
-    try:
-        m = float(valor)
-        if m < 24:
-            m = (int(m) * 60) + ((m - int(m)) * 100)
-            
-        return time(int((m // 60) % 24), int(m % 60))
-    except:
-        return time(0, 0)
-
 
 # 3.2. Funcion para optener la base de datos Diccionario_de_tanques
 @st.cache_data(ttl=3600)
@@ -3077,22 +3067,20 @@ if sectores_data:
             h_arr_raw, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
 
-            # FUNCIÓN PARA EL FORMATEO (dentro del bucle)
+        # 2. FUNCIÓN DE PROCESAMIENTO (simplificada y centralizada)
             def procesar_hora(valor, formato):
                 if formato == "N/A" or valor is None:
                     return "--:--"
                 try:
-                    obj_time = convertir_a_hora_real(valor)
+                # Usamos la función que tú ya tienes definida globalmente
+                    obj_time = obtener_hora_real(valor)
                     return obj_time.strftime("%H:%M")
                 except:
                     return "00:00"
 
+        # 3. ASIGNACIÓN ÚNICA (aquí se hace el cálculo una sola vez)
             h_arr_fmt = procesar_hora(h_arr_raw, f_h_arr)
             h_par_fmt = procesar_hora(h_par_raw, f_h_par)
-
-            # Formateamos solo para mostrar en el string, si el objeto existe
-            h_arr_fmt = h_arr_obj.strftime("%H:%M") if h_arr_obj else "00:00"
-            h_par_fmt = h_par_obj.strftime("%H:%M") if h_par_obj else "00:00"
             
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
