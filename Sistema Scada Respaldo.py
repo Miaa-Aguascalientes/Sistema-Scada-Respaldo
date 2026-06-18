@@ -3067,17 +3067,7 @@ if sectores_data:
             h_arr_raw, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
 
-        # 2. FUNCIÓN DE PROCESAMIENTO (simplificada y centralizada)
-            def procesar_hora(valor, formato):
-                if formato == "N/A" or valor is None:
-                    return "--:--"
-                try:
-                # Usamos la función que tú ya tienes definida globalmente
-                    obj_time = obtener_hora_real(valor)
-                    return obj_time.strftime("%H:%M")
-                except:
-                    return "00:00"
-
+    
         # 3. ASIGNACIÓN ÚNICA (aquí se hace el cálculo una sola vez)
             h_arr_fmt = procesar_hora(h_arr_raw, f_h_arr)
             h_par_fmt = procesar_hora(h_par_raw, f_h_par)
