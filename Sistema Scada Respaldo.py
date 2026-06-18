@@ -309,10 +309,17 @@ def cargar_sectores_poligonos():
 # 2.7. Funcion para cambiar el formato de horas
 def convertir_a_hora(valor):
     try:
+        # PRIMERO: Forzamos a que sea un float
         m = float(valor)
-        # Calcula horas y minutos, asegurando que esté en formato de 24 horas
+        
+        # SI EL VALOR ES MENOR A 24, es probable que la base de datos te esté dando
+        # la hora en formato decimal (ej: 22.10), no en minutos.
+        # Si es formato decimal, multiplicamos por 60 para convertirlo a minutos.
+        if m < 24:
+            m = (int(m) * 60) + ((m - int(m)) * 100)
+            
         return time(int((m // 60) % 24), int(m % 60))
-    except (ValueError, TypeError):
+    except:
         return time(0, 0)
 
 # 2.8. Funcion para el color de los sectores
