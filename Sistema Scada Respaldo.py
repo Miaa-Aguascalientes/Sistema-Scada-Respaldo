@@ -309,12 +309,9 @@ def cargar_sectores_poligonos():
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
     try:
-        if decimal == "N/A" or decimal is None: return "00:00"
-        horas = int(float(decimal))
-        minutos = int((float(decimal) - horas) * 60)
-        return f"{horas:02d}:{minutos:02d}"
-    except:
-        return "00:00"
+        m = float(valor)
+            return time(int((m // 60) % 24), int(m % 60))
+        except: return time(0, 0)
 
 # 2.8. Funcion para el color de los sectores
 def get_blink_icon(color):
