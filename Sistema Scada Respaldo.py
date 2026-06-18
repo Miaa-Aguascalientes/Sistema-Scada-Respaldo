@@ -3052,8 +3052,8 @@ if sectores_data:
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-            h_arr_val, f_h_arr = d(info['H_arranque']) if not is_st else (0.0, "N/A")
-            h_par_val, f_h_par = d(info['H_paro']) if not is_st else (0.0, "N/A")
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
             h_arr_fmt = formato_hora(h_arr_val)
             h_par_fmt = formato_hora(h_par_val)
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
