@@ -243,6 +243,7 @@ def cargar_datos_scada(lista_tags):
     engine = get_mysql_scada_engine()
     if not engine or not lista_tags: return {}
     try:
+      
         tags_str = "', '".join(lista_tags)
         query = f"""
             SELECT r.NAME, h.VALUE, h.FECHA 
@@ -253,8 +254,7 @@ def cargar_datos_scada(lista_tags):
         """
         df = pd.read_sql(query, engine)
         
-        # Retorna el valor crudo (row['VALUE']) y la fecha cruda (row['FECHA'])
-        return {row['NAME']: (row['VALUE'], row['FECHA']) for _, row in df.iterrows()}
+        return {row['NAME']: (row['VALUE'], row['FECHA'].strftime('%d/%m %H:%M') if row['FECHA'] else "N/A") for _, row in df.iterrows()}
     except Exception as e:
         return {}
 
