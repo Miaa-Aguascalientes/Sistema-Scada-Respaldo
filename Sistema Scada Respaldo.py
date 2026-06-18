@@ -307,20 +307,8 @@ def cargar_sectores_poligonos():
             conn.close()
 
 # 2.7. Funcion para cambiar el formato de horas
-def convertir_a_hora(valor):
-    try:
-        # PRIMERO: Forzamos a que sea un float
-        m = float(valor)
-        
-        # SI EL VALOR ES MENOR A 24, es probable que la base de datos te esté dando
-        # la hora en formato decimal (ej: 22.10), no en minutos.
-        # Si es formato decimal, multiplicamos por 60 para convertirlo a minutos.
-        if m < 24:
-            m = (int(m) * 60) + ((m - int(m)) * 100)
-            
-        return time(int((m // 60) % 24), int(m % 60))
-    except:
-        return time(0, 0)
+def formato_hora(decimal):
+    
 
 # 2.8. Funcion para el color de los sectores
 def get_blink_icon(color):
@@ -374,7 +362,6 @@ def cargar_mapa_pozos_desde_db():
         return nuevo_mapa
     except:
         return {}
-        
 
 # 3.2. Funcion para optener la base de datos Diccionario_de_tanques
 @st.cache_data(ttl=3600)
@@ -3047,10 +3034,6 @@ if sectores_data:
             continue
 
     fg_sectores.add_to(m)
-
-
-
-
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
     for id_p, info in mapa_pozos_dict.items():
@@ -3064,13 +3047,10 @@ if sectores_data:
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
             
-            h_arr_raw, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
-            h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            
 
-    
-        # 3. ASIGNACIÓN ÚNICA (aquí se hace el cálculo una sola vez)
-            h_arr_fmt = procesar_hora(h_arr_raw, f_h_arr)
-            h_par_fmt = procesar_hora(h_par_raw, f_h_par)
             
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
