@@ -307,7 +307,7 @@ def cargar_sectores_poligonos():
             conn.close()
 
 # 2.7. Funcion para cambiar el formato de horas
-def formato_hora(decimal):
+def convertir_a_hora(valor):
     try:
         m = float(valor)
         # Calcula horas y minutos, asegurando que esté en formato de 24 horas
@@ -3051,10 +3051,13 @@ if sectores_data:
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+            
             h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
-            h_arr_fmt = formato_hora(h_arr_val)
-            h_par_fmt = formato_hora(h_par_val)
+            
+            h_arr_fmt = convertir_a_hora(h_arr_val).strftime("%H:%M")
+            h_par_fmt = convertir_a_hora(h_par_val).strftime("%H:%M")
+            
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
