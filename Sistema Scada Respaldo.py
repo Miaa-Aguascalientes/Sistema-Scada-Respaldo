@@ -3046,11 +3046,8 @@ if sectores_data:
             dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
-            
-            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
-            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
-            
-
+            arranque, f_arranque = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            paro, f_paro = d(info['h_paro']) if not is_st else (0.0, "N/A")
             
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
@@ -3126,11 +3123,11 @@ if sectores_data:
                         </table>
                         <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                            <span>▶️ Arranque: <b>{f_h_arr}</b></span>
+                            <span>▶️ Arranque: <b>{arranque}</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px;">
-                            <span>⏹️ Paro: <b>{f_h_par}</b></span>
+                            <span>⏹️ Paro: <b>{paro}</b></span>
                             <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
                         </div>
 
