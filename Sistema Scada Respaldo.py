@@ -3052,11 +3052,16 @@ if sectores_data:
             tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
             col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
             
-            h_arr_val, f_h_arr = d(info['H_arranque']) if not is_st else (0.0, "N/A")
-            h_par_val, f_h_par = d(info['H_paro']) if not is_st else (0.0, "N/A")
-            
-            h_arr_fmt = convertir_a_hora(h_arr_val).strftime("%H:%M")
-            h_par_fmt = convertir_a_hora(h_par_val).strftime("%H:%M")
+            h_arr_raw, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+
+            # Convertimos a objeto time solo si no es "N/A"
+            h_arr_obj = convertir_a_hora(h_arr_raw) if f_h_arr != "N/A" else None
+            h_par_obj = convertir_a_hora(h_par_raw) if f_h_par != "N/A" else None
+
+            # Formateamos solo para mostrar en el string, si el objeto existe
+            h_arr_fmt = h_arr_obj.strftime("%H:%M") if h_arr_obj else "00:00"
+            h_par_fmt = h_par_obj.strftime("%H:%M") if h_par_obj else "00:00"
             
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
