@@ -3077,9 +3077,18 @@ if sectores_data:
             h_arr_raw, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
             h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
 
-            # Convertimos a objeto time solo si no es "N/A"
-            h_arr_obj = obtener_hora_real(h_arr_raw) if f_h_arr
-            h_par_obj = obtener_hora_real(h_par_raw) if f_h_par
+            # FUNCIÓN PARA EL FORMATEO (dentro del bucle)
+            def procesar_hora(valor, formato):
+                if formato == "N/A" or valor is None:
+                    return "--:--"
+                try:
+                    obj_time = convertir_a_hora_real(valor)
+                    return obj_time.strftime("%H:%M")
+                except:
+                    return "00:00"
+
+            h_arr_fmt = procesar_hora(h_arr_raw, f_h_arr)
+            h_par_fmt = procesar_hora(h_par_raw, f_h_par)
 
             # Formateamos solo para mostrar en el string, si el objeto existe
             h_arr_fmt = h_arr_obj.strftime("%H:%M") if h_arr_obj else "00:00"
