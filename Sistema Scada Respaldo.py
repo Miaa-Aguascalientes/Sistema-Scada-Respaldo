@@ -374,6 +374,17 @@ def cargar_mapa_pozos_desde_db():
         return nuevo_mapa
     except:
         return {}
+        
+def obtener_hora_real(valor):
+    try:
+        m = float(valor)
+        if m < 24:
+            m = (int(m) * 60) + ((m - int(m)) * 100)
+            
+        return time(int((m // 60) % 24), int(m % 60))
+    except:
+        return time(0, 0)
+
 
 # 3.2. Funcion para optener la base de datos Diccionario_de_tanques
 @st.cache_data(ttl=3600)
@@ -3048,17 +3059,7 @@ if sectores_data:
     fg_sectores.add_to(m)
 
 
-# Funcion para cambiar el formato de horas
-def convertir_a_hora_real(valor):
-    try:
-        # PRIMERO: Forzamos a que sea un float
-        m = float(valor)
-        if m < 24:
-            m = (int(m) * 60) + ((m - int(m)) * 100)
-            
-        return time(int((m // 60) % 24), int(m % 60))
-    except:
-        return time(0, 0)
+
 
     
 # 9.6. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ---------------------------------------------------------------------------------------------
@@ -3077,8 +3078,8 @@ def convertir_a_hora_real(valor):
             h_par_raw, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
 
             # Convertimos a objeto time solo si no es "N/A"
-            h_arr_obj = convertir_a_hora_real(h_arr_raw) if f_h_arr != "N/A" else None
-            h_par_obj = convertir_a_hora_real(h_par_raw) if f_h_par != "N/A" else None
+            h_arr_obj = obtener_hora_real(h_arr_raw) if f_h_arr
+            h_par_obj = obtener_hora_real(h_par_raw) if f_h_par
 
             # Formateamos solo para mostrar en el string, si el objeto existe
             h_arr_fmt = h_arr_obj.strftime("%H:%M") if h_arr_obj else "00:00"
