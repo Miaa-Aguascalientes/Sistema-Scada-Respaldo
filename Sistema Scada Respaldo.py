@@ -3124,11 +3124,11 @@ if sectores_data:
                         <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; padding-top: 5px;">HORARIOS</div>
                         <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
                             <span>▶️ Arranque: <b>{arranque}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_arranque}</span>
                         </div>
                         <div style="display: flex; align-items: baseline; font-size: 11px;">
                             <span>⏹️ Paro: <b>{paro}</b></span>
-                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_paro}</span>
                         </div>
 
                         <div style="border-top: 1px solid #333; padding-top: 10px;">
