@@ -307,7 +307,7 @@ def cargar_sectores_poligonos():
             conn.close()
 
 # 2.7. Funcion para cambiar el formato de horas
-def formato_hora(decimal):
+
     
 
 # 2.8. Funcion para el color de los sectores
