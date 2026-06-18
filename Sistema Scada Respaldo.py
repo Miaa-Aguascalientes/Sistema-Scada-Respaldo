@@ -310,8 +310,10 @@ def cargar_sectores_poligonos():
 def formato_hora(decimal):
     try:
         m = float(valor)
-            return time(int((m // 60) % 24), int(m % 60))
-        except: return time(0, 0)
+        # Calcula horas y minutos, asegurando que esté en formato de 24 horas
+        return time(int((m // 60) % 24), int(m % 60))
+    except (ValueError, TypeError):
+        return time(0, 0)
 
 # 2.8. Funcion para el color de los sectores
 def get_blink_icon(color):
