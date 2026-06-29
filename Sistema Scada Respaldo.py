@@ -18,7 +18,7 @@ import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 import locale
-
+from shapely import wkt
 
 st.set_page_config(
     page_title="Sistema Scada", 
