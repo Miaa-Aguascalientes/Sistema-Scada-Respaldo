@@ -2860,10 +2860,10 @@ with st.sidebar:
         if gdf_colonias_lista is not None:
             col_sel = gdf_colonias_lista[gdf_colonias_lista['Col_atl'] == colonia_buscada]
             if not col_sel.empty:
-                # Usamos el centroide de la geometría para centrar el mapa
-                centro = col_sel.geometry.centroid.iloc[0]
+                colonia_resaltada = col_sel.iloc[0] # Guardamos los datos de la colonia
+                centro = colonia_resaltada.geometry.centroid
                 st.session_state.centro_mapa = [centro.y, centro.x]
-                st.session_state.zoom_inicial = 15.5            
+                st.session_state.zoom_inicial = 15.5         
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
