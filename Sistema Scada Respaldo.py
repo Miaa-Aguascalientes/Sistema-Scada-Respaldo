@@ -2863,7 +2863,7 @@ with st.sidebar:
         ver_tanques = st.checkbox("Mostrar Tanques", value=False)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
         ver_macromedidores = st.checkbox("Macromedidores", value=False)
-        gdf_colonias = st.checkbox("Colonias", value=False)
+        ver_colonias = st.checkbox("🏘️ Ver Colonias", value=False)
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
@@ -3357,23 +3357,25 @@ if sectores_data:
                 continue
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
-    gdf_colonias = get_todas_las_colonias()
+    if ver_colonias: # <--- Este es el enlace con tu nuevo checkbox
+        gdf_colonias = get_todas_las_colonias() 
 
-    if gdf_colonias is not None and not gdf_colonias.empty:
-        fg_colonias = folium.FeatureGroup(name="Colonias")
-        folium.GeoJson(
-            gdf_colonias,
-            name="Colonias",
-            style_function=lambda feature: {
-                'fillColor': '#2ECC71',
-                'color': '#27AE60',
-                'weight': 1,
-                'fillOpacity': 0.2
-            },
-            tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
-        ).add_to(fg_colonias)
-        
-        fg_colonias.add_to(m)
+        if gdf_colonias is not None and not gdf_colonias.empty:
+            fg_colonias = folium.FeatureGroup(name="Colonias")
+            
+            folium.GeoJson(
+                gdf_colonias,
+                name="Colonias",
+                style_function=lambda feature: {
+                    'fillColor': '#2ECC71',
+                    'color': '#27AE60',
+                    'weight': 1,
+                    'fillOpacity': 0.2
+                },
+                tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
+            ).add_to(fg_colonias)
+            
+            fg_colonias.add_to(m)
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
