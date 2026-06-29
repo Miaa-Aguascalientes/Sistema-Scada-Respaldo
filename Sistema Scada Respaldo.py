@@ -3377,21 +3377,28 @@ if sectores_data:
                 continue
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
-    if ver_colonias: # <--- Este es el enlace con tu nuevo checkbox
+    if ver_colonias:
         gdf_colonias = get_todas_las_colonias() 
 
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
+            def estilo_colonia(feature):
+                nombre_actual = feature['properties']['Col_atl']
+                # Si esta colonia es la seleccionada, la ponemos en rojo, si no, verde tenue
+                es_seleccionada = (colonia_resaltada is not None and nombre_actual == colonia_resaltada['Col_atl'])
+                
+                return {
+                    'fillColor': '#E74C3C' if es_seleccionada else '#2ECC71',
+                    'color': '#C0392B' if es_seleccionada else '#27AE60',
+                    'weight': 3 if es_seleccionada else 1,
+                    'fillOpacity': 0.6 if es_seleccionada else 0.2
+                }
+
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
-                style_function=lambda feature: {
-                    'fillColor': '#2ECC71',
-                    'color': '#27AE60',
-                    'weight': 1,
-                    'fillOpacity': 0.2
-                },
+                style_function=estilo_colonia, # Usamos la función lógica aquí
                 tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
             ).add_to(fg_colonias)
             
