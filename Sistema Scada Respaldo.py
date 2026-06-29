@@ -312,7 +312,7 @@ def get_todas_las_colonias():
     # Eliminamos el filtro WHERE para obtener todo el diccionario
     query = "SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias"
     try:
-        df = pd.read_sql(query, get_engine_telemetria())
+        df = pd.read_sql(query, get_mysql_telemetria_engine())
         if not df.empty:
             df['geometry'] = df['geom_wkt'].apply(wkt.loads)
             gdf = gpd.GeoDataFrame(df, geometry='geometry')
