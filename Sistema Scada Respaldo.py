@@ -3397,29 +3397,34 @@ if sectores_data:
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
-            def estilo_final(feature):
-                # Obtenemos nombre del polígono que folium está dibujando
+            def estilo_normal(feature):
                 nombre_actual = feature.get('properties', {}).get('Col_atl')
-                
-                # Obtenemos la colonia que guardamos en el estado
                 col_sel = st.session_state.get('colonia_resaltada')
-                
-                # Verificamos si es un "match"
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
                 return {
-                    'fillColor': '#F1C40F' if es_match else '#2ECC71', # Amarillo si es match
-                    'color': '#F39C12' if es_match else '#27AE60',    # Naranja oscuro para el borde
+                    'fillColor': '#F1C40F' if es_match else '#2ECC71',
+                    'color': '#F39C12' if es_match else '#27AE60',
                     'weight': 3 if es_match else 1,
                     'fillOpacity': 0.6 if es_match else 0.2
                 }
-            
+
+            # ESTO ES LO QUE HACE QUE SE RESALTE CON EL MOUSE
+            def estilo_hover(feature):
+                return {
+                    'fillOpacity': 0.8,
+                    'weight': 4,
+                    'color': '#34495E' # Un color oscuro para marcar el borde al pasar el mouse
+                }
+
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
-                style_function=estilo_final,
+                style_function=estilo_normal,
+                highlight_function=estilo_hover, # <--- Aquí ocurre la magia
                 tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
             ).add_to(fg_colonias)
+            
             fg_colonias.add_to(m)
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
