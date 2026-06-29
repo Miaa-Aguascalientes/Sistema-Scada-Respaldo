@@ -2820,9 +2820,10 @@ with st.sidebar:
     if 'gdf_colonias_lista' not in st.session_state:
         st.session_state.gdf_colonias_lista = get_todas_las_colonias()
     
-    # 2. Obtenemos la lista para el selectbox
     gdf_temp = st.session_state.gdf_colonias_lista
-    lista_colonias = sorted(gdf_temp['Col_atl'].unique().tolist()) if gdf_temp is not None else []
+    
+    # Creamos lista vacía si no hay datos, para que el selectbox no se rompa
+    lista_colonias = sorted(gdf_temp['Col_atl'].unique().tolist()) if (gdf_temp is not None and 'Col_atl' in gdf_temp.columns) else []
     
     colonia_buscada = st.sidebar.selectbox(
         "🏘️ Localizar Colonia",
@@ -2861,10 +2862,9 @@ with st.sidebar:
 
     # NUEVA INTEGRACIÓN PARA COLONIAS
     elif colonia_buscada and colonia_buscada != "":
-        if 'gdf_colonias_lista' in st.session_state and st.session_state.gdf_colonias_lista is not None:
-            df_colonias = st.session_state.gdf_colonias_lista
-            col_sel = df_colonias[df_colonias['Col_atl'] == colonia_buscada]
-            
+        df = st.session_state.gdf_colonias_lista
+        if df is not None:
+            col_sel = df[df['Col_atl'] == colonia_buscada]
             if not col_sel.empty:
                 colonia_resaltada = col_sel.iloc[0]
                 centro = colonia_resaltada.geometry.centroid
@@ -3384,30 +3384,30 @@ if sectores_data:
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
     if ver_colonias:
-        gdf_colonias = get_todas_las_colonias() 
-
+        gdf_colonias = st.session_state.gdf_colonias_lista # Usamos el mismo estado
+        
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
-            def estilo_colonia(feature):
-                nombre_actual = feature['properties']['Col_atl']
-                # Si esta colonia es la seleccionada, la ponemos en rojo, si no, verde tenue
-                es_seleccionada = (colonia_resaltada is not None and nombre_actual == colonia_resaltada['Col_atl'])
+            # Usamos una función simple para el estilo
+            def estilo_final(feature):
+                # Si colonia_resaltada existe Y el nombre coincide, resaltamos
+                nombre_feature = feature['properties']['Col_atl']
+                es_match = (colonia_resaltada is not None and nombre_feature == colonia_resaltada['Col_atl'])
                 
                 return {
-                    'fillColor': '#E74C3C' if es_seleccionada else '#2ECC71',
-                    'color': '#C0392B' if es_seleccionada else '#27AE60',
-                    'weight': 3 if es_seleccionada else 1,
-                    'fillOpacity': 0.6 if es_seleccionada else 0.2
+                    'fillColor': '#E74C3C' if es_match else '#2ECC71',
+                    'color': '#C0392B' if es_match else '#27AE60',
+                    'weight': 3 if es_match else 1,
+                    'fillOpacity': 0.6 if es_match else 0.2
                 }
-
+            
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
-                style_function=estilo_colonia, # Usamos la función lógica aquí
+                style_function=estilo_final,
                 tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
             ).add_to(fg_colonias)
-            
             fg_colonias.add_to(m)
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
