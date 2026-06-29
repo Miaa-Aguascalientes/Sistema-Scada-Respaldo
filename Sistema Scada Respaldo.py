@@ -570,8 +570,8 @@ def cargar_medidores_desde_db():
         
 # 3.4. Funcion para optener los macromedidores desde la base de datos
 @st.cache_data(ttl=60)
-def get_data():
-    return pd.read_sql("SELECT * FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC", get_engine())
+def get_mysql_scada_engine():
+    return pd.read_sql("SELECT * FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC", get_mysql_scada_engine())
 
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
