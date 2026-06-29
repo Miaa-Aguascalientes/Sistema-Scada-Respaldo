@@ -2817,14 +2817,20 @@ with st.sidebar:
         key="busqueda_sectores"
     )
 
+    # 8.5.1. BUSCADOR DE COLONIAS (BLINDADO)
     if 'gdf_colonias_lista' not in st.session_state:
         st.session_state.gdf_colonias_lista = get_todas_las_colonias()
     
-    gdf_temp = st.session_state.gdf_colonias_lista
+    df_col = st.session_state.gdf_colonias_lista
     
-    # Creamos lista vacía si no hay datos, para que el selectbox no se rompa
-    lista_colonias = sorted(gdf_temp['Col_atl'].unique().tolist()) if (gdf_temp is not None and 'Col_atl' in gdf_temp.columns) else []
-    
+    # Validamos que el DataFrame sea válido y contenga 'Col_atl'
+    if df_col is not None and not df_col.empty and 'Col_atl' in df_col.columns:
+        lista_colonias = sorted(df_col['Col_atl'].unique().tolist())
+    else:
+        lista_colonias = []
+        if df_col is not None and 'Col_atl' not in df_col.columns:
+            st.sidebar.error("Error: La columna 'Col_atl' no existe en los datos.")
+
     colonia_buscada = st.sidebar.selectbox(
         "🏘️ Localizar Colonia",
         options=[""] + lista_colonias,
@@ -2862,14 +2868,16 @@ with st.sidebar:
 
     # NUEVA INTEGRACIÓN PARA COLONIAS
     elif colonia_buscada and colonia_buscada != "":
-        df = st.session_state.gdf_colonias_lista
-        if df is not None:
-            col_sel = df[df['Col_atl'] == colonia_buscada]
-            if not col_sel.empty:
-                colonia_resaltada = col_sel.iloc[0]
-                centro = colonia_resaltada.geometry.centroid
-                st.session_state.centro_mapa = [centro.y, centro.x]
-                st.session_state.zoom_inicial = 15.5
+        # Seguridad extra para acceder a la variable
+        if 'gdf_colonias_lista' in st.session_state and st.session_state.gdf_colonias_lista is not None:
+            df = st.session_state.gdf_colonias_lista
+            if 'Col_atl' in df.columns:
+                col_sel = df[df['Col_atl'] == colonia_buscada]
+                if not col_sel.empty:
+                    colonia_resaltada = col_sel.iloc[0]
+                    centro = colonia_resaltada.geometry.centroid
+                    st.session_state.centro_mapa = [centro.y, centro.x]
+                    st.session_state.zoom_inicial = 15.5
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
