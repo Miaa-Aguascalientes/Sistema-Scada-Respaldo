@@ -19,6 +19,7 @@ from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
 import locale
 from shapely import wkt
+import geopandas as gpd
 
 st.set_page_config(
     page_title="Sistema Scada", 
