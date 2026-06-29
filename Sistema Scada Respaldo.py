@@ -2868,16 +2868,16 @@ with st.sidebar:
 
     # NUEVA INTEGRACIÓN PARA COLONIAS
     elif colonia_buscada and colonia_buscada != "":
-        # Seguridad extra para acceder a la variable
-        if 'gdf_colonias_lista' in st.session_state and st.session_state.gdf_colonias_lista is not None:
-            df = st.session_state.gdf_colonias_lista
-            if 'Col_atl' in df.columns:
-                col_sel = df[df['Col_atl'] == colonia_buscada]
-                if not col_sel.empty:
-                    colonia_resaltada = col_sel.iloc[0]
-                    centro = colonia_resaltada.geometry.centroid
-                    st.session_state.centro_mapa = [centro.y, centro.x]
-                    st.session_state.zoom_inicial = 15.5
+        df = st.session_state.gdf_colonias_lista
+        if df is not None:
+            col_sel = df[df['Col_atl'] == colonia_buscada]
+            if not col_sel.empty:
+                # GUARDAMOS LA COLONIA SELECCIONADA EN EL ESTADO
+                st.session_state.colonia_resaltada = col_sel.iloc[0]
+                
+                centro = st.session_state.colonia_resaltada.geometry.centroid
+                st.session_state.centro_mapa = [centro.y, centro.x]
+                st.session_state.zoom_inicial = 15.5
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
@@ -3398,18 +3398,17 @@ if sectores_data:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
             def estilo_final(feature):
-                # Usamos .get() para evitar el KeyError si falta la propiedad
-                props = feature.get('properties', {})
-                nombre_actual = props.get('Col_atl', 'Desconocida')
+                # Obtenemos nombre del polígono que folium está dibujando
+                nombre_actual = feature.get('properties', {}).get('Col_atl')
                 
-                # Obtenemos la colonia seleccionada de forma segura
+                # Obtenemos la colonia que guardamos en el estado
                 col_sel = st.session_state.get('colonia_resaltada')
                 
-                # Comparamos si es el match
+                # Verificamos si es un "match"
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
                 return {
-                    'fillColor': '#E74C3C' if es_match else '#2ECC71',
+                    'fillColor': '#E74C3C' if es_match else '#2ECC71', # Rojo si es match, Verde si no
                     'color': '#C0392B' if es_match else '#27AE60',
                     'weight': 3 if es_match else 1,
                     'fillOpacity': 0.6 if es_match else 0.2
