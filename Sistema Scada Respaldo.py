@@ -2832,7 +2832,7 @@ with st.sidebar:
             st.sidebar.error("Error: La columna 'Col_atl' no existe en los datos.")
 
     colonia_buscada = st.sidebar.selectbox(
-        "🏘️ Localizar Colonia",
+        "🏙️ Localizar Colonia",
         options=[""] + lista_colonias,
         format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
         key="busqueda_colonias"
@@ -2892,12 +2892,12 @@ with st.sidebar:
         
     # 8.8. CONTROL DE CAPAS ---
     with st.expander("🗺️ Control de Capas", expanded=False):
-        ver_sectores = st.checkbox("Mostrar Sectores", value=True)
-        ver_pozos = st.checkbox("Mostrar Pozos", value=True)
-        ver_tanques = st.checkbox("Mostrar Tanques", value=False)
-        ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
+        ver_sectores = st.checkbox("🏘️ Sectores", value=True)
+        ver_pozos = st.checkbox("💧 Pozos", value=True)
+        ver_tanques = st.checkbox("🛢️ Tanques", value=False)
+        ver_rebombeos = st.checkbox("🧊 Rebombeos", value=False) # Activado por defecto para facilitar localización
         ver_macromedidores = st.checkbox("Macromedidores", value=False)
-        ver_colonias = st.checkbox("🏘️ Ver Colonias", value=False)
+        ver_colonias = st.checkbox("🏙️ Colonias", value=False)
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
