@@ -306,6 +306,23 @@ def cargar_sectores_poligonos():
         if conn:
             conn.close()
 
+# Función corregida para leer el campo 'geom' directamente
+@st.cache_data(ttl=3600)
+def cargar_poligonos_colonias():
+    engine = get_mysql_telemetria_engine()
+    if not engine: return None
+    try:
+        # Consulta utilizando el nombre de campo exacto: 'geom'
+        query = "SELECT id_colonia, nombre, geom FROM colonias"
+        df = pd.read_sql(query, engine)
+        
+        # Convertimos el WKT del campo 'geom' a objetos geométricos
+        df['geometry'] = df['geom'].apply(wkt.loads)
+        return gpd.GeoDataFrame(df, geometry='geometry')
+    except Exception as e:
+        st.error(f"Error al cargar colonias desde campo 'geom': {e}")
+        return None
+
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
     try:
@@ -3332,6 +3349,27 @@ if sectores_data:
                 
             except Exception as e:
                 continue
-           
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)          
+
+# 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
+    gdf_colonias = cargar_poligonos_colonias() 
+
+    if gdf_colonias is not None and not gdf_colonias.empty:
+        fg_colonias = folium.FeatureGroup(name="Colonias")
+        
+        folium.GeoJson(
+            gdf_colonias,
+            name="Polígonos Colonias",
+            style_function=lambda feature: {
+                'fillColor': '#2ECC71',
+                'color': '#27AE60',
+                'weight': 2,
+                'fillOpacity': 0.2
+            },
+            tooltip=folium.GeoJsonTooltip(fields=['nombre'], aliases=['Colonia:'])
+        ).add_to(fg_colonias)
+        
+        fg_colonias.add_to(m)
+
+    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=750)
