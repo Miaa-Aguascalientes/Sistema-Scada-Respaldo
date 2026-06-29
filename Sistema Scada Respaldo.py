@@ -2817,6 +2817,16 @@ with st.sidebar:
         key="busqueda_sectores"
     )
 
+    gdf_colonias_lista = get_todas_las_colonias()
+    lista_colonias = sorted(gdf_colonias_lista['Col_atl'].unique().tolist()) if gdf_colonias_lista is not None else []
+    
+    colonia_buscada = st.selectbox(
+        "🏘️ Localizar Colonia",
+        options=[""] + lista_colonias,
+        format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
+        key="busqueda_colonias"
+    )
+
 
     # 8.6. ASIGNACIÓN DE POSICIÓN Y PRIORIDAD
     datos_sector_resaltado = None
@@ -2844,6 +2854,16 @@ with st.sidebar:
                 st.session_state.zoom_inicial = 14.5
             except:
                 pass
+
+    # NUEVA INTEGRACIÓN PARA COLONIAS
+    elif colonia_buscada:
+        if gdf_colonias_lista is not None:
+            col_sel = gdf_colonias_lista[gdf_colonias_lista['Col_atl'] == colonia_buscada]
+            if not col_sel.empty:
+                # Usamos el centroide de la geometría para centrar el mapa
+                centro = col_sel.geometry.centroid.iloc[0]
+                st.session_state.centro_mapa = [centro.y, centro.x]
+                st.session_state.zoom_inicial = 15.5            
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
