@@ -570,8 +570,21 @@ def cargar_medidores_desde_db():
         
 # 3.4. Funcion para optener los macromedidores desde la base de datos
 @st.cache_data(ttl=60)
-def get_mysql_scada_engine():
-    return pd.read_sql("SELECT * FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC", get_mysql_scada_engine())
+def get_data():
+    engine = get_mysql_scada_engine()
+    
+    # Si la conexión falla (engine es None), devolvemos un DF vacío
+    if engine is None:
+        st.error("No se pudo establecer conexión con la base de datos SCADA.")
+        return pd.DataFrame()
+        
+    try:
+        query = "SELECT POZO, FECHA_HORA_INICIO, DESCRIPCION, SUPERVISOR, ESTADO FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC"
+        df = pd.read_sql(query, engine)
+        return df
+    except Exception as e:
+        st.error(f"Error al ejecutar la consulta: {e}")
+        return pd.DataFrame() # Siempre retorna un DataFrame, nunca None
 
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
