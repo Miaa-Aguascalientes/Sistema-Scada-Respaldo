@@ -567,6 +567,11 @@ def cargar_medidores_desde_db():
     except Exception as e:
         st.error(f"Error al cargar datos: {e}")
         return {}
+        
+# 3.4. Funcion para optener los macromedidores desde la base de datos
+@st.cache_data(ttl=60)
+def get_data():
+    return pd.read_sql("SELECT * FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC", get_engine())
 
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
@@ -3435,3 +3440,30 @@ if sectores_data:
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=750)
+
+    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
+    st.markdown("---")
+    st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
+    
+    # 10.1. Carga de datos
+    df_incidencias = get_data()
+    
+    if df_incidencias is not None and not df_incidencias.empty:
+        # Filtramos si tienes una columna de 'ESTADO' o similar
+        # Si la tabla vw_incidencias_en_pozos YA SOLO trae los que están fuera, ignora el filtro
+        # Ejemplo: df_fuera = df_incidencias[df_incidencias['ESTADO'] == 'FUERA DE SERVICIO']
+        
+        # Formato visual
+        st.dataframe(
+            df_incidencias,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm"),
+                "POZO": st.column_config.TextColumn("Pozo"),
+                "MOTIVO": st.column_config.TextColumn("Motivo de falla"),
+                # Agrega aquí otras columnas que tengas en tu tabla
+            }
+        )
+    else:
+        st.success("✅ No hay pozos reportados fuera de servicio actualmente.")
