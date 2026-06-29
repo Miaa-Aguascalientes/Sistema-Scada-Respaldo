@@ -2860,15 +2860,16 @@ with st.sidebar:
                 pass
 
     # NUEVA INTEGRACIÓN PARA COLONIAS
-    elif colonia_buscada:
-        df_colonias = st.session_state.gdf_colonias_lista
-        if df_colonias is not None:
+    elif colonia_buscada and colonia_buscada != "":
+        if 'gdf_colonias_lista' in st.session_state and st.session_state.gdf_colonias_lista is not None:
+            df_colonias = st.session_state.gdf_colonias_lista
             col_sel = df_colonias[df_colonias['Col_atl'] == colonia_buscada]
+            
             if not col_sel.empty:
                 colonia_resaltada = col_sel.iloc[0]
                 centro = colonia_resaltada.geometry.centroid
                 st.session_state.centro_mapa = [centro.y, centro.x]
-                st.session_state.zoom_inicial = 15.5  
+                st.session_state.zoom_inicial = 15.5
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
