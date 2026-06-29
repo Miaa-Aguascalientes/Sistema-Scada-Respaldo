@@ -2820,10 +2820,9 @@ with st.sidebar:
     if 'gdf_colonias_lista' not in st.session_state:
         st.session_state.gdf_colonias_lista = get_todas_las_colonias()
     
-    gdf_colonias_lista = st.session_state.gdf_colonias_lista
-    
-    # 2. Preparamos la lista para el selectbox
-    lista_colonias = sorted(gdf_colonias_lista['Col_atl'].unique().tolist()) if gdf_colonias_lista is not None else []
+    # 2. Obtenemos la lista para el selectbox
+    gdf_temp = st.session_state.gdf_colonias_lista
+    lista_colonias = sorted(gdf_temp['Col_atl'].unique().tolist()) if gdf_temp is not None else []
     
     colonia_buscada = st.sidebar.selectbox(
         "🏘️ Localizar Colonia",
@@ -2862,14 +2861,14 @@ with st.sidebar:
 
     # NUEVA INTEGRACIÓN PARA COLONIAS
     elif colonia_buscada:
-        if 'gdf_colonias_lista' in st.session_state and st.session_state.gdf_colonias_lista is not None:
-            df_temp = st.session_state.gdf_colonias_lista
-            col_sel = df_temp[df_temp['Col_atl'] == colonia_buscada]
+        df_colonias = st.session_state.gdf_colonias_lista
+        if df_colonias is not None:
+            col_sel = df_colonias[df_colonias['Col_atl'] == colonia_buscada]
             if not col_sel.empty:
                 colonia_resaltada = col_sel.iloc[0]
                 centro = colonia_resaltada.geometry.centroid
                 st.session_state.centro_mapa = [centro.y, centro.x]
-                st.session_state.zoom_inicial = 15.5      
+                st.session_state.zoom_inicial = 15.5  
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
