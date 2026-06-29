@@ -3420,12 +3420,15 @@ if sectores_data:
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
-                style_function=estilo_normal,
-                highlight_function=estilo_hover, # <--- Aquí ocurre la magia
+                style_function=estilo_final,
+                highlight_function=estilo_hover,
                 tooltip=folium.GeoJsonTooltip(
-                    fields=['Col_atl', 'Pozos'], # Asegúrate de que 'pozos_asociados' sea el nombre real de tu columna
-                    aliases=['Colonia:', 'Pozos que abastecen:'],
-                    localize=True
+                    # Asegúrate de que estos nombres coincidan con las columnas de tu DF:
+                    # ['Col_atl', 'Pozos', 'Sector', 'Distrito']
+                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito'],
+                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:'],
+                    localize=True,
+                    sticky=True
                 )
             ).add_to(fg_colonias)
             
