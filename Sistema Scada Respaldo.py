@@ -3355,19 +3355,14 @@ if sectores_data:
 
     if gdf_colonias is not None and not gdf_colonias.empty:
         fg_colonias = folium.FeatureGroup(name="Colonias")
-        
         folium.GeoJson(
             gdf_colonias,
             name="Polígonos Colonias",
             style_function=lambda feature: {
-                'fillColor': '#2ECC71',
-                'color': '#27AE60',
-                'weight': 2,
-                'fillOpacity': 0.2
+                'fillColor': '#2ECC71', 'color': '#27AE60', 'weight': 2, 'fillOpacity': 0.2
             },
             tooltip=folium.GeoJsonTooltip(fields=['nombre'], aliases=['Colonia:'])
         ).add_to(fg_colonias)
-        
         fg_colonias.add_to(m)
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
