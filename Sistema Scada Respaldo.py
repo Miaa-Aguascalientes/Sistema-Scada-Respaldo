@@ -3441,6 +3441,8 @@ if sectores_data:
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=750)
 
+    # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
+
     # 10. SECCIÓN DE INCIDENCIAS DE POZOS
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
@@ -3448,22 +3450,24 @@ if sectores_data:
     # 10.1. Carga de datos
     df_incidencias = get_data()
     
-    if df_incidencias is not None and not df_incidencias.empty:
-        # Filtramos si tienes una columna de 'ESTADO' o similar
-        # Si la tabla vw_incidencias_en_pozos YA SOLO trae los que están fuera, ignora el filtro
-        # Ejemplo: df_fuera = df_incidencias[df_incidencias['ESTADO'] == 'FUERA DE SERVICIO']
-        
-        # Formato visual
-        st.dataframe(
-            df_incidencias,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm"),
-                "POZO": st.column_config.TextColumn("Pozo"),
-                "MOTIVO": st.column_config.TextColumn("Motivo de falla"),
-                # Agrega aquí otras columnas que tengas en tu tabla
-            }
-        )
+    # 10.2. Verificación de seguridad: ¿Es un DataFrame válido?
+    if isinstance(df_incidencias, pd.DataFrame):
+        if not df_incidencias.empty:
+            # Si el DataFrame no está vacío, mostramos la tabla
+            st.dataframe(
+                df_incidencias,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm"),
+                    "POZO": st.column_config.TextColumn("Pozo"),
+                    "MOTIVO": st.column_config.TextColumn("Motivo de falla"),
+                    # Añade aquí las columnas adicionales que tenga tu tabla vw_incidencias_en_pozos
+                }
+            )
+        else:
+            # Caso: La consulta fue exitosa pero no hay registros
+            st.success("✅ Todo operando normalmente. No hay pozos reportados fuera de servicio.")
     else:
-        st.success("✅ No hay pozos reportados fuera de servicio actualmente.")
+        # Caso: La función get_data() devolvió None (hubo un error en la conexión SQL)
+        st.error("❌ No se pudo conectar a la base de datos de incidencias o no hay datos disponibles.")
