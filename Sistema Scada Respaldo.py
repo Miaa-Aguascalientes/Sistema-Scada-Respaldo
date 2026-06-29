@@ -311,7 +311,7 @@ def cargar_sectores_poligonos():
 @st.cache_data(ttl=3600)
 def get_todas_las_colonias():
     # Eliminamos el filtro WHERE para obtener todo el diccionario
-    query = "SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias"
+    query = "SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias"
     try:
         df = pd.read_sql(query, get_mysql_telemetria_engine())
         if not df.empty:
@@ -2816,6 +2816,17 @@ with st.sidebar:
         format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
         key="busqueda_sectores"
     )
+    # 8.5.6 Buscador de colonias
+    if gdf_colonias is not None and not gdf_colonias.empty:
+        # Extraemos los nombres únicos de las colonias
+        lista_colonias = sorted(gdf_colonias['nombre'].unique().tolist())
+        
+        colonia_buscada = st.selectbox(
+            "🏘️ Localizar Colonia",
+            options=[""] + lista_colonias,
+            format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
+            key="busqueda_colonias"
+        )
 
     # 8.6. ASIGNACIÓN DE POSICIÓN Y PRIORIDAD
     datos_sector_resaltado = None
@@ -2823,12 +2834,15 @@ with st.sidebar:
     if pozo_buscado:
         st.session_state.centro_mapa = mapa_pozos_dict[pozo_buscado]['coord']
         st.session_state.zoom_inicial = 18
+        
     elif tanque_buscado:
         st.session_state.centro_mapa = mapa_tanques_dict[tanque_buscado]['coord']
         st.session_state.zoom_inicial = 18
+        
     elif rebombeo_buscado:
         st.session_state.centro_mapa = mapa_rebombeos_dict[rebombeo_buscado]['coord']
         st.session_state.zoom_inicial = 18
+        
     elif sector_buscado:
         datos_s = next((s for s in sectores if s['sector'] == sector_buscado), None)
         if datos_s:
@@ -2840,6 +2854,18 @@ with st.sidebar:
                 st.session_state.zoom_inicial = 14.5
             except:
                 pass
+
+    elif colonia_buscada:
+        # Buscamos la colonia seleccionada en el GeoDataFrame
+        if gdf_colonias is not None and not gdf_colonias.empty:
+            col_sel = gdf_colonias[gdf_colonias['nombre'] == colonia_buscada]
+            if not col_sel.empty:
+                col_sel = col_sel.iloc[0]
+                # Obtenemos el centroide para centrar el mapa
+                centro = col_sel.geometry.centroid
+                st.session_state.centro_mapa = [centro.y, centro.x]
+                st.session_state.zoom_inicial = 15 # Nivel de zoom ajustado para ver la colonia
+                
     else:
         # Si no hay nada seleccionado, mantener vista general
         st.session_state.centro_mapa = [21.8820, -102.2800]
@@ -2858,6 +2884,7 @@ with st.sidebar:
         ver_tanques = st.checkbox("Mostrar Tanques", value=False)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
         ver_macromedidores = st.checkbox("Macromedidores", value=False)
+        ver_colonias = st.checkbox("Colonias", value=False)
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
