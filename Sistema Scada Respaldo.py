@@ -2816,17 +2816,7 @@ with st.sidebar:
         format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
         key="busqueda_sectores"
     )
-    # 8.5.6 Buscador de colonias
-    if gdf_colonias is not None and not gdf_colonias.empty:
-        # Extraemos los nombres únicos de las colonias
-        lista_colonias = sorted(gdf_colonias['nombre'].unique().tolist())
-        
-        colonia_buscada = st.selectbox(
-            "🏘️ Localizar Colonia",
-            options=[""] + lista_colonias,
-            format_func=lambda x: "Seleccionar" if x == "" else f" {x}",
-            key="busqueda_colonias"
-        )
+
 
     # 8.6. ASIGNACIÓN DE POSICIÓN Y PRIORIDAD
     datos_sector_resaltado = None
@@ -2854,17 +2844,6 @@ with st.sidebar:
                 st.session_state.zoom_inicial = 14.5
             except:
                 pass
-
-    elif colonia_buscada:
-        # Buscamos la colonia seleccionada en el GeoDataFrame
-        if gdf_colonias is not None and not gdf_colonias.empty:
-            col_sel = gdf_colonias[gdf_colonias['nombre'] == colonia_buscada]
-            if not col_sel.empty:
-                col_sel = col_sel.iloc[0]
-                # Obtenemos el centroide para centrar el mapa
-                centro = col_sel.geometry.centroid
-                st.session_state.centro_mapa = [centro.y, centro.x]
-                st.session_state.zoom_inicial = 15 # Nivel de zoom ajustado para ver la colonia
                 
     else:
         # Si no hay nada seleccionado, mantener vista general
@@ -2884,7 +2863,7 @@ with st.sidebar:
         ver_tanques = st.checkbox("Mostrar Tanques", value=False)
         ver_rebombeos = st.checkbox("Mostrar Rebombeos", value=False) # Activado por defecto para facilitar localización
         ver_macromedidores = st.checkbox("Macromedidores", value=False)
-        ver_colonias = st.checkbox("Colonias", value=False)
+        gdf_colonias = st.checkbox("Colonias", value=False)
     
     # 8.9. LISTADO DE ESTADOS ---
     with st.expander(f"🟢 Bombas ON ({len(pozos_on)})", expanded=False):
