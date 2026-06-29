@@ -3422,7 +3422,11 @@ if sectores_data:
                 name="Colonias",
                 style_function=estilo_normal,
                 highlight_function=estilo_hover, # <--- Aquí ocurre la magia
-                tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
+                tooltip=folium.GeoJsonTooltip(
+                    fields=['Col_atl', 'Pozos'], # Asegúrate de que 'pozos_asociados' sea el nombre real de tu columna
+                    aliases=['Colonia:', 'Pozos que abastecen:'],
+                    localize=True
+                )
             ).add_to(fg_colonias)
             
             fg_colonias.add_to(m)
