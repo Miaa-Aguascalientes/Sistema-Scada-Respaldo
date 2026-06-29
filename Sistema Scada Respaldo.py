@@ -3392,16 +3392,21 @@ if sectores_data:
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
     if ver_colonias:
-        gdf_colonias = st.session_state.gdf_colonias_lista # Usamos el mismo estado
+        gdf_colonias = st.session_state.get('gdf_colonias_lista')
         
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
-            # Usamos una función simple para el estilo
             def estilo_final(feature):
-                # Si colonia_resaltada existe Y el nombre coincide, resaltamos
-                nombre_feature = feature['properties']['Col_atl']
-                es_match = (colonia_resaltada is not None and nombre_feature == colonia_resaltada['Col_atl'])
+                # Usamos .get() para evitar el KeyError si falta la propiedad
+                props = feature.get('properties', {})
+                nombre_actual = props.get('Col_atl', 'Desconocida')
+                
+                # Obtenemos la colonia seleccionada de forma segura
+                col_sel = st.session_state.get('colonia_resaltada')
+                
+                # Comparamos si es el match
+                es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
                 return {
                     'fillColor': '#E74C3C' if es_match else '#2ECC71',
