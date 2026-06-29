@@ -3459,10 +3459,12 @@ if sectores_data:
                 use_container_width=True,
                 hide_index=True,
                 column_config={
+                   
+                    "NUM_POZO": st.column_config.TextColumn("Pozo"),
                     "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm"),
-                    "POZO": st.column_config.TextColumn("Pozo"),
-                    "MOTIVO": st.column_config.TextColumn("Motivo de falla"),
-                    # Añade aquí las columnas adicionales que tenga tu tabla vw_incidencias_en_pozos
+                    "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Motivo de falla"),
+                    "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm")
+                    
                 }
             )
         else:
