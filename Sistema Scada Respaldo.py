@@ -3477,15 +3477,17 @@ if sectores_data:
     
     # 1. Obtener datos
     df_incidencias = get_data() 
-    df_diccionario = get_diccionario_colonias()
+    # Llamamos a la función que tienes definida arriba como 'get_diccionario_completo'
+    df_diccionario = get_diccionario_completo()
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
         # --- PREPARACIÓN PARA EL MERGE ---
-        # Aseguramos que ambas columnas tengan el mismo formato (sin guiones)
+        # Aseguramos que ambas columnas tengan el mismo formato (sin guiones en incidencias)
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        # Realizar el merge usando la columna limpia
+        # Realizar el merge usando la columna limpia. 
+        # Aseguramos que df_diccionario tenga la columna 'Pozos'
         df_mostrar = df_incidencias.merge(
             df_diccionario, 
             left_on='NUM_POZO_LIMPIO', 
@@ -3493,7 +3495,7 @@ if sectores_data:
             how='left'
         )
         
-        # Asignar la colonia
+        # Asignar la colonia (usando 'Col_atl' que viene de tu consulta SQL)
         df_mostrar['COLONIA'] = df_mostrar['Col_atl'].fillna('No definida')
         
         # --- FILTROS DE BÚSQUEDA ---
@@ -3508,7 +3510,6 @@ if sectores_data:
         
         # Aplicar filtros
         if filtro_pozo:
-            # Filtramos sobre la columna original o la limpia
             df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
         if filtro_falla:
             df_mostrar = df_mostrar[df_mostrar['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
