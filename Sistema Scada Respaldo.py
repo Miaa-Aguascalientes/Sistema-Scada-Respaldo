@@ -579,7 +579,7 @@ def get_data():
         return pd.DataFrame()
         
     try:
-        query = "SELECT POZO, FECHA_HORA_INICIO, DESCRIPCION, SUPERVISOR, ESTADO FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC"
+        query = "SELECT POZO, FECHA_HORA_INICIO, NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC"
         df = pd.read_sql(query, engine)
         return df
     except Exception as e:
