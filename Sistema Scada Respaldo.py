@@ -3544,5 +3544,7 @@ if sectores_data:
             }
         )
     else:
+            st.warning("⚠️ No se encontraron resultados para la búsqueda realizada.")
+    else:
         st.success("✅ No hay incidencias reportadas actualmente.")
 
