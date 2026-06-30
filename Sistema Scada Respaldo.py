@@ -3519,9 +3519,9 @@ if sectores_data:
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
-                "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento")
+                "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
-                "ESTATUS": st.column_config.TextColumn("Estatus"),
+                "ESTATUS": st.column_config.TextColumn("Estatus")
                 
             }
         )
