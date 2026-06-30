@@ -3481,23 +3481,26 @@ if sectores_data:
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- PREPARACIÓN DEL DICCIONARIO PARA AGRUPAR COLONIAS ---
-        # Agrupamos las colonias por 'Pozos' para tener una lista única por pozo
+        # --- LIMPIEZA: Quitamos guiones de la columna original para cruce y visualización ---
+        df_incidencias['NUM_POZO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
+        
+        # --- PREPARACIÓN DEL DICCIONARIO PARA AGRUPAR ---
+        # Aseguramos que la columna 'Pozos' en el diccionario también esté limpia por si acaso
+        df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str).str.replace('-', '', regex=False)
+        
+        # Agrupamos colonias por Pozo
         df_agrupado = df_diccionario.groupby('Pozos')['Col_atl'].apply(lambda x: ', '.join(x.unique())).reset_index()
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         
-        # --- PREPARACIÓN PARA EL MERGE ---
-        df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
-        
-        # Realizar el merge con el diccionario ya agrupado
+        # Realizar el merge (ahora ambos tienen los pozos limpios)
         df_mostrar = df_incidencias.merge(
             df_agrupado, 
-            left_on='NUM_POZO_LIMPIO', 
+            left_on='NUM_POZO', 
             right_on='Pozos', 
             how='left'
         )
         
-        # Si no tiene colonias, marcamos como "No definida"
+        # Asignar valor por defecto si no hay coincidencia
         df_mostrar['COLONIAS_AFECTADAS'] = df_mostrar['COLONIAS_AFECTADAS'].fillna('No definida')
         
         # --- FILTROS DE BÚSQUEDA ---
@@ -3507,7 +3510,6 @@ if sectores_data:
         with col2:
             filtro_falla = st.text_input("🔍 Buscar falla")
         with col3:
-            # Filtro por colonias afectadas
             filtro_colonia = st.text_input("📍 Filtrar por Colonia")
         
         # Aplicar filtros
