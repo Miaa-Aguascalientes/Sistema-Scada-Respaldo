@@ -3461,7 +3461,6 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    
 # 10. SECCIÓN DE INCIDENCIAS DE POZOS
 st.markdown("---")
 
@@ -3477,14 +3476,10 @@ df_incidencias = get_data()
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     # --- INDICADORES (KPIs del día) ---
-    # Usamos una copia segura para no afectar el dataframe original
     df_ind = df_incidencias.copy()
-    
-    # Aseguramos que ESTATUS exista y sea string
     if 'ESTATUS' in df_ind.columns:
         df_ind['ESTATUS'] = df_ind['ESTATUS'].fillna('').astype(str).str.strip().str.upper()
         df_ind['FECHA_HORA_INICIO'] = pd.to_datetime(df_ind['FECHA_HORA_INICIO'], errors='coerce')
-        
         hoy = pd.Timestamp.now().date()
         df_hoy = df_ind[df_ind['FECHA_HORA_INICIO'].dt.date == hoy]
         
@@ -3494,20 +3489,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     else:
         n_proceso, n_pendiente, n_cerrada = 0, 0, 0
 
-    # Estilos CSS
     st.markdown(f"""
-        <style>
-        .kpi-box {{ padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; }}
-        </style>
         <div style="display: flex; gap: 10px;">
-            <div class="kpi-box" style="flex: 1; border: 2px solid #FFD700; background: #332d00;">EN PROCESO<br><span style="font-size: 24px;">{n_proceso}</span></div>
-            <div class="kpi-box" style="flex: 1; border: 2px solid #FF4B4B; background: #330f0f;">PENDIENTE<br><span style="font-size: 24px;">{n_pendiente}</span></div>
-            <div class="kpi-box" style="flex: 1; border: 2px solid #00FF00; background: #002600;">CERRADA<br><span style="font-size: 24px;">{n_cerrada}</span></div>
+            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #FFD700; background: #332d00;">EN PROCESO<br><span style="font-size: 24px;">{n_proceso}</span></div>
+            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #FF4B4B; background: #330f0f;">PENDIENTE<br><span style="font-size: 24px;">{n_pendiente}</span></div>
+            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #00FF00; background: #002600;">CERRADA<br><span style="font-size: 24px;">{n_cerrada}</span></div>
         </div>
         <br>
     """, unsafe_allow_html=True)
 
-    # --- TABLA ---
+    # --- TABLA Y LÓGICA ---
     df_mostrar = df_incidencias.copy()
     if st.session_state.get("filtro_pozos"):
         val = st.session_state.filtro_pozos.replace('-', '').strip().upper()
@@ -3517,7 +3508,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
-        
         df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(
             lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
         )
@@ -3529,8 +3519,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         columnas_ordenadas = ['NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS']
         df_final = df_mostrar[[c for c in columnas_ordenadas if c in df_mostrar.columns]]
 
+        # Función de estilo separada para evitar el error de sintaxis
+        def obtener_color(val):
+            color = {"CERRADA": "green", "EN PROCESO": "orange", "PENDIENTE": "red"}.get(str(val).strip().upper(), "black")
+            return f'color: {color}; font-weight: bold;'
+
         st.dataframe(
-            df_final.style.map(lambda v: f'color: {{"CERRADA":"green", "EN PROCESO":"orange", "PENDIENTE":"red"}}.get(str(v).strip().upper(), "black")}; font-weight: bold;', subset=['ESTATUS']),
+            df_final.style.map(obtener_color, subset=['ESTATUS']),
             use_container_width=True, hide_index=True
         )
     else:
