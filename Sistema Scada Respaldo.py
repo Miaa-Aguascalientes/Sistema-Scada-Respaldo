@@ -3521,9 +3521,9 @@ if sectores_data:
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
             }
