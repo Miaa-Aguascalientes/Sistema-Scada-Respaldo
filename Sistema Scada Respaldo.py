@@ -3465,34 +3465,43 @@ if sectores_data:
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # Obtener datos de ambas tablas
+    # --- LÓGICA DE DATOS ---
     df_incidencias = get_data() 
-    df_diccionario = get_data_from_db("SELECT * FROM Diccionario_colonias")
     
+    # Adaptación de tu función para obtener el diccionario completo
+    @st.cache_data(ttl=60)
+    def get_diccionario_completo():
+        query = "SELECT Pozos, Col_atl, Sector, Distrito, Supervisor, ST_AsText(geom) as geom_wkt FROM Diccionario_colonias"
+        try:
+            return pd.read_sql(query, get_engine_telemetria())
+        except Exception as e:
+            st.error(f"Error al cargar diccionario: {e}")
+            return pd.DataFrame()
+
+    df_diccionario = get_diccionario_completo()
+
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # Realizar el cruce de información para traer la colonia
+        # Realizar el merge (Unión por número de pozo)
         df_mostrar = df_incidencias.merge(
-            df_diccionario[['Pozos', 'Col_atl']], 
+            df_diccionario, 
             left_on='NUM_POZO', 
             right_on='Pozos', 
             how='left'
         )
-        # Asignamos el valor del diccionario o un texto por defecto
         df_mostrar['COLONIA'] = df_mostrar['Col_atl'].fillna('No definida')
         
         # --- FILTROS DE BÚSQUEDA ---
         col1, col2, col3 = st.columns(3)
         with col1:
-            filtro_pozo = st.text_input("🔍 Buscar por número de pozo")
+            filtro_pozo = st.text_input("🔍 Buscar pozo")
         with col2:
-            filtro_falla = st.text_input("🔍 Buscar por diagnóstico de falla")
+            filtro_falla = st.text_input("🔍 Buscar falla")
         with col3:
-            # Filtro desplegable de colonias existentes
             lista_colonias = ["Todas"] + sorted(df_mostrar['COLONIA'].unique().tolist())
             filtro_colonia = st.selectbox("📍 Filtrar por Colonia", options=lista_colonias)
         
-        # Aplicar los filtros al dataframe
+        # Aplicar filtros
         if filtro_pozo:
             df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
         if filtro_falla:
@@ -3501,55 +3510,42 @@ if sectores_data:
             df_mostrar = df_mostrar[df_mostrar['COLONIA'] == filtro_colonia]
             
         if df_mostrar.empty:
-            st.warning("No se encontraron resultados con los criterios de búsqueda.")
+            st.warning("No se encontraron resultados.")
         else:
-            # 1. Asegurar formato de fechas
+            # Procesamiento de fechas
             df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
             df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
             
-            # 2. Calcular la duración
+            # Cálculo de duración
             def formatear_duracion(td):
-                dias = td.days
-                horas = td.seconds // 3600
-                minutos = (td.seconds % 3600) // 60
-                return f"{dias} días, {horas} horas y {minutos} min"
+                return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
 
             df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
             
-            # 3. Ordenamiento (Prioridad)
+            # Ordenamiento
             orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
             df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
+            df_final = pd.concat([
+                df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False),
+                df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
+            ])
             
-            df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
-            df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
-            
-            df_final = pd.concat([df_otros, df_cerradas])
-            
-            # 4. Columnas finales
-            columnas_finales = [
-                'NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 
-                'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
-            ]
-            df_final = df_final[columnas_finales]
-
-            # 5. Visualización
+            # Mostrar tabla
             def aplicar_color_estatus(val):
-                estado = str(val).strip().upper()
                 colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
-                return f'color: {colores.get(estado, "black")}; font-weight: bold;'
+                return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
             st.dataframe(
-                df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
+                df_final[['NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+                .style.map(aplicar_color_estatus, subset=['ESTATUS']),
                 use_container_width=True,
                 hide_index=True,
                 column_config={
                     "NUM_POZO": st.column_config.TextColumn("Pozo"),
                     "COLONIA": st.column_config.TextColumn("Colonia"),
                     "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                    "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                     "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
-                    "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
-                    "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
+                    "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
                     "ESTATUS": st.column_config.TextColumn("Estatus")
                 }
             )
