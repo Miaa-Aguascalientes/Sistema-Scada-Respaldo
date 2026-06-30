@@ -3465,28 +3465,40 @@ if sectores_data:
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    df_incidencias = get_data()
+    # Obtener datos de ambas tablas
+    df_incidencias = get_data() 
+    df_diccionario = get_data_from_db("SELECT * FROM Diccionario_colonias")
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
+        # Realizar el cruce de información para traer la colonia
+        df_mostrar = df_incidencias.merge(
+            df_diccionario[['Pozos', 'Col_atl']], 
+            left_on='NUM_POZO', 
+            right_on='Pozos', 
+            how='left'
+        )
+        # Asignamos el valor del diccionario o un texto por defecto
+        df_mostrar['COLONIA'] = df_mostrar['Col_atl'].fillna('No definida')
+        
         # --- FILTROS DE BÚSQUEDA ---
-        col1, col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
         with col1:
             filtro_pozo = st.text_input("🔍 Buscar por número de pozo")
         with col2:
             filtro_falla = st.text_input("🔍 Buscar por diagnóstico de falla")
+        with col3:
+            # Filtro desplegable de colonias existentes
+            lista_colonias = ["Todas"] + sorted(df_mostrar['COLONIA'].unique().tolist())
+            filtro_colonia = st.selectbox("📍 Filtrar por Colonia", options=lista_colonias)
         
-        df_mostrar = df_incidencias.copy()
-        
-        # Limpieza de pozo
-        df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
-        
-        # Aplicar filtros antes de cualquier otro cálculo
+        # Aplicar los filtros al dataframe
         if filtro_pozo:
-            df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].str.contains(filtro_pozo, case=False, na=False)]
-        
+            df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
         if filtro_falla:
             df_mostrar = df_mostrar[df_mostrar['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
+        if filtro_colonia != "Todas":
+            df_mostrar = df_mostrar[df_mostrar['COLONIA'] == filtro_colonia]
             
         if df_mostrar.empty:
             st.warning("No se encontraron resultados con los criterios de búsqueda.")
@@ -3504,32 +3516,27 @@ if sectores_data:
 
             df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
             
-            # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
+            # 3. Ordenamiento (Prioridad)
             orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
             df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
             
-            # Separamos:
             df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
             df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
             
-            # Concatenamos
-            df_mostrar = pd.concat([df_otros, df_cerradas])
+            df_final = pd.concat([df_otros, df_cerradas])
             
-            # 4. ORDEN FIJO DE COLUMNAS
-            columnas_ordenadas = [
+            # 4. Columnas finales
+            columnas_finales = [
                 'NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 
                 'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
             ]
-            df_final = df_mostrar[columnas_ordenadas]
+            df_final = df_final[columnas_finales]
 
-            # 5. Mostrar tabla
+            # 5. Visualización
             def aplicar_color_estatus(val):
                 estado = str(val).strip().upper()
-                if estado == 'CERRADA': color = 'green'
-                elif estado == 'EN PROCESO': color = 'orange'
-                elif estado == 'PENDIENTE': color = 'red'
-                else: color = 'black'
-                return f'color: {color}; font-weight: bold;'
+                colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
+                return f'color: {colores.get(estado, "black")}; font-weight: bold;'
 
             st.dataframe(
                 df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
