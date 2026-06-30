@@ -3531,13 +3531,27 @@ if sectores_data:
             
         # --- VISUALIZACIÓN (Color y tabla) ---
         def aplicar_color_estatus(val):
-            colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
-            return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
+                estado = str(val).strip().upper()
+                if estado == 'CERRADA': color = 'green'
+                elif estado == 'EN PROCESO': color = 'orange'
+                elif estado == 'PENDIENTE': color = 'red'
+                else: color = 'black'
+                return f'color: {color}; font-weight: bold;'
 
-        st.dataframe(
-            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']]
-            .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True
-        )
+            st.dataframe(
+                df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                    "COLONIA": st.column_config.TextColumn("Colonia"),
+                    "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                    "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
+                    "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                    "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
+                    "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
+                    "ESTATUS": st.column_config.TextColumn("Estatus")
+                }
+            )
     else:
-        st.write("No se encontraron incidencias.")
+        st.success("✅ No hay incidencias reportadas actualmente.")
