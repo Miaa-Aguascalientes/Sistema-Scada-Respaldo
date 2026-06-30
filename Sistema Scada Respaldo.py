@@ -3461,75 +3461,82 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-# 10. SECCIÓN DE INCIDENCIAS DE POZOS
-st.markdown("---")
-
-# Layout: Título a la izquierda, buscador a la derecha
-col_t, col_b = st.columns([2, 1])
-with col_t:
+    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
+    st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
-with col_b:
-    busqueda = st.text_input("🔍 Buscar pozo:", key="filtro_pozos", placeholder="Ej: P083")
-
-df_incidencias = get_data()
-
-if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
-    # --- INDICADORES (KPIs del día) ---
-    df_ind = df_incidencias.copy()
-    if 'ESTATUS' in df_ind.columns:
-        df_ind['ESTATUS'] = df_ind['ESTATUS'].fillna('').astype(str).str.strip().str.upper()
-        df_ind['FECHA_HORA_INICIO'] = pd.to_datetime(df_ind['FECHA_HORA_INICIO'], errors='coerce')
-        hoy = pd.Timestamp.now().date()
-        df_hoy = df_ind[df_ind['FECHA_HORA_INICIO'].dt.date == hoy]
+    df_incidencias = get_data()
+    
+    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        n_proceso = len(df_hoy[df_hoy['ESTATUS'] == 'EN PROCESO'])
-        n_pendiente = len(df_hoy[df_hoy['ESTATUS'] == 'PENDIENTE'])
-        n_cerrada = len(df_hoy[df_hoy['ESTATUS'] == 'CERRADA'])
-    else:
-        n_proceso, n_pendiente, n_cerrada = 0, 0, 0
-
-    st.markdown(f"""
-        <div style="display: flex; gap: 10px;">
-            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #FFD700; background: #332d00;">EN PROCESO<br><span style="font-size: 24px;">{n_proceso}</span></div>
-            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #FF4B4B; background: #330f0f;">PENDIENTE<br><span style="font-size: 24px;">{n_pendiente}</span></div>
-            <div style="flex: 1; padding: 15px; border-radius: 10px; text-align: center; color: white; font-weight: bold; border: 2px solid #00FF00; background: #002600;">CERRADA<br><span style="font-size: 24px;">{n_cerrada}</span></div>
-        </div>
-        <br>
-    """, unsafe_allow_html=True)
-
-    # --- TABLA Y LÓGICA ---
-    df_mostrar = df_incidencias.copy()
-    if st.session_state.get("filtro_pozos"):
-        val = st.session_state.filtro_pozos.replace('-', '').strip().upper()
-        df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False).str.upper().str.contains(val, na=False)]
-
-    if not df_mostrar.empty:
+        df_mostrar = df_incidencias.copy()
+        
+        # Limpieza de pozo
         df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
+        
+        # 1. Asegurar formato de fechas
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
-        df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(
-            lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
-        )
         
+        # 2. Calcular la duración
+        def formatear_duracion(td):
+            dias = td.days
+            horas = td.seconds // 3600
+            minutos = (td.seconds % 3600) // 60
+            return f"{dias} días, {horas} horas y {minutos} min"
+
+        df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
+        
+        # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
         df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
-        df_mostrar = df_mostrar.sort_values(by=['PRIORIDAD_ESTATUS', 'FECHA_HORA_INICIO'], ascending=[True, False])
         
-        columnas_ordenadas = ['NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS']
-        df_final = df_mostrar[[c for c in columnas_ordenadas if c in df_mostrar.columns]]
+        # Separamos:
+        df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        
+        # AQUÍ EL CAMBIO: 'df_otros' ahora se ordena de la fecha más reciente a la más antigua (ascending=False)
+        df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        
+        # Concatenamos manteniendo el bloque de activos arriba y cerradas abajo
+        df_mostrar = pd.concat([df_otros, df_cerradas])
+        
+        # 4. ORDEN FIJO DE COLUMNAS (Sin tocar nada más, este es el orden que quieres)
+        columnas_ordenadas = [
+            'NUM_POZO',
+            'COLONIA',
+            'FECHA_HORA_INICIO', 
+            'DIAGNOSTICO_FALLA', 
+            'FECHA_HORA_FIN', 
+            'DURACION_COMPLETA',
+            'TIEMPO_ESTIMADO_ATENCION', 
+            'ESTATUS'
+        ]
+        df_final = df_mostrar[columnas_ordenadas]
 
-        # Función de estilo separada para evitar el error de sintaxis
-        def obtener_color(val):
-            color = {"CERRADA": "green", "EN PROCESO": "orange", "PENDIENTE": "red"}.get(str(val).strip().upper(), "black")
+        # 4. Mostrar tabla
+        def aplicar_color_estatus(val):
+            estado = str(val).strip().upper()
+            if estado == 'CERRADA': color = 'green'
+            elif estado == 'EN PROCESO': color = 'orange'
+            elif estado == 'PENDIENTE': color = 'red'
+            else: color = 'black'
             return f'color: {color}; font-weight: bold;'
 
         st.dataframe(
-            df_final.style.map(obtener_color, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True
+            df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "COLONIA": st.column_config.TextColumn("Colonia"),
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
+                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
+                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
+                "ESTATUS": st.column_config.TextColumn("Estatus")
+            }
         )
     else:
-        st.warning("⚠️ No se encontraron resultados.")
-else:
-    st.success("✅ No hay incidencias reportadas actualmente.")
+        st.success("✅ No hay incidencias reportadas actualmente.")
 
