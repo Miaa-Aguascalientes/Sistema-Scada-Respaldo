@@ -3481,7 +3481,7 @@ if sectores_data:
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- PREPARACIÓN DEL DICCIONARIO (EXPLOSIÓN) ---
+        # --- PREPARACIÓN DEL DICCIONARIO ---
         df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
         df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
         df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
@@ -3505,18 +3505,21 @@ if sectores_data:
         
         # --- PROCESAMIENTO FECHAS ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
-        df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
-        # --- ORDENAMIENTO (CORREGIDO: PRIORIDAD Y FECHA RECIENTE PRIMERO) ---
-        orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
-        df_agrupado['PRIORIDAD_ESTATUS'] = df_agrupado['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
+        # --- ORDENAMIENTO (PURAMENTE CRONOLÓGICO) ---
+        # Ordenamos únicamente por FECHA_HORA_INICIO de más reciente a más antiguo
+        df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
-        # Se ordena por prioridad (ascendente) y FECHA_HORA_INICIO (descendente = reciente primero)
-        df_final = df_agrupado.sort_values(
-            by=['PRIORIDAD_ESTATUS', 'FECHA_HORA_INICIO'], 
-            ascending=[True, False]
-        )
+        # --- FILTROS ---
+        col1, col2, col3 = st.columns(3)
+        with col1: filtro_pozo = st.text_input("🔍 Buscar pozo")
+        with col2: filtro_falla = st.text_input("🔍 Buscar falla")
+        with col3: filtro_colonia = st.text_input("📍 Filtrar por Colonia")
         
+        if filtro_pozo: df_final = df_final[df_final['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
+        if filtro_falla: df_final = df_final[df_final['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
+        if filtro_colonia: df_final = df_final[df_final['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
+            
         # --- VISUALIZACIÓN ---
         def aplicar_color_estatus(val):
             colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
@@ -3525,7 +3528,14 @@ if sectores_data:
         st.dataframe(
             df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True
+            use_container_width=True, hide_index=True,
+            column_config={
+                "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "ESTATUS": st.column_config.TextColumn("Estatus")
+            }
         )
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
