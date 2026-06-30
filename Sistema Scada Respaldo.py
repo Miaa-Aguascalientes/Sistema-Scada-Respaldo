@@ -3465,13 +3465,13 @@ if sectores_data:
 # 10. SECCIÓN DE INCIDENCIAS DE POZOS
 st.markdown("---")
 
-# Layout: Título a la izquierda, buscador a la derecha
-col1, col2 = st.columns([2, 1])
-with col1:
-    st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
-with col2:
-    # Usamos session_state para que sea rápido y no se pierda al interactuar
-    st.text_input("🔍 Buscar pozo:", key="filtro_pozos", placeholder="Ej: P083")
+# Mover el buscador a la barra lateral evita que el resto de la página se recargue al escribir
+with st.sidebar:
+    st.header("Filtros")
+    busqueda = st.text_input("🔍 Buscar pozo:", key="filtro_pozos", placeholder="Ej: P083")
+
+# Título en el cuerpo principal
+st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
 df_incidencias = get_data()
 
@@ -3500,7 +3500,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
         df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # 4. ORDENAMIENTO DE FILAS (PRIORIDAD + FECHA RECIENTE)
+        # 4. ORDENAMIENTO (Prioridad + Fecha Reciente)
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
         df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
         
@@ -3540,7 +3540,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             }
         )
     else:
-        st.warning("⚠️ No se encontraron resultados para esta búsqueda.")
+        st.warning("⚠️ No se encontraron resultados.")
 else:
     st.success("✅ No hay incidencias reportadas actualmente.")
 
