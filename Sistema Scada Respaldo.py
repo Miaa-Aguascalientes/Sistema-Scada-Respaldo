@@ -3490,10 +3490,22 @@ if sectores_data:
         # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
         df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
+        
+        # Para las cerradas, queremos fecha descendente. 
+        # Usamos el timestamp (número) de la fecha para que el sort funcione:
         df_mostrar['TIMESTAMP_INICIO'] = df_mostrar['FECHA_HORA_INICIO'].astype('int64')
         
-        df_mostrar = df_mostrar.sort_values(by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], ascending=[True, True])
+        # Ordenamos:
+        # 1. Por Prioridad (0, 1, 2)
+        # 2. Para Cerradas (prioridad 2), ordenamos por TIMESTAMP_INICIO descendente (más reciente primero)
+        # Como sort_values ordena todo igual, usamos un truco:
+        df_mostrar = df_mostrar.sort_values(
+            by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], 
+            ascending=[True, True] # Ajustamos esto según sea necesario
+        )
         
+        # REFINAMIENTO PARA EL ORDEN:
+        # Si queremos Cerradas (2) más recientes arriba, invertimos el orden de fecha solo para ellas
         df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
         df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2]
         df_mostrar = pd.concat([df_otros, df_cerradas])
