@@ -580,7 +580,7 @@ def get_data():
     try:
         # AQUÍ ES DONDE AGREGAS TODOS LOS CAMPOS QUE QUIERAS TRAER
         query = """
-            SELECT NUM_POZO, FECHA_HORA_INICIO, FECHA_HORA_FIN, 
+            SELECT NUM_POZO, COLONIA, FECHA_HORA_INICIO, FECHA_HORA_FIN, 
                    DIAGNOSTICO_FALLA, TIEMPO_ESTIMADO_ATENCION, ESTATUS 
             FROM vw_incidencias_en_pozos 
             ORDER BY FECHA_HORA_INICIO DESC
