@@ -3502,7 +3502,8 @@ if sectores_data:
         
         # 4. ORDEN FIJO DE COLUMNAS (Sin tocar nada más, este es el orden que quieres)
         columnas_ordenadas = [
-            'NUM_POZO', 
+            'NUM_POZO',
+            'COLONIA',
             'FECHA_HORA_INICIO', 
             'DIAGNOSTICO_FALLA', 
             'FECHA_HORA_FIN', 
@@ -3527,6 +3528,7 @@ if sectores_data:
             hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "COLONIA": st.column_config.TextColumn("Colonia"),
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
                 "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
