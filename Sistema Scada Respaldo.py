@@ -3461,24 +3461,30 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # Llamamos a tu función get_data()
     df_incidencias = get_data()
     
-    # Verificamos si el DataFrame tiene datos (usando isinstance para seguridad)
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # Lista de TODOS los campos que quieres mostrar
+        # 1. Aseguramos que las fechas sean objetos datetime para poder restar
+        df_mostrar = df_incidencias.copy()
+        df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
+        df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN'])
+        
+        # 2. Calculamos la duración
+        # Si FECHA_HORA_FIN es NaT (aún activo), ponemos un texto o dejamos vacío
+        df_mostrar['DURACION'] = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
+        
+        # 3. Definimos el orden de las columnas incluyendo la nueva DURACION
         columnas_a_mostrar = [
-            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
+            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DURACION',
             'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
         
-        # Filtramos para que solo tome las columnas que existen en el DataFrame
-        df_mostrar = df_incidencias[[c for c in columnas_a_mostrar if c in df_incidencias.columns]]
+        # Filtramos solo lo existente
+        df_mostrar = df_mostrar[[c for c in columnas_a_mostrar if c in df_mostrar.columns]]
         
         st.dataframe(
             df_mostrar,
@@ -3486,14 +3492,13 @@ if sectores_data:
             hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                # Formato: HH:mm DD/MM/YYYY
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
                 "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
+                "DURACION": st.column_config.TextColumn("Duración Evento"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
-                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Estimado"),
+                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
             }
         )
     else:
-        # Se muestra si la tabla está vacía o si hubo un error controlado
         st.success("✅ No hay incidencias reportadas actualmente.")
