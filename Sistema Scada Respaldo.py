@@ -3515,8 +3515,12 @@ if sectores_data:
         
         # --- ORDENAMIENTO (TU ORDEN ORIGINAL) ---
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
-        df_agrupado['PRIORIDAD_ESTATUS'] = df_agrupado['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
-        df_final = df_agrupado.sort_values(by=['PRIORIDAD_ESTATUS', 'FECHA_HORA_INICIO'], ascending=[True, False])
+        df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
+        
+        df_final = df_agrupado.sort_values(
+            by=['PRIORIDAD_ESTATUS', 'FECHA_HORA_INICIO'], 
+            ascending=[True, False]
+        )
         
         # --- FILTROS ---
         col1, col2, col3 = st.columns(3)
@@ -3536,7 +3540,9 @@ if sectores_data:
         st.dataframe(
             df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            
             use_container_width=True, hide_index=True,
+            
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
                 "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
