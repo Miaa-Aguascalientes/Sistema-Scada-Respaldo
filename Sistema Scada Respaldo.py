@@ -3470,24 +3470,26 @@ if sectores_data:
         
         df_mostrar = df_incidencias.copy()
         
-        # 1. Convertir a datetime para calcular la diferencia
+        # 1. Asegurar formato de fechas
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
-        # Si no hay fecha fin, usamos la hora actual para el cálculo
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
-        # 2. Calcular diferencia y convertir a formato legible
-        duracion = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
+        # 2. Calcular la duración total
+        delta = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
         
-        # 3. Formatear la duración a texto: "X días, Y horas"
-        df_mostrar['DURACION_TEXTO'] = (
-            duracion.dt.days.astype(str) + " días, " + 
-            (duracion.dt.seconds // 3600).astype(str) + " horas"
-        )
+        # 3. Función para formatear el texto exactamente como pediste
+        def formatear_duracion(td):
+            dias = td.days
+            horas = td.seconds // 3600
+            minutos = (td.seconds % 3600) // 60
+            return f"{dias} días, {horas} horas y {minutos} min"
+
+        df_mostrar['DURACION_COMPLETA'] = delta.apply(formatear_duracion)
         
         # 4. Definir columnas finales
         columnas_a_mostrar = [
             'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
-            'DURACION_TEXTO', 'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
+            'DURACION_COMPLETA', 'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
         
         df_mostrar = df_mostrar[[c for c in columnas_a_mostrar if c in df_mostrar.columns]]
@@ -3500,9 +3502,9 @@ if sectores_data:
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
                 "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
-                "DURACION_TEXTO": st.column_config.TextColumn("Duración (Días y horas)"),
-                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico"),
-                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est."),
+                "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
+                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
             }
         )
