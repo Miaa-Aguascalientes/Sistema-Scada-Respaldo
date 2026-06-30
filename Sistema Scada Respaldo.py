@@ -3461,6 +3461,7 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
+    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
@@ -3470,7 +3471,10 @@ if sectores_data:
         
         df_mostrar = df_incidencias.copy()
         
+        # Limpieza de pozo
         df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
+        
+        # 1. Asegurar formato de fechas
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
@@ -3483,39 +3487,23 @@ if sectores_data:
 
         df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # 3. ORDENAMIENTO HÍBRIDO
-        # Asignamos prioridad fija a los estados activos
+        # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
         df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
-        
-        # Para las cerradas, queremos fecha descendente. 
-        # Usamos el timestamp (número) de la fecha para que el sort funcione:
         df_mostrar['TIMESTAMP_INICIO'] = df_mostrar['FECHA_HORA_INICIO'].astype('int64')
         
-        # Ordenamos:
-        # 1. Por Prioridad (0, 1, 2)
-        # 2. Para Cerradas (prioridad 2), ordenamos por TIMESTAMP_INICIO descendente (más reciente primero)
-        # Como sort_values ordena todo igual, usamos un truco:
-        df_mostrar = df_mostrar.sort_values(
-            by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], 
-            ascending=[True, True] # Ajustamos esto según sea necesario
-        )
+        df_mostrar = df_mostrar.sort_values(by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], ascending=[True, True])
         
-        # REFINAMIENTO PARA EL ORDEN:
-        # Si queremos Cerradas (2) más recientes arriba, invertimos el orden de fecha solo para ellas
         df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
         df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2]
         df_mostrar = pd.concat([df_otros, df_cerradas])
-
-        columnas_en_orden = [
-            'NUM_POZO', 
-            'FECHA_HORA_INICIO', 
-            'DIAGNOSTICO_FALLA', 
-            'FECHA_HORA_FIN', 
-            'DURACION_COMPLETA', # <--- AQUÍ ESTÁ EN LA POSICIÓN QUE PEDISTE
-            'TIEMPO_ESTIMADO_ATENCION', 
-            'ESTATUS'
+        
+        # --- AQUÍ DEFINIMOS EL ORDEN DE LAS COLUMNAS EXACTO ---
+        columnas_ordenadas = [
+            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
+            'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
+        df_final = df_mostrar[columnas_ordenadas]
 
         # 4. Mostrar tabla
         def aplicar_color_estatus(val):
@@ -3527,13 +3515,12 @@ if sectores_data:
             return f'color: {color}; font-weight: bold;'
 
         st.dataframe(
-            df_mostrar.drop(columns=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], errors='ignore').style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True,
             hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
