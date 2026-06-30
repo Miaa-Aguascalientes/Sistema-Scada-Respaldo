@@ -3461,24 +3461,37 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
-    st.markdown("---")
+    
+# 10. SECCIÓN DE INCIDENCIAS DE POZOS
+st.markdown("---")
+
+# Layout: Título a la izquierda, buscador a la derecha
+col1, col2 = st.columns([2, 1])
+with col1:
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
-    
-    df_incidencias = get_data()
-    
-    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
-        
-        df_mostrar = df_incidencias.copy()
-        
-        # Limpieza de pozo
+with col2:
+    # Usamos session_state para que sea rápido y no se pierda al interactuar
+    st.text_input("🔍 Buscar pozo:", key="filtro_pozos", placeholder="Ej: P083")
+
+df_incidencias = get_data()
+
+if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+    df_mostrar = df_incidencias.copy()
+
+    # 1. Filtro de búsqueda (Flexible: ignora guiones)
+    if st.session_state.get("filtro_pozos"):
+        val_busqueda = st.session_state.filtro_pozos.replace('-', '').strip().upper()
+        df_mostrar = df_mostrar[
+            df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False).str.upper().str.contains(val_busqueda, na=False)
+        ]
+
+    if not df_mostrar.empty:
+        # 2. Limpieza y Fechas
         df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
-        
-        # 1. Asegurar formato de fechas
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
-        # 2. Calcular la duración
+        # 3. Duración
         def formatear_duracion(td):
             dias = td.days
             horas = td.seconds // 3600
@@ -3487,33 +3500,22 @@ if sectores_data:
 
         df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
+        # 4. ORDENAMIENTO DE FILAS (PRIORIDAD + FECHA RECIENTE)
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
         df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
         
-        # Separamos:
         df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
-        
-        # AQUÍ EL CAMBIO: 'df_otros' ahora se ordena de la fecha más reciente a la más antigua (ascending=False)
         df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
-        
-        # Concatenamos manteniendo el bloque de activos arriba y cerradas abajo
         df_mostrar = pd.concat([df_otros, df_cerradas])
         
-        # 4. ORDEN FIJO DE COLUMNAS (Sin tocar nada más, este es el orden que quieres)
+        # 5. ORDEN FIJO DE COLUMNAS
         columnas_ordenadas = [
-            'NUM_POZO',
-            'COLONIA',
-            'FECHA_HORA_INICIO', 
-            'DIAGNOSTICO_FALLA', 
-            'FECHA_HORA_FIN', 
-            'DURACION_COMPLETA',
-            'TIEMPO_ESTIMADO_ATENCION', 
-            'ESTATUS'
+            'NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 
+            'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
         df_final = df_mostrar[columnas_ordenadas]
 
-        # 4. Mostrar tabla
+        # 6. Mostrar tabla
         def aplicar_color_estatus(val):
             estado = str(val).strip().upper()
             if estado == 'CERRADA': color = 'green'
@@ -3538,5 +3540,7 @@ if sectores_data:
             }
         )
     else:
-        st.success("✅ No hay incidencias reportadas actualmente.")
+        st.warning("⚠️ No se encontraron resultados para esta búsqueda.")
+else:
+    st.success("✅ No hay incidencias reportadas actualmente.")
 
