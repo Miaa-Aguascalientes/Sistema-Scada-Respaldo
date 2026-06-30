@@ -3477,26 +3477,28 @@ if sectores_data:
     
     # 1. Obtener datos
     df_incidencias = get_data() 
-    # Llamamos a la función que tienes definida arriba como 'get_diccionario_completo'
     df_diccionario = get_diccionario_completo()
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
+        # --- PREPARACIÓN DEL DICCIONARIO PARA AGRUPAR COLONIAS ---
+        # Agrupamos las colonias por 'Pozos' para tener una lista única por pozo
+        df_agrupado = df_diccionario.groupby('Pozos')['Col_atl'].apply(lambda x: ', '.join(x.unique())).reset_index()
+        df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
+        
         # --- PREPARACIÓN PARA EL MERGE ---
-        # Aseguramos que ambas columnas tengan el mismo formato (sin guiones en incidencias)
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        # Realizar el merge usando la columna limpia. 
-        # Aseguramos que df_diccionario tenga la columna 'Pozos'
+        # Realizar el merge con el diccionario ya agrupado
         df_mostrar = df_incidencias.merge(
-            df_diccionario, 
+            df_agrupado, 
             left_on='NUM_POZO_LIMPIO', 
             right_on='Pozos', 
             how='left'
         )
         
-        # Asignar la colonia (usando 'Col_atl' que viene de tu consulta SQL)
-        df_mostrar['COLONIA'] = df_mostrar['Col_atl'].fillna('No definida')
+        # Si no tiene colonias, marcamos como "No definida"
+        df_mostrar['COLONIAS_AFECTADAS'] = df_mostrar['COLONIAS_AFECTADAS'].fillna('No definida')
         
         # --- FILTROS DE BÚSQUEDA ---
         col1, col2, col3 = st.columns(3)
@@ -3505,16 +3507,16 @@ if sectores_data:
         with col2:
             filtro_falla = st.text_input("🔍 Buscar falla")
         with col3:
-            lista_colonias = ["Todas"] + sorted(df_mostrar['COLONIA'].unique().tolist())
-            filtro_colonia = st.selectbox("📍 Filtrar por Colonia", options=lista_colonias)
+            # Filtro por colonias afectadas
+            filtro_colonia = st.text_input("📍 Filtrar por Colonia")
         
         # Aplicar filtros
         if filtro_pozo:
             df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
         if filtro_falla:
             df_mostrar = df_mostrar[df_mostrar['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
-        if filtro_colonia != "Todas":
-            df_mostrar = df_mostrar[df_mostrar['COLONIA'] == filtro_colonia]
+        if filtro_colonia:
+            df_mostrar = df_mostrar[df_mostrar['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
             
         if df_mostrar.empty:
             st.warning("No se encontraron resultados.")
@@ -3543,13 +3545,13 @@ if sectores_data:
                 return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
             st.dataframe(
-                df_final[['NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+                df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
                 .style.map(aplicar_color_estatus, subset=['ESTATUS']),
                 use_container_width=True,
                 hide_index=True,
                 column_config={
                     "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                    "COLONIA": st.column_config.TextColumn("Colonia"),
+                    "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
                     "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
                     "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                     "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
