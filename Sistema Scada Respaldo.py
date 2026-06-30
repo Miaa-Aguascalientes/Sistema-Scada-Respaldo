@@ -3470,6 +3470,12 @@ if sectores_data:
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
         df_mostrar = df_incidencias.copy()
+
+        # --- FILTRO DE BÚSQUEDA ---
+        busqueda = st.text_input("🔍 Buscar pozo:", placeholder="Ejemplo: P083A")
+        # Aplicar filtro si el usuario escribió algo
+        if busqueda:
+            df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(busqueda, case=False, na=False)]
         
         # Limpieza de pozo
         df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
