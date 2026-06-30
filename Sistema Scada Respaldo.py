@@ -599,7 +599,7 @@ def get_diccionario_completo():
         query = "SELECT Pozos, Col_atl, Sector, Distrito, Supervisor, ST_AsText(geom) as geom_wkt FROM Diccionario_colonias"
         return pd.read_sql(query, get_mysql_telemetria_engine())
     except Exception as e:
-        st.error(f"Error en get_diccionario_completo: {e}")
+        st.error(f"Error en get_diccionario_colonias: {e}")
         return pd.DataFrame()
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
