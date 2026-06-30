@@ -3470,14 +3470,11 @@ if sectores_data:
         
         df_mostrar = df_incidencias.copy()
         
-        # 1. Asegurar formato de fechas
+        # 1. Asegurar formato de fechas y calcular duración
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
-        
-        # 2. Calcular la duración total
         delta = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
         
-        # 3. Formatear la duración
         def formatear_duracion(td):
             dias = td.days
             horas = td.seconds // 3600
@@ -3486,27 +3483,33 @@ if sectores_data:
 
         df_mostrar['DURACION_COMPLETA'] = delta.apply(formatear_duracion)
         
-        # 4. Definir columnas
+        # 2. ASIGNAR PRIORIDAD PARA EL ORDENAMIENTO
+        # Definimos el orden: En Proceso (0), Pendiente (1), Cerrada (2)
+        orden_prioridad = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
+        
+        # Creamos una columna temporal de orden
+        df_mostrar['PRIORIDAD'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_prioridad).fillna(3)
+        
+        # Ordenamos el DataFrame por la columna PRIORIDAD
+        df_mostrar = df_mostrar.sort_values(by='PRIORIDAD')
+        
+        # 3. Definir columnas finales
         columnas_a_mostrar = [
             'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
             'DURACION_COMPLETA', 'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
         df_mostrar = df_mostrar[[c for c in columnas_a_mostrar if c in df_mostrar.columns]]
         
-        # 5. Función de estilo para los colores
+        # 4. Función de estilo
         def aplicar_color_estatus(val):
             estado = str(val).strip().upper()
-            if estado == 'CERRADA':
-                color = 'green'
-            elif estado == 'EN PROCESO':
-                color = 'orange' # Usamos naranja para mejor visibilidad que amarillo
-            elif estado == 'PENDIENTE':
-                color = 'red'
-            else:
-                color = 'black'
+            if estado == 'CERRADA': color = 'green'
+            elif estado == 'EN PROCESO': color = 'orange'
+            elif estado == 'PENDIENTE': color = 'red'
+            else: color = 'black'
             return f'color: {color}; font-weight: bold;'
 
-        # 6. Mostrar tabla con estilos
+        # 5. Mostrar tabla
         st.dataframe(
             df_mostrar.style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True,
