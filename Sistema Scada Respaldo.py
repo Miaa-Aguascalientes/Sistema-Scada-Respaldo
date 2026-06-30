@@ -3541,9 +3541,9 @@ if sectores_data:
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
-            }
-        )
-    else:
+                }
+            )
+        else:
             st.warning("⚠️ No se encontraron resultados para la búsqueda realizada.")
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
