@@ -3503,46 +3503,44 @@ if sectores_data:
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- CÁLCULOS DE TIEMPO Y FECHAS ---
+        # --- CÁLCULOS Y FORMATO DE FECHAS EN ESPAÑOL ---
+        meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+        
+        def formatear_fecha_es(fecha):
+            ts = pd.to_datetime(fecha)
+            return ts.strftime(f"%H:%M %d/{meses[ts.month]}/%Y")
+            
+        df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
+        df_agrupado['FECHA_HORA_FIN_STR'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).apply(formatear_fecha_es)
+        
+        # Cálculo de duración
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
-        
         def formatear_duracion(td):
             return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
-        
         df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'] - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # --- ORDENAMIENTO CRONOLÓGICO (MÁS RECIENTE ARRIBA) ---
+        # --- ORDENAMIENTO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
-        # --- FILTROS ---
-        col1, col2, col3 = st.columns(3)
-        with col1: filtro_pozo = st.text_input("🔍 Buscar pozo")
-        with col2: filtro_falla = st.text_input("🔍 Buscar falla")
-        with col3: filtro_colonia = st.text_input("📍 Filtrar por Colonia")
-        
-        if filtro_pozo: df_final = df_final[df_final['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
-        if filtro_falla: df_final = df_final[df_final['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
-        if filtro_colonia: df_final = df_final[df_final['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
-            
         # --- VISUALIZACIÓN ---
         def aplicar_color_estatus(val):
             colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
             return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
         st.dataframe(
-            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True, hide_index=True,
             column_config={
-                "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MMMM/YYYY"),
-                "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
-                
-                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MMMM/YYYY"),
-                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
-                "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
-                "ESTATUS": st.column_config.TextColumn("Estatus")
+                "NUM_POZO": "Pozo",
+                "FECHA_HORA_INICIO_STR": "Inicio",
+                "DIAGNOSTICO_FALLA": "Diagnóstico de Falla",
+                "COLONIAS_AFECTADAS": "Colonias Afectadas",
+                "FECHA_HORA_FIN_STR": "Fin",
+                "DURACION_COMPLETA": "Duración",
+                "ESTATUS": "Estatus"
             }
         )
     else:
