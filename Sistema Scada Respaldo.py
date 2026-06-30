@@ -573,18 +573,23 @@ def cargar_medidores_desde_db():
 def get_data():
     engine = get_mysql_scada_engine()
     
-    # Si la conexión falla (engine es None), devolvemos un DF vacío
     if engine is None:
-        st.error("No se pudo establecer conexión con la base de datos SCADA.")
+        st.error("No se pudo establecer conexión.")
         return pd.DataFrame()
         
     try:
-        query = "SELECT POZO, FECHA_HORA_INICIO, NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS FROM vw_incidencias_en_pozos ORDER BY FECHA_HORA_INICIO DESC"
+        # AQUÍ ES DONDE AGREGAS TODOS LOS CAMPOS QUE QUIERAS TRAER
+        query = """
+            SELECT NUM_POZO, FECHA_HORA_INICIO, FECHA_HORA_FIN, 
+                   DIAGNOSTICO_FALLA, TIEMPO_ESTIMADO_ATENCION, ESTATUS 
+            FROM vw_incidencias_en_pozos 
+            ORDER BY FECHA_HORA_INICIO DESC
+        """
         df = pd.read_sql(query, engine)
         return df
     except Exception as e:
-        st.error(f"Error al ejecutar la consulta: {e}")
-        return pd.DataFrame() # Siempre retorna un DataFrame, nunca None
+        st.error(f"Error: {e}")
+        return pd.DataFrame()
 
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
@@ -3456,33 +3461,31 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
+    ## 10. SECCIÓN DE INCIDENCIAS DE POZOS
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # 10.1. Carga de datos
+    # Llamamos a tu función tal cual la definiste
     df_incidencias = get_data()
     
-    # 10.2. Verificación de seguridad: ¿Es un DataFrame válido?
-    if isinstance(df_incidencias, pd.DataFrame):
-        if not df_incidencias.empty:
-            # Si el DataFrame no está vacío, mostramos la tabla
-            st.dataframe(
-                df_incidencias,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                   
-                    "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                    "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm"),
-                    "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Motivo de falla"),
-                    "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Inicio", format="DD/MM HH:mm")
-                    
-                }
-            )
-        else:
-            # Caso: La consulta fue exitosa pero no hay registros
-            st.success("✅ Todo operando normalmente. No hay pozos reportados fuera de servicio.")
+    # Verificamos si el DataFrame tiene datos
+    if not df_incidencias.empty:
+        
+        # Filtramos solo las columnas que devuelve tu consulta SQL
+        columnas_a_mostrar = ['NUM_POZO', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']
+        df_mostrar = df_incidencias[[c for c in columnas_a_mostrar if c in df_incidencias.columns]]
+        
+        st.dataframe(
+            df_mostrar,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM/YYYY HH:mm"),
+                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "ESTATUS": st.column_config.TextColumn("Estatus")
+            }
+        )
     else:
-        # Caso: La función get_data() devolvió None (hubo un error en la conexión SQL)
-        st.error("❌ No se pudo conectar a la base de datos de incidencias o no hay datos disponibles.")
+        # Esto se mostrará si la tabla está vacía o si hubo un error en la consulta
+        st.success("✅ No hay incidencias reportadas actualmente.")
