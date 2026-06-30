@@ -3536,9 +3536,10 @@ if sectores_data:
             use_container_width=True, hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MMMM/YYYY"),
                 "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
-                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
+                
+                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MMMM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
