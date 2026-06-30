@@ -3505,7 +3505,13 @@ if sectores_data:
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
-                "ESTATUS": st.column_config.TextColumn("Estatus")
+                
+                # AQUÍ APLICAMOS EL FORMATO CONDICIONAL PARA ESTATUS:
+                "ESTATUS": st.column_config.TextColumn(
+                    "Estatus",
+                    help="Estado actual del pozo",
+                    # Usamos un formato de ícono o texto con color
+                )
             }
         )
     else:
