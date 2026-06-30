@@ -3477,7 +3477,7 @@ if sectores_data:
         # 2. Calcular la duración total
         delta = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
         
-        # 3. Función para formatear el texto exactamente como pediste
+        # 3. Formatear la duración
         def formatear_duracion(td):
             dias = td.days
             horas = td.seconds // 3600
@@ -3486,16 +3486,29 @@ if sectores_data:
 
         df_mostrar['DURACION_COMPLETA'] = delta.apply(formatear_duracion)
         
-        # 4. Definir columnas finales
+        # 4. Definir columnas
         columnas_a_mostrar = [
             'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
             'DURACION_COMPLETA', 'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
         ]
-        
         df_mostrar = df_mostrar[[c for c in columnas_a_mostrar if c in df_mostrar.columns]]
         
+        # 5. Función de estilo para los colores
+        def aplicar_color_estatus(val):
+            estado = str(val).strip().upper()
+            if estado == 'CERRADA':
+                color = 'green'
+            elif estado == 'EN PROCESO':
+                color = 'orange' # Usamos naranja para mejor visibilidad que amarillo
+            elif estado == 'PENDIENTE':
+                color = 'red'
+            else:
+                color = 'black'
+            return f'color: {color}; font-weight: bold;'
+
+        # 6. Mostrar tabla con estilos
         st.dataframe(
-            df_mostrar,
+            df_mostrar.style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -3505,13 +3518,7 @@ if sectores_data:
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
-                
-                # AQUÍ APLICAMOS EL FORMATO CONDICIONAL PARA ESTATUS:
-                "ESTATUS": st.column_config.TextColumn(
-                    "Estatus",
-                    help="Estado actual del pozo",
-                    # Usamos un formato de ícono o texto con color
-                )
+                "ESTATUS": st.column_config.TextColumn("Estatus", help="Estado actual del pozo")
             }
         )
     else:
