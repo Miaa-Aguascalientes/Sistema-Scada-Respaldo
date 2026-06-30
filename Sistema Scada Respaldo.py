@@ -3515,7 +3515,7 @@ if sectores_data:
         
         # --- ORDENAMIENTO (TU ORDEN ORIGINAL) ---
         orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
-        df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
+        df_agrupado['PRIORIDAD_ESTATUS'] = df_agrupado['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
         
         df_final = df_agrupado.sort_values(
             by=['PRIORIDAD_ESTATUS', 'FECHA_HORA_INICIO'], 
