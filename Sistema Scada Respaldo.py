@@ -3465,30 +3465,25 @@ if sectores_data:
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # --- LÓGICA DE DATOS ---
+    # 1. Obtener datos
     df_incidencias = get_data() 
-    
-    # Adaptación de tu función para obtener el diccionario completo
-    @st.cache_data(ttl=60)
-    def get_diccionario_completo():
-        query = "SELECT Pozos, Col_atl, Sector, Distrito, Supervisor, ST_AsText(geom) as geom_wkt FROM Diccionario_colonias"
-        try:
-            return pd.read_sql(query, get_engine_telemetria())
-        except Exception as e:
-            st.error(f"Error al cargar diccionario: {e}")
-            return pd.DataFrame()
-
     df_diccionario = get_diccionario_completo()
-
+    
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # Realizar el merge (Unión por número de pozo)
+        # --- PREPARACIÓN PARA EL MERGE ---
+        # Aseguramos que ambas columnas tengan el mismo formato (sin guiones)
+        df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
+        
+        # Realizar el merge usando la columna limpia
         df_mostrar = df_incidencias.merge(
             df_diccionario, 
-            left_on='NUM_POZO', 
+            left_on='NUM_POZO_LIMPIO', 
             right_on='Pozos', 
             how='left'
         )
+        
+        # Asignar la colonia
         df_mostrar['COLONIA'] = df_mostrar['Col_atl'].fillna('No definida')
         
         # --- FILTROS DE BÚSQUEDA ---
@@ -3503,6 +3498,7 @@ if sectores_data:
         
         # Aplicar filtros
         if filtro_pozo:
+            # Filtramos sobre la columna original o la limpia
             df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
         if filtro_falla:
             df_mostrar = df_mostrar[df_mostrar['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
@@ -3551,4 +3547,3 @@ if sectores_data:
             )
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
-
