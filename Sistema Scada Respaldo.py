@@ -3461,18 +3461,23 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    ## 10. SECCIÓN DE INCIDENCIAS DE POZOS
+    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # Llamamos a tu función tal cual la definiste
+    # Llamamos a tu función get_data()
     df_incidencias = get_data()
     
-    # Verificamos si el DataFrame tiene datos
-    if not df_incidencias.empty:
+    # Verificamos si el DataFrame tiene datos (usando isinstance para seguridad)
+    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # Filtramos solo las columnas que devuelve tu consulta SQL
-        columnas_a_mostrar = ['NUM_POZO', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']
+        # Lista de TODOS los campos que quieres mostrar
+        columnas_a_mostrar = [
+            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
+            'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
+        ]
+        
+        # Filtramos para que solo tome las columnas que existen en el DataFrame
         df_mostrar = df_incidencias[[c for c in columnas_a_mostrar if c in df_incidencias.columns]]
         
         st.dataframe(
@@ -3481,11 +3486,14 @@ if sectores_data:
             hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="DD/MM/YYYY HH:mm"),
+                # Formato: HH:mm DD/MM/YYYY
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Estimado"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
             }
         )
     else:
-        # Esto se mostrará si la tabla está vacía o si hubo un error en la consulta
+        # Se muestra si la tabla está vacía o si hubo un error controlado
         st.success("✅ No hay incidencias reportadas actualmente.")
