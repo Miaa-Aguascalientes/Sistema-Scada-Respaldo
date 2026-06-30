@@ -3475,82 +3475,69 @@ if sectores_data:
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # 1. Obtener datos
+    # 1. Obtener datos (Incidencias + Diccionario)
     df_incidencias = get_data() 
     df_diccionario = get_diccionario_completo()
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- LIMPIEZA DE DICCIONARIO (EXPLOSIÓN) ---
+        # --- PREPARACIÓN DICCIONARIO ---
         df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
         df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
         df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
         
-        # --- LIMPIEZA DE INCIDENCIAS ---
+        # --- PREPARACIÓN INCIDENCIAS ---
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        # --- MERGE ---
-        df_mostrar = df_incidencias.merge(
-            df_dict_expanded, 
+        # --- MERGE (Mantenemos todas las incidencias) ---
+        df_merged = df_incidencias.merge(
+            df_dict_expanded[['Pozos_limpios', 'Col_atl']], 
             left_on='NUM_POZO_LIMPIO', 
             right_on='Pozos_limpios', 
             how='left'
         )
         
-        # --- AGRUPACIÓN ---
-        # Agrupamos manteniendo TODAS las filas originales de incidencias
-        df_agrupado = df_mostrar.groupby(['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION'])['Col_atl'].apply(lambda x: ', '.join(x.dropna().unique())).reset_index()
+        # --- AGRUPACIÓN INTELIGENTE ---
+        # Agrupamos colonias por la incidencia, pero asegurando que no se pierda la fila si no hay colonias
+        df_agrupado = df_merged.groupby(['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION'], dropna=False)['Col_atl'].apply(lambda x: ', '.join(x.dropna().unique())).reset_index()
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- CÁLCULO DE TIEMPO ---
+        # --- CÁLCULOS Y PRIORIDAD ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
-        def formatear_duracion(td):
-            return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
-        
-        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'] - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
-        
-        # --- ORDENAMIENTO FORZADO ---
-        # Asignamos valor fijo para asegurar que todo aparezca
+        # Asignar prioridad sin eliminar filas
         def asignar_prioridad(estatus):
             val = str(estatus).strip().upper()
             if 'EN PROCESO' in val: return 0
             if 'PENDIENTE' in val: return 1
             if 'CERRADA' in val: return 2
             return 3
-            
         df_agrupado['PRIORIDAD'] = df_agrupado['ESTATUS'].apply(asignar_prioridad)
-        df_agrupado = df_agrupado.sort_values(by=['PRIORIDAD', 'FECHA_HORA_INICIO'], ascending=[True, False])
         
-        # --- FILTROS ---
+        # Ordenar (esto garantiza que las que tienen prioridad aparezcan primero)
+        df_final = df_agrupado.sort_values(by=['PRIORIDAD', 'FECHA_HORA_INICIO'], ascending=[True, False])
+        
+        # --- FILTROS (Aplicados sobre el df_final) ---
         col1, col2, col3 = st.columns(3)
         with col1: filtro_pozo = st.text_input("🔍 Buscar pozo")
         with col2: filtro_falla = st.text_input("🔍 Buscar falla")
         with col3: filtro_colonia = st.text_input("📍 Filtrar por Colonia")
         
-        if filtro_pozo: df_agrupado = df_agrupado[df_agrupado['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
-        if filtro_falla: df_agrupado = df_agrupado[df_agrupado['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
-        if filtro_colonia: df_agrupado = df_agrupado[df_agrupado['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
+        if filtro_pozo: df_final = df_final[df_final['NUM_POZO'].astype(str).str.contains(filtro_pozo, case=False, na=False)]
+        if filtro_falla: df_final = df_final[df_final['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
+        if filtro_colonia: df_final = df_final[df_final['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
             
-        # --- VISUALIZACIÓN ---
+        # --- VISUALIZACIÓN (Color y tabla) ---
         def aplicar_color_estatus(val):
             colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
             return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
         st.dataframe(
-            df_agrupado[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True,
-            column_config={
-                "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
-                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
-                "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
-                "ESTATUS": st.column_config.TextColumn("Estatus")
-            }
+            use_container_width=True, hide_index=True
         )
     else:
-        st.success("✅ No hay incidencias reportadas actualmente.")
+        st.write("No se encontraron incidencias.")
