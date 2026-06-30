@@ -3471,6 +3471,7 @@ if sectores_data:
         df_mostrar = df_incidencias.copy()
         
         # 1. Asegurar formato de fechas
+        df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
@@ -3493,9 +3494,6 @@ if sectores_data:
         df_mostrar['TIMESTAMP_INICIO'] = df_mostrar['FECHA_HORA_INICIO'].astype('int64')
         
         # Ordenamos:
-        # 1. Por Prioridad (0, 1, 2)
-        # 2. Para Cerradas (prioridad 2), ordenamos por TIMESTAMP_INICIO descendente (más reciente primero)
-        # Como sort_values ordena todo igual, usamos un truco:
         df_mostrar = df_mostrar.sort_values(
             by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], 
             ascending=[True, True] # Ajustamos esto según sea necesario
