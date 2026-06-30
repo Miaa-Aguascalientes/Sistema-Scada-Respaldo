@@ -3481,7 +3481,7 @@ if sectores_data:
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- PREPARACIÓN DEL DICCIONARIO (EXPLOSIÓN) ---
+        # --- LIMPIEZA DE DICCIONARIO (EXPLOSIÓN) ---
         df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
         df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
         df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
@@ -3489,7 +3489,7 @@ if sectores_data:
         # --- LIMPIEZA DE INCIDENCIAS ---
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        # --- MERGE Y AGRUPACIÓN DE COLONIAS ---
+        # --- MERGE ---
         df_mostrar = df_incidencias.merge(
             df_dict_expanded, 
             left_on='NUM_POZO_LIMPIO', 
@@ -3497,12 +3497,13 @@ if sectores_data:
             how='left'
         )
         
-        # Agrupamos colonias, pero manteniendo todas las columnas de la incidencia
+        # --- AGRUPACIÓN ---
+        # Agrupamos manteniendo TODAS las filas originales de incidencias
         df_agrupado = df_mostrar.groupby(['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION'])['Col_atl'].apply(lambda x: ', '.join(x.dropna().unique())).reset_index()
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- CÁLCULOS DE TIEMPO Y PRIORIDAD ---
+        # --- CÁLCULO DE TIEMPO ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
@@ -3511,9 +3512,17 @@ if sectores_data:
         
         df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'] - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # Prioridad: En Proceso (0), Pendiente (1), Cerrada (2)
-        orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
-        df_agrupado['PRIORIDAD'] = df_agrupado['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
+        # --- ORDENAMIENTO FORZADO ---
+        # Asignamos valor fijo para asegurar que todo aparezca
+        def asignar_prioridad(estatus):
+            val = str(estatus).strip().upper()
+            if 'EN PROCESO' in val: return 0
+            if 'PENDIENTE' in val: return 1
+            if 'CERRADA' in val: return 2
+            return 3
+            
+        df_agrupado['PRIORIDAD'] = df_agrupado['ESTATUS'].apply(asignar_prioridad)
+        df_agrupado = df_agrupado.sort_values(by=['PRIORIDAD', 'FECHA_HORA_INICIO'], ascending=[True, False])
         
         # --- FILTROS ---
         col1, col2, col3 = st.columns(3)
@@ -3525,29 +3534,23 @@ if sectores_data:
         if filtro_falla: df_agrupado = df_agrupado[df_agrupado['DIAGNOSTICO_FALLA'].str.contains(filtro_falla, case=False, na=False)]
         if filtro_colonia: df_agrupado = df_agrupado[df_agrupado['COLONIAS_AFECTADAS'].str.contains(filtro_colonia, case=False, na=False)]
             
-        if df_agrupado.empty:
-            st.warning("No se encontraron resultados.")
-        else:
-            # Ordenamiento final
-            df_final = df_agrupado.sort_values(by=['PRIORIDAD', 'FECHA_HORA_INICIO'], ascending=[True, False])
-            
-            # Visualización
-            def aplicar_color_estatus(val):
-                colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
-                return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
+        # --- VISUALIZACIÓN ---
+        def aplicar_color_estatus(val):
+            colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
+            return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
-            st.dataframe(
-                df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
-                .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-                use_container_width=True, hide_index=True,
-                column_config={
-                    "NUM_POZO": st.column_config.TextColumn("Pozo"),
-                    "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
-                    "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
-                    "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
-                    "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
-                    "ESTATUS": st.column_config.TextColumn("Estatus")
-                }
-            )
+        st.dataframe(
+            df_agrupado[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+            .style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            use_container_width=True, hide_index=True,
+            column_config={
+                "NUM_POZO": st.column_config.TextColumn("Pozo"),
+                "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
+                "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
+                "ESTATUS": st.column_config.TextColumn("Estatus")
+            }
+        )
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
