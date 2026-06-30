@@ -3538,7 +3538,7 @@ if sectores_data:
                 else: color = 'black'
                 return f'color: {color}; font-weight: bold;'
 
-            st.dataframe(
+        st.dataframe(
                 df_final.style.map(aplicar_color_estatus, subset=['ESTATUS']),
                 use_container_width=True,
                 hide_index=True,
