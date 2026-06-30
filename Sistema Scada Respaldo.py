@@ -3502,8 +3502,13 @@ if sectores_data:
         
         # 4. ORDEN FIJO DE COLUMNAS (Sin tocar nada más, este es el orden que quieres)
         columnas_ordenadas = [
-            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
-            'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
+            'NUM_POZO', 
+            'FECHA_HORA_INICIO', 
+            'DIAGNOSTICO_FALLA', 
+            'FECHA_HORA_FIN', 
+            'DURACION_COMPLETA',
+            'TIEMPO_ESTIMADO_ATENCION', 
+            'ESTATUS'
         ]
         df_final = df_mostrar[columnas_ordenadas]
 
