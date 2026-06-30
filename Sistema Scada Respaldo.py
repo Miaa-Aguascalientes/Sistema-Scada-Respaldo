@@ -3508,26 +3508,27 @@ if sectores_data:
                  7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
         
         def formatear_fecha_es(fecha):
-            # Si es nulo o NaT, regresamos un string vacío o un guion
+            # Si es nulo o NaT, regresamos un guion
             if pd.isnull(fecha):
                 return "-"
             ts = pd.to_datetime(fecha)
-            return ts.strftime(f"%H:%M %d/{meses[ts.month]}/%Y")
+            # Formato: HH:MM - DD/Mes/YYYY
+            return ts.strftime(f"%H:%M - %d/{meses[ts.month]}/%Y")
             
         # Convertimos a datetime antes de aplicar el formato
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
         
-        # Aplicamos la función usando .astype(object) para evitar problemas de tipos
+        # Aplicamos el formato con el guion separador
         df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
         df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
         
         # Cálculo de duración
-        df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
-        df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         def formatear_duracion(td):
             return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
-        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'] - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
+        
+        # Calculamos la duración con la fecha de fin actual si es nula
+        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
         # --- ORDENAMIENTO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
