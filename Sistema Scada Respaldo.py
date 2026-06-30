@@ -3470,37 +3470,44 @@ if sectores_data:
         
         df_mostrar = df_incidencias.copy()
         
-        # 1. Asegurar formato de fechas y calcular duración
+        # 1. Asegurar formato de fechas
         df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
         df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
-        delta = df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']
         
+        # 2. Calcular la duración
         def formatear_duracion(td):
             dias = td.days
             horas = td.seconds // 3600
             minutos = (td.seconds % 3600) // 60
             return f"{dias} días, {horas} horas y {minutos} min"
 
-        df_mostrar['DURACION_COMPLETA'] = delta.apply(formatear_duracion)
+        df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # 2. ASIGNAR PRIORIDAD PARA EL ORDENAMIENTO
-        # Definimos el orden: En Proceso (0), Pendiente (1), Cerrada (2)
-        orden_prioridad = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
+        # 3. ORDENAMIENTO HÍBRIDO
+        # Asignamos prioridad fija a los estados activos
+        orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
+        df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
         
-        # Creamos una columna temporal de orden
-        df_mostrar['PRIORIDAD'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_prioridad).fillna(3)
+        # Para las cerradas, queremos fecha descendente. 
+        # Usamos el timestamp (número) de la fecha para que el sort funcione:
+        df_mostrar['TIMESTAMP_INICIO'] = df_mostrar['FECHA_HORA_INICIO'].astype('int64')
         
-        # Ordenamos el DataFrame por la columna PRIORIDAD
-        df_mostrar = df_mostrar.sort_values(by='PRIORIDAD')
+        # Ordenamos:
+        # 1. Por Prioridad (0, 1, 2)
+        # 2. Para Cerradas (prioridad 2), ordenamos por TIMESTAMP_INICIO descendente (más reciente primero)
+        # Como sort_values ordena todo igual, usamos un truco:
+        df_mostrar = df_mostrar.sort_values(
+            by=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], 
+            ascending=[True, True] # Ajustamos esto según sea necesario
+        )
         
-        # 3. Definir columnas finales
-        columnas_a_mostrar = [
-            'NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 
-            'DURACION_COMPLETA', 'DIAGNOSTICO_FALLA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
-        ]
-        df_mostrar = df_mostrar[[c for c in columnas_a_mostrar if c in df_mostrar.columns]]
-        
-        # 4. Función de estilo
+        # REFINAMIENTO PARA EL ORDEN:
+        # Si queremos Cerradas (2) más recientes arriba, invertimos el orden de fecha solo para ellas
+        df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2]
+        df_mostrar = pd.concat([df_otros, df_cerradas])
+
+        # 4. Mostrar tabla
         def aplicar_color_estatus(val):
             estado = str(val).strip().upper()
             if estado == 'CERRADA': color = 'green'
@@ -3509,9 +3516,8 @@ if sectores_data:
             else: color = 'black'
             return f'color: {color}; font-weight: bold;'
 
-        # 5. Mostrar tabla
         st.dataframe(
-            df_mostrar.style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            df_mostrar.drop(columns=['PRIORIDAD_ESTATUS', 'TIMESTAMP_INICIO'], errors='ignore').style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True,
             hide_index=True,
             column_config={
@@ -3521,7 +3527,7 @@ if sectores_data:
                 "DURACION_COMPLETA": st.column_config.TextColumn("Duración del evento"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
                 "TIEMPO_ESTIMADO_ATENCION": st.column_config.TextColumn("Tiempo Est. Atención"),
-                "ESTATUS": st.column_config.TextColumn("Estatus", help="Estado actual del pozo")
+                "ESTATUS": st.column_config.TextColumn("Estatus")
             }
         )
     else:
