@@ -3503,11 +3503,16 @@ if sectores_data:
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- PROCESAMIENTO FECHAS ---
+        # --- CÁLCULOS DE TIEMPO Y FECHAS ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
+        df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
         
-        # --- ORDENAMIENTO (PURAMENTE CRONOLÓGICO) ---
-        # Ordenamos únicamente por FECHA_HORA_INICIO de más reciente a más antiguo
+        def formatear_duracion(td):
+            return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
+        
+        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'] - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
+        
+        # --- ORDENAMIENTO CRONOLÓGICO (MÁS RECIENTE ARRIBA) ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
         # --- FILTROS ---
@@ -3526,14 +3531,16 @@ if sectores_data:
             return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
         st.dataframe(
-            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 'ESTATUS']]
+            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True, hide_index=True,
             column_config={
                 "NUM_POZO": st.column_config.TextColumn("Pozo"),
                 "COLONIAS_AFECTADAS": st.column_config.TextColumn("Colonias Afectadas"),
                 "FECHA_HORA_INICIO": st.column_config.DatetimeColumn("Inicio", format="HH:mm DD/MM/YYYY"),
+                "FECHA_HORA_FIN": st.column_config.DatetimeColumn("Fin", format="HH:mm DD/MM/YYYY"),
                 "DIAGNOSTICO_FALLA": st.column_config.TextColumn("Diagnóstico de Falla"),
+                "DURACION_COMPLETA": st.column_config.TextColumn("Duración"),
                 "ESTATUS": st.column_config.TextColumn("Estatus")
             }
         )
