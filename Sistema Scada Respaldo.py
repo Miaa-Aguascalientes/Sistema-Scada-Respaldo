@@ -3469,20 +3469,20 @@ if sectores_data:
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- FILTRO DE BÚSQUEDA ---
-        busqueda = st.text_input("🔍 Buscar pozo:", placeholder="Ejemplo: P083A")
+        # BUSCADOR FLEXIBLE (Ignora el guion automáticamente)
+        busqueda = st.text_input("🔍 Buscar pozo:", placeholder="Ejemplo: P083 (o P-083)")
         
         df_mostrar = df_incidencias.copy()
         
-        # Aplicar filtro si el usuario escribió algo
+        # Filtrado flexible: Normalizamos comparando todo sin guiones
         if busqueda:
-            df_mostrar = df_mostrar[df_mostrar['NUM_POZO'].astype(str).str.contains(busqueda, case=False, na=False)]
+            busqueda_limpia = busqueda.replace('-', '').strip().upper()
+            mask = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False).str.upper().str.contains(busqueda_limpia, na=False)
+            df_mostrar = df_mostrar[mask]
             
         if not df_mostrar.empty:
-            # Limpieza de pozo
+            # 1. Asegurar formatos y limpiar guion para visualización final
             df_mostrar['NUM_POZO'] = df_mostrar['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
-            
-            # 1. Asegurar formato de fechas
             df_mostrar['FECHA_HORA_INICIO'] = pd.to_datetime(df_mostrar['FECHA_HORA_INICIO'])
             df_mostrar['FECHA_HORA_FIN'] = pd.to_datetime(df_mostrar['FECHA_HORA_FIN']).fillna(pd.Timestamp.now())
             
@@ -3495,11 +3495,11 @@ if sectores_data:
 
             df_mostrar['DURACION_COMPLETA'] = (df_mostrar['FECHA_HORA_FIN'] - df_mostrar['FECHA_HORA_INICIO']).apply(formatear_duracion)
             
-            # 3. ORDENAMIENTO DE FILAS (PRIORIDAD)
+            # 3. ORDENAMIENTO HÍBRIDO (Prioridad Estatus + Fecha Reciente)
             orden_map = {'EN PROCESO': 0, 'PENDIENTE': 1, 'CERRADA': 2}
             df_mostrar['PRIORIDAD_ESTATUS'] = df_mostrar['ESTATUS'].str.strip().str.upper().map(orden_map).fillna(3)
             
-            # Separamos y ordenamos
+            # Separamos grupos para ordenar
             df_cerradas = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] == 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
             df_otros = df_mostrar[df_mostrar['PRIORIDAD_ESTATUS'] != 2].sort_values(by='FECHA_HORA_INICIO', ascending=False)
             df_mostrar = pd.concat([df_otros, df_cerradas])
@@ -3509,9 +3509,9 @@ if sectores_data:
                 'NUM_POZO', 'COLONIA', 'FECHA_HORA_INICIO', 'DIAGNOSTICO_FALLA', 
                 'FECHA_HORA_FIN', 'DURACION_COMPLETA', 'TIEMPO_ESTIMADO_ATENCION', 'ESTATUS'
             ]
-            df_final = df_mostrar[columnas_ordenadas]
+            df_final = df_mostrar[[c for c in columnas_ordenadas if c in df_mostrar.columns]]
 
-            # 5. Estilos y Mostrar
+            # 5. Visualización con Estilo
             def aplicar_color_estatus(val):
                 estado = str(val).strip().upper()
                 if estado == 'CERRADA': color = 'green'
@@ -3536,7 +3536,7 @@ if sectores_data:
                 }
             )
         else:
-            st.warning("⚠️ No se encontraron resultados para la búsqueda realizada.")
+            st.warning("⚠️ No se encontraron resultados para esta búsqueda.")
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
 
