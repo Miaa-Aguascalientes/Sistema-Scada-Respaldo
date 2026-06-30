@@ -568,7 +568,7 @@ def cargar_medidores_desde_db():
         st.error(f"Error al cargar datos: {e}")
         return {}
         
-# 3.4. Funcion para optener los macromedidores desde la base de datos
+# 3.6. Funcion para optener las incidencias
 @st.cache_data(ttl=60)
 def get_data():
     engine = get_mysql_scada_engine()
@@ -590,7 +590,17 @@ def get_data():
     except Exception as e:
         st.error(f"Error: {e}")
         return pd.DataFrame()
-
+        
+# 3.7. Funcion para optener las colonias del diccionario de colonias        
+@st.cache_data(ttl=60)
+def get_diccionario_completo():
+    try:
+        # Asegúrate de que get_engine_telemetria() esté disponible en tu archivo
+        query = "SELECT Pozos, Col_atl, Sector, Distrito, Supervisor, ST_AsText(geom) as geom_wkt FROM Diccionario_colonias"
+        return pd.read_sql(query, get_mysql_telemetria_engine())
+    except Exception as e:
+        st.error(f"Error en get_diccionario_completo: {e}")
+        return pd.DataFrame()
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
 params = st.query_params
@@ -3467,7 +3477,7 @@ if sectores_data:
     
     # 1. Obtener datos
     df_incidencias = get_data() 
-    df_diccionario = get_diccionario_completo()
+    df_diccionario = get_diccionario_colonias()
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
