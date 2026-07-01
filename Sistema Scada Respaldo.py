@@ -3538,9 +3538,11 @@ if sectores_data:
         for index, row in df_actual.iterrows():
             indicador = obtener_indicador_color(row['ESTATUS'])
             titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+            
+            # Se elimina el segundo expander y se escribe directamente el contenido
             with st.expander(titulo):
-                with st.expander("🌍 Ver Detalles de Colonias"):
-                    st.write(row['COLONIAS_AFECTADAS'])
+                st.markdown("**Colonias Afectadas:**")
+                st.write(row['COLONIAS_AFECTADAS'])
         
         st.markdown("---")
         
@@ -3553,9 +3555,11 @@ if sectores_data:
             for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_seleccionado].iterrows():
                 indicador = obtener_indicador_color(row['ESTATUS'])
                 titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+                
+                # Se aplica el mismo cambio en el historial
                 with st.expander(titulo):
-                    with st.expander("🌍 Ver Detalles de Colonias"):
-                        st.write(row['COLONIAS_AFECTADAS'])
+                    st.markdown("**Colonias Afectadas:**")
+                    st.write(row['COLONIAS_AFECTADAS'])
         else:
             st.info("No hay historial de incidencias disponible.")
             
