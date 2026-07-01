@@ -3502,19 +3502,17 @@ if sectores_data:
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- CÁLCULOS Y FORMATO DE FECHAS EN ESPAÑOL ---
+        # --- CÁLCULOS Y FORMATO ---
         meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
                  7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
         
         def formatear_fecha_es(fecha):
-            if pd.isnull(fecha):
-                return "-"
+            if pd.isnull(fecha): return "-"
             ts = pd.to_datetime(fecha)
             return ts.strftime(f"%H:%M - %d/{meses[ts.month]}/%Y")
             
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
-        
         df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
         df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
         
@@ -3523,22 +3521,26 @@ if sectores_data:
         
         df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
-        # --- ORDENAMIENTO ---
+        # --- LÓGICA DE COLORES ---
+        def obtener_indicador_color(estatus):
+            e = str(estatus).strip().upper()
+            if e == 'PENDIENTE': return "🔴"
+            if e == 'EN PROCESO': return "🟡"
+            if e == 'CERRADA': return "🟢"
+            return "⚪"
+
+        # --- ORDENAMIENTO Y FILTRADO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
-        
-        # --- FILTRADO ---
         hoy = pd.Timestamp.now().normalize()
-        es_pendiente_o_proceso = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
-        es_cerrada = df_final['ESTATUS'].str.upper() == 'CERRADA'
-        es_de_hoy = df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy
-        
-        df_actual = df_final[es_pendiente_o_proceso | (es_cerrada & es_de_hoy)]
-        df_historial = df_final[es_cerrada & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
+        df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
+                             ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+        df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
         
         # --- VISUALIZACIÓN ---
         st.subheader("📋 Incidencias Activas y del día")
         for index, row in df_actual.iterrows():
-            with st.expander(f"Pozo: {row['NUM_POZO']} | Estatus: {row['ESTATUS']} | Inicio: {row['FECHA_HORA_INICIO_STR']}"):
+            indicador = obtener_indicador_color(row['ESTATUS'])
+            with st.expander(f"{indicador} Pozo: {row['NUM_POZO']} | Estatus: {row['ESTATUS']} | Inicio: {row['FECHA_HORA_INICIO_STR']}"):
                 st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
                 st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
                 with st.expander("🌍 Ver Detalles de Colonias"):
@@ -3549,7 +3551,8 @@ if sectores_data:
         
         st.subheader("📜 Historial de Incidencias Cerradas")
         for index, row in df_historial.iterrows():
-            with st.expander(f"Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Fin: {row['FECHA_HORA_FIN_STR']}"):
+            indicador = obtener_indicador_color(row['ESTATUS'])
+            with st.expander(f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Fin: {row['FECHA_HORA_FIN_STR']}"):
                 st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
                 st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
                 with st.expander("🌍 Ver Detalles de Colonias"):
