@@ -3523,11 +3523,9 @@ if sectores_data:
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         hoy = pd.Timestamp.now().normalize()
         
-        # Incidencias Activas/Hoy
         df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
                              ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
         
-        # Historial con selector de mes
         df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
         df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
         
@@ -3536,19 +3534,18 @@ if sectores_data:
         if mes_por_defecto not in meses_disponibles: mes_por_defecto = meses_disponibles[0] if meses_disponibles else None
 
         # --- VISUALIZACIÓN ---
-        st.subheader("📋 Incidencias Activas y del día")
         def obtener_indicador_color(estatus):
             e = str(estatus).strip().upper()
             return "🔴" if e == 'PENDIENTE' else "🟡" if e == 'EN PROCESO' else "🟢" if e == 'CERRADA' else "⚪"
 
+        st.subheader("📋 Incidencias Activas y del día")
         for index, row in df_actual.iterrows():
             indicador = obtener_indicador_color(row['ESTATUS'])
-            with st.expander(f"{indicador} Pozo: {row['NUM_POZO']} | Estatus: {row['ESTATUS']} | Inicio: {row['FECHA_HORA_INICIO_STR']}"):
-                st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
-                st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
+            # Título con el orden solicitado: Sitio | Inicio | Diagnóstico | Duración | Fin
+            titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+            with st.expander(titulo):
                 with st.expander("🌍 Ver Detalles de Colonias"):
                     st.write(row['COLONIAS_AFECTADAS'])
-                st.write(f"**Fin:** {row['FECHA_HORA_FIN_STR']}")
         
         st.markdown("---")
         
@@ -3558,9 +3555,8 @@ if sectores_data:
             df_historial_filtrado = df_historial_total[df_historial_total['MES_AÑO'] == mes_seleccionado]
             for index, row in df_historial_filtrado.iterrows():
                 indicador = obtener_indicador_color(row['ESTATUS'])
-                with st.expander(f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Fin: {row['FECHA_HORA_FIN_STR']}"):
-                    st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
-                    st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
+                titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+                with st.expander(titulo):
                     with st.expander("🌍 Ver Detalles de Colonias"):
                         st.write(row['COLONIAS_AFECTADAS'])
         else:
