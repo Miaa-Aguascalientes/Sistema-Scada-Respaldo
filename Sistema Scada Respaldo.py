@@ -3537,9 +3537,9 @@ if sectores_data:
         st.subheader("📋 Incidencias Activas y del día")
         for index, row in df_actual.iterrows():
             indicador = obtener_indicador_color(row['ESTATUS'])
-            titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+            # Se añade Sector y Distrito al final del título
+            titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row.get('Sector', 'N/A')} | Distrito: {row.get('Distrito', 'N/A')}"
             
-            # Se elimina el segundo expander y se escribe directamente el contenido
             with st.expander(titulo):
                 st.markdown("**Colonias Afectadas:**")
                 st.write(row['COLONIAS_AFECTADAS'])
@@ -3554,9 +3554,9 @@ if sectores_data:
             mes_seleccionado = st.selectbox("Seleccionar mes:", meses_disponibles)
             for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_seleccionado].iterrows():
                 indicador = obtener_indicador_color(row['ESTATUS'])
-                titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
+                # Se añade Sector y Distrito al final del título también en el historial
+                titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row.get('Sector', 'N/A')} | Distrito: {row.get('Distrito', 'N/A')}"
                 
-                # Se aplica el mismo cambio en el historial
                 with st.expander(titulo):
                     st.markdown("**Colonias Afectadas:**")
                     st.write(row['COLONIAS_AFECTADAS'])
