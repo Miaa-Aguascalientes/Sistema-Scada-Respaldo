@@ -3533,13 +3533,25 @@ if sectores_data:
         # --- ORDENAMIENTO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
+        # --- FILTRADO PARA LAS DOS TABLAS ---
+        hoy = pd.Timestamp.now().normalize()
+        
+        es_pendiente_o_proceso = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
+        es_cerrada = df_final['ESTATUS'].str.upper() == 'CERRADA'
+        es_de_hoy = df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy
+        
+        df_actual = df_final[es_pendiente_o_proceso | (es_cerrada & es_de_hoy)]
+        df_historial = df_final[es_cerrada & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
+        
         # --- VISUALIZACIÓN ---
         def aplicar_color_estatus(val):
             colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
             return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
 
+        # Tabla 1: Incidencias Actuales
+        st.subheader("📋 Incidencias Activas y del día")
         st.dataframe(
-            df_final[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+            df_actual[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
             .style.map(aplicar_color_estatus, subset=['ESTATUS']),
             use_container_width=True, hide_index=True,
             column_config={
@@ -3552,5 +3564,25 @@ if sectores_data:
                 "ESTATUS": "Estatus"
             }
         )
+        
+        st.markdown("---")
+        
+        # Tabla 2: Historial
+        st.subheader("📜 Historial de Incidencias Cerradas")
+        st.dataframe(
+            df_historial[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
+            .style.map(aplicar_color_estatus, subset=['ESTATUS']),
+            use_container_width=True, hide_index=True,
+            column_config={
+                "NUM_POZO": "Pozo",
+                "FECHA_HORA_INICIO_STR": "Inicio",
+                "DIAGNOSTICO_FALLA": "Diagnóstico de Falla",
+                "COLONIAS_AFECTADAS": "Colonias Afectadas",
+                "FECHA_HORA_FIN_STR": "Fin",
+                "DURACION_COMPLETA": "Duración",
+                "ESTATUS": "Estatus"
+            }
+        )
+        
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
