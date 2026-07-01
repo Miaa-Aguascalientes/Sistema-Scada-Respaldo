@@ -3480,21 +3480,13 @@ if sectores_data:
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- PREPARACIÓN DEL DICCIONARIO ---
+        # --- PREPARACIÓN Y MERGE ---
         df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
         df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
         df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
-        
-        # --- LIMPIEZA DE INCIDENCIAS ---
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        # --- MERGE ---
-        df_merged = df_incidencias.merge(
-            df_dict_expanded[['Pozos_limpios', 'Col_atl']], 
-            left_on='NUM_POZO_LIMPIO', 
-            right_on='Pozos_limpios', 
-            how='left'
-        )
+        df_merged = df_incidencias.merge(df_dict_expanded[['Pozos_limpios', 'Col_atl']], left_on='NUM_POZO_LIMPIO', right_on='Pozos_limpios', how='left')
         
         # --- AGRUPACIÓN ---
         columnas_agrupar = ['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION']
@@ -3502,7 +3494,7 @@ if sectores_data:
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- FORMATO DE FECHAS Y DURACIÓN ---
+        # --- FORMATO DE FECHAS ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
         
@@ -3514,21 +3506,25 @@ if sectores_data:
         df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
         df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
         
-        def formatear_duracion(td):
-            return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
+        # --- CÁLCULO DE DURACIÓN CON SEGUNDOS ---
+        def formatear_duracion_detallada(td):
+            dias = td.days
+            horas = td.seconds // 3600
+            minutos = (td.seconds % 3600) // 60
+            segundos = td.seconds % 60
+            return f"{dias}d, {horas}h, {minutos}m y {segundos}s"
         
-        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
+        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion_detallada)
         
         # --- LÓGICA DE FILTRADO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         hoy = pd.Timestamp.now().normalize()
         
-        df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
-                             ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-        
+        df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
         df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
-        df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
         
+        # Preparación para el selector de meses
+        df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
         meses_disponibles = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
         mes_por_defecto = pd.Timestamp.now().strftime('%B %Y').capitalize()
         if mes_por_defecto not in meses_disponibles: mes_por_defecto = meses_disponibles[0] if meses_disponibles else None
@@ -3538,10 +3534,10 @@ if sectores_data:
             e = str(estatus).strip().upper()
             return "🔴" if e == 'PENDIENTE' else "🟡" if e == 'EN PROCESO' else "🟢" if e == 'CERRADA' else "⚪"
 
+        # Incidencias Activas
         st.subheader("📋 Incidencias Activas y del día")
         for index, row in df_actual.iterrows():
             indicador = obtener_indicador_color(row['ESTATUS'])
-            # Título con el orden solicitado: Sitio | Inicio | Diagnóstico | Duración | Fin
             titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']}"
             with st.expander(titulo):
                 with st.expander("🌍 Ver Detalles de Colonias"):
@@ -3549,6 +3545,7 @@ if sectores_data:
         
         st.markdown("---")
         
+        # Historial
         st.subheader("📜 Historial de Incidencias Cerradas")
         if meses_disponibles:
             mes_seleccionado = st.selectbox("Seleccionar mes:", meses_disponibles, index=meses_disponibles.index(mes_por_defecto) if mes_por_defecto in meses_disponibles else 0)
