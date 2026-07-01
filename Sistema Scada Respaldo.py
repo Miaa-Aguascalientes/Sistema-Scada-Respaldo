@@ -3490,8 +3490,9 @@ if sectores_data:
         df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
         # --- MERGE ---
+        # Usamos 'geom_wkt' tal como viene de tu función get_diccionario_completo
         df_merged = df_incidencias.merge(
-            df_dict_expanded[['Pozos_limpios', 'Col_atl', 'Sector', 'Distrito', 'geom']], 
+            df_dict_expanded[['Pozos_limpios', 'Col_atl', 'Sector', 'Distrito', 'geom_wkt']], 
             left_on='NUM_POZO_LIMPIO', 
             right_on='Pozos_limpios', 
             how='left'
@@ -3503,7 +3504,7 @@ if sectores_data:
             'Col_atl': lambda x: ', '.join(x.dropna().unique()),
             'Sector': lambda x: ', '.join(x.dropna().unique()),
             'Distrito': lambda x: ', '.join(x.dropna().unique()),
-            'geom': 'first'
+            'geom_wkt': 'first' # Usamos el nombre correcto de la columna
         }).reset_index()
         
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
@@ -3540,14 +3541,15 @@ if sectores_data:
             e = str(estatus).strip().upper()
             return "🔴" if e == 'PENDIENTE' else "🟡" if e == 'EN PROCESO' else "🟢" if e == 'CERRADA' else "⚪"
 
-        def render_mapa(geom_str):
-            if pd.isna(geom_str) or not isinstance(geom_str, str): return
+        def render_mapa(geom_wkt):
+            # Cambiamos aquí para verificar geom_wkt
+            if pd.isna(geom_wkt) or not isinstance(geom_wkt, str): return
             try:
-                poly = wkt.loads(geom_str)
+                poly = wkt.loads(geom_wkt)
                 m = folium.Map(location=[poly.centroid.y, poly.centroid.x], zoom_start=13, tiles="CartoDB dark_matter")
                 folium.GeoJson(poly).add_to(m)
                 st_folium(m, height=300, width=700)
-            except: st.error("No se pudo cargar el mapa.")
+            except Exception as e: st.error(f"Error mapa: {e}")
 
         # --- VISUALIZACIÓN ---
         st.subheader("📋 Incidencias Activas y del día")
@@ -3556,7 +3558,7 @@ if sectores_data:
             titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
             with st.expander(titulo):
                 st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
-                render_mapa(row['geom'])
+                render_mapa(row['geom_wkt'])
         
         st.markdown("---")
         
@@ -3571,7 +3573,7 @@ if sectores_data:
                 titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
                 with st.expander(titulo):
                     st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
-                    render_mapa(row['geom'])
+                    render_mapa(row['geom_wkt'])
         else:
             st.info("No hay historial disponible.")
             
