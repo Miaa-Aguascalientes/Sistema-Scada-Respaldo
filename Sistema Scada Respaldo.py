@@ -3475,9 +3475,6 @@ if sectores_data:
     st.markdown("---")
     st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # Refresco para movimiento de segundos en tiempo real
-    st_autorefresh(interval=1000, key="datarefresh")
-
     # 1. Obtener datos
     df_incidencias = get_data() 
     df_diccionario = get_diccionario_completo()
@@ -3506,41 +3503,31 @@ if sectores_data:
         df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
         df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
         
-        # --- CÁLCULOS Y FORMATO DE FECHAS EN ESPAÑOL ---
-        meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
-                 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-        
-        def formatear_fecha_es(fecha):
-            if pd.isnull(fecha):
-                return "-"
-            ts = pd.to_datetime(fecha)
-            return ts.strftime(f"%H:%M - %d/{meses[ts.month]}/%Y")
-            
+        # --- CÁLCULOS Y FORMATO ---
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
         
+        def formatear_fecha_es(fecha):
+            if pd.isnull(fecha): return "-"
+            meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+            return fecha.strftime(f"%H:%M - %d/{meses[fecha.month]}/%Y")
+
         df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
         df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
         
-        # --- CÁLCULO DE DURACIÓN ---
-        def formatear_duracion_activa(td):
-            return f"{td.days}d, {td.seconds // 3600}h, {(td.seconds % 3600) // 60}m y {td.seconds % 60}s"
-        
-        def formatear_duracion_historial(td):
+        def formatear_duracion(td):
             return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
+        
+        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
         # --- ORDENAMIENTO Y FILTRADO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         hoy = pd.Timestamp.now().normalize()
         
         df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
-                             ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))].copy()
+                             ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
         
         df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
-        
-        # Asignar duraciones según tabla
-        df_actual['DURACION_COMPLETA'] = (pd.Timestamp.now() - df_actual['FECHA_HORA_INICIO']).apply(formatear_duracion_activa)
-        df_historial_total['DURACION_COMPLETA'] = (df_historial_total['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_historial_total['FECHA_HORA_INICIO']).apply(formatear_duracion_historial)
         
         # --- VISUALIZACIÓN ---
         def obtener_indicador_color(estatus):
