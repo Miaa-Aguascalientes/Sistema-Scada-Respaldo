@@ -3471,8 +3471,8 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-    # 10. SECCIÓN DE INCIDENCIAS DE POZOS
-   
+    st.markdown("---")
+    st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
     # 1. Obtener datos
     df_incidencias = get_data() 
@@ -3507,34 +3507,27 @@ if sectores_data:
                  7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
         
         def formatear_fecha_es(fecha):
-            # Si es nulo o NaT, regresamos un guion
             if pd.isnull(fecha):
                 return "-"
             ts = pd.to_datetime(fecha)
-            # Formato: HH:MM - DD/Mes/YYYY
             return ts.strftime(f"%H:%M - %d/{meses[ts.month]}/%Y")
             
-        # Convertimos a datetime antes de aplicar el formato
         df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
         df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
         
-        # Aplicamos el formato con el guion separador
         df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
         df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
         
-        # Cálculo de duración
         def formatear_duracion(td):
             return f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min"
         
-        # Calculamos la duración con la fecha de fin actual si es nula
         df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(formatear_duracion)
         
         # --- ORDENAMIENTO ---
         df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
-        # --- FILTRADO PARA LAS DOS TABLAS ---
+        # --- FILTRADO ---
         hoy = pd.Timestamp.now().normalize()
-        
         es_pendiente_o_proceso = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
         es_cerrada = df_final['ESTATUS'].str.upper() == 'CERRADA'
         es_de_hoy = df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy
@@ -3543,45 +3536,24 @@ if sectores_data:
         df_historial = df_final[es_cerrada & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
         
         # --- VISUALIZACIÓN ---
-        def aplicar_color_estatus(val):
-            colores = {'CERRADA': 'green', 'EN PROCESO': 'orange', 'PENDIENTE': 'red'}
-            return f'color: {colores.get(str(val).strip().upper(), "black")}; font-weight: bold;'
-
-        # Tabla 1: Incidencias Actuales
         st.subheader("📋 Incidencias Activas y del día")
-        st.dataframe(
-            df_actual[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
-            .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True,
-            column_config={
-                "NUM_POZO": "Pozo",
-                "FECHA_HORA_INICIO_STR": "Inicio",
-                "DIAGNOSTICO_FALLA": "Diagnóstico de Falla",
-                "COLONIAS_AFECTADAS": "Colonias Afectadas",
-                "FECHA_HORA_FIN_STR": "Fin",
-                "DURACION_COMPLETA": "Duración",
-                "ESTATUS": "Estatus"
-            }
-        )
+        for index, row in df_actual.iterrows():
+            with st.expander(f"Pozo: {row['NUM_POZO']} | Estatus: {row['ESTATUS']} | Inicio: {row['FECHA_HORA_INICIO_STR']}"):
+                st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
+                st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
+                with st.expander("🌍 Ver Detalles de Colonias"):
+                    st.write(row['COLONIAS_AFECTADAS'])
+                st.write(f"**Fin:** {row['FECHA_HORA_FIN_STR']}")
         
         st.markdown("---")
         
-        # Tabla 2: Historial
         st.subheader("📜 Historial de Incidencias Cerradas")
-        st.dataframe(
-            df_historial[['NUM_POZO', 'COLONIAS_AFECTADAS', 'FECHA_HORA_INICIO_STR', 'FECHA_HORA_FIN_STR', 'DIAGNOSTICO_FALLA', 'DURACION_COMPLETA', 'ESTATUS']]
-            .style.map(aplicar_color_estatus, subset=['ESTATUS']),
-            use_container_width=True, hide_index=True,
-            column_config={
-                "NUM_POZO": "Pozo",
-                "FECHA_HORA_INICIO_STR": "Inicio",
-                "DIAGNOSTICO_FALLA": "Diagnóstico de Falla",
-                "COLONIAS_AFECTADAS": "Colonias Afectadas",
-                "FECHA_HORA_FIN_STR": "Fin",
-                "DURACION_COMPLETA": "Duración",
-                "ESTATUS": "Estatus"
-            }
-        )
+        for index, row in df_historial.iterrows():
+            with st.expander(f"Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Fin: {row['FECHA_HORA_FIN_STR']}"):
+                st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
+                st.write(f"**Duración:** {row['DURACION_COMPLETA']}")
+                with st.expander("🌍 Ver Detalles de Colonias"):
+                    st.write(row['COLONIAS_AFECTADAS'])
         
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
