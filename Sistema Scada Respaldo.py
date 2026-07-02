@@ -3473,76 +3473,92 @@ if sectores_data:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
     st.markdown("---")
-st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
-
-# 1. Obtener datos
-df_incidencias = get_data()
-
-if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+    st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
     
-    # --- PREPARACIÓN Y FORMATO ---
-    df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
-    df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'])
+    # 1. Obtener datos
+    df_incidencias = get_data() 
+    df_diccionario = get_diccionario_completo()
     
-    def formatear_fecha_es(fecha):
-        if pd.isnull(fecha): return "-"
-        meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-        return fecha.strftime(f"%H:%M - %d/{meses[fecha.month]}/%Y")
-
-    df_incidencias['FECHA_HORA_INICIO_STR'] = df_incidencias['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
-    df_incidencias['FECHA_HORA_FIN_STR'] = df_incidencias['FECHA_HORA_FIN'].apply(formatear_fecha_es)
-    df_incidencias['DURACION_COMPLETA'] = (df_incidencias['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_incidencias['FECHA_HORA_INICIO']).apply(lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min")
-
-    # --- FILTRADO ---
-    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
-    hoy = pd.Timestamp.now().normalize()
-    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-    df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
-
-    # --- FUNCIÓN DE MAPA (FRAGMENTO CON CAPAS) ---
-    @st.fragment
-    def dibujar_mapa(gdf, num_pozo):
-        # Mapa base
-        m = folium.Map(location=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], zoom_start=13, tiles=None)
+    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # Capas
-        folium.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", name="Calles", attr="OpenStreetMap").add_to(m)
-        folium.TileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", name="Satélite", attr="Esri").add_to(m)
-        folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+        # --- PREPARACIÓN ---
+        df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
+        df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
+        df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
+        df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
         
-        folium.GeoJson(gdf, name="Colonias").add_to(m)
-        folium.LayerControl().add_to(m)
+        # --- MERGE ---
+        df_merged = df_incidencias.merge(
+            df_dict_expanded[['Pozos_limpios', 'Col_atl', 'Sector', 'Distrito', 'geom_wkt']], 
+            left_on='NUM_POZO_LIMPIO', 
+            right_on='Pozos_limpios', 
+            how='left'
+        )
         
-        st_folium(m, width=700, height=350, key=f"map_{num_pozo}")
+        # --- AGRUPACIÓN ---
+        columnas_agrupar = ['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION']
+        df_agrupado = df_merged.groupby(columnas_agrupar, dropna=False).agg({
+            'Col_atl': lambda x: ', '.join(x.dropna().unique()),
+            'Sector': lambda x: ', '.join(x.dropna().unique()),
+            'Distrito': lambda x: ', '.join(x.dropna().unique()),
+            'geom_wkt': 'first'
+        }).reset_index()
+        
+        df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
+        df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
+        
+        # --- CÁLCULOS ---
+        df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
+        df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
+        
+        def formatear_fecha_es(fecha):
+            if pd.isnull(fecha): return "-"
+            meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+            return fecha.strftime(f"%H:%M - %d/{meses[fecha.month]}/%Y")
 
-    # --- VISUALIZACIÓN ---
-    st.subheader("📋 Incidencias Activas y del día")
-    for index, row in df_actual.iterrows():
-        gdf = get_geometries(row['NUM_POZO'])
-        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
-        titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
+        df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
+        df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
+        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min")
         
-        with st.expander(titulo):
-            if gdf is not None and not gdf.empty:
-                st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                dibujar_mapa(gdf, row['NUM_POZO'])
-            else:
-                st.warning("No hay información geográfica disponible para este pozo.")
+        # --- FILTRADO ---
+        df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        hoy = pd.Timestamp.now().normalize()
+        df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+        df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
+        
+        # --- FUNCIONES ---
+        def obtener_indicador_color(estatus):
+            e = str(estatus).strip().upper()
+            return "🔴" if e == 'PENDIENTE' else "🟡" if e == 'EN PROCESO' else "🟢" if e == 'CERRADA' else "⚪"
 
-    st.markdown("---")
-    st.subheader("📜 Historial de Incidencias Cerradas")
-    df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
-    
-    if meses:
-        mes_sel = st.selectbox("Seleccionar mes:", meses)
-        for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
-            gdf = get_geometries(row['NUM_POZO'])
-            titulo = f"🟢 Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | {row['DIAGNOSTICO_FALLA']}"
+        def render_mapa(geom_wkt):
+            if pd.isna(geom_wkt) or not isinstance(geom_wkt, str): return
+            try:
+                poly = wkt.loads(geom_wkt)
+                m = folium.Map(location=[poly.centroid.y, poly.centroid.x], zoom_start=13, tiles="CartoDB dark_matter")
+                folium.GeoJson(poly).add_to(m)
+                st.components.v1.html(m._repr_html_(), height=300)
+            except Exception as e: st.error(f"Error mapa: {e}")
+
+        # --- VISUALIZACIÓN ---
+        st.subheader("📋 Incidencias Activas y del día")
+        for index, row in df_actual.iterrows():
+            titulo = f"{obtener_indicador_color(row['ESTATUS'])} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
             with st.expander(titulo):
-                if gdf is not None and not gdf.empty:
-                    dibujar_mapa(gdf, f"hist_{row['NUM_POZO']}_{index}")
-                else:
-                    st.info("Sin mapa disponible.")
-else:
-    st.success("✅ No hay incidencias reportadas actualmente.")
+                st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
+                render_mapa(row['geom_wkt'])
+        
+        st.markdown("---")
+        st.subheader("📜 Historial de Incidencias Cerradas")
+        df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+        meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
+        
+        if meses:
+            mes_sel = st.selectbox("Seleccionar mes:", meses)
+            for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
+                titulo = f"{obtener_indicador_color(row['ESTATUS'])} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
+                with st.expander(titulo):
+                    st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
+                    render_mapa(row['geom_wkt'])
+    else:
+        st.success("✅ No hay incidencias reportadas actualmente.")
