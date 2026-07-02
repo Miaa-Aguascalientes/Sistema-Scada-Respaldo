@@ -3504,12 +3504,33 @@ if sectores_data:
 
 @st.fragment
 def renderizar_mapa_fragmento(gdf, id_key):
+    """Fragmento con etiquetas de nombre para cada polígono."""
     try:
+        # Calculamos el centro para centrar el mapa
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
         m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
+        
         folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-        folium.GeoJson(gdf, name="Colonias").add_to(m)
+        
+        # Añadimos los polígonos
+        folium.GeoJson(
+            gdf, 
+            name="Colonias",
+            tooltip=folium.GeoJsonTooltip(fields=['Col_atl']) # Tooltip al pasar el mouse
+        ).add_to(m)
+        
+        # AÑADIR NOMBRES (ETIQUETAS FIJAS)
+        for _, row in gdf.iterrows():
+            # Obtenemos el centroide de cada polígono individual
+            centroid = row.geometry.centroid
+            folium.Marker(
+                location=[centroid.y, centroid.x],
+                icon=folium.DivIcon(
+                    html=f'<div style="font-size: 10pt; color: white; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px black;">{row["Col_atl"]}</div>'
+                )
+            ).add_to(m)
+            
         folium.LayerControl().add_to(m)
         st_folium(m, width=700, height=350, key=f"map_{id_key}")
     except Exception as e:
