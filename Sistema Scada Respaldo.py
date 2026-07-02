@@ -3526,12 +3526,19 @@ st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 df_incidencias = get_data() 
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
-    # Asegurar formato datetime
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
     
-    # Cálculo de duración si no existe
-    df_incidencias['DURACION'] = df_incidencias['FECHA_HORA_FIN'] - df_incidencias['FECHA_HORA_INICIO']
+    def formatear_duracion(td):
+        if pd.isnull(td):
+            return "En curso"
+        total_seconds = int(td.total_seconds())
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+    df_incidencias['DURACION'] = (df_incidencias['FECHA_HORA_FIN'] - df_incidencias['FECHA_HORA_INICIO'])
     
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
@@ -3543,11 +3550,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     def generar_titulo(row):
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
-        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m %H:%M')
-        f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
-        duracion = str(row['DURACION']) if pd.notnull(row['DURACION']) else "En curso"
         
-        return f"{indicador} **Pozo: {row['NUM_POZO']}** | {f_inicio} | {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Dur: {duracion} | {row['ESTATUS']}"
+        # Formato exacto DD/MM/YY HH:MM como en la imagen
+        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+        f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
+        duracion_str = formatear_duracion(row['DURACION'])
+        
+        return f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | Estatus: {row['ESTATUS']}"
 
     # --- RENDERIZADO ACTIVAS ---
     st.subheader("📋 Incidencias Activas y del día")
