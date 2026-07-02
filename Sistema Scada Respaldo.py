@@ -3477,78 +3477,63 @@ if sectores_data:
     
     # 1. Obtener datos
     df_incidencias = get_data() 
-    df_diccionario = get_diccionario_completo()
     
     if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
-        # --- PREPARACIÓN ---
-        df_diccionario['Pozos'] = df_diccionario['Pozos'].astype(str)
-        df_dict_expanded = df_diccionario.assign(Pozos=df_diccionario['Pozos'].str.split(',')).explode('Pozos')
-        df_dict_expanded['Pozos_limpios'] = df_dict_expanded['Pozos'].str.strip().str.replace('-', '', regex=False)
-        df_incidencias['NUM_POZO_LIMPIO'] = df_incidencias['NUM_POZO'].astype(str).str.replace('-', '', regex=False)
-        
-        # --- MERGE ---
-        df_merged = df_incidencias.merge(
-            df_dict_expanded[['Pozos_limpios', 'Col_atl', 'Sector', 'Distrito', 'geom_wkt']], 
-            left_on='NUM_POZO_LIMPIO', 
-            right_on='Pozos_limpios', 
-            how='left'
-        )
-        
-        # --- AGRUPACIÓN ---
-        columnas_agrupar = ['NUM_POZO', 'FECHA_HORA_INICIO', 'FECHA_HORA_FIN', 'DIAGNOSTICO_FALLA', 'ESTATUS', 'TIEMPO_ESTIMADO_ATENCION']
-        df_agrupado = df_merged.groupby(columnas_agrupar, dropna=False).agg({
-            'Col_atl': lambda x: ', '.join(x.dropna().unique()),
-            'Sector': lambda x: ', '.join(x.dropna().unique()),
-            'Distrito': lambda x: ', '.join(x.dropna().unique()),
-            'geom_wkt': 'first'
-        }).reset_index()
-        
-        df_agrupado.rename(columns={'Col_atl': 'COLONIAS_AFECTADAS'}, inplace=True)
-        df_agrupado['COLONIAS_AFECTADAS'] = df_agrupado['COLONIAS_AFECTADAS'].replace('', 'No definida')
-        
-        # --- CÁLCULOS ---
-        df_agrupado['FECHA_HORA_INICIO'] = pd.to_datetime(df_agrupado['FECHA_HORA_INICIO'])
-        df_agrupado['FECHA_HORA_FIN'] = pd.to_datetime(df_agrupado['FECHA_HORA_FIN'])
+        # --- PREPARACIÓN Y CÁLCULOS ---
+        # Aseguramos formato de fecha y duración
+        df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+        df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'])
         
         def formatear_fecha_es(fecha):
             if pd.isnull(fecha): return "-"
             meses = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
             return fecha.strftime(f"%H:%M - %d/{meses[fecha.month]}/%Y")
 
-        df_agrupado['FECHA_HORA_INICIO_STR'] = df_agrupado['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
-        df_agrupado['FECHA_HORA_FIN_STR'] = df_agrupado['FECHA_HORA_FIN'].apply(formatear_fecha_es)
-        df_agrupado['DURACION_COMPLETA'] = (df_agrupado['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_agrupado['FECHA_HORA_INICIO']).apply(lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min")
+        df_incidencias['FECHA_HORA_INICIO_STR'] = df_incidencias['FECHA_HORA_INICIO'].apply(formatear_fecha_es)
+        df_incidencias['FECHA_HORA_FIN_STR'] = df_incidencias['FECHA_HORA_FIN'].apply(formatear_fecha_es)
+        df_incidencias['DURACION_COMPLETA'] = (df_incidencias['FECHA_HORA_FIN'].fillna(pd.Timestamp.now()) - df_incidencias['FECHA_HORA_INICIO']).apply(lambda td: f"{td.days} días, {td.seconds // 3600} horas y {(td.seconds % 3600) // 60} min")
         
         # --- FILTRADO ---
-        df_final = df_agrupado.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         hoy = pd.Timestamp.now().normalize()
         df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
         df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
         
-        # --- FUNCIONES ---
+        # --- FUNCIONES AUXILIARES ---
         def obtener_indicador_color(estatus):
             e = str(estatus).strip().upper()
             return "🔴" if e == 'PENDIENTE' else "🟡" if e == 'EN PROCESO' else "🟢" if e == 'CERRADA' else "⚪"
 
-        def render_mapa(geom_wkt):
-            if pd.isna(geom_wkt) or not isinstance(geom_wkt, str): return
-            try:
-                poly = wkt.loads(geom_wkt)
-                m = folium.Map(location=[poly.centroid.y, poly.centroid.x], zoom_start=13, tiles="CartoDB dark_matter")
-                folium.GeoJson(poly).add_to(m)
-                st.components.v1.html(m._repr_html_(), height=300)
-            except Exception as e: st.error(f"Error mapa: {e}")
+        def render_mapa_pozo(num_pozo):
+            gdf = get_geometries(num_pozo)
+            if gdf is not None and not gdf.empty:
+                centro = [gdf.geometry.centroid.y.iloc[0], gdf.geometry.centroid.x.iloc[0]]
+                m = folium.Map(location=centro, zoom_start=13, tiles="CartoDB dark_matter")
+                folium.GeoJson(gdf).add_to(m)
+                folium_static(m, width=700, height=300)
+            else:
+                st.info("Sin información geográfica disponible.")
 
         # --- VISUALIZACIÓN ---
         st.subheader("📋 Incidencias Activas y del día")
         for index, row in df_actual.iterrows():
-            titulo = f"{obtener_indicador_color(row['ESTATUS'])} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
+            indicador = obtener_indicador_color(row['ESTATUS'])
+            # Obtenemos info extra del diccionario mediante tu función
+            gdf_info = get_geometries(row['NUM_POZO'])
+            sector = gdf_info['Sector'].iloc[0] if gdf_info is not None else "N/A"
+            distrito = gdf_info['Distrito'].iloc[0] if gdf_info is not None else "N/A"
+            colonias = ", ".join(gdf_info['Col_atl'].unique()) if gdf_info is not None else "N/A"
+            
+            titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Duración: {row['DURACION_COMPLETA']} | Sector: {sector} | Distrito: {distrito}"
+            
             with st.expander(titulo):
-                st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
-                render_mapa(row['geom_wkt'])
+                st.markdown(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
+                st.markdown(f"**Colonias Afectadas:** {colonias}")
+                render_mapa_pozo(row['NUM_POZO'])
         
         st.markdown("---")
+        
         st.subheader("📜 Historial de Incidencias Cerradas")
         df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
         meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
@@ -3556,9 +3541,9 @@ if sectores_data:
         if meses:
             mes_sel = st.selectbox("Seleccionar mes:", meses)
             for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
-                titulo = f"{obtener_indicador_color(row['ESTATUS'])} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']} | Duración: {row['DURACION_COMPLETA']} | Fin: {row['FECHA_HORA_FIN_STR']} | Sector: {row['Sector']} | Distrito: {row['Distrito']}"
+                indicador = obtener_indicador_color(row['ESTATUS'])
+                titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Inicio: {row['FECHA_HORA_INICIO_STR']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
                 with st.expander(titulo):
-                    st.markdown(f"**Colonias Afectadas:** {row['COLONIAS_AFECTADAS']}")
-                    render_mapa(row['geom_wkt'])
+                    render_mapa_pozo(row['NUM_POZO'])
     else:
         st.success("✅ No hay incidencias reportadas actualmente.")
