@@ -3548,23 +3548,31 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
-    def generar_titulo(row):
+    def obtener_info_geografica(gdf):
+        """Extrae Sector y Distrito desde el gdf de geometrías."""
+        if gdf is not None and not gdf.empty:
+            # Asumiendo que las columnas se llaman 'SECTOR' y 'DISTRITO' en tu Diccionario_colonias
+            sector = gdf['SECTOR'].iloc[0] if 'SECTOR' in gdf.columns else "N/A"
+            distrito = gdf['DISTRITO'].iloc[0] if 'DISTRITO' in gdf.columns else "N/A"
+            return sector, distrito
+        return "N/A", "N/A"
+
+    def generar_titulo(row, gdf):
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
-        
         f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
         duracion_str = formatear_duracion(row)
+        sector, distrito = obtener_info_geografica(gdf)
         
-        # Estructura: Pozo | Inicio | Falla: Diagnóstico | Fin | Duración | Estatus | Sector | Distrito
         return (f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | "
                 f"Falla: {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | "
-                f"Estatus: {row['ESTATUS']} | Sector: {row.get('SECTOR', 'N/A')} | Distrito: {row.get('DISTRITO', 'N/A')}")
+                f"Estatus: {row['ESTATUS']} | Sector: {sector} | Distrito: {distrito}")
 
     # --- RENDERIZADO ACTIVAS ---
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
-        with st.expander(generar_titulo(row)):
+        with st.expander(generar_titulo(row, gdf)):
             if gdf is not None and not gdf.empty:
                 st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
                 renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
@@ -3581,7 +3589,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
             gdf = get_geometries(row['NUM_POZO'])
-            with st.expander(generar_titulo(row)):
+            with st.expander(generar_titulo(row, gdf)):
                 if gdf is not None and not gdf.empty:
                     renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
                 else:
