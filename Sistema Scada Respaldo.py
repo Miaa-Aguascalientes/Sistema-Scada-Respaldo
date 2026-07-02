@@ -3503,6 +3503,8 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
+# SECCION 10 Incidencias ----------------------------------------------------------------------------
+
 @st.fragment
 def renderizar_mapa_fragmento(gdf, id_key):
     """Fragmento aislado para renderizar el mapa sin recargar la página."""
@@ -3529,17 +3531,22 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
     
-    def formatear_duracion(td):
-        if pd.isnull(td):
-            return "En curso"
-        total_seconds = int(td.total_seconds())
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    def formatear_duracion(row):
+        inicio = row['FECHA_HORA_INICIO']
+        fin = row['FECHA_HORA_FIN']
+        
+        # Si no hay fin, calculamos respecto al tiempo actual
+        if pd.isnull(fin):
+            delta = pd.Timestamp.now() - inicio
+        else:
+            delta = fin - inicio
+            
+        dias = delta.days
+        horas = delta.seconds // 3600
+        minutos = (delta.seconds % 3600) // 60
+        
+        return f"{dias}d {horas}h {minutos}m"
 
-    df_incidencias['DURACION'] = (df_incidencias['FECHA_HORA_FIN'] - df_incidencias['FECHA_HORA_INICIO'])
-    
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
@@ -3551,10 +3558,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     def generar_titulo(row):
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
         
-        # Formato exacto DD/MM/YY HH:MM como en la imagen
         f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
-        duracion_str = formatear_duracion(row['DURACION'])
+        duracion_str = formatear_duracion(row)
         
         return f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | Estatus: {row['ESTATUS']}"
 
