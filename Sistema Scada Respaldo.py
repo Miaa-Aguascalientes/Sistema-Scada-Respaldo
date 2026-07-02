@@ -3504,24 +3504,33 @@ if sectores_data:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 
-def dibujar_mapa_pozo(gdf, id_key):
-    try:
-        lat = gdf.geometry.centroid.y.mean()
-        lon = gdf.geometry.centroid.x.mean()
-        m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
-        
-        folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-        folium.GeoJson(gdf, name="Colonias").add_to(m)
-        folium.LayerControl().add_to(m)
-        
-        st_folium(
-            m, 
-            width=700, 
-            height=350, 
-            key=f"map_{id_key}",
-            returned_objects=[],  # <--- ESTO ES LO CLAVE
-            hide_layers=True      # <--- ESTO EVITA RE-RENDERIZADOS POR CAMBIOS EN CAPAS
-        )
+def dibujar_mapa(gdf, color, num_pozo, inicio):
+    # 1. Creamos el mapa
+    m = folium.Map(
+        location=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], 
+        zoom_start=13, 
+        tiles=None,
+        attribution_control=False
+    )
+    
+    # 2. Capas
+    folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+    folium.GeoJson(
+        gdf, 
+        style_function=lambda x: {'fillColor': color, 'color': color, 'weight': 2, 'fillOpacity': 0.4}
+    ).add_to(m)
+
+    # 3. EL TRUCO PARA QUE NO PARPADEE AL HACER ZOOM:
+    # 'returned_objects=[]' evita que el mapa devuelva coordenadas a Python.
+    # 'height=300' y 'use_container_width=True' mantienen el mapa estable.
+    st_folium(
+        m, 
+        height=300, 
+        use_container_width=True, 
+        key=f"map_{num_pozo}", 
+        returned_objects=[],  # IMPORTANTE: esto mata el re-render por zoom
+        hide_layers=True
+    )
         
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
