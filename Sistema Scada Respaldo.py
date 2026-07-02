@@ -3502,27 +3502,28 @@ if sectores_data:
 
 # SECCION 10 Incidencias ----------------------------------------------------------------------------
 
+from folium.plugins import Fullscreen # Asegúrate de importar esto
+
 @st.fragment
 def renderizar_mapa_fragmento(gdf, id_key):
-    """Fragmento con etiquetas de nombre para cada polígono."""
+    """Mapa con ancho extendido y botón de pantalla completa."""
     try:
-        # Calculamos el centro para centrar el mapa
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
         m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
         
+        # Añadir opción de Fullscreen
+        Fullscreen(position="topright", title="Expandir mapa", title_cancel="Salir de pantalla completa").add_to(m)
+        
         folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
         
-        # Añadimos los polígonos
         folium.GeoJson(
             gdf, 
             name="Colonias",
-            tooltip=folium.GeoJsonTooltip(fields=['Col_atl']) # Tooltip al pasar el mouse
+            tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
         ).add_to(m)
         
-        # AÑADIR NOMBRES (ETIQUETAS FIJAS)
         for _, row in gdf.iterrows():
-            # Obtenemos el centroide de cada polígono individual
             centroid = row.geometry.centroid
             folium.Marker(
                 location=[centroid.y, centroid.x],
@@ -3532,11 +3533,14 @@ def renderizar_mapa_fragmento(gdf, id_key):
             ).add_to(m)
             
         folium.LayerControl().add_to(m)
-        st_folium(m, width=700, height=350, key=f"map_{id_key}")
+        
+        # Ajustamos el ancho a 100% del contenedor y altura a 500 para mejor visualización
+        st_folium(m, width=900, height=500, key=f"map_{id_key}")
+        
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
 
-# --- SECCIÓN DE INCIDENCIAS ---
+# --------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
 st.markdown("---")
 st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
