@@ -3471,74 +3471,87 @@ if sectores_data:
     folium_static(m, width=None, height=600)
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
+# 1. FUNCIÓN DEFINIDA PRIMERO (ÁMBITO GLOBAL)
+@st.cache_data(ttl=60)
+def get_geometries(num_pozo):
+    query = f"SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias WHERE Pozos LIKE '%%{num_pozo}%%'"
+    try:
+        df = pd.read_sql(query, get_engine_telemetria())
+        if not df.empty and df['geom_wkt'].iloc[0] is not None:
+            df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+            gdf = gpd.GeoDataFrame(df, geometry='geometry')
+            gdf.set_crs(epsg=32613, inplace=True)
+            return gdf.to_crs(epsg=4326)
+    except Exception:
+        return None
+    return None
 
-    st.markdown("---")
-    st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
+# 2. SECCIÓN DE INCIDENCIAS
+st.markdown("---")
+st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
-    df_incidencias = get_data()
+df_incidencias = get_data()
 
-    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+    
+    # Preparación de datos
+    df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+    hoy = pd.Timestamp.now().normalize()
+    
+    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
+                         ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+    
+    df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
-        # --- PREPARACIÓN Y FILTRADO ---
-        df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
-        df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'])
-        
-        df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
-        hoy = pd.Timestamp.now().normalize()
-        
-        df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
-                             ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-        
-        df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
-
-        # --- FUNCIÓN DE MAPA (FRAGMENTO AISLADO) ---
-        @st.fragment
-        def dibujar_mapa_pozo(gdf, id_unico):
-            try:
-                lat = gdf.geometry.centroid.y.mean()
-                lon = gdf.geometry.centroid.x.mean()
-                m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
-                
-                folium.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", name="Calles", attr="OpenStreetMap").add_to(m)
-                folium.TileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", name="Satélite", attr="Esri").add_to(m)
-                folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-                
-                folium.GeoJson(gdf, name="Colonias").add_to(m)
-                folium.LayerControl().add_to(m)
-                
-                st_folium(m, width=700, height=350, key=f"map_{id_unico}")
-            except Exception as e:
-                st.error(f"Error en el mapa: {e}")
-
-        # --- VISUALIZACIÓN ACTIVAS ---
-        st.subheader("📋 Incidencias Activas y del día")
-        for index, row in df_actual.iterrows():
-            gdf = get_geometries(row['NUM_POZO'])
-            indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
-            titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
+    # Función como fragmento para aislar los mapas y evitar errores de keys
+    @st.fragment
+    def dibujar_mapa_pozo(gdf, id_unico):
+        try:
+            lat = gdf.geometry.centroid.y.mean()
+            lon = gdf.geometry.centroid.x.mean()
+            m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
             
+            folium.TileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", name="Calles", attr="OpenStreetMap").add_to(m)
+            folium.TileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", name="Satélite", attr="Esri").add_to(m)
+            folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+            
+            folium.GeoJson(gdf, name="Colonias").add_to(m)
+            folium.LayerControl().add_to(m)
+            
+            st_folium(m, width=700, height=350, key=f"map_{id_unico}")
+        except Exception as e:
+            st.error(f"Error en el mapa: {e}")
+
+    # Visualización Activas
+    st.subheader("📋 Incidencias Activas y del día")
+    for index, row in df_actual.iterrows():
+        gdf = get_geometries(row['NUM_POZO'])
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
+        titulo = f"{indicador} Pozo: {row['NUM_POZO']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
+        
+        with st.expander(titulo):
+            if gdf is not None and not gdf.empty:
+                st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+                dibujar_mapa_pozo(gdf, f"activo_{row['NUM_POZO']}_{index}")
+            else:
+                st.warning("Sin datos geográficos disponibles para este pozo.")
+
+    # Visualización Historial
+    st.markdown("---")
+    st.subheader("📜 Historial de Incidencias Cerradas")
+    df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+    meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
+    
+    if meses:
+        mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+        for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
+            gdf = get_geometries(row['NUM_POZO'])
+            titulo = f"🟢 Pozo: {row['NUM_POZO']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
             with st.expander(titulo):
                 if gdf is not None and not gdf.empty:
-                    st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                    dibujar_mapa_pozo(gdf, f"a_{row['NUM_POZO']}_{index}")
+                    dibujar_mapa_pozo(gdf, f"hist_{row['NUM_POZO']}_{index}")
                 else:
-                    st.warning("Sin datos geográficos disponibles.")
-
-        # --- VISUALIZACIÓN HISTORIAL ---
-        st.markdown("---")
-        st.subheader("📜 Historial de Incidencias Cerradas")
-        df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-        meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
-        
-        if meses:
-            mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
-            for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
-                gdf = get_geometries(row['NUM_POZO'])
-                titulo = f"🟢 Pozo: {row['NUM_POZO']} | Diagnóstico: {row['DIAGNOSTICO_FALLA']}"
-                with st.expander(titulo):
-                    if gdf is not None and not gdf.empty:
-                        dibujar_mapa_pozo(gdf, f"h_{row['NUM_POZO']}_{index}")
-                    else:
-                        st.info("Sin mapa disponible.")
-    else:
-        st.success("✅ No hay incidencias reportadas actualmente.")
+                    st.info("Sin mapa disponible.")
+else:
+    st.success("✅ No hay incidencias reportadas actualmente.")
