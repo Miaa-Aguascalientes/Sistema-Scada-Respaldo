@@ -3507,16 +3507,13 @@ if sectores_data:
 
 @st.fragment
 def renderizar_mapa_fragmento(gdf, id_key):
-    """Fragmento aislado para renderizar el mapa sin recargar la página."""
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
         m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
-        
         folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
         folium.GeoJson(gdf, name="Colonias").add_to(m)
         folium.LayerControl().add_to(m)
-        
         st_folium(m, width=700, height=350, key=f"map_{id_key}")
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
@@ -3535,37 +3532,28 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         inicio = row['FECHA_HORA_INICIO']
         fin = row['FECHA_HORA_FIN']
         delta = (pd.Timestamp.now() - inicio) if pd.isnull(fin) else (fin - inicio)
-        dias = delta.days
-        horas = delta.seconds // 3600
-        minutos = (delta.seconds % 3600) // 60
-        return f"{dias}d {horas}h {minutos}m"
+        return f"{delta.days}d {delta.seconds // 3600}h {(delta.seconds % 3600) // 60}m"
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
+    # Lógica para separar actuales e historial...
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
                          ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-    
     df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
-    def obtener_info_geografica(gdf):
-        """Extrae Sector y Distrito desde el gdf de geometrías."""
-        if gdf is not None and not gdf.empty:
-            # Asumiendo que las columnas se llaman 'SECTOR' y 'DISTRITO' en tu Diccionario_colonias
-            sector = gdf['SECTOR'].iloc[0] if 'SECTOR' in gdf.columns else "N/A"
-            distrito = gdf['DISTRITO'].iloc[0] if 'DISTRITO' in gdf.columns else "N/A"
-            return sector, distrito
-        return "N/A", "N/A"
-
     def generar_titulo(row, gdf):
-        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
         f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
-        duracion_str = formatear_duracion(row)
-        sector, distrito = obtener_info_geografica(gdf)
+        
+        # Extraemos Sector y Distrito directamente del GDF
+        sector = gdf['Sector'].iloc[0] if gdf is not None and 'Sector' in gdf.columns else "N/A"
+        distrito = gdf['Distrito'].iloc[0] if gdf is not None and 'Distrito' in gdf.columns else "N/A"
+        
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
         
         return (f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | "
-                f"Falla: {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | "
+                f"Falla: {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {formatear_duracion(row)} | "
                 f"Estatus: {row['ESTATUS']} | Sector: {sector} | Distrito: {distrito}")
 
     # --- RENDERIZADO ACTIVAS ---
@@ -3594,5 +3582,3 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
                 else:
                     st.info("Sin mapa disponible.")
-else:
-    st.success("✅ No hay incidencias reportadas actualmente.")
