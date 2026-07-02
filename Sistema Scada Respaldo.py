@@ -3505,10 +3505,7 @@ if sectores_data:
 
 @st.fragment
 def renderizar_mapa_fragmento(gdf, id_key):
-    """
-    Fragmento aislado para renderizar el mapa. 
-    Al interactuar con este componente, solo se recarga este fragmento.
-    """
+    """Fragmento aislado para renderizar el mapa sin recargar la página."""
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
@@ -3518,7 +3515,6 @@ def renderizar_mapa_fragmento(gdf, id_key):
         folium.GeoJson(gdf, name="Colonias").add_to(m)
         folium.LayerControl().add_to(m)
         
-        # La key es persistente para evitar conflictos
         st_folium(m, width=700, height=350, key=f"map_{id_key}")
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
@@ -3527,10 +3523,16 @@ def renderizar_mapa_fragmento(gdf, id_key):
 st.markdown("---")
 st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
-df_incidencias = get_data() # Asegúrate de que get_data() esté definida
+df_incidencias = get_data() 
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+    # Asegurar formato datetime
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
+    
+    # Cálculo de duración si no existe
+    df_incidencias['DURACION'] = df_incidencias['FECHA_HORA_FIN'] - df_incidencias['FECHA_HORA_INICIO']
+    
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
@@ -3539,18 +3541,22 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
+    def generar_titulo(row):
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
+        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m %H:%M')
+        f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
+        duracion = str(row['DURACION']) if pd.notnull(row['DURACION']) else "En curso"
+        
+        return f"{indicador} **Pozo: {row['NUM_POZO']}** | {f_inicio} | {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Dur: {duracion} | {row['ESTATUS']}"
+
     # --- RENDERIZADO ACTIVAS ---
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
-        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
-        titulo = f"{indicador} Pozo: {row['NUM_POZO']} | {row['DIAGNOSTICO_FALLA']}"
-        
-        with st.expander(titulo):
+        with st.expander(generar_titulo(row)):
             if gdf is not None and not gdf.empty:
                 st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                # Llamada al fragmento aislado
-                renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}")
+                renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
@@ -3564,11 +3570,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
             gdf = get_geometries(row['NUM_POZO'])
-            titulo = f"🟢 Pozo: {row['NUM_POZO']} | {row['DIAGNOSTICO_FALLA']}"
-            with st.expander(titulo):
+            with st.expander(generar_titulo(row)):
                 if gdf is not None and not gdf.empty:
-                    # Llamada al fragmento aislado
-                    renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}")
+                    renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
                 else:
                     st.info("Sin mapa disponible.")
 else:
