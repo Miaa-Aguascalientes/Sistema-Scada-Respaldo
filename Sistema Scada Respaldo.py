@@ -3543,9 +3543,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
         
-        # Extraemos Sector y Distrito directamente del GDF
-        sector = gdf['Sector'].iloc[0] if gdf is not None and 'Sector' in gdf.columns else "N/A"
-        distrito = gdf['Distrito'].iloc[0] if gdf is not None and 'Distrito' in gdf.columns else "N/A"
+        # DEBUG: Si ves "N/A" en el título, quita el comentario de abajo en tu local para ver las columnas reales
+        # st.write(f"Columnas disponibles en GDF: {gdf.columns.tolist()}") 
+        
+        # Intentamos extraer buscando variantes de nombre (por si acaso)
+        sector = "N/A"
+        distrito = "N/A"
+        
+        if gdf is not None and not gdf.empty:
+            # Buscamos en el DF base (antes del to_crs) o en el GDF
+            # Usamos .get para evitar errores y buscamos nombres comunes
+            sector = gdf.get('Sector', gdf.get('SECTOR', gdf.get('sector', "N/A"))).iloc[0]
+            distrito = gdf.get('Distrito', gdf.get('DISTRITO', gdf.get('distrito', "N/A"))).iloc[0]
         
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
         
