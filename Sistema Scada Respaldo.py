@@ -3534,17 +3534,10 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     def formatear_duracion(row):
         inicio = row['FECHA_HORA_INICIO']
         fin = row['FECHA_HORA_FIN']
-        
-        # Si no hay fin, calculamos respecto al tiempo actual
-        if pd.isnull(fin):
-            delta = pd.Timestamp.now() - inicio
-        else:
-            delta = fin - inicio
-            
+        delta = (pd.Timestamp.now() - inicio) if pd.isnull(fin) else (fin - inicio)
         dias = delta.days
         horas = delta.seconds // 3600
         minutos = (delta.seconds % 3600) // 60
-        
         return f"{dias}d {horas}h {minutos}m"
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
@@ -3562,7 +3555,10 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
         duracion_str = formatear_duracion(row)
         
-        return f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | Estatus: {row['ESTATUS']}"
+        # Estructura: Pozo | Inicio | Falla: Diagnóstico | Fin | Duración | Estatus | Sector | Distrito
+        return (f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | "
+                f"Falla: {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {duracion_str} | "
+                f"Estatus: {row['ESTATUS']} | Sector: {row.get('SECTOR', 'N/A')} | Distrito: {row.get('DISTRITO', 'N/A')}")
 
     # --- RENDERIZADO ACTIVAS ---
     st.subheader("📋 Incidencias Activas y del día")
