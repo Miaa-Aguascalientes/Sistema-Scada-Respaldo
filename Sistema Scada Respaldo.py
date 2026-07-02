@@ -3503,8 +3503,12 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-
-def dibujar_mapa_pozo(gdf, id_key):
+@st.fragment
+def renderizar_mapa_fragmento(gdf, id_key):
+    """
+    Fragmento aislado para renderizar el mapa. 
+    Al interactuar con este componente, solo se recarga este fragmento.
+    """
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
@@ -3514,7 +3518,7 @@ def dibujar_mapa_pozo(gdf, id_key):
         folium.GeoJson(gdf, name="Colonias").add_to(m)
         folium.LayerControl().add_to(m)
         
-        # KEY ÚNICA Y DINÁMICA
+        # La key es persistente para evitar conflictos
         st_folium(m, width=700, height=350, key=f"map_{id_key}")
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
@@ -3545,8 +3549,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         with st.expander(titulo):
             if gdf is not None and not gdf.empty:
                 st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                # ID ÚNICO: incluye el tipo, el pozo y el índice del bucle
-                dibujar_mapa_pozo(gdf, f"act_{row['NUM_POZO']}_{index}")
+                # Llamada al fragmento aislado
+                renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}")
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
@@ -3563,7 +3567,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             titulo = f"🟢 Pozo: {row['NUM_POZO']} | {row['DIAGNOSTICO_FALLA']}"
             with st.expander(titulo):
                 if gdf is not None and not gdf.empty:
-                    dibujar_mapa_pozo(gdf, f"hist_{row['NUM_POZO']}_{index}")
+                    # Llamada al fragmento aislado
+                    renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}")
                 else:
                     st.info("Sin mapa disponible.")
 else:
