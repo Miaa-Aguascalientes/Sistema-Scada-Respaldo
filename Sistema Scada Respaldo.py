@@ -609,7 +609,19 @@ def get_diccionario_completo():
 # 3.8. Funcion para optener las colonias del diccionario de colonias
 @st.cache_data(ttl=60)
 def get_geometries(num_pozo):
-    query = f"SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias WHERE Pozos LIKE '%%{num_pozo}%%'"
+    # 1. Limpiamos el string para obtener solo los dígitos (ej: "P-109A" -> "109")
+    # Si el formato es siempre P-###, esto extrae los números
+    numero_limpio = re.sub(r'\D', '', str(num_pozo))
+    
+    # 2. Si no hay números, intentamos buscar el string original
+    busqueda = numero_limpio if numero_limpio else str(num_pozo)
+    
+    query = f"""
+    SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
+    FROM Diccionario_colonias 
+    WHERE Pozos LIKE '%%{busqueda}%%'
+    """
+    
     try:
         df = pd.read_sql(query, get_engine_telemetria())
         if not df.empty and df['geom_wkt'].iloc[0] is not None:
@@ -617,7 +629,8 @@ def get_geometries(num_pozo):
             gdf = gpd.GeoDataFrame(df, geometry='geometry')
             gdf.set_crs(epsg=32613, inplace=True)
             return gdf.to_crs(epsg=4326)
-    except Exception:
+    except Exception as e:
+        st.error(f"Error en base de datos: {e}")
         return None
     return None
 
