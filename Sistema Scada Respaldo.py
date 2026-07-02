@@ -3504,16 +3504,12 @@ if sectores_data:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 
-def dibujar_mapa(gdf, color, num_pozo, inicio):
+# 1. Definición correcta (asegúrate de usar este mismo nombre)
+def dibujar_mapa(gdf, color, num_pozo, id_key):
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
-        m = folium.Map(
-            location=[lat, lon], 
-            zoom_start=13, 
-            tiles=None,
-            attribution_control=False
-        )
+        m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None, attribution_control=False)
         
         folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
         folium.GeoJson(
@@ -3525,30 +3521,13 @@ def dibujar_mapa(gdf, color, num_pozo, inicio):
             m, 
             height=300, 
             use_container_width=True, 
-            key=f"map_{num_pozo}_{inicio}",
+            key=f"map_{id_key}",
             returned_objects=[]
         )
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
 
-# --- SECCIÓN DE INCIDENCIAS ---
-st.markdown("---")
-st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
-
-df_incidencias = get_data() # Asegúrate de que get_data() esté definida
-
-if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
-    df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
-    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
-    hoy = pd.Timestamp.now().normalize()
-    
-    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
-                         ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-    
-    df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
-
-    # --- RENDERIZADO ACTIVAS ---
-    st.subheader("📋 Incidencias Activas y del día")
+# 2. Lógica en el bucle de Incidencias Activas
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
@@ -3557,26 +3536,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         with st.expander(titulo):
             if gdf is not None and not gdf.empty:
                 st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                # ID ÚNICO: incluye el tipo, el pozo y el índice del bucle
-                dibujar_mapa_pozo(gdf, f"act_{row['NUM_POZO']}_{index}")
+                # Llamamos a la función correctamente como 'dibujar_mapa'
+                dibujar_mapa(gdf, color, row['NUM_POZO'], f"act_{row['NUM_POZO']}_{index}")
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
-    # --- RENDERIZADO HISTORIAL ---
-    st.markdown("---")
-    st.subheader("📜 Historial de Incidencias Cerradas")
-    df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
-    
-    if meses:
-        mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+# 3. Lógica en el bucle del Historial
         for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
             gdf = get_geometries(row['NUM_POZO'])
             titulo = f"🟢 Pozo: {row['NUM_POZO']} | {row['DIAGNOSTICO_FALLA']}"
             with st.expander(titulo):
                 if gdf is not None and not gdf.empty:
-                    dibujar_mapa_pozo(gdf, f"hist_{row['NUM_POZO']}_{index}")
+                    # Llamamos a la función correctamente como 'dibujar_mapa'
+                    dibujar_mapa(gdf, "#6c757d", row['NUM_POZO'], f"hist_{row['NUM_POZO']}_{index}")
                 else:
                     st.info("Sin mapa disponible.")
-else:
-    st.success("✅ No hay incidencias reportadas actualmente.")
