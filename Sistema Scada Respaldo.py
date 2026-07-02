@@ -3514,7 +3514,8 @@ def dibujar_mapa_pozo(gdf, id_key):
         folium.GeoJson(gdf, name="Colonias").add_to(m)
         folium.LayerControl().add_to(m)
         
-        # KEY ÚNICA Y DINÁMICA
+        # ESTO ES LO QUE ESTABILIZA EL MAPA:
+        # Una key fija por cada pozo, por ejemplo: key=f"map_{id_key}"
         st_folium(m, width=700, height=350, key=f"map_{id_key}")
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
