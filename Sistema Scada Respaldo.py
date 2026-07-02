@@ -3504,8 +3504,9 @@ if sectores_data:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 
+@st.fragment
 def dibujar_mapa(gdf, color, num_pozo, inicio):
-    # 1. Creamos el mapa
+    # 1. Crear mapa
     m = folium.Map(
         location=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], 
         zoom_start=13, 
@@ -3513,23 +3514,37 @@ def dibujar_mapa(gdf, color, num_pozo, inicio):
         attribution_control=False
     )
     
-    # 2. Capas
+    # 2. Capas base
+    folium.TileLayer("OpenStreetMap", name="Calles").add_to(m)
+    folium.TileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", name="Satélite", attr="Esri").add_to(m)
     folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+
+    # 3. Capa de incidencia
     folium.GeoJson(
         gdf, 
         style_function=lambda x: {'fillColor': color, 'color': color, 'weight': 2, 'fillOpacity': 0.4}
     ).add_to(m)
+    
+    # 4. Etiquetas
+    for _, r in gdf.iterrows():
+        folium.Marker(
+            location=[r.geometry.centroid.y, r.geometry.centroid.x],
+            icon=DivIcon(
+                icon_anchor=(-5, 10), 
+                html=f'<div style="font-size: 8px; color: white; background: rgba(0,0,0,0.7); padding: 2px; white-space: nowrap; border-radius: 3px;">{r["Col_atl"]}</div>'
+            )
+        ).add_to(m)
 
-    # 3. EL TRUCO PARA QUE NO PARPADEE AL HACER ZOOM:
-    # 'returned_objects=[]' evita que el mapa devuelva coordenadas a Python.
-    # 'height=300' y 'use_container_width=True' mantienen el mapa estable.
+    Fullscreen(position='topright').add_to(m)
+    folium.LayerControl(position='topleft').add_to(m)
+        
+    # Renderizado estable
     st_folium(
         m, 
         height=300, 
         use_container_width=True, 
-        key=f"map_{num_pozo}", 
-        returned_objects=[],  # IMPORTANTE: esto mata el re-render por zoom
-        hide_layers=True
+        key=f"map_{num_pozo}",
+        returned_objects=[] 
     )
         
     except Exception as e:
