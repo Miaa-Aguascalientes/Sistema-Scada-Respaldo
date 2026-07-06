@@ -3540,7 +3540,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
-        m = folium.Map(location=[lat, lon], zoom_start=13, tiles=None)
+        m = folium.Map(location=[lat, lon], zoom_start=16, tiles=None)
         
         # Añadir opción de Fullscreen
         Fullscreen(position="topright", title="Expandir mapa", title_cancel="Salir de pantalla completa").add_to(m)
