@@ -3518,7 +3518,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
         folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
         
         folium.GeoJson(
-            gdf, 
+            gdf.__geo_interface__, # <--- Esto fuerza la serialización a formato simple
             name="Colonias",
             tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
         ).add_to(m)
