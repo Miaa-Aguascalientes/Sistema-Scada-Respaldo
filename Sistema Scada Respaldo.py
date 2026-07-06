@@ -76,63 +76,72 @@ def verificar_credenciales(usuario_input, password_input):
         st.error(f"Error al consultar usuario: {e}")
         return None
 
+
+# 0.3. ESTILO VISUAL HUD AVANZADO (CYBER-HUD)
 st.markdown("""
 <style>
-    /* Fondo del sistema */
-    .stApp { background-color: #05070a !important; }
+    /* Estructura base de terminal */
+    .stApp { background-color: #050a10 !important; }
 
-    /* Contenedor principal de la caja (el marco exterior) */
+    /* Contenedor principal estilo "Ventana de Sistema" */
     div[data-testid="stForm"] {
-        background-color: rgba(10, 15, 20, 0.6) !important;
-        border: 1px solid #1a3a4a !important;
-        padding: 30px !important;
-        border-radius: 0px !important;
+        background: rgba(5, 15, 25, 0.7) !important;
+        border: 1px solid #00d4ff !important;
+        padding: 40px !important;
+        position: relative;
+        /* Efecto de cristal */
+        backdrop-filter: blur(5px);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
     }
 
-    /* Caja de texto (input container) - REPLICANDO LA ESTÉTICA DE image_fa9a21.png */
+    /* Inputs: diseño de "caja de datos" */
     div[data-testid="stTextInputRootElement"] {
-        background-color: #1a1e26 !important;
-        border: 1px solid #00d4ff !important;
+        background: #000000 !important;
+        border: 1px solid #1f4068 !important;
         border-radius: 0px !important;
-        height: 38px !important;
-        padding: 0 10px !important;
-        box-shadow: none !important;
+        height: 45px !important;
+        transition: 0.3s ease-in-out;
     }
 
-    /* El texto dentro del input */
+    /* Animación de activación de campo */
+    div[data-testid="stTextInputRootElement"]:focus-within {
+        border: 1px solid #00d4ff !important;
+        box-shadow: 0 0 10px #00d4ff !important;
+    }
+
+    /* Estilo del texto dentro del input */
     .stTextInput input {
-        color: #ffffff !important;
-        background-color: transparent !important;
-        border: none !important;
-        font-family: 'Segoe UI', sans-serif !important;
-    }
-
-    /* Etiquetas (USUARIO / PASSWORD) */
-    label {
         color: #00d4ff !important;
-        font-family: 'Segoe UI', sans-serif !important;
-        font-size: 10px !important;
-        font-weight: bold !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
-        margin-bottom: 2px !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 16px !important;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
 
-    /* Botón (ACEDER AL SISTEMA) */
+    /* Botón de mando */
     .stButton button {
-        background-color: #1a1e26 !important;
-        color: #ffffff !important;
-        border: 1px solid #00d4ff !important;
-        border-radius: 0px !important;
-        font-size: 12px !important;
-        font-weight: bold !important;
-        padding: 0 20px !important;
-        transition: all 0.2s ease !important;
+        background: transparent !important;
+        border: 2px solid #00d4ff !important;
+        color: #00d4ff !important;
+        font-family: 'Orbitron', sans-serif !important;
+        font-weight: 800 !important;
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        transition: 0.2s;
     }
 
     .stButton button:hover {
-        background-color: #00d4ff !important;
-        color: #05070a !important;
+        background: #00d4ff !important;
+        color: #050a10 !important;
+        box-shadow: 0 0 20px #00d4ff;
+    }
+
+    /* Etiquetas de datos */
+    label {
+        font-family: 'Courier New', monospace !important;
+        color: #557799 !important;
+        font-size: 11px !important;
+        letter-spacing: 1px !important;
     }
 </style>
 """, unsafe_allow_html=True)
