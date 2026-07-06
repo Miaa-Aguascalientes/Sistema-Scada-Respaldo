@@ -3540,7 +3540,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
     try:
         lat = gdf.geometry.centroid.y.mean()
         lon = gdf.geometry.centroid.x.mean()
-        m = folium.Map(location=[lat, lon], zoom_start=16, tiles=None)
+        m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
         
         # Añadir opción de Fullscreen
         Fullscreen(position="topright", title="Expandir mapa", title_cancel="Salir de pantalla completa").add_to(m)
@@ -3565,7 +3565,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
         folium.LayerControl().add_to(m)
         
         # Ajustamos el ancho a 100% del contenedor y altura a 500 para mejor visualización
-        st_folium(m, width=500, height=300, key=f"map_{id_key}")
+        st_folium(m, width=600, height=400, key=f"map_{id_key}")
         
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
