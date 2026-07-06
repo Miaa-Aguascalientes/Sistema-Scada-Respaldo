@@ -3571,30 +3571,6 @@ def renderizar_mapa_fragmento(gdf, id_key):
         st.error(f"Error al renderizar mapa: {e}")
 
 # 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
-
-# Inyección de estilos para diseño profesional
-st.markdown("""
-<style>
-    .event-card { 
-        background-color: #0E1117; 
-        padding: 20px; 
-        border-radius: 10px; 
-        border: 1px solid #262730; 
-        height: 100%;
-    }
-    .stat-label { color: #888; font-size: 0.75em; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; }
-    .stat-value { color: #fafafa; font-size: 1.05em; font-weight: 600; margin-bottom: 15px; }
-    .status-pill { 
-        display: inline-block; 
-        padding: 4px 12px; 
-        border-radius: 20px; 
-        font-weight: bold; 
-        font-size: 0.8em; 
-        color: #000;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 st.markdown("---")
 st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
@@ -3608,64 +3584,51 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         inicio = row['FECHA_HORA_INICIO']
         fin = row['FECHA_HORA_FIN']
         delta = (pd.Timestamp.now() - inicio) if pd.isnull(fin) else (fin - inicio)
-        return f"{delta.days} días, {delta.seconds // 3600} horas y {(delta.seconds % 3600) // 60} min"
+        return f"{delta.days}d {delta.seconds // 3600}h {(delta.seconds % 3600) // 60}m"
 
-    # Preparación de datos
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
+    # Lógica para separar actuales e historial...
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
                          ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
-    # Función unificada para renderizar el panel profesional
-    def renderizar_panel_profesional(row, gdf, tipo_key):
-        col_mapa, col_detalles = st.columns([2, 1])
+    def generar_titulo(row, gdf):
+        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+        f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
         
-        with col_detalles:
-            st.markdown('<div class="event-card">', unsafe_allow_html=True)
-            st.markdown("### 📋 Detalles del Evento")
-            
-            f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
-            f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "En curso"
-            sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0] if gdf is not None else "N/A"
-            distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0] if gdf is not None else "N/A"
-            
-            # Estilo de datos
-            def display_stat(label, value):
-                st.markdown(f'<div class="stat-label">{label}</div><div class="stat-value">{value}</div>', unsafe_allow_html=True)
-            
-            display_stat("Inicio", f_inicio)
-            display_stat("Fin", f_fin)
-            display_stat("Duración", formatear_duracion(row))
-            
-            # Estatus visual
-            color = "#ff4b4b" if row['ESTATUS'] == 'PENDIENTE' else "#ffcc00" if row['ESTATUS'] == 'EN PROCESO' else "#2ecc71"
-            st.markdown(f'<div class="stat-label">Estado</div><div class="status-pill" style="background-color:{color};">{row["ESTATUS"]}</div>', unsafe_allow_html=True)
-            
-            st.markdown("<br>", unsafe_allow_html=True)
-            display_stat("Sector", sector)
-            display_stat("Distrito", distrito)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            st.markdown("**Diagnóstico:**")
-            st.info(row['DIAGNOSTICO_FALLA'])
+        # DEBUG: Si ves "N/A" en el título, quita el comentario de abajo en tu local para ver las columnas reales
+        # st.write(f"Columnas disponibles en GDF: {gdf.columns.tolist()}") 
+        
+        # Intentamos extraer buscando variantes de nombre (por si acaso)
+        sector = "N/A"
+        distrito = "N/A"
+        
+        if gdf is not None and not gdf.empty:
+            # Buscamos en el DF base (antes del to_crs) o en el GDF
+            # Usamos .get para evitar errores y buscamos nombres comunes
+            sector = gdf.get('Sector', gdf.get('SECTOR', gdf.get('sector', "N/A"))).iloc[0]
+            distrito = gdf.get('Distrito', gdf.get('DISTRITO', gdf.get('distrito', "N/A"))).iloc[0]
+        
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
+        
+        return (f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | "
+                f"Falla: {row['DIAGNOSTICO_FALLA']} | Fin: {f_fin} | Duración: {formatear_duracion(row)} | "
+                f"Estatus: {row['ESTATUS']} | Sector: {sector} | Distrito: {distrito}")
 
-        with col_mapa:
-            if gdf is not None and not gdf.empty:
-                renderizar_mapa_fragmento(gdf, f"{tipo_key}_{row['NUM_POZO']}_{row.name}")
-            else:
-                st.warning("Sin datos geográficos disponibles.")
-
-    # Renderizado Activas
+    # --- RENDERIZADO ACTIVAS ---
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
-        titulo = f"{'🔴' if row['ESTATUS'] == 'PENDIENTE' else '🟡'} **Pozo: {row['NUM_POZO']}** | {row['DIAGNOSTICO_FALLA']}"
-        with st.expander(titulo):
-            renderizar_panel_profesional(row, gdf, "act")
+        with st.expander(generar_titulo(row, gdf)):
+            if gdf is not None and not gdf.empty:
+                st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+                renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
+            else:
+                st.warning("Sin datos geográficos disponibles.")
 
-    # Renderizado Historial
+    # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
     df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
@@ -3675,6 +3638,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
             gdf = get_geometries(row['NUM_POZO'])
-            titulo = f"🟢 **Pozo: {row['NUM_POZO']}** | {row['DIAGNOSTICO_FALLA']}"
-            with st.expander(titulo):
-                renderizar_panel_profesional(row, gdf, "hist")
+            with st.expander(generar_titulo(row, gdf)):
+                if gdf is not None and not gdf.empty:
+                    renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
+                else:
+                    st.info("Sin mapa disponible.")
