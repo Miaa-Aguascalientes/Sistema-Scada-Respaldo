@@ -76,72 +76,74 @@ def verificar_credenciales(usuario_input, password_input):
         st.error(f"Error al consultar usuario: {e}")
         return None
 
-
-# 0.3. ESTILO VISUAL HUD AVANZADO (CYBER-HUD)
+# 0.3. ESTILO VISUAL HUD AJUSTADO
 st.markdown("""
 <style>
-    /* Estructura base de terminal */
+    /* Configuración base */
     .stApp { background-color: #050a10 !important; }
-
-    /* Contenedor principal estilo "Ventana de Sistema" */
-    div[data-testid="stForm"] {
-        background: rgba(5, 15, 25, 0.7) !important;
-        border: 1px solid #00d4ff !important;
-        padding: 40px !important;
-        position: relative;
-        /* Efecto de cristal */
-        backdrop-filter: blur(5px);
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.1) !important;
+    .block-container { padding: 0 !important; max-width: 100% !important; }
+    header, footer { visibility: hidden !important; }
+    
+    /* HUD Visual Elements */
+    .visual-core { position: relative; width: 480px; height: 480px; margin: auto; }
+    .ring { position: absolute; border-radius: 50%; border: 4px solid transparent; animation: spin var(--d) linear infinite; }
+    .r1 { width: 100%; height: 100%; border-top: 8px solid #00d4ff; border-bottom: 8px solid #00d4ff; --d: 4s; }
+    .r2 { width: 78%; height: 78%; top: 11%; left: 11%; border: 3px dashed #00d4ff; --d: 8s; animation-direction: reverse; }
+    .center-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+    .logo-miaa { width: 190px; filter: drop-shadow(0 0 15px #00d4ff); }
+    
+    /* Login Box */
+    .login-box { 
+        background: rgba(0, 212, 255, 0.05); 
+        border-left: 8px solid #00d4ff; 
+        padding: 30px; 
+        margin-top: 50px;
+        max-width: 320px;
+        margin-left: 0;
     }
-
-    /* Inputs: diseño de "caja de datos" */
+    
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    /* --- ESTILO INTEGRADO PARA INPUTS (El ajuste clave) --- */
     div[data-testid="stTextInputRootElement"] {
-        background: #000000 !important;
+        background-color: #0d1b2a !important;
         border: 1px solid #1f4068 !important;
-        border-radius: 0px !important;
-        height: 45px !important;
-        transition: 0.3s ease-in-out;
+        border-radius: 0px !important; /* Estilo recto como en la imagen */
+        padding: 0px 10px !important; 
+        height: 40px !important;
+        box-shadow: none !important;
     }
-
-    /* Animación de activación de campo */
+    
+    .stTextInput input { 
+        background-color: transparent !important; 
+        color: #00d4ff !important; 
+        border: none !important;
+        height: 100% !important;
+        font-family: 'Courier New', monospace; /* Estilo terminal */
+        font-size: 15px !important;
+        padding: 0 !important;
+    }
+    
+    /* Eliminar cualquier foco o sombra al interactuar */
     div[data-testid="stTextInputRootElement"]:focus-within {
         border: 1px solid #00d4ff !important;
-        box-shadow: 0 0 10px #00d4ff !important;
+        box-shadow: none !important;
     }
-
-    /* Estilo del texto dentro del input */
-    .stTextInput input {
-        color: #00d4ff !important;
-        font-family: 'Courier New', Courier, monospace !important;
-        font-size: 16px !important;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+    
+    /* Botones */
+    .stButton button { 
+        background: #00d4ff !important; 
+        color: #050a10 !important; 
+        font-weight: bold !important; 
+        width: 100%; 
+        height: 45px; 
+        border: none !important;
+        border-radius: 0px !important;
     }
-
-    /* Botón de mando */
-    .stButton button {
-        background: transparent !important;
-        border: 2px solid #00d4ff !important;
-        color: #00d4ff !important;
-        font-family: 'Orbitron', sans-serif !important;
-        font-weight: 800 !important;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        transition: 0.2s;
-    }
-
-    .stButton button:hover {
-        background: #00d4ff !important;
-        color: #050a10 !important;
-        box-shadow: 0 0 20px #00d4ff;
-    }
-
-    /* Etiquetas de datos */
-    label {
-        font-family: 'Courier New', monospace !important;
-        color: #557799 !important;
-        font-size: 11px !important;
-        letter-spacing: 1px !important;
+    
+    div[data-testid="stForm"] {
+        border: none !important;
+        padding: 0 !important;
     }
 </style>
 """, unsafe_allow_html=True)
