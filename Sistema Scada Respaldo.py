@@ -3622,40 +3622,43 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
         
-        with st.expander(generar_titulo(row, gdf)):
-            if gdf is not None and not gdf.empty:
-                # Layout: 2/3 para el mapa, 1/3 para detalles
-                col1, col2 = st.columns([2, 1])
+        # Título del expander
+        titulo = f"{'🔴' if row['ESTATUS'] == 'PENDIENTE' else '🟡'} **Pozo: {row['NUM_POZO']}** | {row['DIAGNOSTICO_FALLA']}"
+        
+        with st.expander(titulo):
+            # Creamos dos columnas: izquierda para mapa (2/3), derecha para detalles (1/3)
+            col_mapa, col_detalles = st.columns([2, 1])
+            
+            with col_detalles:
+                st.subheader("📋 Detalles del Evento")
                 
-                with col1:
-                    st.markdown(f"**Colonias afectadas:** {', '.join(gdf['Col_atl'].unique())}")
-                    renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
+                # Datos calculados
+                f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+                f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "En curso"
+                duracion = formatear_duracion(row)
+                sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0] if gdf is not None else "N/A"
+                distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0] if gdf is not None else "N/A"
                 
-                with col2:
-                    st.markdown("### 📋 Detalles del Evento")
-                    # Formateo de datos
-                    f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
-                    f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "En curso"
-                    duracion = formatear_duracion(row)
-                    sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0]
-                    distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0]
+                # La tabla de detalles
+                st.markdown(f"""
+                | Campo | Información |
+                | :--- | :--- |
+                | **Inicio** | {f_inicio} |
+                | **Fin** | {f_fin} |
+                | **Duración** | {duracion} |
+                | **Estado** | {row['ESTATUS']} |
+                | **Sector** | {sector} |
+                | **Distrito** | {distrito} |
+                """)
+                
+                st.markdown("**Diagnóstico:**")
+                st.info(row['DIAGNOSTICO_FALLA'])
 
-                    # Tabla de detalles con Markdown
-                    st.markdown(f"""
-                    | Campo | Información |
-                    | :--- | :--- |
-                    | **Inicio** | {f_inicio} |
-                    | **Fin** | {f_fin} |
-                    | **Duración** | {duracion} |
-                    | **Estatus** | {row['ESTATUS']} |
-                    | **Sector** | {sector} |
-                    | **Distrito** | {distrito} |
-                    """)
-                    
-                    st.markdown(f"**Diagnóstico:**")
-                    st.info(row['DIAGNOSTICO_FALLA'])
-            else:
-                st.warning("Sin datos geográficos disponibles.")
+            with col_mapa:
+                if gdf is not None and not gdf.empty:
+                    renderizar_mapa_fragmento(gdf, f"map_{row['NUM_POZO']}_{index}")
+                else:
+                    st.warning("Sin datos geográficos.")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
