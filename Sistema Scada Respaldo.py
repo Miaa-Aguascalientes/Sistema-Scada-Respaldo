@@ -76,74 +76,73 @@ def verificar_credenciales(usuario_input, password_input):
         st.error(f"Error al consultar usuario: {e}")
         return None
 
-# 0.3. ESTILO VISUAL HUD AJUSTADO
+# 0.3. ESTILO VISUAL HUD AVANZADO (CYBER-HUD)
 st.markdown("""
 <style>
-    /* Configuración base */
-    .stApp { background-color: #050a10 !important; }
-    .block-container { padding: 0 !important; max-width: 100% !important; }
-    header, footer { visibility: hidden !important; }
-    
-    /* HUD Visual Elements */
-    .visual-core { position: relative; width: 480px; height: 480px; margin: auto; }
-    .ring { position: absolute; border-radius: 50%; border: 4px solid transparent; animation: spin var(--d) linear infinite; }
-    .r1 { width: 100%; height: 100%; border-top: 8px solid #00d4ff; border-bottom: 8px solid #00d4ff; --d: 4s; }
-    .r2 { width: 78%; height: 78%; top: 11%; left: 11%; border: 3px dashed #00d4ff; --d: 8s; animation-direction: reverse; }
-    .center-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
-    .logo-miaa { width: 190px; filter: drop-shadow(0 0 15px #00d4ff); }
-    
-    /* Login Box */
-    .login-box { 
-        background: rgba(0, 212, 255, 0.05); 
-        border-left: 8px solid #00d4ff; 
-        padding: 30px; 
-        margin-top: 50px;
-        max-width: 320px;
-        margin-left: 0;
+    /* Fondo profundo con patrón de rejilla opcional */
+    .stApp { 
+        background-color: #050a10 !important; 
+        background-image: radial-gradient(#002433 1px, transparent 1px);
+        background-size: 30px 30px;
     }
     
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-    
-    /* --- ESTILO INTEGRADO PARA INPUTS (El ajuste clave) --- */
+    /* Input personalizado - Estilo futurista */
     div[data-testid="stTextInputRootElement"] {
-        background-color: #0d1b2a !important;
-        border: 1px solid #1f4068 !important;
-        border-radius: 0px !important; /* Estilo recto como en la imagen */
-        padding: 0px 10px !important; 
-        height: 40px !important;
-        box-shadow: none !important;
+        background: rgba(0, 20, 30, 0.8) !important;
+        border: 1px solid #00d4ff !important;
+        border-radius: 0px !important;
+        padding: 2px 10px !important;
+        height: 45px !important;
+        box-shadow: 0 0 10px rgba(0, 212, 255, 0.2) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    /* Efecto de foco cuando el usuario escribe */
+    div[data-testid="stTextInputRootElement"]:focus-within {
+        border: 1px solid #ffffff !important;
+        box-shadow: 0 0 15px rgba(0, 212, 255, 0.6) !important;
+        background: rgba(0, 30, 45, 0.9) !important;
     }
     
     .stTextInput input { 
         background-color: transparent !important; 
         color: #00d4ff !important; 
-        border: none !important;
-        height: 100% !important;
-        font-family: 'Courier New', monospace; /* Estilo terminal */
-        font-size: 15px !important;
-        padding: 0 !important;
+        font-family: 'Courier New', monospace !important;
+        font-weight: 600 !important;
+        font-size: 18px !important;
+        letter-spacing: 2px !important;
+        text-transform: uppercase !important;
     }
     
-    /* Eliminar cualquier foco o sombra al interactuar */
-    div[data-testid="stTextInputRootElement"]:focus-within {
-        border: 1px solid #00d4ff !important;
-        box-shadow: none !important;
-    }
-    
-    /* Botones */
+    /* Botón tipo "Interacción Táctica" */
     .stButton button { 
-        background: #00d4ff !important; 
-        color: #050a10 !important; 
+        background: transparent !important; 
+        color: #00d4ff !important; 
+        border: 2px solid #00d4ff !important; 
         font-weight: bold !important; 
         width: 100%; 
-        height: 45px; 
-        border: none !important;
-        border-radius: 0px !important;
+        height: 50px; 
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
     }
     
-    div[data-testid="stForm"] {
-        border: none !important;
-        padding: 0 !important;
+    .stButton button:hover { 
+        background: #00d4ff !important; 
+        color: #050a10 !important; 
+        box-shadow: 0 0 20px #00d4ff !important;
+    }
+
+    /* Etiquetas de texto (Labels) */
+    label {
+        color: #00d4ff !important;
+        font-family: 'Courier New', monospace !important;
+        text-transform: uppercase;
+        font-size: 12px !important;
+        margin-bottom: 5px !important;
+        text-shadow: 0 0 5px #00d4ff;
     }
 </style>
 """, unsafe_allow_html=True)
