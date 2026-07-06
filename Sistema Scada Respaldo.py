@@ -3621,13 +3621,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 else:
                     st.warning("Sin datos geográficos disponibles.")
             with col2:
-                # --- NUEVA LÓGICA DE TIEMPO AÑADIDA ---
+                # --- LÓGICA DE TIEMPO AJUSTADA A HORAS ---
                 st.subheader("Progreso")
-                estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 60))
-                transcurrido = (pd.Timestamp.now() - row['FECHA_HORA_INICIO']).total_seconds() / 60
-                avance = min(transcurrido / estimado, 1.0)
+                # Se multiplica por 60 para convertir horas a minutos
+                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 1)) 
+                estimado_minutos = estimado_horas * 60
+                transcurrido_minutos = (pd.Timestamp.now() - row['FECHA_HORA_INICIO']).total_seconds() / 60
+                avance = min(transcurrido_minutos / estimado_minutos, 1.0)
+                
                 st.progress(avance)
-                st.write(f"Tiempo estimado: {estimado} min")
+                st.write(f"Tiempo estimado: {estimado_horas} horas")
                 # ---------------------------------------
 
     # --- RENDERIZADO HISTORIAL ---
