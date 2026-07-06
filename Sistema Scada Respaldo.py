@@ -76,73 +76,63 @@ def verificar_credenciales(usuario_input, password_input):
         st.error(f"Error al consultar usuario: {e}")
         return None
 
-# 0.3. ESTILO VISUAL HUD AVANZADO (CYBER-HUD)
 st.markdown("""
 <style>
-    /* Fondo profundo con patrón de rejilla opcional */
-    .stApp { 
-        background-color: #050a10 !important; 
-        background-image: radial-gradient(#002433 1px, transparent 1px);
-        background-size: 30px 30px;
-    }
-    
-    /* Input personalizado - Estilo futurista */
-    div[data-testid="stTextInputRootElement"] {
-        background: rgba(0, 20, 30, 0.8) !important;
-        border: 1px solid #00d4ff !important;
+    /* Fondo del sistema */
+    .stApp { background-color: #05070a !important; }
+
+    /* Contenedor principal de la caja (el marco exterior) */
+    div[data-testid="stForm"] {
+        background-color: rgba(10, 15, 20, 0.6) !important;
+        border: 1px solid #1a3a4a !important;
+        padding: 30px !important;
         border-radius: 0px !important;
-        padding: 2px 10px !important;
-        height: 45px !important;
-        box-shadow: 0 0 10px rgba(0, 212, 255, 0.2) !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    /* Efecto de foco cuando el usuario escribe */
-    div[data-testid="stTextInputRootElement"]:focus-within {
-        border: 1px solid #ffffff !important;
-        box-shadow: 0 0 15px rgba(0, 212, 255, 0.6) !important;
-        background: rgba(0, 30, 45, 0.9) !important;
-    }
-    
-    .stTextInput input { 
-        background-color: transparent !important; 
-        color: #00d4ff !important; 
-        font-family: 'Courier New', monospace !important;
-        font-weight: 600 !important;
-        font-size: 18px !important;
-        letter-spacing: 2px !important;
-        text-transform: uppercase !important;
-    }
-    
-    /* Botón tipo "Interacción Táctica" */
-    .stButton button { 
-        background: transparent !important; 
-        color: #00d4ff !important; 
-        border: 2px solid #00d4ff !important; 
-        font-weight: bold !important; 
-        width: 100%; 
-        height: 50px; 
-        text-transform: uppercase;
-        letter-spacing: 3px;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .stButton button:hover { 
-        background: #00d4ff !important; 
-        color: #050a10 !important; 
-        box-shadow: 0 0 20px #00d4ff !important;
     }
 
-    /* Etiquetas de texto (Labels) */
+    /* Caja de texto (input container) - REPLICANDO LA ESTÉTICA DE image_fa9a21.png */
+    div[data-testid="stTextInputRootElement"] {
+        background-color: #1a1e26 !important;
+        border: 1px solid #00d4ff !important;
+        border-radius: 0px !important;
+        height: 38px !important;
+        padding: 0 10px !important;
+        box-shadow: none !important;
+    }
+
+    /* El texto dentro del input */
+    .stTextInput input {
+        color: #ffffff !important;
+        background-color: transparent !important;
+        border: none !important;
+        font-family: 'Segoe UI', sans-serif !important;
+    }
+
+    /* Etiquetas (USUARIO / PASSWORD) */
     label {
         color: #00d4ff !important;
-        font-family: 'Courier New', monospace !important;
-        text-transform: uppercase;
+        font-family: 'Segoe UI', sans-serif !important;
+        font-size: 10px !important;
+        font-weight: bold !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
+        margin-bottom: 2px !important;
+    }
+
+    /* Botón (ACEDER AL SISTEMA) */
+    .stButton button {
+        background-color: #1a1e26 !important;
+        color: #ffffff !important;
+        border: 1px solid #00d4ff !important;
+        border-radius: 0px !important;
         font-size: 12px !important;
-        margin-bottom: 5px !important;
-        text-shadow: 0 0 5px #00d4ff;
+        font-weight: bold !important;
+        padding: 0 20px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .stButton button:hover {
+        background-color: #00d4ff !important;
+        color: #05070a !important;
     }
 </style>
 """, unsafe_allow_html=True)
