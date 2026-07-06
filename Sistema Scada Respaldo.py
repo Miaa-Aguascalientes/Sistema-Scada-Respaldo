@@ -3565,7 +3565,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
         folium.LayerControl().add_to(m)
         
         # Ajustamos el ancho a 100% del contenedor y altura a 500 para mejor visualización
-        st_folium(m, width=900, height=500, key=f"map_{id_key}")
+        st_folium(m, width=900, height=400, key=f"map_{id_key}")
         
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
