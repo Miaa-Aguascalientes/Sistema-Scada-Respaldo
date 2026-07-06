@@ -3571,6 +3571,30 @@ def renderizar_mapa_fragmento(gdf, id_key):
         st.error(f"Error al renderizar mapa: {e}")
 
 # 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
+
+# Inyección de estilos para diseño profesional
+st.markdown("""
+<style>
+    .event-card { 
+        background-color: #0E1117; 
+        padding: 20px; 
+        border-radius: 10px; 
+        border: 1px solid #262730; 
+        height: 100%;
+    }
+    .stat-label { color: #888; font-size: 0.75em; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 0.5px; }
+    .stat-value { color: #fafafa; font-size: 1.05em; font-weight: 600; margin-bottom: 15px; }
+    .status-pill { 
+        display: inline-block; 
+        padding: 4px 12px; 
+        border-radius: 20px; 
+        font-weight: bold; 
+        font-size: 0.8em; 
+        color: #000;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.markdown("---")
 st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
@@ -3584,12 +3608,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         inicio = row['FECHA_HORA_INICIO']
         fin = row['FECHA_HORA_FIN']
         delta = (pd.Timestamp.now() - inicio) if pd.isnull(fin) else (fin - inicio)
-        # Ajuste para formato amigable tipo "0 días, 0 horas y 52 min"
-        dias = delta.days
-        horas = delta.seconds // 3600
-        minutos = (delta.seconds % 3600) // 60
-        return f"{dias} días, {horas} horas y {minutos} min"
+        return f"{delta.days} días, {delta.seconds // 3600} horas y {(delta.seconds % 3600) // 60} min"
 
+    # Preparación de datos
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
@@ -3597,28 +3618,36 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                          ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
-    # Función unificada para renderizar el contenido dentro del expander
-    def renderizar_contenido_expander(row, gdf, tipo_key):
+    # Función unificada para renderizar el panel profesional
+    def renderizar_panel_profesional(row, gdf, tipo_key):
         col_mapa, col_detalles = st.columns([2, 1])
         
         with col_detalles:
-            st.subheader("📋 Detalles del Evento")
+            st.markdown('<div class="event-card">', unsafe_allow_html=True)
+            st.markdown("### 📋 Detalles del Evento")
+            
             f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
             f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "En curso"
-            duracion = formatear_duracion(row)
-            sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0] if gdf is not None and not gdf.empty else "N/A"
-            distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0] if gdf is not None and not gdf.empty else "N/A"
+            sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0] if gdf is not None else "N/A"
+            distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0] if gdf is not None else "N/A"
             
-            st.markdown(f"""
-            | Campo | Información |
-            | :--- | :--- |
-            | **Inicio** | {f_inicio} |
-            | **Fin** | {f_fin} |
-            | **Duración** | {duracion} |
-            | **Estado** | {row['ESTATUS']} |
-            | **Sector** | {sector} |
-            | **Distrito** | {distrito} |
-            """)
+            # Estilo de datos
+            def display_stat(label, value):
+                st.markdown(f'<div class="stat-label">{label}</div><div class="stat-value">{value}</div>', unsafe_allow_html=True)
+            
+            display_stat("Inicio", f_inicio)
+            display_stat("Fin", f_fin)
+            display_stat("Duración", formatear_duracion(row))
+            
+            # Estatus visual
+            color = "#ff4b4b" if row['ESTATUS'] == 'PENDIENTE' else "#ffcc00" if row['ESTATUS'] == 'EN PROCESO' else "#2ecc71"
+            st.markdown(f'<div class="stat-label">Estado</div><div class="status-pill" style="background-color:{color};">{row["ESTATUS"]}</div>', unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            display_stat("Sector", sector)
+            display_stat("Distrito", distrito)
+            st.markdown('</div>', unsafe_allow_html=True)
+            
             st.markdown("**Diagnóstico:**")
             st.info(row['DIAGNOSTICO_FALLA'])
 
@@ -3628,15 +3657,15 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
-    # --- RENDERIZADO ACTIVAS ---
+    # Renderizado Activas
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
         gdf = get_geometries(row['NUM_POZO'])
         titulo = f"{'🔴' if row['ESTATUS'] == 'PENDIENTE' else '🟡'} **Pozo: {row['NUM_POZO']}** | {row['DIAGNOSTICO_FALLA']}"
         with st.expander(titulo):
-            renderizar_contenido_expander(row, gdf, "act")
+            renderizar_panel_profesional(row, gdf, "act")
 
-    # --- RENDERIZADO HISTORIAL ---
+    # Renderizado Historial
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
     df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
@@ -3648,4 +3677,4 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             gdf = get_geometries(row['NUM_POZO'])
             titulo = f"🟢 **Pozo: {row['NUM_POZO']}** | {row['DIAGNOSTICO_FALLA']}"
             with st.expander(titulo):
-                renderizar_contenido_expander(row, gdf, "hist")
+                renderizar_panel_profesional(row, gdf, "hist")
