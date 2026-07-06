@@ -3530,7 +3530,7 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-# SECCION 10 Incidencias ----------------------------------------------------------------------------
+# SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
 
 from folium.plugins import Fullscreen # Asegúrate de importar esto
 
@@ -3570,7 +3570,7 @@ def renderizar_mapa_fragmento(gdf, id_key):
     except Exception as e:
         st.error(f"Error al renderizar mapa: {e}")
 
-# --------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
+# 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
 st.markdown("---")
 st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
@@ -3623,8 +3623,28 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         gdf = get_geometries(row['NUM_POZO'])
         with st.expander(generar_titulo(row, gdf)):
             if gdf is not None and not gdf.empty:
-                st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-                renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
+                # ESTRUCTURA DE DOS COLUMNAS
+                col_mapa, col_info = st.columns([2, 1])
+                
+                with col_mapa:
+                    st.markdown(f"**Colonias afectadas:** {', '.join(gdf['Col_atl'].unique())}")
+                    renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
+                
+                with col_info:
+                    st.markdown("### ℹ️ Detalle del evento")
+                    f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+                    f_fin = row['FECHA_HORA_FIN'].strftime('%d/%m/%y %H:%M') if pd.notnull(row['FECHA_HORA_FIN']) else "N/A"
+                    
+                    sector = gdf.get('Sector', gdf.get('SECTOR', "N/A")).iloc[0]
+                    distrito = gdf.get('Distrito', gdf.get('DISTRITO', "N/A")).iloc[0]
+                    
+                    st.metric("Duración", formatear_duracion(row))
+                    st.write(f"**Inicio:** {f_inicio}")
+                    st.write(f"**Fin:** {f_fin}")
+                    st.write(f"**Estatus:** {row['ESTATUS']}")
+                    st.write(f"**Sector:** {sector}")
+                    st.write(f"**Distrito:** {distrito}")
+                    st.write(f"**Diagnóstico:** {row['DIAGNOSTICO_FALLA']}")
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
