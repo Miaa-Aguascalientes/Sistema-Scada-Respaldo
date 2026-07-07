@@ -3645,7 +3645,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
                     chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.value(40),
+                        y=alt.value(10),
                         color=alt.Color('Color', scale=None)
                     ).properties(height=60)
                     
