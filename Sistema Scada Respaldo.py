@@ -3644,13 +3644,15 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         'Simbolo': ['↑', '↑', '↑']
                     })
 
-                    # Se sube el valor de 'y' a 60 para separar los símbolos de los números de la base
+                    # --- AQUÍ VA EL BLOQUE QUE TE DI ---
                     chart = alt.Chart(data).mark_text(size=24, baseline='bottom').encode(
                         x='Tiempo:T',
-                        y=alt.value(60),
+                        y=alt.Y('y_pos:Q', scale=alt.Scale(domain=[0, 100])),
                         text='Simbolo',
                         color=alt.Color('Color', scale=None)
-                    ).properties(height=100)
+                    ).transform_calculate(
+                        y_pos="80" 
+                    ).properties(height=80)
                     
                     st.altair_chart(chart, use_container_width=True)
 
