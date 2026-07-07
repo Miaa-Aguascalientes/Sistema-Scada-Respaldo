@@ -3647,7 +3647,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         x='Tiempo:T',
                         y=alt.value(0),
                         color=alt.Color('Color', scale=None)
-                    ).properties(height=60)
+                    ).properties(height=70)
                     
                     st.altair_chart(chart, use_container_width=True)
 
