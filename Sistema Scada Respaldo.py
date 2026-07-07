@@ -3630,33 +3630,28 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # Barra de progreso
+                    # 1. Barra de progreso
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
                     st.progress(porcentaje)
 
-                    # Línea de tiempo
+                    # 2. Línea de tiempo con formas de flecha (triangle)
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
-                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B'],
-                        'Simbolo': ['↑', '↑', '↑']
+                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
                     })
 
-                    # --- AQUÍ VA EL BLOQUE QUE TE DI ---
-                    chart = alt.Chart(data).mark_text(size=24, baseline='bottom').encode(
+                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.Y('y_pos:Q', scale=alt.Scale(domain=[0, 100])),
-                        text='Simbolo',
+                        y=alt.value(20),
                         color=alt.Color('Color', scale=None)
-                    ).transform_calculate(
-                        y_pos="80" 
-                    ).properties(height=80)
+                    ).properties(height=60)
                     
                     st.altair_chart(chart, use_container_width=True)
 
-                    # Estado
+                    # 3. Estado
                     tiempo_restante = hora_limite - ahora_mx
                     if ahora_mx > hora_limite:
                         st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
