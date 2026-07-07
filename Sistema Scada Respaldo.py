@@ -3630,7 +3630,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # 1. Barra de progreso con degradado (Altair)
+                    # 1. BARRA DE PROGRESO DEGRADADA (REEMPLAZA ST.PROGRESS)
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
@@ -3640,9 +3640,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         color=alt.Gradient(
                             gradient='linear',
                             stops=[
-                                alt.GradientStop(offset=0, color='#00CC96'),
-                                alt.GradientStop(offset=0.5, color='#FFD700'),
-                                alt.GradientStop(offset=1, color='#FF4B4B')
+                                alt.GradientStop(offset=0, color='#00CC96'),   # Verde
+                                alt.GradientStop(offset=0.5, color='#FFD700'), # Amarillo
+                                alt.GradientStop(offset=1, color='#FF4B4B')    # Rojo
                             ],
                             x1=1, y1=0, x2=0, y2=0
                         )
@@ -3665,9 +3665,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     })
                     chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.value(40),
+                        y=alt.value(0),
                         color=alt.Color('Color', scale=None)
-                    ).properties(height=70)
+                    ).properties(height=80)
                     st.altair_chart(chart, use_container_width=True)
 
                     # 3. Estado
@@ -3677,7 +3677,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     else:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
-                # 4. Datos enlistados con duración
+                # 4. Datos enlistados (Corrección de error de atributos)
                 diferencia = max(timedelta(0), ahora_mx - inicio)
                 horas_dur = int(diferencia.total_seconds() // 3600)
                 mins_dur = int((diferencia.total_seconds() % 3600) // 60)
