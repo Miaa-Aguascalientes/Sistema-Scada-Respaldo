@@ -3630,50 +3630,25 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # 1. Barra de progreso dinámica (Degradado por lógica)
+                    # 1. Barra de progreso
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
-                    progreso = min(transcurrido_seg / total_seg, 1.0)
-                    
-                    # Generamos una escala de datos para el degradado
-                    df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
-                    
-                    # Usamos una capa de área con gradiente lineal
-                    barra_grad = alt.Chart(df_grad).mark_area(
-                        line=True, 
-                        color=alt.Gradient(
-                            gradient='linear',
-                            stops=[
-                                alt.GradientStop(offset=0, color='#00CC96'), # Verde
-                                alt.GradientStop(offset=0.5, color='#FFD700'), # Amarillo
-                                alt.GradientStop(offset=1, color='#FF4B4B')  # Rojo
-                            ],
-                            x1=1, y1=0, x2=0, y2=0
-                        )
-                    ).encode(
-                        x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
-                        y=alt.value(20)
-                    ).properties(height=20, width='container')
+                    porcentaje = min(transcurrido_seg / total_seg, 1.0)
+                    st.progress(porcentaje)
 
-                    # Marcador de posición actual (aguja)
-                    cursor = pd.DataFrame({'progreso': [progreso]})
-                    aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=3).encode(
-                        x='progreso'
-                    )
-
-                    st.altair_chart(barra_grad + aguja, use_container_width=True)
-
-                    # 2. Línea de tiempo (Triángulos elevados)
+                    # 2. Línea de tiempo con formas de flecha (triangle)
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
                         'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
                     })
+
                     chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.value(0), 
+                        y=alt.value(0),
                         color=alt.Color('Color', scale=None)
                     ).properties(height=70)
+                    
                     st.altair_chart(chart, use_container_width=True)
 
                     # 3. Estado
@@ -3684,23 +3659,17 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
                 # 4. Datos enlistados con simbología y duración
-                diferencia = ahora_mx - inicio
-                if diferencia.total_seconds() < 0:
-                    duracion_actual = 0
-                else:
-                    duracion_actual = diferencia.total_seconds()
-                
-                horas_dur = int(duracion_actual // 3600)
-                mins_dur = int((duracion_actual % 3600) // 60)
+                duracion_actual = ahora_mx - inicio
+                horas_dur = int(duracion_actual.total_seconds() // 3600)
+                mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
 
                 st.write("---")
-                # Usamos estilos en línea con !important para asegurar la visibilidad
                 st.markdown(f"""
-                <div style="line-height: 2; font-family: sans-serif;">
-                    <span style="color:#00CC96 !important;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
-                    <span style="color:#1f77b4 !important;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
-                    <span style="color:#FF4B4B !important;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
-                    <span style="color:#808080 !important;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
+                <div style="line-height: 2;">
+                    <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
+                    <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
+                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                    <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
                 </div>
                 """, unsafe_allow_html=True)
 
@@ -3719,3 +3688,4 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
                 else:
                     st.info("Sin mapa disponible.")
+
