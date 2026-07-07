@@ -3616,23 +3616,25 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 import pytz
-                
-                # 1. Definir la zona horaria del Centro de México
+                from datetime import datetime
+
+                # 1. Definir zona horaria
                 tz_mx = pytz.timezone('America/Mexico_City')
                 
                 # 2. Obtener hora actual del sistema en México
                 ahora_mx = datetime.now(tz_mx)
                 
-                # 3. Procesar el inicio de forma segura
+                # 3. Procesar el inicio sin errores
                 inicio_raw = pd.to_datetime(row['FECHA_HORA_INICIO'])
                 
-                # Si el dato ya tiene zona horaria, la convertimos a MX. Si no, la localizamos.
-                if inicio_raw.tzinfo is not None:
+                # Normalización forzada: quitamos zona horaria y luego ponemos la de México
+                try:
+                    inicio = inicio_raw.tz_localize(None).tz_localize(tz_mx)
+                except:
+                    # Si falla por estar ya en otro formato, intentamos convertir
                     inicio = inicio_raw.tz_convert(tz_mx)
-                else:
-                    inicio = inicio_raw.tz_localize(tz_mx, ambiguous='infer')
                 
-                # 4. Verificar estatus para detener cálculo si está cerrada
+                # 4. Verificar estatus
                 estatus = str(row.get('ESTATUS', '')).upper()
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
@@ -3642,11 +3644,10 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                     st.write(f"**Estimado total:** {estimado_horas}h")
                 else:
-                    # Cálculo para incidencias ABIERTAS
+                    # Cálculo de progreso
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = (ahora_mx - inicio).total_seconds()
                     
-                    # Barra de progreso blindada
                     avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
                     st.progress(avance)
                     
