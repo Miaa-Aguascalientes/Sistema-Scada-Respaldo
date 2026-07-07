@@ -3533,8 +3533,6 @@ if sectores_data:
 
 # SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
 
-import pytz
-from datetime import datetime
 
 from folium.plugins import Fullscreen # Asegúrate de importar esto
 
