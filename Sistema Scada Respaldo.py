@@ -3636,14 +3636,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
                     st.progress(porcentaje)
 
-                    # 2. Línea de tiempo
+                    # 2. Línea de tiempo con formas de flecha (triangle)
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
                         'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
                     })
 
-                    chart = alt.Chart(data).mark_line(point=True).encode(
+                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
                         y=alt.value(20),
                         color=alt.Color('Color', scale=None)
