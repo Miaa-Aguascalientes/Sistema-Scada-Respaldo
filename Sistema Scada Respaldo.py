@@ -3630,11 +3630,12 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # 1. BARRA DE PROGRESO DEGRADADA (REEMPLAZA ST.PROGRESS)
+                    # Cálculo de progreso
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
                     
+                    # GRÁFICA DEGRADADA (REEMPLAZA ST.PROGRESS)
                     df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
                     barra_grad = alt.Chart(df_grad).mark_area(
                         color=alt.Gradient(
@@ -3651,13 +3652,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         y=alt.value(20)
                     ).properties(height=20, width='container')
 
+                    # Aguja indicadora
                     cursor = pd.DataFrame({'progreso': [porcentaje]})
                     aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=4).encode(
                         x='progreso'
                     )
                     st.altair_chart(barra_grad + aguja, use_container_width=True)
 
-                    # 2. Línea de tiempo
+                    # Línea de tiempo
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
@@ -3665,19 +3667,19 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     })
                     chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.value(0),
+                        y=alt.value(40),
                         color=alt.Color('Color', scale=None)
-                    ).properties(height=80)
+                    ).properties(height=70)
                     st.altair_chart(chart, use_container_width=True)
 
-                    # 3. Estado
+                    # Estado restante
                     tiempo_restante = hora_limite - ahora_mx
                     if ahora_mx > hora_limite:
                         st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
                     else:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
-                # 4. Datos enlistados (Corrección de error de atributos)
+                # Datos finales
                 diferencia = max(timedelta(0), ahora_mx - inicio)
                 horas_dur = int(diferencia.total_seconds() // 3600)
                 mins_dur = int((diferencia.total_seconds() % 3600) // 60)
