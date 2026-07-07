@@ -3617,42 +3617,38 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 st.subheader("Tiempo de Atención")
                 import pytz
                 from datetime import datetime
-
-                # 1. Zona horaria fija de México
+                
+                # 1. Definir zona horaria y estatus
                 tz_mx = pytz.timezone('America/Mexico_City')
-                
-                # 2. Hora actual real en México
-                ahora_mx = datetime.now(tz_mx)
-                
-                # 3. Inicio del evento (forzamos zona horaria si no la tiene)
-                inicio_naive = pd.to_datetime(row['FECHA_HORA_INICIO'])
-                if inicio_naive.tzinfo is None:
-                    inicio = inicio_naive.tz_localize(tz_mx)
-                else:
-                    inicio = inicio_naive.tz_convert(tz_mx)
-                
-                # 4. Cálculo de límite
+                estatus = row.get('ESTATUS', '').upper()
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(tz_mx, ambiguous='infer')
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
-                
-                # 5. Progreso (0.0 a 1.0)
-                total_seg = (hora_limite - inicio).total_seconds()
-                transcurrido_seg = (ahora_mx - inicio).total_seconds()
-                
-                avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
-                st.progress(avance)
-                
-                # 6. Mensaje de estado
-                if ahora_mx > hora_limite:
-                    exceso = ahora_mx - hora_limite
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
+
+                if estatus == 'CERRADA':
+                    st.info("✅ Incidencia Cerrada")
+                    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+                    st.write(f"**Estimado total:** {estimado_horas}h")
+                    # Aquí podrías mostrar el tiempo final si tu base de datos lo tiene
                 else:
-                    restante = hora_limite - ahora_mx
-                    st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
-                
-                st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
-                st.write(f"**Estimado total:** {estimado_horas}h")
+                    # Lógica para incidencias ABIERTAS/EN PROCESO
+                    ahora_mx = datetime.now(tz_mx)
+                    total_seg = (hora_limite - inicio).total_seconds()
+                    transcurrido_seg = (ahora_mx - inicio).total_seconds()
+                    
+                    avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
+                    st.progress(avance)
+                    
+                    if ahora_mx > hora_limite:
+                        exceso = ahora_mx - hora_limite
+                        st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
+                    else:
+                        restante = hora_limite - ahora_mx
+                        st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
+                    
+                    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+                    st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
+                    st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
