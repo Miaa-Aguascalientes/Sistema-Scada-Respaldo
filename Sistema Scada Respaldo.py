@@ -3611,32 +3611,42 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             with col2:
                 st.subheader("Tiempo de Atención")
-                # Obtenemos la hora actual del sistema
-                ahora = pd.Timestamp.now()
-                inicio = row['FECHA_HORA_INICIO']
                 
-                # Calculamos la diferencia total en minutos
-                delta_minutos = (ahora - inicio).total_seconds() / 60
+                # 1. Obtenemos el tiempo estimado real del DataFrame. 
+                # Si no existe, usamos None para identificar que no hay dato.
+                valor_estimado = row.get('TIEMPO_ESTIMADO_ATENCION')
                 
-                # Definimos el estimado en minutos (asegurando float)
-                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                estimado_minutos = estimado_horas * 60
-                
-                # Calculamos el avance para la barra (0.0 a 1.0)
-                avance = max(0.0, min(delta_minutos / estimado_minutos, 1.0))
-                st.progress(avance)
-                
-                # LÓGICA DE MENSAJE CORREGIDA:
-                # Comparamos minutos contra minutos
-                if delta_minutos > estimado_minutos:
-                    exceso = delta_minutos - estimado_minutos
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso//60)}h {int(exceso%60)}m")
+                # Validación estricta: si no hay dato, mostramos advertencia y salimos
+                if pd.isna(valor_estimado):
+                    st.warning("Tiempo estimado no definido.")
+                    st.write(f"**Inicio:** {row['FECHA_HORA_INICIO'].strftime('%H:%M')}")
                 else:
-                    restante = estimado_minutos - delta_minutos
-                    st.success(f"✅ Tiempo restante: {int(restante//60)}h {int(restante%60)}m")
-                
-                st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                st.write(f"**Estimado total:** {estimado_horas}h")
+                    estimado_horas = float(valor_estimado)
+                    
+                    # 2. Calculamos los minutos (solo hora y minuto, ignorando fecha)
+                    inicio = row['FECHA_HORA_INICIO']
+                    ahora = pd.Timestamp.now()
+                    
+                    minutos_inicio = inicio.hour * 60 + inicio.minute
+                    minutos_ahora = ahora.hour * 60 + ahora.minute
+                    delta_minutos = minutos_ahora - minutos_inicio
+                    
+                    estimado_minutos = estimado_horas * 60
+                    
+                    # 3. Barra de progreso segura (0.0 a 1.0)
+                    avance = max(0.0, min(delta_minutos / estimado_minutos, 1.0))
+                    st.progress(avance)
+                    
+                    # 4. Lógica de mensaje exacta
+                    if delta_minutos > estimado_minutos:
+                        exceso = delta_minutos - estimado_minutos
+                        st.error(f"⚠️ Tiempo excedido por {int(exceso//60)}h {int(exceso%60)}m")
+                    else:
+                        restante = estimado_minutos - delta_minutos
+                        st.success(f"✅ Tiempo restante: {int(restante//60)}h {int(restante%60)}m")
+                    
+                    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+                    st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
