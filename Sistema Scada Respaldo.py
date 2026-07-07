@@ -24,6 +24,7 @@ import re
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from sqlalchemy.exc import OperationalError
 import pytz
+from datetime import datetime
 
 st.set_page_config(
     page_title="Sistema Scada", 
