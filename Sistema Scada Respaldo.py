@@ -3616,7 +3616,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 import pytz
-                from datetime import datetime, timedelta
+                from datetime import datetime
                 import altair as alt
 
                 tz_mx = pytz.timezone('America/Mexico_City')
@@ -3630,68 +3630,46 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # Cálculo del porcentaje
+                    # 1. Barra de progreso
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
-                    
-                    # --- BARRA DEGRADADA (Esto SÍ mostrará los colores) ---
-                    df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
-                    barra_grad = alt.Chart(df_grad).mark_area(
-                        color=alt.Gradient(
-                            gradient='linear',
-                            stops=[
-                                alt.GradientStop(offset=0, color='#00CC96'),   # Verde
-                                alt.GradientStop(offset=0.5, color='#FFD700'), # Amarillo
-                                alt.GradientStop(offset=1, color='#FF4B4B')    # Rojo
-                            ],
-                            x1=1, y1=0, x2=0, y2=0
-                        )
-                    ).encode(
-                        x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
-                        y=alt.value(20)
-                    ).properties(height=20, width='container')
+                    st.progress(porcentaje)
 
-                    # Marcador de posición actual (Aguja)
-                    cursor = pd.DataFrame({'progreso': [porcentaje]})
-                    aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=4).encode(
-                        x='progreso'
-                    )
-                    st.altair_chart(barra_grad + aguja, use_container_width=True)
-                    # --------------------------------------------------------
-
-                    # Línea de tiempo
+                    # 2. Línea de tiempo con formas de flecha (triangle)
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
                         'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
                     })
+
                     chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
                         x='Tiempo:T',
-                        y=alt.value(40),
+                        y=alt.value(0),
                         color=alt.Color('Color', scale=None)
                     ).properties(height=70)
+                    
                     st.altair_chart(chart, use_container_width=True)
 
-                    # Estado restante
+                    # 3. Estado
                     tiempo_restante = hora_limite - ahora_mx
                     if ahora_mx > hora_limite:
                         st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
                     else:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
-                # Datos finales y duración (corregido AttributeError)
-                diferencia = max(timedelta(0), ahora_mx - inicio)
-                horas_dur = int(diferencia.total_seconds() // 3600)
-                mins_dur = int((diferencia.total_seconds() % 3600) // 60)
+                # 4. Datos enlistados con simbología y duración
+                duracion_actual = ahora_mx - inicio
+                horas_dur = int(duracion_actual.total_seconds() // 3600)
+                mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
 
                 st.write("---")
                 st.markdown(f"""
-                <div style="line-height: 2; font-family: sans-serif;">
-                    <span style="color:#00CC96 !important;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
-                    <span style="color:#1f77b4 !important;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
-                    <span style="color:#FF4B4B !important;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
-                    <span style="color:#808080 !important;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
+                <div style="line-height: 2;">
+                    <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
+                    <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
+                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                    <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
                 </div>
                 """, unsafe_allow_html=True)
 
