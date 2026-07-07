@@ -3684,9 +3684,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
                 # 4. Datos enlistados con simbología y duración
-                duracion_actual = max(datetime.timedelta(0), ahora_mx - inicio)
-                horas_dur = int(duracion_actual.total_seconds() // 3600)
-                mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
+                diferencia = ahora_mx - inicio
+                if diferencia.total_seconds() < 0:
+                    duracion_actual = 0
+                else:
+                    duracion_actual = diferencia.total_seconds()
+                
+                horas_dur = int(duracion_actual // 3600)
+                mins_dur = int((duracion_actual % 3600) // 60)
 
                 st.write("---")
                 # Usamos estilos en línea con !important para asegurar la visibilidad
