@@ -3609,44 +3609,47 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 else:
                     st.warning("Sin datos geográficos disponibles.")
             
-            with col2:
-                st.subheader("Tiempo de Atención")
-                
-                # 1. Definimos el inicio
-                inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
-                
-                # 2. OBTENEMOS LA HORA LOCAL DE TU PC 
-                # (Ajuste manual si el servidor está en UTC, pero usaremos el tiempo relativo)
-                ahora_local = pd.Timestamp.now()
-                
-                # 3. Calculamos la diferencia en minutos
-                # Usamos .total_seconds() para obtener la distancia real entre los dos tiempos
-                transcurrido_seg = (ahora_local - inicio).total_seconds()
-                transcurrido_min = transcurrido_seg / 60
-                
-                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                total_min = estimado_horas * 60
-                
-                # 4. Hora límite (calculada sobre el inicio)
-                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
-                
-                # 5. Barra de progreso (0.0 a 1.0)
-                # Si el tiempo transcurrido es mayor al total, fijamos en 1.0
-                avance = max(0.0, min(transcurrido_min / total_min, 1.0))
-                st.progress(avance)
-                
-                # 6. Lógica de comparación real
-                # Comparamos el tiempo transcurrido real contra el estimado
-                if transcurrido_min > total_min:
-                    exceso_min = transcurrido_min - total_min
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso_min // 60)}h {int(exceso_min % 60)}m")
-                else:
-                    restante_min = total_min - transcurrido_min
-                    st.success(f"✅ Tiempo restante: {int(restante_min // 60)}h {int(restante_min % 60)}m")
-                
-                st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
-                st.write(f"**Estimado total:** {estimado_horas}h")
+            import pytz
+from datetime import datetime
+
+with col2:
+    st.subheader("Tiempo de Atención")
+    
+    # 1. Definir la zona horaria del Centro de México
+    tz_mx = pytz.timezone('America/Mexico_City')
+    
+    # 2. Convertir el inicio a la zona horaria correcta
+    # Asumimos que el inicio viene sin zona horaria, así que le asignamos la local
+    inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(tz_mx, ambiguous='infer')
+    
+    # 3. Obtener el AHORA real basado en la zona horaria de México
+    ahora_mx = datetime.now(tz_mx)
+    
+    # 4. Cálculo de tiempos en minutos (totalmente independiente del servidor)
+    # Convertimos a minutos absolutos desde el inicio
+    transcurrido_min = (ahora_mx - inicio).total_seconds() / 60
+    
+    estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+    total_min = estimado_horas * 60
+    
+    # Hora límite absoluta para mostrar
+    hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+    
+    # 5. Barra de progreso (0.0 a 1.0)
+    avance = max(0.0, min(transcurrido_min / total_min, 1.0))
+    st.progress(avance)
+    
+    # 6. Lógica de mensaje
+    if transcurrido_min > total_min:
+        exceso_min = transcurrido_min - total_min
+        st.error(f"⚠️ Tiempo excedido por {int(exceso_min // 60)}h {int(exceso_min % 60)}m")
+    else:
+        restante_min = total_min - transcurrido_min
+        st.success(f"✅ Tiempo restante: {int(restante_min // 60)}h {int(restante_min % 60)}m")
+    
+    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+    st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
+    st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
