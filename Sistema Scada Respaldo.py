@@ -962,7 +962,12 @@ if "graficar_pozo" in params:
             # --- CONEXIÓN SEGURA ---
             with engine.connect() as conn:
                 conn.execute("SET SESSION SQL_BIG_SELECTS = 1")
-                conn.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+    
+    # 2. NIVEL DE AISLAMIENTO: Esto es lo que mata el Error 1205
+    # READ UNCOMMITTED permite leer datos aunque otra tabla esté bloqueada
+                conn.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED")
+    
+    # 3. Ejecuta la consulta
                 df = pd.read_sql(q, conn)
             
             # --- PROCESAMIENTO SEGURO ---
