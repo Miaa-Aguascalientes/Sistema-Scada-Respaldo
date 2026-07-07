@@ -3621,43 +3621,39 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
                 tz_mx = pytz.timezone('America/Mexico_City')
                 ahora_mx = datetime.now(tz_mx)
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
                 
-                inicio_raw = pd.to_datetime(row['FECHA_HORA_INICIO'])
-                # Normalización forzada
-                inicio = inicio_raw.tz_localize(None).tz_localize(tz_mx)
-                
-                estatus = str(row.get('ESTATUS', '')).upper()
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+                estatus = str(row.get('ESTATUS', '')).upper()
 
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # Cálculo de métricas
-                    total_seg = (hora_limite - inicio).total_seconds()
-                    transcurrido_seg = (ahora_mx - inicio).total_seconds()
-                    porcentaje = max(0, min(transcurrido_seg / total_seg, 1))
-                    
-                    # Gráfico de dona (Donut Chart) con Altair
-                    data = pd.DataFrame({'cat': ['Consumido', 'Restante'], 'val': [porcentaje, 1 - porcentaje]})
-                    color_scale = alt.Scale(domain=['Consumido', 'Restante'], range=['#FF4B4B' if porcentaje > 0.8 else '#FFA500' if porcentaje > 0.5 else '#00CC96', '#2E2E2E'])
-                    
-                    chart = alt.Chart(data).mark_arc(innerRadius=40).encode(
-                        theta=alt.Theta("val", stack=True),
-                        color=alt.Color("cat", scale=color_scale, legend=None)
-                    ).properties(width=150, height=150)
-                    
-                    col_g, col_t = st.columns([1, 1])
-                    with col_g:
-                        st.altair_chart(chart)
-                    with col_t:
-                        tiempo_restante = hora_limite - ahora_mx
-                        if ahora_mx > hora_limite:
-                            st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
-                        else:
-                            st.write(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+                    # Preparar datos para la línea de tiempo
+                    data = pd.DataFrame({
+                        'Evento': ['Inicio', 'Ahora', 'Límite'],
+                        'Tiempo': [inicio, ahora_mx, hora_limite],
+                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+                    })
 
-                st.write(f"**Inicio:** {inicio.strftime('%H:%M')} | **Límite:** {hora_limite.strftime('%H:%M')}")
+                    # Gráfico de línea de tiempo horizontal
+                    chart = alt.Chart(data).mark_line(point=True).encode(
+                        x='Tiempo:T',
+                        y=alt.value(20),
+                        color=alt.Color('Color', scale=None)
+                    ).properties(height=60)
+                    
+                    st.altair_chart(chart, use_container_width=True)
+
+                    # Cálculo de estado
+                    tiempo_restante = hora_limite - ahora_mx
+                    if ahora_mx > hora_limite:
+                        st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                    else:
+                        st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+
+                st.write(f"**Inicio:** {inicio.strftime('%H:%M')} | **Ahora:** {ahora_mx.strftime('%H:%M')} | **Límite:** {hora_limite.strftime('%H:%M')}")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
