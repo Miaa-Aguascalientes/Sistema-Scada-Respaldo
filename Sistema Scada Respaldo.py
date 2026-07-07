@@ -3612,37 +3612,40 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Obtenemos solo la hora y minuto del sistema y del inicio
-                ahora = pd.Timestamp.now()
+                # 1. Definimos el inicio
                 inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
                 
-                # 2. Convertimos estrictamente a minutos del día (ej. 09:13 -> 553 minutos)
-                minutos_inicio = inicio.hour * 60 + inicio.minute
-                minutos_ahora = ahora.hour * 60 + ahora.minute
+                # 2. OBTENEMOS LA HORA LOCAL DE TU PC 
+                # (Ajuste manual si el servidor está en UTC, pero usaremos el tiempo relativo)
+                ahora_local = pd.Timestamp.now()
                 
-                # 3. Calculamos el límite basado en el estimado
+                # 3. Calculamos la diferencia en minutos
+                # Usamos .total_seconds() para obtener la distancia real entre los dos tiempos
+                transcurrido_seg = (ahora_local - inicio).total_seconds()
+                transcurrido_min = transcurrido_seg / 60
+                
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                minutos_limite = minutos_inicio + int(estimado_horas * 60)
+                total_min = estimado_horas * 60
                 
-                # 4. Cálculo de progreso (0.0 a 1.0)
-                total_duracion = minutos_limite - minutos_inicio
-                transcurrido = minutos_ahora - minutos_inicio
-                avance = max(0.0, min(transcurrido / total_duracion, 1.0))
+                # 4. Hora límite (calculada sobre el inicio)
+                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+                
+                # 5. Barra de progreso (0.0 a 1.0)
+                # Si el tiempo transcurrido es mayor al total, fijamos en 1.0
+                avance = max(0.0, min(transcurrido_min / total_min, 1.0))
                 st.progress(avance)
                 
-                # 5. Lógica de mensaje
-                if minutos_ahora > minutos_limite:
-                    exceso = minutos_ahora - minutos_limite
-                    st.error(f"⚠️ Tiempo excedido por {exceso // 60}h {exceso % 60}m")
+                # 6. Lógica de comparación real
+                # Comparamos el tiempo transcurrido real contra el estimado
+                if transcurrido_min > total_min:
+                    exceso_min = transcurrido_min - total_min
+                    st.error(f"⚠️ Tiempo excedido por {int(exceso_min // 60)}h {int(exceso_min % 60)}m")
                 else:
-                    restante = minutos_limite - minutos_ahora
-                    st.success(f"✅ Tiempo restante: {restante // 60}h {restante % 60}m")
+                    restante_min = total_min - transcurrido_min
+                    st.success(f"✅ Tiempo restante: {int(restante_min // 60)}h {int(restante_min % 60)}m")
                 
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                # Mostramos la hora límite formateada manualmente
-                h_lim = (minutos_limite // 60) % 24
-                m_lim = minutos_limite % 60
-                st.write(f"**Hora límite:** {h_lim:02d}:{m_lim:02d}")
+                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
