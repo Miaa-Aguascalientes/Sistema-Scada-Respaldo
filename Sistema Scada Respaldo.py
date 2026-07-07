@@ -3571,8 +3571,6 @@ def renderizar_mapa_fragmento(gdf, id_key):
         st.error(f"Error al renderizar mapa: {e}")
 
 # 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
-st.markdown("---")
-st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
 df_incidencias = get_data() 
 
