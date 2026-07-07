@@ -3571,6 +3571,8 @@ def renderizar_mapa_fragmento(gdf, id_key):
         st.error(f"Error al renderizar mapa: {e}")
 
 # 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
+st.markdown("---")
+st.subheader("⚠️ Incidencias: Pozos fuera de servicio")
 
 df_incidencias = get_data() 
 
@@ -3604,7 +3606,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             col1, col2 = st.columns([2, 1])
             with col1:
                 if gdf is not None and not gdf.empty:
-                    # Se mantiene tu lógica original de colonias
                     st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
                     renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
                 else:
@@ -3612,25 +3613,27 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             with col2:
                 st.subheader("Tiempo de Atención")
-                # Cálculo exacto en minutos
+                # Cálculo preciso
                 inicio = row['FECHA_HORA_INICIO']
                 ahora = pd.Timestamp.now()
-                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 5))
+                # Aseguramos que el tiempo estimado sea un float
+                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 
-                transcurrido_minutos = (ahora - inicio).total_seconds() / 60
+                # Diferencia en minutos
+                delta_minutos = (ahora - inicio).total_seconds() / 60
                 estimado_minutos = estimado_horas * 60
                 
-                # Barra de progreso
-                avance = min(transcurrido_minutos / estimado_minutos, 1.0)
+                # Barra de progreso (limitada a 1.0)
+                avance = min(delta_minutos / estimado_minutos, 1.0)
                 st.progress(avance)
                 
-                # Lógica de mensaje: Si transcurrido es menor al estimado, es tiempo restante
-                if transcurrido_minutos > estimado_minutos:
-                    exceso = transcurrido_minutos - estimado_minutos
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso//60)}h {int(exceso%60)}m")
+                # Lógica de mensaje corregida: solo marca excedido si es estrictamente mayor
+                if delta_minutos > estimado_minutos:
+                    exceso_minutos = delta_minutos - estimado_minutos
+                    st.error(f"⚠️ Tiempo excedido por {int(exceso_minutos//60)}h {int(exceso_minutos%60)}m")
                 else:
-                    restante = estimado_minutos - transcurrido_minutos
-                    st.success(f"✅ Tiempo restante: {int(restante//60)}h {int(restante%60)}m")
+                    restante_minutos = estimado_minutos - delta_minutos
+                    st.success(f"✅ Tiempo restante: {int(restante_minutos//60)}h {int(restante_minutos%60)}m")
                 
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
