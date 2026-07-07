@@ -3617,21 +3617,21 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 ahora = pd.Timestamp.now()
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 
-                # 2. Calcular la hora límite y el delta
-                tiempo_estimado_delta = pd.Timedelta(hours=estimado_horas)
-                hora_limite = inicio + tiempo_estimado_delta
+                # 2. Calcular la hora límite absoluta
+                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
                 # 3. Cálculo del progreso (0.0 a 1.0)
-                # Si ahora >= hora_limite, el progreso es 1.0 (barra llena)
-                # Si no, es la proporción de tiempo transcurrido / tiempo total
-                total_minutos = estimado_horas * 60
-                transcurrido_minutos = (ahora - inicio).total_seconds() / 60
+                # Duración total del intervalo en minutos
+                duracion_total_min = (hora_limite - inicio).total_seconds() / 60
+                # Tiempo transcurrido en minutos desde el inicio
+                transcurrido_min = (ahora - inicio).total_seconds() / 60
                 
-                # Forzamos que avance esté siempre entre 0.0 y 1.0
-                avance = max(0.0, min(transcurrido_minutos / total_minutos, 1.0))
+                # La barra es la proporción del tiempo transcurrido respecto al total permitido.
+                # Si transcurrido > duracion_total, se mantiene en 1.0 (llena).
+                avance = max(0.0, min(transcurrido_min / duracion_total_min, 1.0))
                 st.progress(avance)
                 
-                # 4. Lógica de mensaje y cálculo de excedente
+                # 4. Lógica de mensaje
                 if ahora > hora_limite:
                     exceso = ahora - hora_limite
                     exceso_h = int(exceso.total_seconds() // 3600)
