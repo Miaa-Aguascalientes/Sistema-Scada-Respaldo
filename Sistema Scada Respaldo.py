@@ -3616,24 +3616,29 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 # Cálculo preciso
                 inicio = row['FECHA_HORA_INICIO']
                 ahora = pd.Timestamp.now()
-                # Aseguramos que el tiempo estimado sea un float
+                # Aseguramos que el estimado sea al menos 1 hora para evitar división por cero
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+                if estimado_horas <= 0: estimado_horas = 1.0
                 
                 # Diferencia en minutos
                 delta_minutos = (ahora - inicio).total_seconds() / 60
                 estimado_minutos = estimado_horas * 60
                 
-                # Barra de progreso (limitada a 1.0)
-                avance = min(delta_minutos / estimado_minutos, 1.0)
+                # CÁLCULO SEGURO: 
+                # 1. Calculamos el ratio
+                ratio = delta_minutos / estimado_minutos
+                # 2. Forzamos el valor dentro del rango 0.0 a 1.0 para evitar el error de Streamlit
+                avance = max(0.0, min(float(ratio), 1.0))
+                
                 st.progress(avance)
                 
-                # Lógica de mensaje corregida: solo marca excedido si es estrictamente mayor
+                # Lógica de mensaje
                 if delta_minutos > estimado_minutos:
                     exceso_minutos = delta_minutos - estimado_minutos
                     st.error(f"⚠️ Tiempo excedido por {int(exceso_minutos//60)}h {int(exceso_minutos%60)}m")
                 else:
                     restante_minutos = estimado_minutos - delta_minutos
-                    st.success(f"✅ Tiempo restante: {int(restante_minutos//60)}h {int(restante_minutos%60)}m")
+                    st.success(f"✅ Tiempo restante: {int(restante_minutos//60)}h {int(restante%60)}m")
                 
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
