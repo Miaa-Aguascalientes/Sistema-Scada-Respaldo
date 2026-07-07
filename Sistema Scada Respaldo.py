@@ -949,10 +949,6 @@ if "graficar_pozo" in params:
     if tags_query:
         try:
             engine = get_mysql_scada_engine()
-
-            with engine.connect() as conn:
-                    conn.execute("SET SQL_BIG_SELECTS = 1")
-            
             lista_tags_str = f"','".join(list(set(tags_query)))
             
             q = f"""
@@ -962,7 +958,7 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df = pd.read_sql(q, conn)
+            df = pd.read_sql(q, engine)
             df['FECHA'] = pd.to_datetime(df['FECHA'])
             df = df.sort_values('FECHA', ascending=True)
 
@@ -3535,3 +3531,160 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
+# SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
+
+
+from folium.plugins import Fullscreen # Asegúrate de importar esto
+
+@st.fragment
+def renderizar_mapa_fragmento(gdf, id_key):
+    """Mapa con ancho extendido y botón de pantalla completa."""
+    try:
+        lat = gdf.geometry.centroid.y.mean()
+        lon = gdf.geometry.centroid.x.mean()
+        m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
+        
+        # Añadir opción de Fullscreen
+        Fullscreen(position="topright", title="Expandir mapa", title_cancel="Salir de pantalla completa").add_to(m)
+        
+        folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+        
+        folium.GeoJson(
+            gdf.__geo_interface__, # <--- Esto fuerza la serialización a formato simple
+            name="Colonias",
+            tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
+        ).add_to(m)
+        
+        for _, row in gdf.iterrows():
+            centroid = row.geometry.centroid
+            folium.Marker(
+                location=[centroid.y, centroid.x],
+                icon=folium.DivIcon(
+                    html=f'<div style="font-size: 10pt; color: white; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px black;">{row["Col_atl"]}</div>'
+                )
+            ).add_to(m)
+            
+        folium.LayerControl().add_to(m)
+        
+        # Ajustamos el ancho a 100% del contenedor y altura a 500 para mejor visualización
+        st_folium(m, width=600, height=400, key=f"map_{id_key}")
+        
+    except Exception as e:
+        st.error(f"Error al renderizar mapa: {e}")
+
+# 10.1 ------------------------------------------------------------------------------- SECCIÓN DE INCIDENCIAS ----------------------------------------------------------------------------------
+
+df_incidencias = get_data() 
+
+if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+    df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
+    
+    def formatear_duracion(row):
+        inicio = row['FECHA_HORA_INICIO']
+        fin = row['FECHA_HORA_FIN']
+        delta = (pd.Timestamp.now() - inicio) if pd.isnull(fin) else (fin - inicio)
+        return f"{delta.days}d {delta.seconds // 3600}h {(delta.seconds % 3600) // 60}m"
+
+    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+    hoy = pd.Timestamp.now().normalize()
+    
+    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
+                         ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+    df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
+
+    def generar_titulo(row, gdf):
+        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
+        return f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | Falla: {row['DIAGNOSTICO_FALLA']}"
+
+    # --- RENDERIZADO ACTIVAS ---
+    st.subheader("📋 Incidencias Activas y del día")
+    for index, row in df_actual.iterrows():
+        gdf = get_geometries(row['NUM_POZO'])
+        with st.expander(generar_titulo(row, gdf)):
+            col1, col2 = st.columns([2, 1])
+            with col1:
+                if gdf is not None and not gdf.empty:
+                    st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+                    renderizar_mapa_fragmento(gdf, f"act_{row['NUM_POZO']}_{index}")
+                else:
+                    st.warning("Sin datos geográficos disponibles.")
+            
+
+
+            with col2:
+                st.subheader("Tiempo de Atención")
+                import pytz
+                from datetime import datetime
+                import altair as alt
+
+                tz_mx = pytz.timezone('America/Mexico_City')
+                ahora_mx = datetime.now(tz_mx)
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+                
+                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+                estatus = str(row.get('ESTATUS', '')).upper()
+
+                if estatus == 'CERRADA':
+                    st.info("✅ Incidencia Cerrada")
+                else:
+                    # 1. Barra de progreso
+                    total_seg = (hora_limite - inicio).total_seconds()
+                    transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
+                    porcentaje = min(transcurrido_seg / total_seg, 1.0)
+                    st.progress(porcentaje)
+
+                    # 2. Línea de tiempo con formas de flecha (triangle)
+                    data = pd.DataFrame({
+                        'Evento': ['Inicio', 'Ahora', 'Límite'],
+                        'Tiempo': [inicio, ahora_mx, hora_limite],
+                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+                    })
+
+                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
+                        x='Tiempo:T',
+                        y=alt.value(0),
+                        color=alt.Color('Color', scale=None)
+                    ).properties(height=70)
+                    
+                    st.altair_chart(chart, use_container_width=True)
+
+                    # 3. Estado
+                    tiempo_restante = hora_limite - ahora_mx
+                    if ahora_mx > hora_limite:
+                        st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                    else:
+                        st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+
+                # 4. Datos enlistados con simbología y duración
+                duracion_actual = ahora_mx - inicio
+                horas_dur = int(duracion_actual.total_seconds() // 3600)
+                mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
+
+                st.write("---")
+                st.markdown(f"""
+                <div style="line-height: 2;">
+                    <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
+                    <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
+                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                    <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
+                </div>
+                """, unsafe_allow_html=True)
+
+    # --- RENDERIZADO HISTORIAL ---
+    st.markdown("---")
+    st.subheader("📜 Historial de Incidencias Cerradas")
+    df_historial_total['MES_AÑO'] = df_historial_total['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+    meses = sorted(df_historial_total['MES_AÑO'].unique(), key=lambda x: pd.to_datetime(x, format='%B %Y'), reverse=True)
+    
+    if meses:
+        mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+        for index, row in df_historial_total[df_historial_total['MES_AÑO'] == mes_sel].iterrows():
+            gdf = get_geometries(row['NUM_POZO'])
+            with st.expander(generar_titulo(row, gdf)):
+                if gdf is not None and not gdf.empty:
+                    renderizar_mapa_fragmento(gdf, f"hist_{row['NUM_POZO']}_{index}")
+                else:
+                    st.info("Sin mapa disponible.")
