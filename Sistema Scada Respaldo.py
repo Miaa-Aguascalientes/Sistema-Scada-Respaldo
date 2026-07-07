@@ -3658,13 +3658,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     else:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
-                # 4. Datos enlistados con simbología
+                # 4. Datos enlistados con simbología y duración
+                duracion_actual = ahora_mx - inicio
+                horas_dur = int(duracion_actual.total_seconds() // 3600)
+                mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
+
                 st.write("---")
                 st.markdown(f"""
                 <div style="line-height: 2;">
                     <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
                     <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
-                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}
+                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                    <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
                 </div>
                 """, unsafe_allow_html=True)
 
