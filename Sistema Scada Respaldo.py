@@ -3614,37 +3614,32 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Definir zona horaria de México para evitar desfases
-                tz_mx = pytz.timezone('America/Mexico_City')
+                # 1. Convertimos a datetime puro sin zona horaria
+                # .dt.tz_localize(None) elimina cualquier zona horaria previa
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None)
                 
-                # 2. Inicio convertido a zona horaria MX
-                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(tz_mx, ambiguous='infer')
+                # 2. Usamos el tiempo actual del sistema ignorando zona horaria
+                ahora = pd.Timestamp.now().tz_localize(None)
                 
-                # 3. Ahora ajustado a la zona horaria de México
-                ahora_mx = datetime.now(tz_mx)
-                
-                # 4. Cálculo en minutos usando los objetos con zona horaria
-                # Esto garantiza que estamos comparando el mismo eje temporal
-                delta = ahora_mx - inicio
-                transcurrido_min = delta.total_seconds() / 60
-                
+                # 3. Calculamos la hora límite
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                total_min = estimado_horas * 60
+                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
-                # 5. Barra de progreso (0.0 a 1.0)
-                avance = max(0.0, min(transcurrido_min / total_min, 1.0))
+                # 4. Cálculo de progreso (0.0 a 1.0)
+                # Usamos total_seconds() de la diferencia sin zonas horarias
+                duracion_total = (hora_limite - inicio).total_seconds()
+                transcurrido = (ahora - inicio).total_seconds()
+                
+                avance = max(0.0, min(transcurrido / duracion_total, 1.0))
                 st.progress(avance)
                 
-                # 6. Lógica de mensaje
-                if transcurrido_min > total_min:
-                    exceso_min = transcurrido_min - total_min
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso_min // 60)}h {int(exceso_min % 60)}m")
+                # 5. Lógica de mensaje
+                if ahora > hora_limite:
+                    exceso = ahora - hora_limite
+                    st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds() // 3600)}h {int((exceso.total_seconds() % 3600) // 60)}m")
                 else:
-                    restante_min = total_min - transcurrido_min
-                    st.success(f"✅ Tiempo restante: {int(restante_min // 60)}h {int(restante_min % 60)}m")
-                
-                # 7. Hora límite
-                hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+                    restante = hora_limite - ahora
+                    st.success(f"✅ Tiempo restante: {int(restante.total_seconds() // 3600)}h {int((restante.total_seconds() % 3600) // 60)}m")
                 
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                 st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
