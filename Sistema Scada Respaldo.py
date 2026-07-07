@@ -3618,50 +3618,38 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 import pytz
                 from datetime import datetime
 
-                # 1. Definir zona horaria
                 tz_mx = pytz.timezone('America/Mexico_City')
-                
-                # 2. Obtener hora actual del sistema en México
                 ahora_mx = datetime.now(tz_mx)
                 
-                # 3. Procesar el inicio sin errores
                 inicio_raw = pd.to_datetime(row['FECHA_HORA_INICIO'])
-                
-                # Normalización forzada: quitamos zona horaria y luego ponemos la de México
-                try:
-                    inicio = inicio_raw.tz_localize(None).tz_localize(tz_mx)
-                except:
-                    # Si falla por estar ya en otro formato, intentamos convertir
+                # Manejo robusto de zona horaria
+                if inicio_raw.tzinfo is None:
+                    inicio = inicio_raw.tz_localize(tz_mx)
+                else:
                     inicio = inicio_raw.tz_convert(tz_mx)
                 
-                # 4. Verificar estatus
                 estatus = str(row.get('ESTATUS', '')).upper()
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
 
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
-                    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                    st.write(f"**Estimado total:** {estimado_horas}h")
                 else:
-                    # Cálculo de progreso
-                    total_seg = (hora_limite - inicio).total_seconds()
-                    transcurrido_seg = (ahora_mx - inicio).total_seconds()
+                    # Lógica de colores sin barra de progreso
+                    tiempo_restante = hora_limite - ahora_mx
+                    porcentaje_consumido = (ahora_mx - inicio).total_seconds() / (hora_limite - inicio).total_seconds()
                     
-                    avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
-                    st.progress(avance)
-                    
-                    # Lógica de tiempos
                     if ahora_mx > hora_limite:
-                        exceso = ahora_mx - hora_limite
-                        st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
+                        st.error(f"🔴 ¡TIEMPO EXCEDIDO! Por {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                    elif porcentaje_consumido > 0.8: # Más del 80% del tiempo
+                        st.warning(f"⚠️ ¡ATENCIÓN! Tiempo restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
                     else:
-                        restante = hora_limite - ahora_mx
-                        st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
-                    
-                    st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                    st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
-                    st.write(f"**Estimado total:** {estimado_horas}h")
+                        st.success(f"✅ Tiempo restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+
+                # Información estática clara y al grano
+                st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
+                st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
