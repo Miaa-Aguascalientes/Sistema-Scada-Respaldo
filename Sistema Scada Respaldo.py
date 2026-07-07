@@ -3611,19 +3611,23 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             with col2:
                 st.subheader("Tiempo de Atención")
-                inicio = row['FECHA_HORA_INICIO']
+                # Obtenemos la hora actual del sistema
                 ahora = pd.Timestamp.now()
-                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+                inicio = row['FECHA_HORA_INICIO']
                 
-                # Diferencia en minutos real
+                # Calculamos la diferencia total en minutos
                 delta_minutos = (ahora - inicio).total_seconds() / 60
+                
+                # Definimos el estimado en minutos (asegurando float)
+                estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 estimado_minutos = estimado_horas * 60
                 
-                # Barra de progreso (0.0 a 1.0)
+                # Calculamos el avance para la barra (0.0 a 1.0)
                 avance = max(0.0, min(delta_minutos / estimado_minutos, 1.0))
                 st.progress(avance)
                 
-                # Mensaje de estado
+                # LÓGICA DE MENSAJE CORREGIDA:
+                # Comparamos minutos contra minutos
                 if delta_minutos > estimado_minutos:
                     exceso = delta_minutos - estimado_minutos
                     st.error(f"⚠️ Tiempo excedido por {int(exceso//60)}h {int(exceso%60)}m")
