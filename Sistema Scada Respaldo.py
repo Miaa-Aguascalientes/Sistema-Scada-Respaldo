@@ -949,6 +949,10 @@ if "graficar_pozo" in params:
     if tags_query:
         try:
             engine = get_mysql_scada_engine()
+
+            with engine.connect() as conn:
+                    conn.execute("SET SQL_BIG_SELECTS = 1")
+            
             lista_tags_str = f"','".join(list(set(tags_query)))
             
             q = f"""
@@ -958,7 +962,7 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df = pd.read_sql(q, engine)
+            df = pd.read_sql(q, conn)
             df['FECHA'] = pd.to_datetime(df['FECHA'])
             df = df.sort_values('FECHA', ascending=True)
 
