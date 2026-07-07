@@ -3612,7 +3612,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     st.warning("Sin datos geográficos disponibles.")
             
 
-
+import pytz
+from datetime import datetime
 
 # ... dentro de tu función de renderizado ...
             with col2:
