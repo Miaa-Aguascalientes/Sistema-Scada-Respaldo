@@ -3612,40 +3612,38 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Obtenemos las horas y minutos de forma manual para evitar errores de fecha/zona horaria
-                ahora = pd.Timestamp.now()
+                # 1. Aseguramos que ambos sean Datetime completos (Fecha + Hora)
+                # Al usar pd.to_datetime, Pandas interpreta la fecha real del registro
                 inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
-                
-                # Convertimos todo a minutos totales transcurridos desde las 00:00:00
-                minutos_ahora = ahora.hour * 60 + ahora.minute
-                minutos_inicio = inicio.hour * 60 + inicio.minute
-                
-                # El tiempo transcurrido es la diferencia simple
-                transcurrido_min = minutos_ahora - minutos_inicio
-                
-                # 2. El estimado viene en horas, lo pasamos a minutos
+                ahora = pd.Timestamp.now()
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                estimado_min = int(estimado_horas * 60)
                 
-                # 3. Calculamos la hora límite para mostrarla
+                # 2. Hora límite basada en la fecha y hora de inicio real
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
-                # 4. Cálculo de progreso blindado (0.0 a 1.0)
-                # Si el tiempo transcurrido es menor a 0, la barra es 0. 
-                # Si es mayor al estimado, la barra es 1 (llena).
-                avance = max(0.0, min(transcurrido_min / estimado_min, 1.0))
+                # 3. Cálculo de progreso basado en la diferencia real (datetime vs datetime)
+                duracion_total_seg = (hora_limite - inicio).total_seconds()
+                transcurrido_seg = (ahora - inicio).total_seconds()
+                
+                # Barra de progreso (limitada 0.0 a 1.0)
+                avance = max(0.0, min(transcurrido_seg / duracion_total_seg, 1.0))
                 st.progress(avance)
                 
-                # 5. Lógica de mensaje exacta
-                if transcurrido_min > estimado_min:
-                    exceso = transcurrido_min - estimado_min
-                    st.error(f"⚠️ Tiempo excedido por {exceso // 60}h {exceso % 60}m")
+                # 4. Mensaje basado en comparación directa de momentos en el tiempo
+                if ahora > hora_limite:
+                    exceso = ahora - hora_limite
+                    exceso_h = int(exceso.total_seconds() // 3600)
+                    exceso_m = int((exceso.total_seconds() % 3600) // 60)
+                    st.error(f"⚠️ Tiempo excedido por {exceso_h}h {exceso_m}m")
                 else:
-                    restante = estimado_min - transcurrido_min
-                    st.success(f"✅ Tiempo restante: {restante // 60}h {restante % 60}m")
+                    restante = hora_limite - ahora
+                    restante_h = int(restante.total_seconds() // 3600)
+                    restante_m = int((restante.total_seconds() % 3600) // 60)
+                    st.success(f"✅ Tiempo restante: {restante_h}h {restante_m}m")
                 
-                st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
-                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
+                # 5. Despliegue de datos con fecha para que veas qué está pasando
+                st.write(f"**Inicio:** {inicio.strftime('%d/%m %H:%M')}")
+                st.write(f"**Hora límite:** {hora_limite.strftime('%d/%m %H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
