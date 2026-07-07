@@ -3612,35 +3612,36 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Definir los tiempos base asegurando que solo sean horas y minutos
-                ahora = pd.Timestamp.now()
+                # 1. Definimos las variables
                 inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
+                ahora = pd.Timestamp.now()
                 
-                # 2. Calcular la diferencia en minutos absoluta (ignorando fecha/día)
-                # Esto calcula cuántos minutos han pasado desde las 00:00 de hoy
-                minutos_inicio_del_dia = inicio.hour * 60 + inicio.minute
-                minutos_ahora_del_dia = ahora.hour * 60 + ahora.minute
-                delta_minutos = minutos_ahora_del_dia - minutos_inicio_del_dia
-                
-                # 3. Obtener estimado del DataFrame
+                # Convertimos el estimado (ej. 4.0) a horas (timedelta)
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-                estimado_minutos = estimado_horas * 60
+                tiempo_estimado_delta = pd.Timedelta(hours=estimado_horas)
                 
-                # 4. Cálculo de progreso (0.0 a 1.0)
-                avance = max(0.0, min(delta_minutos / estimado_minutos, 1.0))
+                # 2. Calculamos la hora exacta en que debería terminar el trabajo
+                hora_limite = inicio + tiempo_estimado_delta
+                
+                # 3. Calculamos la diferencia para la barra de progreso
+                # ¿Cuánto tiempo ha pasado desde el inicio vs el tiempo total estimado?
+                transcurrido = (ahora - inicio).total_seconds() / 60
+                total_estimado_minutos = estimado_horas * 60
+                
+                # Barra de progreso
+                avance = max(0.0, min(transcurrido / total_estimado_minutos, 1.0))
                 st.progress(avance)
                 
-                # 5. Lógica de mensaje
-                if delta_minutos > estimado_minutos:
-                    exceso = delta_minutos - estimado_minutos
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso//60)}h {int(exceso%60)}m")
-                elif delta_minutos < 0:
-                    st.info("🕒 La incidencia no ha iniciado hoy.")
+                # 4. Lógica de mensaje: Si la hora actual es mayor a la hora_limite, excedido
+                if ahora > hora_limite:
+                    exceso = ahora - hora_limite
+                    st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
                 else:
-                    restante = estimado_minutos - delta_minutos
-                    st.success(f"✅ Tiempo restante: {int(restante//60)}h {int(restante%60)}m")
+                    restante = hora_limite - ahora
+                    st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
                 
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
+                st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
 
     # --- RENDERIZADO HISTORIAL ---
