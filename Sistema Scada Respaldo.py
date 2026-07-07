@@ -3616,7 +3616,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 import pytz
-                from datetime import datetime
+                from datetime import datetime, timedelta
                 import altair as alt
 
                 tz_mx = pytz.timezone('America/Mexico_City')
@@ -3630,57 +3630,54 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 if estatus == 'CERRADA':
                     st.info("✅ Incidencia Cerrada")
                 else:
-                    # 1. Barra de progreso
-                    # 1. Barra de progreso dinámica (Degradado por lógica)
-                # 1. Barra de progreso con degradado (Sustituye a st.progress)
-                total_seg = (hora_limite - inicio).total_seconds()
-                transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
-                porcentaje = min(transcurrido_seg / total_seg, 1.0)
-                
-                df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
-                barra_grad = alt.Chart(df_grad).mark_area(
-                    color=alt.Gradient(
-                        gradient='linear',
-                        stops=[
-                            alt.GradientStop(offset=0, color='#00CC96'),
-                            alt.GradientStop(offset=0.5, color='#FFD700'),
-                            alt.GradientStop(offset=1, color='#FF4B4B')
-                        ],
-                        x1=1, y1=0, x2=0, y2=0
+                    # 1. Barra de progreso con degradado
+                    total_seg = (hora_limite - inicio).total_seconds()
+                    transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
+                    porcentaje = min(transcurrido_seg / total_seg, 1.0)
+                    
+                    df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
+                    barra_grad = alt.Chart(df_grad).mark_area(
+                        color=alt.Gradient(
+                            gradient='linear',
+                            stops=[
+                                alt.GradientStop(offset=0, color='#00CC96'),
+                                alt.GradientStop(offset=0.5, color='#FFD700'),
+                                alt.GradientStop(offset=1, color='#FF4B4B')
+                            ],
+                            x1=1, y1=0, x2=0, y2=0
+                        )
+                    ).encode(
+                        x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
+                        y=alt.value(20)
+                    ).properties(height=20, width='container')
+
+                    cursor = pd.DataFrame({'progreso': [porcentaje]})
+                    aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=4).encode(
+                        x='progreso'
                     )
-                ).encode(
-                    x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
-                    y=alt.value(20)
-                ).properties(height=20, width='container')
+                    st.altair_chart(barra_grad + aguja, use_container_width=True)
 
-                cursor = pd.DataFrame({'progreso': [porcentaje]})
-                aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=4).encode(
-                    x='progreso'
-                )
-                st.altair_chart(barra_grad + aguja, use_container_width=True)
+                    # 2. Línea de tiempo con formas de flecha
+                    data = pd.DataFrame({
+                        'Evento': ['Inicio', 'Ahora', 'Límite'],
+                        'Tiempo': [inicio, ahora_mx, hora_limite],
+                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+                    })
+                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
+                        x='Tiempo:T',
+                        y=alt.value(40),
+                        color=alt.Color('Color', scale=None)
+                    ).properties(height=70)
+                    st.altair_chart(chart, use_container_width=True)
 
-                # 2. Línea de tiempo con formas de flecha (triangle)
-                data = pd.DataFrame({
-                    'Evento': ['Inicio', 'Ahora', 'Límite'],
-                    'Tiempo': [inicio, ahora_mx, hora_limite],
-                    'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
-                })
-                chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
-                    x='Tiempo:T',
-                    y=alt.value(40),
-                    color=alt.Color('Color', scale=None)
-                ).properties(height=70)
-                st.altair_chart(chart, use_container_width=True)
-
-                # 3. Estado
-                tiempo_restante = hora_limite - ahora_mx
-                if ahora_mx > hora_limite:
-                    st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
-                else:
-                    st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+                    # 3. Estado
+                    tiempo_restante = hora_limite - ahora_mx
+                    if ahora_mx > hora_limite:
+                        st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                    else:
+                        st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
                 # 4. Datos enlistados con simbología y duración
-                # Asegúrate de tener: from datetime import timedelta
                 diferencia = max(timedelta(0), ahora_mx - inicio)
                 horas_dur = int(diferencia.total_seconds() // 3600)
                 mins_dur = int((diferencia.total_seconds() % 3600) // 60)
