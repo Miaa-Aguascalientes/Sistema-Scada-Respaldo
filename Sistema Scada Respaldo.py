@@ -3684,17 +3684,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                         st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
 
                 # 4. Datos enlistados con simbología y duración
-                duracion_actual = ahora_mx - inicio
+                duracion_actual = max(datetime.timedelta(0), ahora_mx - inicio)
                 horas_dur = int(duracion_actual.total_seconds() // 3600)
                 mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
 
                 st.write("---")
+                # Usamos estilos en línea con !important para asegurar la visibilidad
                 st.markdown(f"""
-                <div style="line-height: 2;">
-                    <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
-                    <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
-                    <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
-                    <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
+                <div style="line-height: 2; font-family: sans-serif;">
+                    <span style="color:#00CC96 !important;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
+                    <span style="color:#1f77b4 !important;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
+                    <span style="color:#FF4B4B !important;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                    <span style="color:#808080 !important;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
                 </div>
                 """, unsafe_allow_html=True)
 
