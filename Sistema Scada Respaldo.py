@@ -3614,26 +3614,28 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Convertimos a datetime puro sin zona horaria
-                # .dt.tz_localize(None) elimina cualquier zona horaria previa
-                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None)
-                
-                # 2. Usamos el tiempo actual del sistema ignorando zona horaria
-                ahora = pd.Timestamp.now().tz_localize(None)
-                
-                # 3. Calculamos la hora límite
+                # 1. Obtenemos el inicio y la duración
+                # Nos aseguramos de tratar la fecha correctamente
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
-                # 4. Cálculo de progreso (0.0 a 1.0)
-                # Usamos total_seconds() de la diferencia sin zonas horarias
-                duracion_total = (hora_limite - inicio).total_seconds()
-                transcurrido = (ahora - inicio).total_seconds()
+                # 2. Obtenemos la hora actual del sistema local (PC)
+                ahora = pd.Timestamp.now()
                 
+                # 3. Cálculo de la barra (0.0 a 1.0)
+                # Duración total en minutos
+                duracion_total = (hora_limite - inicio).total_seconds() / 60
+                # Tiempo transcurrido desde el inicio hasta ahora en minutos
+                transcurrido = (ahora - inicio).total_seconds() / 60
+                
+                # La barra de progreso es la proporción del tiempo transcurrido
+                # Limitamos entre 0.0 y 1.0 para evitar el error de Streamlit
                 avance = max(0.0, min(transcurrido / duracion_total, 1.0))
                 st.progress(avance)
                 
-                # 5. Lógica de mensaje
+                # 4. Lógica de comparación de tiempos
+                # Si ahora es mayor a la hora límite, excedió
                 if ahora > hora_limite:
                     exceso = ahora - hora_limite
                     st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds() // 3600)}h {int((exceso.total_seconds() % 3600) // 60)}m")
