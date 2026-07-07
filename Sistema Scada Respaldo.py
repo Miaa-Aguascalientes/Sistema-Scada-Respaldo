@@ -949,7 +949,7 @@ if "graficar_pozo" in params:
     if tags_query:
         try:
             engine = get_mysql_scada_engine()
-            lista_tags_str = f"','".join(list(set(tags_query)))
+            lista_tags_str = "','".join(list(set(tags_query)))
             
             q = f"""
                 SELECT r.NAME as TagName, h.VALUE, h.FECHA 
@@ -958,17 +958,23 @@ if "graficar_pozo" in params:
                 WHERE r.NAME IN ('{lista_tags_str}') 
                 AND h.FECHA BETWEEN '{f_ini}' AND '{f_fin}'
             """
-            df = pd.read_sql(q, engine)
-            df['FECHA'] = pd.to_datetime(df['FECHA'])
-            df = df.sort_values('FECHA', ascending=True)
-
-            # --- CORRECCIÓN LÓGICA AQUÍ ---
+            
+            # --- CONEXIÓN SEGURA ---
+            with engine.connect() as conn:
+                conn.execute("SET SESSION SQL_BIG_SELECTS = 1")
+                conn.execute("SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED")
+                df = pd.read_sql(q, conn)
+            
+            # --- PROCESAMIENTO SEGURO ---
             if df.empty:
-                # Si está vacío, mostramos el aviso y salimos de esta parte
                 st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado.")
-                
             else:
-                # --- LÓGICA DE INDICADORES (Solo se ejecuta si hay datos) ---
+                # Convertimos FECHA y VALUE explícitamente para evitar errores
+                df['FECHA'] = pd.to_datetime(df['FECHA'])
+                df['VALUE'] = pd.to_numeric(df['VALUE'], errors='coerce')
+                df = df.sort_values('FECHA', ascending=True)
+
+                # --- LÓGICA DE INDICADORES ---
                 val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
                 val_v_prom, val_a_prom = "0.00", "0.00"
                 val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
@@ -979,23 +985,34 @@ if "graficar_pozo" in params:
                     if len(df_tot) >= 2:
                         consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
                         val_vol = f"{consumo_neta:,.2f}"
-                    
                 
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
+                
                 if tag_nivel_tanque in df['TagName'].values:
                     df_nt = df[df['TagName'] == tag_nivel_tanque].sort_values('FECHA')
                     val_nt_ultimo = f"{df_nt['VALUE'].iloc[-1]:,.2f}"
+                
                 if tag_presion_real in df['TagName'].values:
                     val_pre_prom = f"{df[df['TagName'] == tag_presion_real]['VALUE'].mean():,.2f}"
+                
                 if tag_nivel_dinamico in df['TagName'].values:
                     val_nd_prom = f"{df[df['TagName'] == tag_nivel_dinamico]['VALUE'].mean():,.2f}"
+                
                 if tag_sumergencia in df['TagName'].values:
                     val_sum_prom = f"{df[df['TagName'] == tag_sumergencia]['VALUE'].mean():,.2f}"
+                
                 if tags_voltaje:
                     val_v_prom = f"{df[df['TagName'].isin(tags_voltaje)]['VALUE'].mean():,.1f}"
+                
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
+                
+                # A partir de aquí, continúa con tu código de graficación (plotly, etc.)
+                st.success("Datos cargados correctamente.")
+                
+        except Exception as e:
+            st.error(f"Error crítico en la consulta o procesamiento: {e}")
 
 # ----------------------- RENDER CABECERA INDICADORES EN TARGETAS DEL POZO ---------------------------------------------------------------------------------------------
             cabecera_placeholder.markdown(f"""
