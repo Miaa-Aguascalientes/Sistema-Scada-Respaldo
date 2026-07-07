@@ -3611,41 +3611,47 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     st.warning("Sin datos geográficos disponibles.")
             
 
+import pytz
+from datetime import datetime
+
+# ... dentro de tu función de renderizado ...
             with col2:
                 st.subheader("Tiempo de Atención")
                 
-                # 1. Obtenemos el inicio y la duración
-                # Nos aseguramos de tratar la fecha correctamente
-                inicio = pd.to_datetime(row['FECHA_HORA_INICIO'])
+                # 1. Configurar zona horaria local de México
+                tz_mx = pytz.timezone('America/Mexico_City')
+                
+                # 2. Obtener hora actual del sistema forzada a México
+                ahora_mx = datetime.now(tz_mx)
+                
+                # 3. Procesar el inicio y la hora límite
+                # Convertimos inicio a datetime y forzamos zona horaria de México
+                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(tz_mx, ambiguous='infer')
+                
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
-                # 2. Obtenemos la hora actual del sistema local (PC)
-                ahora = pd.Timestamp.now()
+                # 4. Cálculo del progreso (0.0 a 1.0)
+                total_seg = (hora_limite - inicio).total_seconds()
+                transcurrido_seg = (ahora_mx - inicio).total_seconds()
                 
-                # 3. Cálculo de la barra (0.0 a 1.0)
-                # Duración total en minutos
-                duracion_total = (hora_limite - inicio).total_seconds() / 60
-                # Tiempo transcurrido desde el inicio hasta ahora en minutos
-                transcurrido = (ahora - inicio).total_seconds() / 60
-                
-                # La barra de progreso es la proporción del tiempo transcurrido
-                # Limitamos entre 0.0 y 1.0 para evitar el error de Streamlit
-                avance = max(0.0, min(transcurrido / duracion_total, 1.0))
+                # Barra de progreso (con límites para evitar errores)
+                avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
                 st.progress(avance)
                 
-                # 4. Lógica de comparación de tiempos
-                # Si ahora es mayor a la hora límite, excedió
-                if ahora > hora_limite:
-                    exceso = ahora - hora_limite
-                    st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds() // 3600)}h {int((exceso.total_seconds() % 3600) // 60)}m")
+                # 5. Visualización del estado (excedido o restante)
+                if ahora_mx > hora_limite:
+                    exceso = ahora_mx - hora_limite
+                    st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
                 else:
-                    restante = hora_limite - ahora
-                    st.success(f"✅ Tiempo restante: {int(restante.total_seconds() // 3600)}h {int((restante.total_seconds() % 3600) // 60)}m")
+                    restante = hora_limite - ahora_mx
+                    st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
                 
+                # 6. Mostrar datos tal como lo solicitaste
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                 st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
+                st.write(f"**Hora actual del sistema:** {ahora_mx.strftime('%H:%M')}")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
