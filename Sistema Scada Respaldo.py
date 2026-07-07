@@ -3633,20 +3633,35 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     # 1. Barra de progreso dinámica (Degradado por lógica)
                     total_seg = (hora_limite - inicio).total_seconds()
                     transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
-                    porcentaje = min(transcurrido_seg / total_seg, 1.0)
+                    progreso = min(transcurrido_seg / total_seg, 1.0)
                     
-                    # Lógica de color
-                    if porcentaje < 0.5: color_barra = '#00CC96' # Verde
-                    elif porcentaje < 0.8: color_barra = '#FFD700' # Amarillo
-                    else: color_barra = '#FF4B4B' # Rojo
+                    # Generamos una escala de datos para el degradado
+                    df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
                     
-                    data_barra = pd.DataFrame({'Progreso': [porcentaje], 'Color': [color_barra]})
-                    barra_chart = alt.Chart(data_barra).mark_bar(cornerRadius=5).encode(
-                        x=alt.X('Progreso', axis=None, scale=alt.Scale(domain=[0, 1])),
-                        color=alt.Color('Color', scale=None),
-                        size=alt.value(15)
+                    # Usamos una capa de área con gradiente lineal
+                    barra_grad = alt.Chart(df_grad).mark_area(
+                        line=True, 
+                        color=alt.Gradient(
+                            gradient='linear',
+                            stops=[
+                                alt.GradientStop(offset=0, color='#00CC96'), # Verde
+                                alt.GradientStop(offset=0.5, color='#FFD700'), # Amarillo
+                                alt.GradientStop(offset=1, color='#FF4B4B')  # Rojo
+                            ],
+                            x1=1, y1=0, x2=0, y2=0
+                        )
+                    ).encode(
+                        x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
+                        y=alt.value(20)
                     ).properties(height=20, width='container')
-                    st.altair_chart(barra_chart, use_container_width=True)
+
+                    # Marcador de posición actual (aguja)
+                    cursor = pd.DataFrame({'progreso': [progreso]})
+                    aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=3).encode(
+                        x='progreso'
+                    )
+
+                    st.altair_chart(barra_grad + aguja, use_container_width=True)
 
                     # 2. Línea de tiempo (Triángulos elevados)
                     data = pd.DataFrame({
