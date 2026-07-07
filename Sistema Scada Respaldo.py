@@ -3618,29 +3618,34 @@ from datetime import datetime
 # ... dentro de tu función de renderizado ...
             with col2:
                 st.subheader("Tiempo de Atención")
-                
-                # 1. Configurar zona horaria local de México
+                import pytz
+                from datetime import datetime
+
+                # 1. Zona horaria fija de México
                 tz_mx = pytz.timezone('America/Mexico_City')
                 
-                # 2. Obtener hora actual del sistema forzada a México
+                # 2. Hora actual real en México
                 ahora_mx = datetime.now(tz_mx)
                 
-                # 3. Procesar el inicio y la hora límite
-                # Convertimos inicio a datetime y forzamos zona horaria de México
-                inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(tz_mx, ambiguous='infer')
+                # 3. Inicio del evento (forzamos zona horaria si no la tiene)
+                inicio_naive = pd.to_datetime(row['FECHA_HORA_INICIO'])
+                if inicio_naive.tzinfo is None:
+                    inicio = inicio_naive.tz_localize(tz_mx)
+                else:
+                    inicio = inicio_naive.tz_convert(tz_mx)
                 
+                # 4. Cálculo de límite
                 estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
                 hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
                 
-                # 4. Cálculo del progreso (0.0 a 1.0)
+                # 5. Progreso (0.0 a 1.0)
                 total_seg = (hora_limite - inicio).total_seconds()
                 transcurrido_seg = (ahora_mx - inicio).total_seconds()
                 
-                # Barra de progreso (con límites para evitar errores)
                 avance = max(0.0, min(transcurrido_seg / total_seg, 1.0))
                 st.progress(avance)
                 
-                # 5. Visualización del estado (excedido o restante)
+                # 6. Mensaje de estado
                 if ahora_mx > hora_limite:
                     exceso = ahora_mx - hora_limite
                     st.error(f"⚠️ Tiempo excedido por {int(exceso.total_seconds()//3600)}h {int((exceso.total_seconds()%3600)//60)}m")
@@ -3648,11 +3653,9 @@ from datetime import datetime
                     restante = hora_limite - ahora_mx
                     st.success(f"✅ Tiempo restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
                 
-                # 6. Mostrar datos tal como lo solicitaste
                 st.write(f"**Inicio:** {inicio.strftime('%H:%M')}")
                 st.write(f"**Hora límite:** {hora_limite.strftime('%H:%M')}")
                 st.write(f"**Estimado total:** {estimado_horas}h")
-                st.write(f"**Hora actual del sistema:** {ahora_mx.strftime('%H:%M')}")
 
     # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
