@@ -3636,18 +3636,21 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     porcentaje = min(transcurrido_seg / total_seg, 1.0)
                     st.progress(porcentaje)
 
-                    # 2. Línea de tiempo con formas de flecha (triangle)
+                    # 2. Línea de tiempo con flechas elevadas
                     data = pd.DataFrame({
                         'Evento': ['Inicio', 'Ahora', 'Límite'],
                         'Tiempo': [inicio, ahora_mx, hora_limite],
-                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B'],
+                        'Simbolo': ['↑', '↑', '↑'] # Flecha real
                     })
 
-                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
+                    # Ajustamos 'y' a 40 para elevar los símbolos sobre la línea
+                    chart = alt.Chart(data).mark_text(size=20, baseline='bottom').encode(
                         x='Tiempo:T',
-                        y=alt.value(20),
+                        y=alt.value(40),
+                        text='Simbolo',
                         color=alt.Color('Color', scale=None)
-                    ).properties(height=60)
+                    ).properties(height=80)
                     
                     st.altair_chart(chart, use_container_width=True)
 
