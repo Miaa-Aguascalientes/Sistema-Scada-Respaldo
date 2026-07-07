@@ -3631,25 +3631,37 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                     st.info("✅ Incidencia Cerrada")
                 else:
                     # 1. Barra de progreso
-                    total_seg = (hora_limite - inicio).total_seconds()
-                    transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
-                    porcentaje = min(transcurrido_seg / total_seg, 1.0)
-                    st.progress(porcentaje)
+                    # 1. Barra de progreso dinámica (Degradado por lógica)
+                total_seg = (hora_limite - inicio).total_seconds()
+                transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
+                porcentaje = min(transcurrido_seg / total_seg, 1.0)
+                
+                # Crear los datos para el degradado
+                df_grad = pd.DataFrame({'x': [0, 1], 'y': [0, 0]})
+                
+                # Crear el degradado: Verde(0) -> Amarillo(0.5) -> Rojo(1)
+                barra_grad = alt.Chart(df_grad).mark_area(
+                    color=alt.Gradient(
+                        gradient='linear',
+                        stops=[
+                            alt.GradientStop(offset=0, color='#00CC96'),   # Verde
+                            alt.GradientStop(offset=0.5, color='#FFD700'), # Amarillo
+                            alt.GradientStop(offset=1, color='#FF4B4B')    # Rojo
+                        ],
+                        x1=1, y1=0, x2=0, y2=0
+                    )
+                ).encode(
+                    x=alt.X('x', scale=alt.Scale(domain=[0, 1]), axis=None),
+                    y=alt.value(20)
+                ).properties(height=20, width='container')
 
-                    # 2. Línea de tiempo con formas de flecha (triangle)
-                    data = pd.DataFrame({
-                        'Evento': ['Inicio', 'Ahora', 'Límite'],
-                        'Tiempo': [inicio, ahora_mx, hora_limite],
-                        'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
-                    })
+                # Marcador de posición actual (Aguja azul)
+                cursor = pd.DataFrame({'progreso': [porcentaje]})
+                aguja = alt.Chart(cursor).mark_rule(color='#1f77b4', strokeWidth=4).encode(
+                    x='progreso'
+                )
 
-                    chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
-                        x='Tiempo:T',
-                        y=alt.value(0),
-                        color=alt.Color('Color', scale=None)
-                    ).properties(height=70)
-                    
-                    st.altair_chart(chart, use_container_width=True)
+                st.altair_chart(barra_grad + aguja, use_container_width=True)
 
                     # 3. Estado
                     tiempo_restante = hora_limite - ahora_mx
