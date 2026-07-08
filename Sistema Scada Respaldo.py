@@ -241,6 +241,8 @@ count = st_autorefresh(interval=300000, limit=1000, key="scada_refresh")
 
 # 2.  SECCION------------------------------------------------------------------------------2. FUNCIONES DE CONEXIÓN ------------------------------------------------------------------------------------------------------
 
+from sqlalchemy import create_engine, event # Asegúrate de importar 'event' aquí
+
 # 2.1. Secretos de la base de datos de SCADA
 @st.cache_resource
 def get_mysql_scada_engine():
@@ -248,9 +250,20 @@ def get_mysql_scada_engine():
         c = st.secrets["mysql_scada"]
         pwd = urllib.parse.quote_plus(c["password"])
         engine = create_engine(f"mysql+mysqlconnector://{c['user']}:{pwd}@{c['host']}/{c['database']}")
+        
+        # --- AÑADIR ESTE BLOQUE AQUÍ ---
+        @event.listens_for(engine, "connect")
+        def set_big_selects(dbapi_connection, connection_record):
+            cursor = dbapi_connection.cursor()
+            cursor.execute("SET SESSION SQL_BIG_SELECTS=1;")
+            cursor.close()
+        # -------------------------------
+        
         with engine.connect() as conn: pass 
         return engine
-    except: return None
+    except Exception as e:
+        st.error(f"Error al conectar a la BD: {e}")
+        return None
 
 # 2.2. Secretos de la base de datos de Telemetria 2
 @st.cache_resource
