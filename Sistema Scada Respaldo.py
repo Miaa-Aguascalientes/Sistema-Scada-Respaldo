@@ -3546,7 +3546,6 @@ if sectores_data:
 
 # SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
 
-
 import streamlit as st
 import pandas as pd
 import folium
@@ -3556,84 +3555,65 @@ import pytz
 from datetime import datetime
 from streamlit_folium import st_folium
 
-# --- 1. FUNCIÓN FRAGMENTO PARA MAPAS ---
+# --- FUNCIÓN ÚNICA DE FRAGMENTO (Consolidada) ---
 @st.fragment
-def renderizar_mapa_fragmento(gdf, id_key):
-    try:
-        lat = gdf.geometry.centroid.y.mean()
-        lon = gdf.geometry.centroid.x.mean()
-        m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
-        Fullscreen(position="topright", title="Expandir", title_cancel="Salir").add_to(m)
-        folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-        
-        folium.GeoJson(
-            gdf.__geo_interface__,
-            name="Colonias",
-            tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
-        ).add_to(m)
-        
-        for _, row in gdf.iterrows():
-            centroid = row.geometry.centroid
-            folium.Marker(
-                location=[centroid.y, centroid.x],
-                icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{row["Col_atl"]}</div>')
-            ).add_to(m)
-            
-        st_folium(m, width=600, height=400, key=f"map_{id_key}")
-    except Exception as e:
-        st.error(f"Error al renderizar mapa: {e}")
-
-# --- 2. FUNCIÓN FRAGMENTO PARA RENDERIZAR CADA INCIDENCIA ---
-@st.fragment
-def renderizar_incidencia_detalle(row, index, tipo):
-    """Renderiza el contenido completo de una incidencia de forma aislada."""
+def renderizar_bloque_incidencia(row, index, tipo):
+    """
+    Renderiza mapa y detalles en un solo bloque fragmentado.
+    No llama a otros fragmentos, evitando el error de StreamlitAPIException.
+    """
     gdf = get_geometries(row['NUM_POZO'])
     
     col1, col2 = st.columns([2, 1])
+    
+    # 1. RENDERIZADO DEL MAPA
     with col1:
         if gdf is not None and not gdf.empty:
             st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-            renderizar_mapa_fragmento(gdf, f"{tipo}_{row['NUM_POZO']}_{index}")
+            try:
+                lat = gdf.geometry.centroid.y.mean()
+                lon = gdf.geometry.centroid.x.mean()
+                m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
+                Fullscreen(position="topright", title="Expandir").add_to(m)
+                folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+                
+                folium.GeoJson(gdf.__geo_interface__, name="Colonias", tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])).add_to(m)
+                
+                for _, r in gdf.iterrows():
+                    c = r.geometry.centroid
+                    folium.Marker([c.y, c.x], icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')).add_to(m)
+                
+                st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
+            except Exception as e:
+                st.error(f"Error mapa: {e}")
         else:
             st.warning("Sin datos geográficos.")
 
+    # 2. RENDERIZADO DE TIEMPO Y DETALLES
     with col2:
         st.subheader("Tiempo de Atención")
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
         inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+        estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+        hora_limite = inicio + pd.Timedelta(hours=estimado)
         
-        estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-        hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
-        estatus = str(row.get('ESTATUS', '')).upper()
-
-        if estatus == 'CERRADA':
+        if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
             st.info("✅ Incidencia Cerrada")
         else:
             total_seg = (hora_limite - inicio).total_seconds()
-            transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
-            st.progress(min(transcurrido_seg / total_seg, 1.0))
-
+            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+            st.progress(porcentaje)
+            
             data = pd.DataFrame({'Evento': ['Inicio', 'Ahora', 'Límite'], 'Tiempo': [inicio, ahora_mx, hora_limite], 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']})
             chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)).properties(height=70)
             st.altair_chart(chart, use_container_width=True)
-
-            tiempo_restante = hora_limite - ahora_mx
+            
+            restante = hora_limite - ahora_mx
             if ahora_mx > hora_limite:
-                st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                st.error(f"🔴 EXCEDIDO: {int(abs(restante.total_seconds())//3600)}h {int((abs(restante.total_seconds())%3600)//60)}m")
             else:
-                st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
-
-        st.write("---")
-        dur = ahora_mx - inicio
-        st.markdown(f"""
-        <div style="line-height: 2;">
-            <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
-            <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
-            <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
-            <span style="color:#808080;">⏱</span> <b>Duración:</b> {int(dur.total_seconds()//3600)}h {int((dur.total_seconds()%3600)//60)}m
-        </div>
-        """, unsafe_allow_html=True)
+                st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
