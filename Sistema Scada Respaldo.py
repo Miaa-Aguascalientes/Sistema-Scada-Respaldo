@@ -3545,6 +3545,7 @@ if sectores_data:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 # SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -3553,13 +3554,13 @@ import altair as alt
 import pytz
 from datetime import datetime
 
-# --- FUNCIONES AUXILIARES ---
+# Función auxiliar para normalizar IDs
 def normalizar_id(valor):
     return str(valor).strip().upper()
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # Uso de .get() para evitar el KeyError
+    # Corrección técnica para evitar el KeyError
     id_pozo = normalizar_id(row.get('NUM_POZO', ''))
     gdf = get_geometries(id_pozo) if id_pozo else None
     
@@ -3586,7 +3587,8 @@ def renderizar_bloque_incidencia(row, index, tipo):
         st.subheader("Tiempo de Atención")
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
-        inicio = pd.to_datetime(row.get('FECHA_HORA_INICIO', datetime.now())).tz_localize(None).tz_localize(tz_mx)
+        # Aseguramos fecha de inicio
+        inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
         estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
         hora_limite = inicio + pd.Timedelta(hours=estimado)
         
@@ -3612,23 +3614,44 @@ df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
-    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     
+    # 1. ORDEN: Mantenemos el orden descendente (más recientes primero)
+    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+    hoy = pd.Timestamp.now().normalize()
+    
+    # Separación Activas vs Historial
+    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
+
+    # 2. DISEÑO: Título del expander como estaba originalmente
     st.subheader("📋 Incidencias Activas y del día")
-    for index, row in df_final.iterrows():
-        # Variables limpias
-        estatus = str(row.get('ESTATUS', 'N/A')).upper()
-        diag = str(row.get('DIAGNOSTICO_FALLA', 'Sin detalles'))
-        f_fin = str(row.get('FECHA_FIN', 'N/A'))
-        num_pozo = str(row.get('NUM_POZO', 'N/A'))
-        inicio_str = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+    for index, row in df_actual.iterrows():
+        estatus = str(row.get('ESTATUS', '')).upper()
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        # TÍTULO INTEGRADO COMO LO PEDISTE
-        titulo = f"{ind} **Pozo: {num_pozo}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {f_fin} | Estatus: {estatus}"
+        # Título original, SIN la información extra que agregué indebidamente
+        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"
         
         with st.expander(titulo):
-            # Aquí va únicamente el mapa y la línea de tiempo, sin repetir texto arriba
+            # Información detallada DENTRO del expander
+            st.markdown(f"**Diagnóstico de la falla:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
+            col_a, col_b, col_c = st.columns(3)
+            col_a.metric("Estatus", estatus)
+            col_b.metric("Fecha Fin", str(row.get('FECHA_FIN', 'N/A')))
+            col_c.metric("Tiempo Afectación", str(row.get('TIEMPO_AFECTACION', 'N/A')))
+            st.markdown("---")
             renderizar_bloque_incidencia(row, index, "act")
+
+    st.markdown("---")
+    st.subheader("📜 Historial de Incidencias Cerradas")
+    # 3. HISTORIAL: Restaurado a su orden y formato original
+    df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+    meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
+    if meses:
+        mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+        for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
+            with st.expander(f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
+                st.markdown(f"**Diagnóstico:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
+                renderizar_bloque_incidencia(row, index, "hist")
 
 
