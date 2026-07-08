@@ -3635,38 +3635,29 @@ def renderizar_incidencia_detalle(row, index, tipo):
         </div>
         """, unsafe_allow_html=True)
 
-# --- 3. LÓGICA PRINCIPAL ---
-df_incidencias = get_data() 
+# --- LÓGICA PRINCIPAL ---
+df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
-    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
-                         ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
-    # --- Renderizado Activas ---
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
-        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
-        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡"
-        
-        # El expander crea el contenedor, pero el contenido NO se carga hasta que se expande
-        with st.expander(f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | Falla: {row['DIAGNOSTICO_FALLA']}"):
-            # Aquí está la magia: solo se llama a la función si el usuario expandió el bloque
-            renderizar_incidencia_detalle(row, index, "act")
+        ind = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡"
+        with st.expander(f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"):
+            renderizar_bloque_incidencia(row, index, "act")
 
-    # --- Renderizado Historial ---
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
-    # ... (procesamiento de df_historial igual) ...
+    df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+    meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
-        # Filtrar el DF primero
-        df_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
-        
-        for index, row in df_mes.iterrows():
+        for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
             with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
-                renderizar_incidencia_detalle(row, index, "hist")
+                renderizar_bloque_incidencia(row, index, "hist")
