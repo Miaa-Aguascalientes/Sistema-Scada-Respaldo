@@ -3564,7 +3564,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
     id_pozo = normalizar_id(row['NUM_POZO'])
     gdf = get_geometries(id_pozo)
     
-    # Filtro robusto: busca la columna correcta aunque cambie de nombre
+    # Filtro robusto para evitar KeyError
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
@@ -3574,29 +3574,18 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-            # ... (Lógica de mapa igual) ...
+            st.markdown(f"**Colonias afectadas:** {', '.join(gdf['Col_atl'].unique())}")
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=15, tiles="CartoDB dark_matter")
                 folium.GeoJson(gdf.__geo_interface__).add_to(m)
-                st_folium(m, width=600, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+                st_folium(m, width=600, height=350, key=f"map_{tipo}_{id_pozo}_{index}")
             except Exception as e: st.error(f"Error mapa: {e}")
         else:
             st.warning("Sin datos geográficos específicos.")
 
     with col2:
         st.subheader("Tiempo de Atención")
-        
-        # Lógica de colores según estatus
-        estatus = str(row.get('ESTATUS', '')).upper()
-        if estatus == 'CERRADA':
-            color_estatus = "🟢"
-        elif estatus == 'PENDIENTE':
-            color_estatus = "🔴"
-        else: # EN PROCESO
-            color_estatus = "🟡"
-            
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
         inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
@@ -3619,21 +3608,15 @@ def renderizar_bloque_incidencia(row, index, tipo):
         ).properties(height=50)
         st.altair_chart(chart, use_container_width=True)
         
-        # Tiempo restante con color según estatus
+        # Restante
         restante = hora_limite - ahora_mx
+        estatus = str(row.get('ESTATUS', '')).upper()
         if estatus == 'CERRADA':
             st.info("✅ Incidencia Cerrada")
         elif ahora_mx > hora_limite:
             st.error(f"🔴 Restante: Excedido")
         else:
             st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
-        
-        # Indicadores debajo de la línea
-        transcurrido = ahora_mx - inicio
-        st.markdown(f"🟢 **Fecha de Inicio:** {inicio.strftime('%H:%M')}")
-        st.markdown(f"🔵 **Tiempo actual:** {ahora_mx.strftime('%H:%M')}")
-        st.markdown(f"🔴 **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M')}")
-        st.markdown(f"⏱️ **Duración del evento:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
@@ -3641,10 +3624,8 @@ df_incidencias = get_data()
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     
-    # Asegurar que las columnas existan
     for col in ['DIAGNOSTICO_FALLA', 'FECHA_FIN', 'TIEMPO_AFECTACION']:
-        if col not in df_incidencias.columns:
-            df_incidencias[col] = 'N/A'
+        if col not in df_incidencias.columns: df_incidencias[col] = 'N/A'
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
@@ -3655,24 +3636,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
         estatus = str(row.get('ESTATUS', '')).upper()
-        # Semáforo de color para el título del expander
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        # Título actualizado con Pozo y Fecha de Inicio
-        titulo = f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"
-        
-        with st.expander(titulo):
-            # 1. Diagnóstico de Falla (Texto completo)
-            st.markdown(f"**Diagnóstico de la falla:** {row.get('DIAGNOSTICO_FALLA', 'Sin diagnóstico')}")
-            
-            # 2. Métricas de Estatus, Fecha Fin y Tiempo de Afectación
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Estatus", estatus)
-            c2.metric("Fecha Fin", str(row.get('FECHA_FIN', 'N/A')))
-            c3.metric("Tiempo Afectación", str(row.get('TIEMPO_AFECTACION', '0h')))
-            
+        with st.expander(f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"):
+            # BLOQUE SUPERIOR DE DATOS
+            st.markdown(f"**Diagnóstico:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Fecha/Hora Inicio", row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M'))
+            c2.metric("Estatus", estatus)
+            c3.metric("Fecha Fin", str(row.get('FECHA_FIN', 'N/A')))
+            c4.metric("Tiempo Afectación", str(row.get('TIEMPO_AFECTACION', 'N/A')))
             st.markdown("---")
-            # 3. Bloque de Mapa y Tiempos consolidado
+            # BLOQUE INFERIOR (MAPA + TIEMPOS)
             renderizar_bloque_incidencia(row, index, "act")
 
     st.markdown("---")
@@ -3683,7 +3658,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
             with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
-                # Incluimos la misma información también en el historial
                 st.markdown(f"**Diagnóstico:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
                 renderizar_bloque_incidencia(row, index, "hist")
 
