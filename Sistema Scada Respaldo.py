@@ -3640,24 +3640,39 @@ df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    
+    # Asegurar que las columnas existan
+    for col in ['DIAGNOSTICO_FALLA', 'FECHA_FIN', 'TIEMPO_AFECTACION']:
+        if col not in df_incidencias.columns:
+            df_incidencias[col] = 'N/A'
+
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
+    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
 
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
-        # Lógica corregida para el color del círculo
         estatus = str(row.get('ESTATUS', '')).upper()
-        if estatus == 'CERRADA':
-            ind = "🟢"
-        elif estatus == 'PENDIENTE':
-            ind = "🔴"
-        else: # EN PROCESO
-            ind = "🟡"
+        # Semáforo de color para el título del expander
+        ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+        
+        # Título actualizado con Pozo y Fecha de Inicio
+        titulo = f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"
+        
+        with st.expander(titulo):
+            # 1. Diagnóstico de Falla (Texto completo)
+            st.markdown(f"**Diagnóstico de la falla:** {row.get('DIAGNOSTICO_FALLA', 'Sin diagnóstico')}")
             
-        with st.expander(f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"):
+            # 2. Métricas de Estatus, Fecha Fin y Tiempo de Afectación
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Estatus", estatus)
+            c2.metric("Fecha Fin", str(row.get('FECHA_FIN', 'N/A')))
+            c3.metric("Tiempo Afectación", str(row.get('TIEMPO_AFECTACION', '0h')))
+            
+            st.markdown("---")
+            # 3. Bloque de Mapa y Tiempos consolidado
             renderizar_bloque_incidencia(row, index, "act")
 
     st.markdown("---")
@@ -3668,6 +3683,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
             with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
+                # Incluimos la misma información también en el historial
+                st.markdown(f"**Diagnóstico:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
                 renderizar_bloque_incidencia(row, index, "hist")
 
 
