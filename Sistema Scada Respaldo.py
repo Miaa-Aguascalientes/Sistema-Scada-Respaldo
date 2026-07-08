@@ -3544,7 +3544,8 @@ if sectores_data:
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-# SECCION 10 Mapa de colonias Incidencias
+# SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -3555,74 +3556,138 @@ from datetime import datetime
 from streamlit_folium import st_folium
 
 # --- FUNCIÓN FRAGMENTO "MAESTRA" ---
-# Esta función es la única que contiene la lógica de renderizado.
-# Al estar dentro del expander, NO se ejecuta hasta que el usuario lo abre.
+# Esta función contiene toda la lógica de renderizado que tenías.
+# Al ser un fragmento dentro del expander, se ejecuta de forma aislada.
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # El spinner aparece SOLO en el expander que el usuario abrió
+    # Usamos un spinner para indicar carga al usuario
     with st.spinner(f"Cargando colonias afectadas para Pozo {row['NUM_POZO']}..."):
         gdf = get_geometries(row['NUM_POZO'])
+        
         col1, col2 = st.columns([2, 1])
         
         with col1:
             if gdf is not None and not gdf.empty:
                 st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
                 try:
-                    lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                    lat = gdf.geometry.centroid.y.mean()
+                    lon = gdf.geometry.centroid.x.mean()
                     m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
-                    Fullscreen(position="topright").add_to(m)
-                    folium.TileLayer("CartoDB dark_matter", name="Dark").add_to(m)
-                    folium.GeoJson(gdf.__geo_interface__, name="Colonias").add_to(m)
+                    Fullscreen(position="topright", title="Expandir mapa", title_cancel="Salir de pantalla completa").add_to(m)
+                    folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+                    
+                    folium.GeoJson(
+                        gdf.__geo_interface__,
+                        name="Colonias",
+                        tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
+                    ).add_to(m)
+                    
+                    for _, r in gdf.iterrows():
+                        centroid = r.geometry.centroid
+                        folium.Marker(
+                            location=[centroid.y, centroid.x],
+                            icon=folium.DivIcon(
+                                html=f'<div style="font-size: 10pt; color: white; white-space: nowrap; font-weight: bold; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>'
+                            )
+                        ).add_to(m)
+                    
                     st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
                 except Exception as e:
-                    st.error(f"Error mapa: {e}")
+                    st.error(f"Error al renderizar mapa: {e}")
             else:
-                st.warning("Sin datos geográficos.")
+                st.warning("Sin datos geográficos disponibles.")
 
         with col2:
             st.subheader("Tiempo de Atención")
+            import pytz
+            from datetime import datetime
+            import altair as alt
+
             tz_mx = pytz.timezone('America/Mexico_City')
-            inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
             ahora_mx = datetime.now(tz_mx)
-            estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-            hora_limite = inicio + pd.Timedelta(hours=estimado)
+            inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
             
-            if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
+            estimado_horas = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+            hora_limite = inicio + pd.Timedelta(hours=estimado_horas)
+            estatus = str(row.get('ESTATUS', '')).upper()
+
+            if estatus == 'CERRADA':
                 st.info("✅ Incidencia Cerrada")
             else:
-                # [Tu lógica de progreso y gráficas igual]
                 total_seg = (hora_limite - inicio).total_seconds()
-                porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+                transcurrido_seg = max(0, (ahora_mx - inicio).total_seconds())
+                porcentaje = min(transcurrido_seg / total_seg, 1.0)
                 st.progress(porcentaje)
-                st.success(f"Restante: {int((hora_limite - ahora_mx).total_seconds()//3600)}h")
 
-# --- LÓGICA PRINCIPAL ---
-df_incidencias = get_data()
+                data = pd.DataFrame({
+                    'Evento': ['Inicio', 'Ahora', 'Límite'],
+                    'Tiempo': [inicio, ahora_mx, hora_limite],
+                    'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+                })
+
+                chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(
+                    x='Tiempo:T',
+                    y=alt.value(0),
+                    color=alt.Color('Color', scale=None)
+                ).properties(height=70)
+                
+                st.altair_chart(chart, use_container_width=True)
+
+                tiempo_restante = hora_limite - ahora_mx
+                if ahora_mx > hora_limite:
+                    st.error(f"🔴 EXCEDIDO: {int(abs(tiempo_restante.total_seconds())//3600)}h {int((abs(tiempo_restante.total_seconds())%3600)//60)}m")
+                else:
+                    st.success(f"✅ Restante: {int(tiempo_restante.total_seconds()//3600)}h {int((tiempo_restante.total_seconds()%3600)//60)}m")
+
+            duracion_actual = ahora_mx - inicio
+            horas_dur = int(duracion_actual.total_seconds() // 3600)
+            mins_dur = int((duracion_actual.total_seconds() % 3600) // 60)
+
+            st.write("---")
+            st.markdown(f"""
+            <div style="line-height: 2;">
+                <span style="color:#00CC96;">▲</span> <b>Inicio:</b> {inicio.strftime('%H:%M')}<br>
+                <span style="color:#1f77b4;">▲</span> <b>Ahora:</b> {ahora_mx.strftime('%H:%M')}<br>
+                <span style="color:#FF4B4B;">▲</span> <b>Límite:</b> {hora_limite.strftime('%H:%M')}<br>
+                <span style="color:#808080;">⏱</span> <b>Duración actual:</b> {horas_dur}h {mins_dur}m
+            </div>
+            """, unsafe_allow_html=True)
+
+# --- 3. LÓGICA PRINCIPAL ---
+df_incidencias = get_data() 
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
-    # 1. ACTIVAS
-    st.subheader("📋 Incidencias Activas")
-    for index, row in df_incidencias[df_incidencias['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])].iterrows():
-        with st.expander(f"🔴/🟡 Pozo: {row['NUM_POZO']}"):
+    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | 
+                         ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
+    df_historial_total = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)].copy()
+
+    # --- RENDERIZADO ACTIVAS ---
+    st.subheader("📋 Incidencias Activas y del día")
+    for index, row in df_actual.iterrows():
+        f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
+        indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡" if row['ESTATUS'] == 'EN PROCESO' else "🟢"
+        
+        # El expander encapsula la llamada al fragmento
+        with st.expander(f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | Falla: {row['DIAGNOSTICO_FALLA']}"):
             renderizar_bloque_incidencia(row, index, "act")
 
-    # 2. HISTORIAL (Ordenado y desacoplado)
+    # --- RENDERIZADO HISTORIAL ---
     st.markdown("---")
-    st.subheader("📜 Historial")
-    df_hist = df_incidencias[df_incidencias['ESTATUS'].str.upper() == 'CERRADA'].copy()
-    df_hist['PERIODO'] = df_hist['FECHA_HORA_INICIO'].dt.to_period('M')
+    st.subheader("📜 Historial de Incidencias Cerradas")
     
-    # Ordenamos meses de forma cronológica inversa
-    meses_ordenados = sorted(df_hist['PERIODO'].unique(), reverse=True)
+    # Orden cronológico inverso: del mes actual hacia atrás
+    df_historial_total['PERIODO'] = df_historial_total['FECHA_HORA_INICIO'].dt.to_period('M')
+    meses_ordenados = sorted(df_historial_total['PERIODO'].unique(), reverse=True)
     meses_display = [m.strftime('%B %Y').capitalize() for m in meses_ordenados]
     
-    mes_sel = st.selectbox("Seleccionar mes:", meses_display, key="hist_mes")
-    # Filtramos mediante el índice del periodo real para evitar conflictos de strings
-    df_mes = df_hist[df_hist['PERIODO'] == meses_ordenados[meses_display.index(mes_sel)]]
-    
-    for index, row in df_mes.iterrows():
-        with st.expander(f"🟢 Pozo: {row['NUM_POZO']} | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
-            renderizar_bloque_incidencia(row, index, "hist")
+    if meses_display:
+        mes_sel = st.selectbox("Seleccionar mes:", meses_display, key="select_mes_historial")
+        periodo_seleccionado = meses_ordenados[meses_display.index(mes_sel)]
+        
+        for index, row in df_historial_total[df_historial_total['PERIODO'] == periodo_seleccionado].iterrows():
+            with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
+                renderizar_bloque_incidencia(row, index, "hist")
