@@ -3587,46 +3587,53 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
     with col2:
         st.subheader("Tiempo de Atención")
+        
+        # Lógica de colores según estatus
+        estatus = str(row.get('ESTATUS', '')).upper()
+        if estatus == 'CERRADA':
+            color_estatus = "🟢"
+        elif estatus == 'PENDIENTE':
+            color_estatus = "🔴"
+        else: # EN PROCESO
+            color_estatus = "🟡"
+            
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
         inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
         estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
         hora_limite = inicio + pd.Timedelta(hours=estimado)
         
-        if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
+        # Barra de progreso
+        total_seg = (hora_limite - inicio).total_seconds()
+        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+        st.progress(porcentaje)
+        
+        # Gráfico con triángulos
+        data = pd.DataFrame({
+            'Evento': ['Inicio', 'Ahora', 'Límite'], 
+            'Tiempo': [inicio, ahora_mx, hora_limite], 
+            'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+        })
+        chart = alt.Chart(data).mark_point(shape='triangle-up', size=300).encode(
+            x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)
+        ).properties(height=50)
+        st.altair_chart(chart, use_container_width=True)
+        
+        # Tiempo restante con color según estatus
+        restante = hora_limite - ahora_mx
+        if estatus == 'CERRADA':
             st.info("✅ Incidencia Cerrada")
+        elif ahora_mx > hora_limite:
+            st.error(f"🔴 Restante: Excedido")
         else:
-            total_seg = (hora_limite - inicio).total_seconds()
-            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
-            st.progress(porcentaje)
-            
-            # Gráfico con triángulos
-            data = pd.DataFrame({
-                'Evento': ['Inicio', 'Ahora', 'Límite'], 
-                'Tiempo': [inicio, ahora_mx, hora_limite], 
-                'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
-            })
-            chart = alt.Chart(data).mark_point(shape='triangle-up', size=300).encode(
-                x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)
-            ).properties(height=50)
-            st.altair_chart(chart, use_container_width=True)
-            
-            # Indicadores de texto plano
-            col_a, col_b = st.columns(2)
-            col_a.markdown(f"**Inicio**\n\n{inicio.strftime('%H:%M')}")
-            col_b.markdown(f"**Actual**\n\n{ahora_mx.strftime('%H:%M')}")
-            
-            transcurrido = ahora_mx - inicio
-            col_c, col_d = st.columns(2)
-            col_c.markdown(f"**Estimado**\n\n{estimado}h")
-            col_d.markdown(f"**Transcurrido**\n\n{int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
-            
-            # Restante final
-            restante = hora_limite - ahora_mx
-            if ahora_mx > hora_limite:
-                st.error(f"🔴 EXCEDIDO: {int(abs(restante.total_seconds())//3600)}h {int((abs(restante.total_seconds())%3600)//60)}m")
-            else:
-                st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
+            st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
+        
+        # Indicadores debajo de la línea
+        transcurrido = ahora_mx - inicio
+        st.markdown(f"{color_estatus} **Inicio:** {inicio.strftime('%H:%M')}")
+        st.markdown(f"🔵 **Ahora:** {ahora_mx.strftime('%H:%M')}")
+        st.markdown(f"🔴 **Límite:** {hora_limite.strftime('%H:%M')}")
+        st.markdown(f"⏱️ **Duración:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
