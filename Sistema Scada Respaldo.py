@@ -3553,19 +3553,17 @@ import altair as alt
 import pytz
 from datetime import datetime
 
+# --- FUNCIONES AUXILIARES ---
 def normalizar_id(valor):
     return str(valor).strip().upper()
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # CORRECCIÓN DE KEYERROR: Usamos .get() para evitar que la app falle si falta la columna
+    # Uso de .get() para evitar el KeyError
     id_pozo = normalizar_id(row.get('NUM_POZO', ''))
-    
-    # Buscamos la geometría solo si hay un ID válido
     gdf = get_geometries(id_pozo) if id_pozo else None
     
     if gdf is not None and not gdf.empty:
-        # Filtro seguro para el nombre de columna del pozo
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
             gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
@@ -3586,18 +3584,28 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
     with col2:
         st.subheader("Tiempo de Atención")
-        # (Aquí va tu lógica original de tiempo que ya funciona)
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
-        inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+        inicio = pd.to_datetime(row.get('FECHA_HORA_INICIO', datetime.now())).tz_localize(None).tz_localize(tz_mx)
         estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
         hora_limite = inicio + pd.Timedelta(hours=estimado)
         
-        st.progress(min(max(0, (ahora_mx - inicio).total_seconds()) / (hora_limite - inicio).total_seconds(), 1.0))
-        restante = hora_limite - ahora_mx
-        if str(row.get('ESTATUS', '')).upper() == 'CERRADA': st.info("✅ Incidencia Cerrada")
+        # Barra de progreso
+        total_seg = (hora_limite - inicio).total_seconds()
+        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0) if total_seg > 0 else 1.0
+        st.progress(porcentaje)
+        
+        # Gráfico
+        data = pd.DataFrame({'Evento': ['Inicio', 'Ahora', 'Límite'], 'Tiempo': [inicio, ahora_mx, hora_limite], 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']})
+        chart = alt.Chart(data).mark_point(shape='triangle-up', size=300).encode(x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)).properties(height=50)
+        st.altair_chart(chart, use_container_width=True)
+        
+        estatus = str(row.get('ESTATUS', '')).upper()
+        if estatus == 'CERRADA': st.info("✅ Incidencia Cerrada")
         elif ahora_mx > hora_limite: st.error("🔴 Restante: Excedido")
-        else: st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
+        else:
+            restante = hora_limite - ahora_mx
+            st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
@@ -3608,20 +3616,19 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_final.iterrows():
-        estatus = str(row.get('ESTATUS', '')).upper()
+        # Variables limpias
+        estatus = str(row.get('ESTATUS', 'N/A')).upper()
+        diag = str(row.get('DIAGNOSTICO_FALLA', 'Sin detalles'))
+        f_fin = str(row.get('FECHA_FIN', 'N/A'))
+        num_pozo = str(row.get('NUM_POZO', 'N/A'))
+        inicio_str = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        # TÍTULO LIMPIO (COMO TU IMAGEN)
-        titulo = f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"
+        # TÍTULO INTEGRADO COMO LO PEDISTE
+        titulo = f"{ind} **Pozo: {num_pozo}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {f_fin} | Estatus: {estatus}"
         
         with st.expander(titulo):
-            # INFORMACIÓN DETALLADA DENTRO DEL EXPANDER (COMO TU IMAGEN)
-            st.markdown(f"**Diagnóstico de la falla:** {row.get('DIAGNOSTICO_FALLA', 'N/A')}")
-            col_a, col_b, col_c = st.columns(3)
-            col_a.metric("Estatus", estatus)
-            col_b.metric("Fecha Fin", str(row.get('FECHA_FIN', 'N/A')))
-            col_c.metric("Tiempo Afectación", str(row.get('TIEMPO_AFECTACION', 'N/A')))
-            st.markdown("---")
+            # Aquí va únicamente el mapa y la línea de tiempo, sin repetir texto arriba
             renderizar_bloque_incidencia(row, index, "act")
 
 
