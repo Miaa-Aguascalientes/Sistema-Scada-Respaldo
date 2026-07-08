@@ -3652,16 +3652,21 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     for index, row in df_actual.iterrows():
         f_inicio = row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')
         indicador = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡"
+        
+        # El expander crea el contenedor, pero el contenido NO se carga hasta que se expande
         with st.expander(f"{indicador} **Pozo: {row['NUM_POZO']}** | Inicio: {f_inicio} | Falla: {row['DIAGNOSTICO_FALLA']}"):
+            # Aquí está la magia: solo se llama a la función si el usuario expandió el bloque
             renderizar_incidencia_detalle(row, index, "act")
 
     # --- Renderizado Historial ---
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
-    df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
+    # ... (procesamiento de df_historial igual) ...
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
-        for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
+        # Filtrar el DF primero
+        df_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
+        
+        for index, row in df_mes.iterrows():
             with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
                 renderizar_incidencia_detalle(row, index, "hist")
