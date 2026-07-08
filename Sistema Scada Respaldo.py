@@ -3648,15 +3648,12 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
-        # Lógica corregida para el color del círculo
-        estatus = str(row.get('ESTATUS', '')).upper()
-        if estatus == 'CERRADA':
-            ind = "🟢"
-        elif estatus == 'PENDIENTE':
-            ind = "🔴"
-        else: # EN PROCESO
-            ind = "🟡"
-            
+        estatus = str(row.get('ESTATUS', 'N/A')).upper()
+        diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+        f_fin = str(row.get('FECHA_FIN', 'N/A'))
+        duracion = str(row.get('TIEMPO_AFECTACION', 'N/A'))
+        ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+        
         # Título con toda la información solicitada en la cabecera
         titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')} | Falla: {diag} | Fin: {f_fin} | Duración: {duracion} | Estatus: {estatus}"
         
@@ -3665,12 +3662,18 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
+    # 2. Historial
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
-        
+            # Título del historial con la misma estructura
+            estatus = str(row.get('ESTATUS', 'N/A')).upper()
+            diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+            f_fin = str(row.get('FECHA_FIN', 'N/A'))
+            duracion = str(row.get('TIEMPO_AFECTACION', 'N/A'))
+            
             titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')} | Falla: {diag} | Fin: {f_fin} | Duración: {duracion} | Estatus: {estatus}"
             
             with st.expander(titulo_hist):
