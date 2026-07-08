@@ -3630,10 +3630,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
         
         # Indicadores debajo de la línea
         transcurrido = ahora_mx - inicio
-        st.markdown(f"{color_estatus} **Inicio:** {inicio.strftime('%H:%M')}")
-        st.markdown(f"🔵 **Ahora:** {ahora_mx.strftime('%H:%M')}")
-        st.markdown(f"🔴 **Límite:** {hora_limite.strftime('%H:%M')}")
-        st.markdown(f"⏱️ **Duración:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
+        st.markdown(f"🟢 **Fecha de Inicio:** {inicio.strftime('%H:%M')}")
+        st.markdown(f"🔵 **Tiempo actual:** {ahora_mx.strftime('%H:%M')}")
+        st.markdown(f"🔴 **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M')}")
+        st.markdown(f"⏱️ **Duración del evento:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
