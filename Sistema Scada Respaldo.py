@@ -3600,30 +3600,29 @@ def renderizar_bloque_incidencia(row, index, tipo):
             porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
             st.progress(porcentaje)
             
-            # Gráfico de Altair (la línea de tiempo que tenías)
-            data_timeline = pd.DataFrame({
+            # Gráfico con triángulos
+            data = pd.DataFrame({
                 'Evento': ['Inicio', 'Ahora', 'Límite'], 
                 'Tiempo': [inicio, ahora_mx, hora_limite], 
                 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
             })
-            chart = alt.Chart(data_timeline).mark_point(size=300, filled=True).encode(
-                x='Tiempo:T', y=alt.value(20), color=alt.Color('Color', scale=None)
-            ).properties(height=60)
+            chart = alt.Chart(data).mark_point(shape='triangle-up', size=300).encode(
+                x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)
+            ).properties(height=50)
             st.altair_chart(chart, use_container_width=True)
             
-            # LOS 4 INDICADORES QUE RECLAMAS
+            # Indicadores de texto plano
+            col_a, col_b = st.columns(2)
+            col_a.markdown(f"**Inicio**\n\n{inicio.strftime('%H:%M')}")
+            col_b.markdown(f"**Actual**\n\n{ahora_mx.strftime('%H:%M')}")
+            
             transcurrido = ahora_mx - inicio
+            col_c, col_d = st.columns(2)
+            col_c.markdown(f"**Estimado**\n\n{estimado}h")
+            col_d.markdown(f"**Transcurrido**\n\n{int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
+            
+            # Restante final
             restante = hora_limite - ahora_mx
-            
-            c1, c2 = st.columns(2)
-            c1.metric("Inicio", inicio.strftime('%H:%M'))
-            c2.metric("Actual", ahora_mx.strftime('%H:%M'))
-            
-            c3, c4 = st.columns(2)
-            c3.metric("Estimado", f"{estimado}h")
-            c4.metric("Transcurrido", f"{int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
-            
-            # Mensaje de Restante
             if ahora_mx > hora_limite:
                 st.error(f"🔴 EXCEDIDO: {int(abs(restante.total_seconds())//3600)}h {int((abs(restante.total_seconds())%3600)//60)}m")
             else:
