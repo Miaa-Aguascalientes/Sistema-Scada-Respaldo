@@ -3559,51 +3559,56 @@ from streamlit_folium import st_folium
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
     """
-    Renderiza mapa y detalles en un solo bloque fragmentado.
-    No llama a otros fragmentos, evitando el error de StreamlitAPIException.
+    Renderiza mapa y detalles. El spinner aparece automáticamente
+    en el lugar del expander al cargar.
     """
-    gdf = get_geometries(row['NUM_POZO'])
-    
-    col1, col2 = st.columns([2, 1])
-    
-    # 1. RENDERIZADO DEL MAPA
-    with col1:
-        if gdf is not None and not gdf.empty:
-            st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-            try:
-                lat = gdf.geometry.centroid.y.mean()
-                lon = gdf.geometry.centroid.x.mean()
-                m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
-                Fullscreen(position="topright", title="Expandir").add_to(m)
-                folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-                
-                folium.GeoJson(gdf.__geo_interface__, name="Colonias", tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])).add_to(m)
-                
-                for _, r in gdf.iterrows():
-                    c = r.geometry.centroid
-                    folium.Marker([c.y, c.x], icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')).add_to(m)
-                
-                st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
-            except Exception as e:
-                st.error(f"Error mapa: {e}")
-        else:
-            st.warning("Sin datos geográficos.")
-
-    # 2. RENDERIZADO DE TIEMPO Y DETALLES
-    with col2:
-        st.subheader("Tiempo de Atención")
-        tz_mx = pytz.timezone('America/Mexico_City')
-        ahora_mx = datetime.now(tz_mx)
-        inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
-        estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-        hora_limite = inicio + pd.Timedelta(hours=estimado)
+    # Usamos un spinner que envuelve todo el proceso de carga
+    with st.spinner(f"Cargando colonias afectadas para Pozo {row['NUM_POZO']}..."):
+        gdf = get_geometries(row['NUM_POZO'])
         
-        if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
-            st.info("✅ Incidencia Cerrada")
-        else:
-            total_seg = (hora_limite - inicio).total_seconds()
-            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
-            st.progress(porcentaje)
+        col1, col2 = st.columns([2, 1])
+        
+        # 1. RENDERIZADO DEL MAPA
+        with col1:
+            if gdf is not None and not gdf.empty:
+                st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+                try:
+                    # [Configuración del mapa igual que antes...]
+                    lat = gdf.geometry.centroid.y.mean()
+                    lon = gdf.geometry.centroid.x.mean()
+                    m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
+                    Fullscreen(position="topright", title="Expandir").add_to(m)
+                    folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
+                    
+                    folium.GeoJson(gdf.__geo_interface__, name="Colonias", tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])).add_to(m)
+                    
+                    for _, r in gdf.iterrows():
+                        c = r.geometry.centroid
+                        folium.Marker([c.y, c.x], icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')).add_to(m)
+                    
+                    st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
+                except Exception as e:
+                    st.error(f"Error mapa: {e}")
+            else:
+                st.warning("Sin datos geográficos.")
+
+        # 2. RENDERIZADO DE TIEMPO
+        with col2:
+            st.subheader("Tiempo de Atención")
+            # ... (Toda tu lógica de tiempos se mantiene igual aquí) ...
+            tz_mx = pytz.timezone('America/Mexico_City')
+            ahora_mx = datetime.now(tz_mx)
+            inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+            estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
+            hora_limite = inicio + pd.Timedelta(hours=estimado)
+            
+            # (El resto del código de renderizado igual que tenías)
+            if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
+                st.info("✅ Incidencia Cerrada")
+            else:
+                total_seg = (hora_limite - inicio).total_seconds()
+                porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+                st.progress(porcentaje)
             
             data = pd.DataFrame({'Evento': ['Inicio', 'Ahora', 'Límite'], 'Tiempo': [inicio, ahora_mx, hora_limite], 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']})
             chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)).properties(height=70)
