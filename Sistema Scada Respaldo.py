@@ -3642,3 +3642,4 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             with st.expander(f"🟢 **Pozo: {row['NUM_POZO']}** | {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')}"):
                 renderizar_bloque_incidencia(row, index, "hist")
 
+
