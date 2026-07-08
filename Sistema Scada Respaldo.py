@@ -3565,14 +3565,22 @@ def normalizar_id(valor):
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
     id_pozo = normalizar_id(row['NUM_POZO'])
-    
-    # Obtenemos los datos base
     gdf = get_geometries(id_pozo)
     
-    # CORRECCIÓN: Filtro estricto post-consulta
-    # Comparamos normalizando ambos lados para evitar errores de guiones o espacios
+    # NUEVA LÓGICA DE FILTRADO SEGURO
     if gdf is not None and not gdf.empty:
-        gdf = gdf[gdf['NUM_POZO'].apply(normalizar_id) == id_pozo]
+        # Detectar el nombre real de la columna del pozo
+        col_pozo = None
+        for posible_col in ['NUM_POZO', 'NUM_POZO', 'Pozo', 'pozo']:
+            if posible_col in gdf.columns:
+                col_pozo = posible_col
+                break
+        
+        # Filtrar solo si encontramos la columna, sino advertimos
+        if col_pozo:
+            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
+        else:
+            st.warning(f"No se encontró la columna de ID en los datos geográficos. Columnas halladas: {list(gdf.columns)}")
     
     col1, col2 = st.columns([2, 1])
     
