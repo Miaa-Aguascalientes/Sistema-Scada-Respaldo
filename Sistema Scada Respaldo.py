@@ -3648,7 +3648,15 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
-        ind = "🔴" if row['ESTATUS'] == 'PENDIENTE' else "🟡"
+        # Lógica corregida para el color del círculo
+        estatus = str(row.get('ESTATUS', '')).upper()
+        if estatus == 'CERRADA':
+            ind = "🟢"
+        elif estatus == 'PENDIENTE':
+            ind = "🔴"
+        else: # EN PROCESO
+            ind = "🟡"
+            
         with st.expander(f"{ind} **Pozo: {row['NUM_POZO']}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y %H:%M')}"):
             renderizar_bloque_incidencia(row, index, "act")
 
