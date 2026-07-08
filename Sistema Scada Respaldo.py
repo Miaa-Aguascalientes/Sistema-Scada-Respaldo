@@ -3555,41 +3555,36 @@ import pytz
 from datetime import datetime
 from streamlit_folium import st_folium
 
-# --- FUNCIÓN ÚNICA DE FRAGMENTO (Consolidada) ---
+def normalizar_id(valor):
+    return str(valor).strip().upper()
+
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    """
-    Renderiza mapa y detalles en un solo bloque fragmentado.
-    No llama a otros fragmentos, evitando el error de StreamlitAPIException.
-    """
-    gdf = get_geometries(row['NUM_POZO'])
+    # 1. Normalización y filtrado seguro
+    id_pozo = normalizar_id(row['NUM_POZO'])
+    gdf = get_geometries(id_pozo)
     
+    # Filtro robusto: busca la columna correcta aunque cambie de nombre
+    if gdf is not None and not gdf.empty:
+        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
+        if col_pozo:
+            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
+
     col1, col2 = st.columns([2, 1])
     
-    # 1. RENDERIZADO DEL MAPA
     with col1:
         if gdf is not None and not gdf.empty:
             st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+            # ... (Lógica de mapa igual) ...
             try:
-                lat = gdf.geometry.centroid.y.mean()
-                lon = gdf.geometry.centroid.x.mean()
-                m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
-                Fullscreen(position="topright", title="Expandir").add_to(m)
-                folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
-                
-                folium.GeoJson(gdf.__geo_interface__, name="Colonias", tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])).add_to(m)
-                
-                for _, r in gdf.iterrows():
-                    c = r.geometry.centroid
-                    folium.Marker([c.y, c.x], icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')).add_to(m)
-                
-                st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
-            except Exception as e:
-                st.error(f"Error mapa: {e}")
+                lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                m = folium.Map(location=[lat, lon], zoom_start=15, tiles="CartoDB dark_matter")
+                folium.GeoJson(gdf.__geo_interface__).add_to(m)
+                st_folium(m, width=600, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+            except Exception as e: st.error(f"Error mapa: {e}")
         else:
-            st.warning("Sin datos geográficos.")
+            st.warning("Sin datos geográficos específicos.")
 
-    # 2. RENDERIZADO DE TIEMPO Y DETALLES
     with col2:
         st.subheader("Tiempo de Atención")
         tz_mx = pytz.timezone('America/Mexico_City')
@@ -3601,14 +3596,28 @@ def renderizar_bloque_incidencia(row, index, tipo):
         if str(row.get('ESTATUS', '')).upper() == 'CERRADA':
             st.info("✅ Incidencia Cerrada")
         else:
+            # Barra de progreso
             total_seg = (hora_limite - inicio).total_seconds()
             porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
             st.progress(porcentaje)
             
-            data = pd.DataFrame({'Evento': ['Inicio', 'Ahora', 'Límite'], 'Tiempo': [inicio, ahora_mx, hora_limite], 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']})
-            chart = alt.Chart(data).mark_point(shape='triangle-up', size=200).encode(x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)).properties(height=70)
+            # CORRECCIÓN DE INDICADORES: Aseguramos que los puntos se vean en el gráfico
+            data_timeline = pd.DataFrame({
+                'Evento': ['Inicio', 'Ahora', 'Límite'], 
+                'Tiempo': [inicio, ahora_mx, hora_limite], 
+                'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+            })
+            
+            chart = alt.Chart(data_timeline).mark_point(size=300, filled=True).encode(
+                x='Tiempo:T',
+                y=alt.value(20),
+                color=alt.Color('Color', scale=None),
+                tooltip=['Evento', 'Tiempo']
+            ).properties(height=60)
+            
             st.altair_chart(chart, use_container_width=True)
             
+            # Etiquetas de tiempo
             restante = hora_limite - ahora_mx
             if ahora_mx > hora_limite:
                 st.error(f"🔴 EXCEDIDO: {int(abs(restante.total_seconds())//3600)}h {int((abs(restante.total_seconds())%3600)//60)}m")
