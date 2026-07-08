@@ -3555,41 +3555,56 @@ import pytz
 from datetime import datetime
 from streamlit_folium import st_folium
 
-# --- FUNCIÓN ÚNICA DE FRAGMENTO (Consolidada) ---
+# --- FUNCIÓN CORREGIDA ---
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
     """
-    Renderiza mapa y detalles en un solo bloque fragmentado.
-    No llama a otros fragmentos, evitando el error de StreamlitAPIException.
+    Renderiza mapa y detalles. 
+    Se asegura de filtrar las geometrías por coincidencia exacta.
     """
+    # IMPORTANTE: Asegúrate de que get_geometries filtre por igualdad exacta, no por substring
     gdf = get_geometries(row['NUM_POZO'])
+    
+    # Filtrado estricto adicional por seguridad
+    if gdf is not None and 'NUM_POZO' in gdf.columns:
+        gdf = gdf[gdf['NUM_POZO'] == row['NUM_POZO']]
     
     col1, col2 = st.columns([2, 1])
     
-    # 1. RENDERIZADO DEL MAPA
     with col1:
         if gdf is not None and not gdf.empty:
-            st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
+            # Lista única de colonias para este pozo específico
+            colonias_unicas = gdf['Col_atl'].unique()
+            st.markdown(f"**Colonias del pozo {row['NUM_POZO']}:** {', '.join(colonias_unicas)}")
+            
             try:
+                # Calculamos centroide basado solo en los datos filtrados del pozo
                 lat = gdf.geometry.centroid.y.mean()
                 lon = gdf.geometry.centroid.x.mean()
+                
                 m = folium.Map(location=[lat, lon], zoom_start=15, tiles=None)
                 Fullscreen(position="topright", title="Expandir").add_to(m)
                 folium.TileLayer("CartoDB dark_matter", name="Dark", attr="CartoDB").add_to(m)
                 
-                folium.GeoJson(gdf.__geo_interface__, name="Colonias", tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])).add_to(m)
+                folium.GeoJson(
+                    gdf.__geo_interface__, 
+                    name="Colonias", 
+                    tooltip=folium.GeoJsonTooltip(fields=['Col_atl'])
+                ).add_to(m)
                 
                 for _, r in gdf.iterrows():
                     c = r.geometry.centroid
-                    folium.Marker([c.y, c.x], icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')).add_to(m)
+                    folium.Marker(
+                        [c.y, c.x], 
+                        icon=folium.DivIcon(html=f'<div style="font-size: 10pt; color: white; text-shadow: 1px 1px 2px black;">{r["Col_atl"]}</div>')
+                    ).add_to(m)
                 
                 st_folium(m, width=600, height=400, key=f"map_{tipo}_{row['NUM_POZO']}_{index}")
             except Exception as e:
                 st.error(f"Error mapa: {e}")
         else:
-            st.warning("Sin datos geográficos.")
+            st.warning(f"No se encontraron datos geográficos exactos para el pozo {row['NUM_POZO']}.")
 
-    # 2. RENDERIZADO DE TIEMPO Y DETALLES
     with col2:
         st.subheader("Tiempo de Atención")
         tz_mx = pytz.timezone('America/Mexico_City')
@@ -3602,7 +3617,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             st.info("✅ Incidencia Cerrada")
         else:
             total_seg = (hora_limite - inicio).total_seconds()
-            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0) if total_seg > 0 else 0
             st.progress(porcentaje)
             
             data = pd.DataFrame({'Evento': ['Inicio', 'Ahora', 'Límite'], 'Tiempo': [inicio, ahora_mx, hora_limite], 'Color': ['#00CC96', '#1f77b4', '#FF4B4B']})
@@ -3615,7 +3630,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             else:
                 st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
 
-# --- LÓGICA PRINCIPAL ---
+# --- LÓGICA PRINCIPAL (Sin cambios en estructura) ---
 df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
@@ -3634,6 +3649,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
+    df_historial = df_historial.copy()
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     if meses:
