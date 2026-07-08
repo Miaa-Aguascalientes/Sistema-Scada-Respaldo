@@ -694,7 +694,7 @@ if tag_a_graficar:
         opcion_fecha = st.selectbox(
             "Selecciona un rango:",
             ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-            index=2, # <--- CAMBIO: Ahora selecciona 'Últimos 14 días' por defecto
+            index=3, # <--- CAMBIO: Ahora selecciona 'Últimos 14 días' por defecto
             key="pop_selector_final_v8"
         )
 
@@ -892,7 +892,7 @@ if "graficar_pozo" in params:
         opcion_fecha = st.selectbox(
             "Rango de tiempo:", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"], 
-            index=3, 
+            index=4, 
             key="fecha_pozo_v8"
         )
 
@@ -1422,7 +1422,7 @@ if "ver_grafico" in st.query_params:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
-            index=3, label_visibility="collapsed", key="selector_fechas_unico")
+            index=4, label_visibility="collapsed", key="selector_fechas_unico")
 
     # --- Lógica de fechas (DEBE IR ANTES DE LA CONSULTA SQL) ---
     f_fin = hoy_dt
@@ -2049,7 +2049,7 @@ if sector_seleccionado:
             opcion_fecha = st.selectbox(
                 "Rango de fechas:",
                 ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-                index=2,
+                index=3,
                 key="f_sector_full",
                 label_visibility="collapsed" # Colapsamos el label para que queden alineados
         )
