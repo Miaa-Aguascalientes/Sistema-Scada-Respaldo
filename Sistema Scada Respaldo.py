@@ -3586,51 +3586,22 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            st.markdown(f"**Colonias:** {', '.join([str(c) for c in gdf['Col_atl'].unique()])}")
+            st.markdown(f"**Colonias:** {', '.join([str(c) for c in gdf['Col_atl'].unique() if pd.notnull(c)])}")
             try:
-                lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
-                m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
+                m = folium.Map(location=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], zoom_start=13, tiles="CartoDB dark_matter")
+                folium.GeoJson(gdf, style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}).add_to(m)
                 
-                # 1. Dibujar polígonos
-                folium.GeoJson(
-                    gdf, 
-                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
-                ).add_to(m)
-                
-                # 2. Poner nombres de forma inteligente
-                for _, row_geo in gdf.iterrows():
-                    if row_geo.geometry:
-                        # FILTRO: Solo etiquetar si la colonia tiene un tamaño significativo
-                        # Ajusta el valor 0.0001 según tus datos si ves que faltan o sobran etiquetas
-                        if row_geo.geometry.area > 0.0001:
-                            folium.map.Marker(
-                                [row_geo.geometry.centroid.y, row_geo.geometry.centroid.x],
-                                icon=folium.DivIcon(
-                                    icon_size=(120, 20),
-                                    icon_anchor=(60, 10), # Centra el texto en el punto
-                                    html=f'''
-                                    <div style="
-                                        font-size: 7pt; 
-                                        color: #D3D3D3; 
-                                        font-weight: bold; 
-                                        white-space: nowrap; 
-                                        text-align: center;
-                                        text-shadow: 1px 1px 1px black;
-                                        background-color: rgba(0,0,0,0.2);
-                                        border-radius: 3px;
-                                    ">
-                                        {str(row_geo.get("Col_atl", "N/A"))[:15]}...
-                                    </div>
-                                    '''
-                                )
-                            ).add_to(m)
-                
+                # Etiquetado inteligente
+                for _, r in gdf.iterrows():
+                    if r.geometry and r.geometry.area > 0.0001: # Filtro para no amontonar
+                        folium.map.Marker(
+                            [r.geometry.centroid.y, r.geometry.centroid.x],
+                            icon=folium.DivIcon(html=f'<div style="font-size: 7pt; color: white; text-shadow: 1px 1px 1px black;">{r.get("Col_atl", "")}</div>')
+                        ).add_to(m)
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
-                
-            except Exception as e: 
-                st.error(f"Error al generar el mapa con etiquetas: {e}")
+            except Exception as e: st.warning("Error en el mapa.")
         else:
-            st.warning("Sin datos geográficos específicos.")
+            st.warning("Sin datos geográficos.")
 
     with col2:
         st.subheader("Tiempo de Atención")
