@@ -3603,8 +3603,23 @@ def renderizar_bloque_incidencia(row, index, tipo):
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
         inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
-        estimado = float(row.get('TIEMPO_ESTIMADO_ATENCION', 4))
-        hora_limite = inicio + pd.Timedelta(hours=estimado)
+        
+        # Obtenemos el valor crudo del campo
+        valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
+        
+        # Validamos que no sea nulo y convertimos a float
+        if pd.notnull(valor_raw):
+            try:
+                estimado = float(valor_raw)
+                hora_limite = inicio + pd.Timedelta(hours=estimado)
+            except ValueError:
+                # Esto ocurre si el campo contiene texto que no es un número
+                st.error(f"Error: El tiempo estimado '{valor_raw}' no es un número válido.")
+                hora_limite = inicio # O el valor que decidas en caso de error
+        else:
+            # Esto ocurre si el campo está vacío (NaN/None)
+            st.warning("Advertencia: No hay tiempo estimado de atención definido.")
+            hora_limite = inicio # O asigna un valor por defecto lógico si lo prefieres
         
         # Barra de progreso
         total_seg = (hora_limite - inicio).total_seconds()
