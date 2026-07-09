@@ -3586,16 +3586,34 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            st.markdown(f"**Colonias:** {', '.join(gdf['Col_atl'].unique())}")
-            # ... (Lógica de mapa igual) ...
+            st.markdown(f"**Colonias:** {', '.join([str(c) for c in gdf['Col_atl'].unique()])}")
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
-                folium.GeoJson(gdf.__geo_interface__).add_to(m)
+                
+                # 1. Dibujar polígonos
+                folium.GeoJson(
+                    gdf, 
+                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
+                ).add_to(m)
+                
+                # 2. Poner nombres permanentemente (sin Tooltip, solo texto)
+                for _, row_geo in gdf.iterrows():
+                    # Solo intentamos poner nombre si existe geometría
+                    if row_geo.geometry:
+                        folium.map.Marker(
+                            [row_geo.geometry.centroid.y, row_geo.geometry.centroid.x],
+                            icon=folium.DivIcon(
+                                icon_size=(150, 30),
+                                icon_anchor=(0, 0),
+                                html=f'<div style="font-size: 8pt; color: white; font-weight: bold; white-space: nowrap; text-shadow: 1px 1px 1px black;">{row_geo.get("Col_atl", "N/A")}</div>'
+                            )
+                        ).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
                 
-            except Exception as e: st.error(f"Error mapa: {e}")
+            except Exception as e: 
+                st.error(f"Error al generar el mapa con etiquetas: {e}")
         else:
             st.warning("Sin datos geográficos específicos.")
 
