@@ -3592,12 +3592,25 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
 
+                # 1. Dibujamos el polígono
                 folium.GeoJson(
                     gdf,
-                    name="Colonias",
-                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.5},
-                    tooltip=folium.GeoJsonTooltip(fields=['Col_atl'], aliases=['Colonia:'], localize=True)
+                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.5}
                 ).add_to(m)
+                
+                # 2. Iteramos sobre cada colonia para poner la etiqueta fija
+                for idx, row in gdf.iterrows():
+                    # Calculamos el centroide de cada polígono individual
+                    centroide = row.geometry.centroid
+                    
+                    folium.map.Marker(
+                        [centroide.y, centroide.x],
+                        icon=folium.DivIcon(
+                            icon_size=(150, 30),
+                            icon_anchor=(0, 0),
+                            html=f'<div style="font-size: 10pt; color: white; font-weight: bold; white-space: nowrap;">{row["Col_atl"]}</div>'
+                        )
+                    ).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
                 
