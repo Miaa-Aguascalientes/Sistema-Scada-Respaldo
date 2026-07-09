@@ -3632,7 +3632,15 @@ def renderizar_bloque_incidencia(row, index, tipo):
             
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
-        inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+        
+        fecha_raw = row.get('FECHA_HORA_INICIO')
+
+        if pd.notnull(fecha_raw):
+            inicio = pd.to_datetime(fecha_raw).tz_localize(None).tz_localize(tz_mx)
+        else:
+            # Manejo de error si no hay fecha: asignamos "ahora" o una fecha neutra
+            inicio = datetime.now(tz_mx)
+            st.error("Error: No se encontró la fecha de inicio en el registro.")
         
         # Obtenemos el valor crudo del campo
         valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
