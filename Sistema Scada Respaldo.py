@@ -3648,9 +3648,14 @@ def renderizar_bloque_incidencia(row, index, tipo):
         
         # Indicadores debajo de la línea
         transcurrido = ahora_mx - inicio
-        st.markdown(f"▲ **Fecha de Inicio:** {inicio.strftime('%H:%M %d de %B de %Y')}")
-        st.markdown(f"▲ **Tiempo actual:** {ahora_mx.strftime('%H:%M %d de %B de %Y')}")
-        st.markdown(f"▲ **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M %d de %B de %Y')}")
+        color_inicio = "#00CC96" # Verde
+        color_ahora = "#1f77b4"  # Azul
+        color_limite = "#FF4B4B" # Rojo
+
+        # Indicadores con color aplicado mediante HTML
+        st.markdown(f'<span style="color:{color_inicio}">▲</span> **Fecha de Inicio:** {inicio.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
+        st.markdown(f'<span style="color:{color_ahora}">▲</span> **Tiempo actual:** {ahora_mx.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
+        st.markdown(f'<span style="color:{color_limite}">▲</span> **Tiempo límite para atención:** {hora_limite.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
         dias = transcurrido.days
         horas = transcurrido.seconds // 3600
         minutos = (transcurrido.seconds % 3600) // 60
