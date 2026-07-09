@@ -3636,7 +3636,11 @@ def renderizar_bloque_incidencia(row, index, tipo):
         st.markdown(f"🟢 **Fecha de Inicio:** {inicio.strftime('%H:%M %d de %B de %Y')}")
         st.markdown(f"🔵 **Tiempo actual:** {ahora_mx.strftime('%H:%M %d de %B de %Y')}")
         st.markdown(f"🔴 **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M %d de %B de %Y')}")
-        st.markdown(f"⏱️ **Duración del evento:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
+        dias = transcurrido.days
+        horas = transcurrido.seconds // 3600
+        minutos = (transcurrido.seconds % 3600) // 60
+
+        st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
 
         
 
