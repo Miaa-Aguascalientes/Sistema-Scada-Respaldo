@@ -3675,15 +3675,25 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
         claves_disponibles = [str(k).strip() for k in row.keys()]
         
-        # Intentamos obtener el responsable buscando la columna que contenga la palabra
-        responsable_val = "N/A"
-        for col_name in row.keys():
-            if "RESPONSABLE" in str(col_name).upper():
-                responsable_val = row[col_name]
-                break
+        st.sidebar.write("Columnas disponibles en el DF:", df_incidencias.columns.tolist())
         
-        # Validamos limpieza
-        if pd.isna(responsable_val) or str(responsable_val).strip() == "" or str(responsable_val).lower() == "nan":
+        # 2. Intentamos obtener el valor forzando la búsqueda
+        try:
+            # Buscamos en el DataFrame global usando el index que pasaste
+            # .at es más rápido y directo para un solo valor
+            responsable_val = df_incidencias.at[index, 'RESPONSABLE']
+            
+            # Si el valor es nulo, intenta buscar por una columna similar por si hay error de dedo
+            if pd.isna(responsable_val) or str(responsable_val).strip() == "":
+                # Buscamos si hay una columna que contenga la palabra responsable
+                cols_res = [c for c in df_incidencias.columns if 'RESPONSABLE' in c.upper()]
+                if cols_res:
+                    responsable_val = df_incidencias.at[index, cols_res[0]]
+        except Exception as e:
+            responsable_val = f"Error: {e}"
+
+        # Validación final
+        if pd.isna(responsable_val) or str(responsable_val).strip().lower() == "nan":
             responsable_val = "N/A"
 
         # Mostramos los tres en columnas
