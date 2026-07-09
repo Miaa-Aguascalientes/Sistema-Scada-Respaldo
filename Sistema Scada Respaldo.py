@@ -3650,30 +3650,36 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
     # 1. Incidencias Activas
+    tz_mx = pytz.timezone('America/Mexico_City')
     st.subheader("📋 Incidencias Activas y del día")
+    # Usamos la zona horaria definida arriba (tz_mx)
+    ahora_mx = datetime.now(tz_mx) 
+    
     for index, row in df_actual.iterrows():
         estatus = str(row.get('ESTATUS', 'N/A')).upper()
         diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-        inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
+        
+        # Convertimos inicio a datetime y le asignamos la zona horaria de México
+        inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
         fin_raw = row.get('FECHA_FIN')
-        ahora = pd.Timestamp.now()
         
         # Formateo de fechas para el título
         inicio_str = inicio_raw.strftime('%d/%m/%y %H:%M')
-        fin_str = pd.to_datetime(fin_raw).strftime('%d/%m/%y %H:%M') if pd.notnull(fin_raw) else "N/A"
         
-        # CÁLCULO CORREGIDO: Tiempo transcurrido si está en proceso, o duración real si cerró
         if pd.notnull(fin_raw):
-            delta = pd.to_datetime(fin_raw) - inicio_raw
+            fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+            fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
+            delta = fin_dt - inicio_raw
         else:
-            delta = ahora - inicio_raw
+            fin_str = "N/A"
+            # Restamos ahora_mx (que YA tiene la zona horaria) contra inicio_raw
+            delta = ahora_mx - inicio_raw
             
-        # Formato: 0d 0h 22m
+        # Formato exacto: 0d 0h 22m
         duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
 
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        # Construcción del título
         titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
         
         with st.expander(titulo):
