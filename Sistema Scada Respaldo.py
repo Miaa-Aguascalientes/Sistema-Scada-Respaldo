@@ -3588,6 +3588,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
+            # --- AGREGADO: Listado de colonias arriba del mapa ---
+            nombres_colonias = sorted(gdf['Col_atl'].unique())
+            st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
+            st.info(", ".join([str(n) for n in nombres_colonias]))
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
