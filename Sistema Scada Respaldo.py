@@ -3687,6 +3687,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
+    
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     
@@ -3700,23 +3701,23 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
             fin_raw = row.get('FECHA_FIN')
             
-            # --- LÓGICA DE DURACIÓN BLINDADA ---
-            if pd.notnull(fin_raw):
+            # --- LÓGICA DE DURACIÓN CORREGIDA ---
+            # Verificamos si fin_raw NO es nulo y si es una fecha válida
+            if pd.notnull(fin_raw) and not pd.isna(pd.to_datetime(fin_raw, errors='coerce')):
                 fin_dt = pd.to_datetime(fin_raw)
                 fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
                 
                 # Cálculo de duración exacta
                 delta = fin_dt - inicio_raw
-                # Convertimos a días, horas y minutos
                 dias = delta.days
                 horas = delta.seconds // 3600
                 minutos = (delta.seconds % 3600) // 60
                 duracion_str = f"{dias}d {horas}h {minutos}m"
             else:
                 fin_str = "N/A"
-                duracion_str = "Sin datos" # O el valor que prefieras para casos sin fin
+                duracion_str = "N/A" # O ajusta según tu preferencia si no hay fecha fin
             
-            # --- TÍTULO CORREGIDO (Sin variables inexistentes) ---
+            # --- TÍTULO CORREGIDO ---
             titulo_hist = (
                 f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
                 f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
