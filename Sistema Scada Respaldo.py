@@ -3596,19 +3596,27 @@ def renderizar_bloque_incidencia(row, index, tipo):
                     style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
                 ).add_to(m)
                 
-                # Bucle de etiquetas con estilo de alto contraste
+                # Bucle de etiquetas con líneas y puntos de conexión
                 for _, r in gdf.iterrows():
                     if r.geometry:
                         c = r.geometry.centroid
-                        # Línea guía
+                        destino = [c.y + 0.001, c.x + 0.001]
+                        
+                        # 1. Punto de inicio (centroide)
+                        folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                        
+                        # 2. Línea guía
                         folium.PolyLine(
-                            locations=[[c.y, c.x], [c.y + 0.001, c.x + 0.001]],
+                            locations=[[c.y, c.x], destino],
                             color="white", weight=1
                         ).add_to(m)
                         
-                        # Cuadro de texto con fondo oscuro y letra blanca
+                        # 3. Punto final (etiqueta)
+                        folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                        
+                        # 4. Cuadro de texto
                         folium.Marker(
-                            location=[c.y + 0.001, c.x + 0.001],
+                            location=destino,
                             icon=folium.DivIcon(
                                 icon_size=(150, 30),
                                 html=f'''
@@ -3621,6 +3629,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
                                     font-weight: bold; 
                                     border-radius: 4px;
                                     white-space: nowrap;
+                                    margin-left: 5px;
                                 ">
                                     {str(r.get("Col_atl", "N/A"))}
                                 </div>
