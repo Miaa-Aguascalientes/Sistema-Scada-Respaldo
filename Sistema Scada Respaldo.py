@@ -3673,11 +3673,17 @@ def renderizar_bloque_incidencia(row, index, tipo):
             sector_val = 'N/A'
             distrito_val = 'N/A'
 
-        try:
-            responsable_val = df_incidencias.loc[index, 'RESPONSABLE']
-            if pd.isna(responsable_val) or str(responsable_val).strip() == "":
-                responsable_val = "N/A"
-        except KeyError:
+        claves_disponibles = [str(k).strip() for k in row.keys()]
+        
+        # Intentamos obtener el responsable buscando la columna que contenga la palabra
+        responsable_val = "N/A"
+        for col_name in row.keys():
+            if "RESPONSABLE" in str(col_name).upper():
+                responsable_val = row[col_name]
+                break
+        
+        # Validamos limpieza
+        if pd.isna(responsable_val) or str(responsable_val).strip() == "" or str(responsable_val).lower() == "nan":
             responsable_val = "N/A"
 
         # Mostramos los tres en columnas
