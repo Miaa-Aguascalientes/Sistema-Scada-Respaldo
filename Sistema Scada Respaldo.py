@@ -3692,23 +3692,31 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
-        for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
+        
+        # Filtramos por el mes seleccionado
+        datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
+        
+        for index, row in datos_mes.iterrows():
             inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
             fin_raw = row.get('FECHA_FIN')
             
-            # Validación: solo procesar si fin_raw existe
+            # --- LÓGICA DE DURACIÓN BLINDADA ---
             if pd.notnull(fin_raw):
-                fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                fin_dt = pd.to_datetime(fin_raw)
                 fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
                 
-                # Asegurar que inicio también tenga zona horaria
-                inicio_dt = inicio_raw.tz_localize(None).tz_localize(tz_mx)
-                delta = fin_dt - inicio_dt
-                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                # Cálculo de duración exacta
+                delta = fin_dt - inicio_raw
+                # Convertimos a días, horas y minutos
+                dias = delta.days
+                horas = delta.seconds // 3600
+                minutos = (delta.seconds % 3600) // 60
+                duracion_str = f"{dias}d {horas}h {minutos}m"
             else:
                 fin_str = "N/A"
-                duracion_str = "N/A"
+                duracion_str = "Sin datos" # O el valor que prefieras para casos sin fin
             
+            # --- TÍTULO CORREGIDO (Sin variables inexistentes) ---
             titulo_hist = (
                 f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
                 f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
@@ -3720,4 +3728,3 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             with st.expander(titulo_hist):
                 renderizar_bloque_incidencia(row, index, "hist")
-
