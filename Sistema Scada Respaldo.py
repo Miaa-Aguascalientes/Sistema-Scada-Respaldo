@@ -3674,7 +3674,11 @@ def renderizar_bloque_incidencia(row, index, tipo):
             distrito_val = 'N/A'
 
         # Obtenemos el responsable de la tabla de incidencias
-        responsable_val = row.get('RESPONSABLE', 'N/A')
+        responsable_val = df_incidencias.loc[index, 'RESPONSABLE']
+
+        # Validamos que no sea un valor vacío o nulo
+        if pd.isna(responsable_val) or str(responsable_val).strip() == "":
+        responsable_val = "N/A"
 
         # Mostramos los tres en columnas
         col_sec, col_dis, col_res = st.columns(3)
@@ -3683,7 +3687,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
         with col_dis:
             st.markdown(f"🏢 **Distrito:** {distrito_val}")
         with col_res:
-            st.markdown(f"👤 **RESPONSABLE:** {responsable_val}")
+            st.markdown(f"👤 **Responsable:** {responsable_val}")
 
         
 
