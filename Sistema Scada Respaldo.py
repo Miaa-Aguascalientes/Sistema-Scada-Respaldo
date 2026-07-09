@@ -3563,12 +3563,9 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # 1. Obtención segura de datos básicos
-    # Usamos .get() para evitar el KeyError
-    raw_inicio = row.get('FECHA_HORA_INICIO')
-    if pd.isnull(raw_inicio):
-        st.error("No se pudo obtener la fecha de inicio.")
-        return
+    # 1. Normalización y filtrado seguro
+    id_pozo = normalizar_id(row['NUM_POZO'])
+    gdf = get_geometries(id_pozo)
     
     # Filtro robusto: busca la columna correcta aunque cambie de nombre
     if gdf is not None and not gdf.empty:
@@ -3594,26 +3591,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
-
-                # 1. Dibujamos el polígono
-                folium.GeoJson(
-                    gdf,
-                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.5}
-                ).add_to(m)
-                
-                # 2. Iteramos sobre cada colonia para poner la etiqueta fija
-                for idx, row in gdf.iterrows():
-                    # Calculamos el centroide de cada polígono individual
-                    centroide = row.geometry.centroid
-                    
-                    folium.map.Marker(
-                        [centroide.y, centroide.x],
-                        icon=folium.DivIcon(
-                            icon_size=(150, 30),
-                            icon_anchor=(0, 0),
-                            html=f'<div style="font-size: 10pt; color: white; font-weight: bold; white-space: nowrap;">{row["Col_atl"]}</div>'
-                        )
-                    ).add_to(m)
+                folium.GeoJson(gdf.__geo_interface__).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
                 
@@ -3635,39 +3613,24 @@ def renderizar_bloque_incidencia(row, index, tipo):
             
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
-        
-        fecha_raw = row.get('FECHA_HORA_INICIO')
-
-        if pd.notnull(fecha_raw):
-            inicio = pd.to_datetime(fecha_raw).tz_localize(None).tz_localize(tz_mx)
-        else:
-            # Manejo de error si no hay fecha: asignamos "ahora" o una fecha neutra
-            inicio = datetime.now(tz_mx)
-            st.error("Error: No se encontró la fecha de inicio en el registro.")
+        inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
         
         # Obtenemos el valor crudo del campo
         valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
-    try:
-        estimado = float(valor_raw) if pd.notnull(valor_raw) else 0.0
-    except ValueError:
-        estimado = 0.0
         
-    # Si el estimado es 0, forzamos un valor mínimo (ej. 1 hora) o manejamos el caso
-    if estimado <= 0:
-        estimado = 1.0 
-        
-    hora_limite = inicio + pd.Timedelta(hours=estimado)
-    
-    # 3. Cálculo seguro del porcentaje
-    total_seg = (hora_limite - inicio).total_seconds()
-    
-    # Validación extra: si total_seg sigue siendo 0, evitamos la división
-    if total_seg > 0:
-        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
-        st.progress(porcentaje)
-    else:
-        st.warning("No es posible calcular la barra de progreso (tiempo estimado 0).")
-        st.progress(0)
+        # Validamos que no sea nulo y convertimos a float
+        if pd.notnull(valor_raw):
+            try:
+                estimado = float(valor_raw)
+                hora_limite = inicio + pd.Timedelta(hours=estimado)
+            except ValueError:
+                # Esto ocurre si el campo contiene texto que no es un número
+                st.error(f"Error: El tiempo estimado '{valor_raw}' no es un número válido.")
+                hora_limite = inicio # O el valor que decidas en caso de error
+        else:
+            # Esto ocurre si el campo está vacío (NaN/None)
+            st.warning("Advertencia: No hay tiempo estimado de atención definido.")
+            hora_limite = inicio # O asigna un valor por defecto lógico si lo prefieres
         
         # Barra de progreso
         total_seg = (hora_limite - inicio).total_seconds()
