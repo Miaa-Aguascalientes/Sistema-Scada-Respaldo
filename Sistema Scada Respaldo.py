@@ -3600,37 +3600,43 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 for _, r in gdf.iterrows():
                     if r.geometry:
                         c = r.geometry.centroid
-                        # Línea guía
+                        # Punto de destino (donde va la etiqueta)
+                        destino = [c.y + 0.001, c.x + 0.001]
+                        
+                        # 1. Punto de inicio en el centroide
+                        folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                        
+                        # 2. Línea guía
                         folium.PolyLine(
-                            locations=[[c.y, c.x], [c.y + 0.001, c.x + 0.001]],
+                            locations=[[c.y, c.x], destino],
                             color="white", weight=1
                         ).add_to(m)
                         
-                        # Cuadro de texto con fondo oscuro y letra blanca
+                        # 3. Punto final en la etiqueta
+                        folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                        
+                        # 4. Caja de texto
                         folium.Marker(
-                            location=[c.y + 0.001, c.x + 0.001],
+                            location=destino,
                             icon=folium.DivIcon(
                                 icon_size=(150, 30),
                                 html=f'''
                                 <div style="
                                     background: rgba(0, 0, 0, 0.8); 
                                     color: white; 
-                                    padding: 3px 6px; 
+                                    padding: 2px 5px; 
                                     border: 1px solid #FFFFFF; 
-                                    font-size: 9px; 
+                                    font-size: 8px; 
                                     font-weight: bold; 
-                                    border-radius: 4px;
+                                    border-radius: 3px;
                                     white-space: nowrap;
+                                    margin-left: 5px;
                                 ">
                                     {str(r.get("Col_atl", "N/A"))}
                                 </div>
                                 '''
                             )
                         ).add_to(m)
-                
-                st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
-            except Exception as e:
-                st.error(f"Error al renderizar el mapa: {e}")
         else:
             st.warning("Sin datos geográficos disponibles.")
 
