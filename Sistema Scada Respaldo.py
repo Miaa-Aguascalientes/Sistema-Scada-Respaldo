@@ -3680,7 +3680,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
+        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {fin_str} | Duración del evento: {duracion_str} | Estatus: {estatus}"
         
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
@@ -3721,9 +3721,10 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             # Título completo con toda la información solicitada
             titulo_hist = (
                 f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
-                f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
-                f"Fin: {fin_str} | "
-                f"Duración: {duracion_str} | "
+                f"Fecha y hora de inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
+                f"Detalles de la falla: {diag} | "
+                f"Fecha y hora de cierre: {fin_str} | "
+                f"Duración del evento: {duracion_str} | "
                 f"Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
             )
             
