@@ -3662,6 +3662,19 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
         st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
 
+        # NUEVA LÓGICA PARA SECTOR Y DISTRITO
+        if gdf is not None and not gdf.empty:
+            # Extraemos valores únicos, limpiando valores nulos si existen
+            sectores = [str(s) for s in gdf['Sector'].unique() if pd.notnull(s)]
+            distritos = [str(d) for d in gdf['Distrito'].unique() if pd.notnull(d)]
+            
+            # Mostramos los resultados
+            st.markdown(f"📍 **Sector:** {', '.join(sectores) if sectores else 'N/A'}")
+            st.markdown(f"🏢 **Distrito:** {', '.join(distritos) if distritos else 'N/A'}")
+        else:
+            st.markdown("📍 **Sector:** N/A")
+            st.markdown("🏢 **Distrito:** N/A")
+
         
 
 # --- LÓGICA PRINCIPAL ---
