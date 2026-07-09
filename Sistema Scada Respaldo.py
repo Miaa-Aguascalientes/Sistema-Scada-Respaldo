@@ -3633,7 +3633,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
         
         # Indicadores debajo de la línea
         transcurrido = ahora_mx - inicio
-        st.markdown(f"🟢 **Fecha de Inicio:** {inicio.strftime('%H:%M %d de %B de %Y')}")
+        st.markdown(f"🔼 **Fecha de Inicio:** {inicio.strftime('%H:%M %d de %B de %Y')}")
         st.markdown(f"🔵 **Tiempo actual:** {ahora_mx.strftime('%H:%M %d de %B de %Y')}")
         st.markdown(f"🔴 **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M %d de %B de %Y')}")
         dias = transcurrido.days
