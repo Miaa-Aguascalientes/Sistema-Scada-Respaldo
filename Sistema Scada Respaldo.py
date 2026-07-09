@@ -3690,7 +3690,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     
     # Aseguramos que la columna de fecha esté en formato datetime para poder operar con ella
     df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
-    df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_FIN'], errors='coerce')
+    df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
     
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
