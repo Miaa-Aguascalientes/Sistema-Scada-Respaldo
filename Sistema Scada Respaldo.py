@@ -3646,15 +3646,29 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
+    # 1. Incidencias Activas
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
+        # Valores directos de la base de datos
         estatus = str(row.get('ESTATUS', 'N/A')).upper()
         diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-        f_fin = str(row.get('FECHA_FIN', 'N/A'))
-        duracion = str(row.get('TIEMPO_AFECTACION', 'N/A'))
+        inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
+        fin_raw = row.get('FECHA_FIN')
+        
+        # Formateo de fechas para el título
+        inicio_str = inicio_raw.strftime('%d/%m/%y %H:%M')
+        fin_str = pd.to_datetime(fin_raw).strftime('%d/%m/%y %H:%M') if pd.notnull(fin_raw) else "N/A"
+        
+        # Cálculo ÚNICO: Duración del evento
+        if pd.notnull(fin_raw):
+            delta = pd.to_datetime(fin_raw) - inicio_raw
+            duracion_str = f"{int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m"
+        else:
+            duracion_str = "En curso"
+
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        # Título con toda la información solicitada en la cabecera
+        # Construcción del título
         titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
         
         with st.expander(titulo):
@@ -3668,11 +3682,12 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
-            # Título del historial con la misma estructura
-            estatus = str(row.get('ESTATUS', 'N/A')).upper()
-            diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-            f_fin = str(row.get('FECHA_FIN', 'N/A'))
-            duracion = str(row.get('TIEMPO_AFECTACION', 'N/A'))
+            # Misma lógica para el historial
+            inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
+            fin_raw = row.get('FECHA_FIN')
+            fin_str = pd.to_datetime(fin_raw).strftime('%d/%m/%y %H:%M') if pd.notnull(fin_raw) else "N/A"
+            delta = pd.to_datetime(fin_raw) - inicio_raw if pd.notnull(fin_raw) else pd.Timedelta(0)
+            duracion_str = f"{int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m"
             
             titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | Detalles de la falla: {row.get('DIAGNOSTICO_FALLA', 'N/A')} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {row.get('ESTATUS', 'CERRADA')}"
             
