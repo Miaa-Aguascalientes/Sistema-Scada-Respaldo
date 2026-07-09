@@ -3637,6 +3637,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
                                 '''
                             )
                         ).add_to(m)
+
+                        st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+            except Exception as e:
+                st.error(f"Error al renderizar el mapa: {e}")
         else:
             st.warning("Sin datos geográficos disponibles.")
 
