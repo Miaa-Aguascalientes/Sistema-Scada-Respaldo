@@ -3590,7 +3590,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             # ... (Lógica de mapa igual) ...
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
-                m = folium.Map(location=[lat, lon], zoom_start=15, tiles="CartoDB dark_matter")
+                m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
                 folium.GeoJson(gdf.__geo_interface__).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
