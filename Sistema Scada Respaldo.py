@@ -3673,30 +3673,26 @@ def renderizar_bloque_incidencia(row, index, tipo):
             sector_val = 'N/A'
             distrito_val = 'N/A'
 
-        claves_disponibles = [str(k).strip() for k in row.keys()]
+        cols_limpias = [str(c).strip() for c in df_incidencias.columns]
         
-        st.sidebar.write("Columnas disponibles en el DF:", df_incidencias.columns.tolist())
+        # Intentamos encontrar la columna que realmente contiene el dato
+        responsable_val = "N/A"
         
-        # 2. Intentamos obtener el valor forzando la búsqueda
-        try:
-            # Buscamos en el DataFrame global usando el index que pasaste
-            # .at es más rápido y directo para un solo valor
-            responsable_val = df_incidencias.at[index, 'RESPONSABLE']
-            
-            # Si el valor es nulo, intenta buscar por una columna similar por si hay error de dedo
-            if pd.isna(responsable_val) or str(responsable_val).strip() == "":
-                # Buscamos si hay una columna que contenga la palabra responsable
-                cols_res = [c for c in df_incidencias.columns if 'RESPONSABLE' in c.upper()]
-                if cols_res:
-                    responsable_val = df_incidencias.at[index, cols_res[0]]
-        except Exception as e:
-            responsable_val = f"Error: {e}"
+        # Buscamos variantes posibles que suelen pasar en archivos de Excel/CSV
+        posibles_nombres = ['RESPONSABLE', 'Responsable', 'responsable', 'RESPONSABLE ', ' RESPONSABLE']
+        
+        for nombre_col in posibles_nombres:
+            if nombre_col in df_incidencias.columns:
+                val = df_incidencias.at[index, nombre_col]
+                if pd.notnull(val) and str(val).strip() != "":
+                    responsable_val = val
+                    break
+        
+        # SI SIGUE SIENDO N/A, IMPRIMIMOS LAS COLUMNAS REALES PARA VER EL ERROR
+        if responsable_val == "N/A":
+            st.error(f"Columnas detectadas: {df_incidencias.columns.tolist()}")
 
-        # Validación final
-        if pd.isna(responsable_val) or str(responsable_val).strip().lower() == "nan":
-            responsable_val = "N/A"
-
-        # Mostramos los tres en columnas
+        # Mostramos en columnas
         col_sec, col_dis, col_res = st.columns(3)
         with col_sec:
             st.markdown(f"📍 **Sector:** {sector_val}")
