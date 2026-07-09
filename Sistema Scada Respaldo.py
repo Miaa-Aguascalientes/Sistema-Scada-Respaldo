@@ -3556,6 +3556,7 @@ from datetime import datetime
 from streamlit_folium import st_folium
 from folium.plugins import MarkerCluster
 
+
 tz_mx = pytz.timezone('America/Mexico_City')
 ahora_mx = datetime.now(tz_mx)
 
@@ -3590,6 +3591,9 @@ def renderizar_bloque_incidencia(row, index, tipo):
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
+
+                # AÑADIR OPCIÓN DE PANTALLA COMPLETA
+                Fullscreen(position='topright', title='Expandir a pantalla completa', title_cancel='Salir de pantalla completa').add_to(m)
                 
                 folium.GeoJson(
                     gdf, 
