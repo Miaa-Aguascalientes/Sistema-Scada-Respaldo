@@ -3703,7 +3703,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
         for index, row in datos_mes.iterrows():
             inicio_raw = row['FECHA_HORA_INICIO']
-            fin_raw = row['FECHA_FIN']
+            fin_raw = row['FECHA_HORA_FIN']
             
             # Cálculo de la duración
             if pd.notnull(fin_raw):
