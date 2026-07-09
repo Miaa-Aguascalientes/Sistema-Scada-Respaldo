@@ -3573,7 +3573,16 @@ def renderizar_bloque_incidencia(row, index, tipo):
         if col_pozo:
             gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
 
-    col1, col2 = st.columns([3, 2])
+    st.markdown("""
+        <style>
+        [data-testid="column"] {
+            padding-left: 0px !important;
+            padding-right: 0px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)        
+
+    col1, col2 = st.columns([3, 2], gap="small")
     
     with col1:
         if gdf is not None and not gdf.empty:
@@ -3583,7 +3592,9 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=15, tiles="CartoDB dark_matter")
                 folium.GeoJson(gdf.__geo_interface__).add_to(m)
+                
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+                
             except Exception as e: st.error(f"Error mapa: {e}")
         else:
             st.warning("Sin datos geográficos específicos.")
