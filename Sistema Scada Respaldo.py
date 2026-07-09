@@ -3683,7 +3683,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
         with col_dis:
             st.markdown(f"🏢 **Distrito:** {distrito_val}")
         with col_res:
-            st.markdown(f"👤 **Responsable:** {responsable_val}")
+            st.markdown(f"👤 **RESPONSABLE:** {responsable_val}")
 
         
 
