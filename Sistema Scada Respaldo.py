@@ -3817,7 +3817,20 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     
     if meses:
-        mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+        # 1. Obtenemos el nombre del mes actual (ej: "July 2026")
+        mes_actual = datetime.now().strftime('%B %Y').capitalize()
+        
+        # 2. Calculamos el índice del mes actual en nuestra lista ordenada
+        # Si el mes actual no está en la lista (ej: no hubo incidencias), usamos 0
+        default_index = meses.index(mes_actual) if mes_actual in meses else 0
+        
+        # 3. Pasamos el index al selectbox
+        mes_sel = st.selectbox(
+            "Seleccionar mes:", 
+            meses, 
+            index=default_index, 
+            key="select_mes_historial"
+        )
         
         # Filtramos por el mes seleccionado
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
