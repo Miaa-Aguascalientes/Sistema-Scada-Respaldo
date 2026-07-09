@@ -3655,7 +3655,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
         # Título con toda la información solicitada en la cabecera
-        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Falla: {diag} | Fin: {f_fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
+        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Detalles de la falla: {diag} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
         
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
@@ -3674,7 +3674,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             f_fin = str(row.get('FECHA_FIN', 'N/A'))
             duracion = str(row.get('TIEMPO_AFECTACION', 'N/A'))
             
-            titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')} | Falla: {diag} | Fin: {f_fin} | Duración: {duracion} | Estatus: {estatus}"
+            titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | Detalles de la falla: {row.get('DIAGNOSTICO_FALLA', 'N/A')} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {row.get('ESTATUS', 'CERRADA')}"
             
             with st.expander(titulo_hist):
                 renderizar_bloque_incidencia(row, index, "hist")
