@@ -3638,6 +3638,8 @@ def renderizar_bloque_incidencia(row, index, tipo):
         st.markdown(f"🔴 **Tiempo Límite para atención:** {hora_limite.strftime('%H:%M %d de %B de %Y')}")
         st.markdown(f"⏱️ **Duración del evento:** {int(transcurrido.total_seconds()//3600)}h {int((transcurrido.total_seconds()%3600)//60)}m")
 
+        
+
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
 
