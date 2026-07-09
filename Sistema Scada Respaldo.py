@@ -3662,22 +3662,28 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
         st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
 
-        # NUEVA LÓGICA: SECTOR Y DISTRITO EN COLUMNAS
+        # LÓGICA: SECTOR, DISTRITO Y RESPONSABLE EN COLUMNAS
+        # Primero preparamos los datos del archivo de geometrías
         if gdf is not None and not gdf.empty:
             sectores = [str(s) for s in gdf['Sector'].unique() if pd.notnull(s)]
             distritos = [str(d) for d in gdf['Distrito'].unique() if pd.notnull(d)]
-            
-            col_sec, col_dis = st.columns(2)
-            with col_sec:
-                st.markdown(f"📍 **Sector:** {', '.join(sectores) if sectores else 'N/A'}")
-            with col_dis:
-                st.markdown(f"🏢 **Distrito:** {', '.join(distritos) if distritos else 'N/A'}")
+            sector_val = ', '.join(sectores) if sectores else 'N/A'
+            distrito_val = ', '.join(distritos) if distritos else 'N/A'
         else:
-            col_sec, col_dis = st.columns(2)
-            with col_sec:
-                st.markdown("📍 **Sector:** N/A")
-            with col_dis:
-                st.markdown("🏢 **Distrito:** N/A")
+            sector_val = 'N/A'
+            distrito_val = 'N/A'
+
+        # Obtenemos el responsable de la tabla de incidencias
+        responsable_val = row.get('RESPONSABLE', 'N/A')
+
+        # Mostramos los tres en columnas
+        col_sec, col_dis, col_res = st.columns(3)
+        with col_sec:
+            st.markdown(f"📍 **Sector:** {sector_val}")
+        with col_dis:
+            st.markdown(f"🏢 **Distrito:** {distrito_val}")
+        with col_res:
+            st.markdown(f"👤 **Responsable:** {responsable_val}")
 
         
 
