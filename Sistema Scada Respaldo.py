@@ -3687,25 +3687,46 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
+    
+    # Aseguramos que la columna de fecha esté en formato datetime para poder operar con ella
+    df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
+    df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_FIN'], errors='coerce')
+    
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
     
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
-        for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
-            inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
-            fin_raw = row.get('FECHA_FIN')
+        
+        # Filtramos por el mes seleccionado
+        datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
+        
+        for index, row in datos_mes.iterrows():
+            inicio_raw = row['FECHA_HORA_INICIO']
+            fin_raw = row['FECHA_FIN']
             
-            if pd.notnull(fin_raw) and not pd.isna(pd.to_datetime(fin_raw, errors='coerce')):
-                fin_dt = pd.to_datetime(fin_raw)
-                delta = fin_dt - inicio_raw
-                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-                fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
+            # Cálculo de la duración
+            if pd.notnull(fin_raw):
+                delta = fin_raw - inicio_raw
+                # Extracción de días, horas y minutos exactos
+                dias = delta.days
+                horas = delta.seconds // 3600
+                minutos = (delta.seconds % 3600) // 60
+                duracion_str = f"{dias}d {horas}h {minutos}m"
+                fin_str = fin_raw.strftime('%d/%m/%y %H:%M')
             else:
                 duracion_str = "N/A"
                 fin_str = "N/A"
-                
-            titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | Fin: {fin_str} | Duración: {duracion_str} | Estatus: CERRADA"
+            
+            # Título completo con toda la información solicitada
+            titulo_hist = (
+                f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
+                f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
+                f"Fin: {fin_str} | "
+                f"Duración: {duracion_str} | "
+                f"Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
+            )
             
             with st.expander(titulo_hist):
+                # Llamamos a tu función de renderizado original pasando la fila completa
                 renderizar_bloque_incidencia(row, index, "hist")
