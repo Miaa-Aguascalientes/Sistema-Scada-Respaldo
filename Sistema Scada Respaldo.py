@@ -3661,7 +3661,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         
         # Convertimos inicio a datetime y le asignamos la zona horaria de México
         inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-        fin_raw = row.get('FECHA_FIN')
+        fin_raw = row.get('FECHA_HORA_FIN')
         
         # Formateo de fechas para el título
         inicio_str = inicio_raw.strftime('%d/%m/%y %H:%M')
