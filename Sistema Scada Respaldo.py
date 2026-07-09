@@ -3591,33 +3591,36 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
                 
-                # 1. Dibujar el polígono (la forma)
                 folium.GeoJson(
                     gdf, 
                     style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
                 ).add_to(m)
                 
-                # 2. Dibujar la línea guía + la caja de texto
+                # Bucle de etiquetas con estilo de alto contraste
                 for _, r in gdf.iterrows():
                     if r.geometry:
                         c = r.geometry.centroid
-                        # Dibujamos una línea conectora (PolyLine)
-                        # El primer punto es el centroide, el segundo es un desplazamiento leve
+                        # Línea guía
                         folium.PolyLine(
                             locations=[[c.y, c.x], [c.y + 0.001, c.x + 0.001]],
-                            color="white",
-                            weight=1
+                            color="white", weight=1
                         ).add_to(m)
                         
-                        # Dibujamos el cuadro de texto en el extremo de la línea
+                        # Cuadro de texto con fondo oscuro y letra blanca
                         folium.Marker(
                             location=[c.y + 0.001, c.x + 0.001],
                             icon=folium.DivIcon(
+                                icon_size=(150, 30),
                                 html=f'''
                                 <div style="
-                                    background: white; color: black; padding: 2px 4px;
-                                    border: 1px solid #777; font-size: 8px; font-weight: bold;
-                                    border-radius: 3px; white-space: nowrap;
+                                    background: rgba(0, 0, 0, 0.8); 
+                                    color: white; 
+                                    padding: 3px 6px; 
+                                    border: 1px solid #FFFFFF; 
+                                    font-size: 9px; 
+                                    font-weight: bold; 
+                                    border-radius: 4px;
+                                    white-space: nowrap;
                                 ">
                                     {str(r.get("Col_atl", "N/A"))}
                                 </div>
@@ -3627,7 +3630,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error al renderizar el mapa: {e}")
         else:
             st.warning("Sin datos geográficos disponibles.")
 
