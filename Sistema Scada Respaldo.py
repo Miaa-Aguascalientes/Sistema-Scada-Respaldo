@@ -3573,7 +3573,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
         if col_pozo:
             gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([1, 1])
     
     with col1:
         if gdf is not None and not gdf.empty:
