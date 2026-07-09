@@ -629,7 +629,7 @@ def get_data():
         # AQUÍ ES DONDE AGREGAS TODOS LOS CAMPOS QUE QUIERAS TRAER
         query = """
             SELECT NUM_POZO, COLONIA, FECHA_HORA_INICIO, FECHA_HORA_FIN, 
-                   DIAGNOSTICO_FALLA, TIEMPO_ESTIMADO_ATENCION, ESTATUS 
+                   DIAGNOSTICO_FALLA, TIEMPO_ESTIMADO_ATENCION, RESPONSABLE, ESTATUS 
             FROM vw_incidencias_en_pozos 
             ORDER BY FECHA_HORA_INICIO DESC
         """
@@ -3673,26 +3673,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
             sector_val = 'N/A'
             distrito_val = 'N/A'
 
-        cols_limpias = [str(c).strip() for c in df_incidencias.columns]
-        
-        # Intentamos encontrar la columna que realmente contiene el dato
-        responsable_val = "N/A"
-        
-        # Buscamos variantes posibles que suelen pasar en archivos de Excel/CSV
-        posibles_nombres = ['RESPONSABLE', 'Responsable', 'responsable', 'RESPONSABLE ', ' RESPONSABLE']
-        
-        for nombre_col in posibles_nombres:
-            if nombre_col in df_incidencias.columns:
-                val = df_incidencias.at[index, nombre_col]
-                if pd.notnull(val) and str(val).strip() != "":
-                    responsable_val = val
-                    break
-        
-        # SI SIGUE SIENDO N/A, IMPRIMIMOS LAS COLUMNAS REALES PARA VER EL ERROR
-        if responsable_val == "N/A":
-            st.error(f"Columnas detectadas: {df_incidencias.columns.tolist()}")
+        # Obtenemos el responsable de la tabla de incidencias
+        responsable_val = row.get('RESPONSABLE', 'N/A')
 
-        # Mostramos en columnas
+        # Mostramos los tres en columnas
         col_sec, col_dis, col_res = st.columns(3)
         with col_sec:
             st.markdown(f"📍 **Sector:** {sector_val}")
