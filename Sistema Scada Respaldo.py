@@ -3649,22 +3649,24 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     # 1. Incidencias Activas
     st.subheader("📋 Incidencias Activas y del día")
     for index, row in df_actual.iterrows():
-        # Valores directos de la base de datos
         estatus = str(row.get('ESTATUS', 'N/A')).upper()
         diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
         inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
         fin_raw = row.get('FECHA_FIN')
+        ahora = pd.Timestamp.now()
         
         # Formateo de fechas para el título
         inicio_str = inicio_raw.strftime('%d/%m/%y %H:%M')
         fin_str = pd.to_datetime(fin_raw).strftime('%d/%m/%y %H:%M') if pd.notnull(fin_raw) else "N/A"
         
-        # Cálculo ÚNICO: Duración del evento
+        # CÁLCULO CORREGIDO: Tiempo transcurrido si está en proceso, o duración real si cerró
         if pd.notnull(fin_raw):
             delta = pd.to_datetime(fin_raw) - inicio_raw
-            duracion_str = f"{int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m"
         else:
-            duracion_str = "En curso"
+            delta = ahora - inicio_raw
+            
+        # Formato: 0d 0h 22m
+        duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
 
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
@@ -3676,20 +3678,32 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
-    # 2. Historial
+    
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
     meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
+    
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
+        
+        # Filtramos por el mes seleccionado
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
-            # Misma lógica para el historial
+            # 1. Obtenemos las fechas para el cálculo
             inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
-            fin_raw = row.get('FECHA_FIN')
-            fin_str = pd.to_datetime(fin_raw).strftime('%d/%m/%y %H:%M') if pd.notnull(fin_raw) else "N/A"
-            delta = pd.to_datetime(fin_raw) - inicio_raw if pd.notnull(fin_raw) else pd.Timedelta(0)
-            duracion_str = f"{int(delta.total_seconds()//3600)}h {int((delta.total_seconds()%3600)//60)}m"
+            fin_raw = pd.to_datetime(row.get('FECHA_FIN'))
             
-            titulo_hist = f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | Detalles de la falla: {row.get('DIAGNOSTICO_FALLA', 'N/A')} | Fecha final: {fin_str} | Duración: {duracion_str} | Estatus: {row.get('ESTATUS', 'CERRADA')}"
+            # 2. Calculamos la duración exacta (Cerradas siempre tienen FECHA_FIN)
+            delta = fin_raw - inicio_raw
+            duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+            
+            # 3. Construimos el título con toda la info solicitada
+            titulo_hist = (
+                f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
+                f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
+                f"Detalles: {row.get('DIAGNOSTICO_FALLA', 'N/A')} | "
+                f"Fin: {fin_raw.strftime('%d/%m/%y %H:%M')} | "
+                f"Duración: {duracion_str} | "
+                f"Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
+            )
             
             with st.expander(titulo_hist):
                 renderizar_bloque_incidencia(row, index, "hist")
