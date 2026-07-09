@@ -3563,9 +3563,12 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # 1. Normalización y filtrado seguro
-    id_pozo = normalizar_id(row['NUM_POZO'])
-    gdf = get_geometries(id_pozo)
+    # 1. Obtención segura de datos básicos
+    # Usamos .get() para evitar el KeyError
+    raw_inicio = row.get('FECHA_HORA_INICIO')
+    if pd.isnull(raw_inicio):
+        st.error("No se pudo obtener la fecha de inicio.")
+        return
     
     # Filtro robusto: busca la columna correcta aunque cambie de nombre
     if gdf is not None and not gdf.empty:
@@ -3644,20 +3647,27 @@ def renderizar_bloque_incidencia(row, index, tipo):
         
         # Obtenemos el valor crudo del campo
         valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
+    try:
+        estimado = float(valor_raw) if pd.notnull(valor_raw) else 0.0
+    except ValueError:
+        estimado = 0.0
         
-        # Validamos que no sea nulo y convertimos a float
-        if pd.notnull(valor_raw):
-            try:
-                estimado = float(valor_raw)
-                hora_limite = inicio + pd.Timedelta(hours=estimado)
-            except ValueError:
-                # Esto ocurre si el campo contiene texto que no es un número
-                st.error(f"Error: El tiempo estimado '{valor_raw}' no es un número válido.")
-                hora_limite = inicio # O el valor que decidas en caso de error
-        else:
-            # Esto ocurre si el campo está vacío (NaN/None)
-            st.warning("Advertencia: No hay tiempo estimado de atención definido.")
-            hora_limite = inicio # O asigna un valor por defecto lógico si lo prefieres
+    # Si el estimado es 0, forzamos un valor mínimo (ej. 1 hora) o manejamos el caso
+    if estimado <= 0:
+        estimado = 1.0 
+        
+    hora_limite = inicio + pd.Timedelta(hours=estimado)
+    
+    # 3. Cálculo seguro del porcentaje
+    total_seg = (hora_limite - inicio).total_seconds()
+    
+    # Validación extra: si total_seg sigue siendo 0, evitamos la división
+    if total_seg > 0:
+        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+        st.progress(porcentaje)
+    else:
+        st.warning("No es posible calcular la barra de progreso (tiempo estimado 0).")
+        st.progress(0)
         
         # Barra de progreso
         total_seg = (hora_limite - inicio).total_seconds()
