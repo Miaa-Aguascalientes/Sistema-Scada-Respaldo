@@ -3583,7 +3583,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=15, tiles="CartoDB dark_matter")
                 folium.GeoJson(gdf.__geo_interface__).add_to(m)
-                st_folium(m, width=600, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+                st_folium(m, width=600, height=700, key=f"map_{tipo}_{id_pozo}_{index}")
             except Exception as e: st.error(f"Error mapa: {e}")
         else:
             st.warning("Sin datos geográficos específicos.")
