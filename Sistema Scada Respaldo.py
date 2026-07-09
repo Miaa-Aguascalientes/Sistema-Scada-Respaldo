@@ -3586,45 +3586,51 @@ def renderizar_bloque_incidencia(row, index, tipo):
     col1, col2 = st.columns([3, 2], gap="small")
     
     with col1:
-    if gdf is not None and not gdf.empty:
-        try:
-            m = folium.Map(location=[gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()], zoom_start=13, tiles="CartoDB dark_matter")
+        if gdf is not None and not gdf.empty:
+            try:
+                # 1. Crear el mapa
+                lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
+                
+                # 2. Dibujar polígonos
+                folium.GeoJson(
+                    gdf, 
+                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
+                ).add_to(m)
+                
+                # 3. Etiquetas (MarkerCluster)
+                marker_cluster = MarkerCluster().add_to(m)
+                for _, r in gdf.iterrows():
+                    if r.geometry:
+                        folium.Marker(
+                            location=[r.geometry.centroid.y, r.geometry.centroid.x],
+                            icon=folium.DivIcon(
+                                icon_size=(150, 30),
+                                html=f'''
+                                    <div style="
+                                        background: white; 
+                                        color: black; 
+                                        padding: 2px 5px; 
+                                        border: 1px solid #777; 
+                                        font-size: 9px; 
+                                        font-weight: bold; 
+                                        border-radius: 3px;
+                                        white-space: nowrap;
+                                        box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+                                    ">
+                                        {str(r.get("Col_atl", "N/A"))}
+                                    </div>
+                                '''
+                            )
+                        ).add_to(marker_cluster)
+                
+                # 4. Renderizar en Streamlit
+                st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
             
-            # Dibujar polígonos
-            folium.GeoJson(gdf, style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}).add_to(m)
-            
-            # Usar MarkerCluster para que, si hay muchas etiquetas, se agrupen y no amontonen
-            marker_cluster = MarkerCluster().add_to(m)
-            
-            for _, r in gdf.iterrows():
-                if r.geometry:
-                    # Creamos una etiqueta limpia estilo "caja"
-                    folium.Marker(
-                        location=[r.geometry.centroid.y, r.geometry.centroid.x],
-                        icon=folium.DivIcon(
-                            icon_size=(150, 30),
-                            html=f'''
-                                <div style="
-                                    background: white; 
-                                    color: black; 
-                                    padding: 2px 5px; 
-                                    border: 1px solid #777; 
-                                    font-size: 9px; 
-                                    font-weight: bold; 
-                                    border-radius: 3px;
-                                    white-space: nowrap;
-                                    box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
-                                ">
-                                    {str(r.get("Col_atl", "N/A"))}
-                                </div>
-                            '''
-                        )
-                    ).add_to(marker_cluster) # Se añade al Cluster, no al mapa directo
-            
-            st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
-            
-        except Exception as e:
-            st.error(f"Error al renderizar el mapa: {e}")
+            except Exception as e:
+                st.error(f"Error al renderizar el mapa: {e}")
+        else:
+            st.warning("Sin datos geográficos disponibles.")
 
     with col2:
         st.subheader("Tiempo de Atención")
