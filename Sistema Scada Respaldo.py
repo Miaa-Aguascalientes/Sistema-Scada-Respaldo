@@ -3591,22 +3591,20 @@ def renderizar_bloque_incidencia(row, index, tipo):
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
-
-                # AÑADIR OPCIÓN DE PANTALLA COMPLETA
-                Fullscreen(position='topright', title='Expandir a pantalla completa', title_cancel='Salir de pantalla completa').add_to(m)
                 
                 folium.GeoJson(
                     gdf, 
                     style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
                 ).add_to(m)
                 
-                # Bucle de etiquetas con líneas y puntos de conexión
-                for _, r in gdf.iterrows():
+                # Bucle de etiquetas: Ahora el nombre SÍ aparecerá
+                for i, (_, r) in enumerate(gdf.iterrows()):
                     if r.geometry:
                         c = r.geometry.centroid
+                        # Calculamos una posición para la etiqueta (sin amontonar)
                         destino = [c.y + 0.001, c.x + 0.001]
                         
-                        # 1. Punto de inicio (centroide)
+                        # 1. Punto en el centroide (origen)
                         folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
                         
                         # 2. Línea guía
@@ -3615,31 +3613,35 @@ def renderizar_bloque_incidencia(row, index, tipo):
                             color="white", weight=1
                         ).add_to(m)
                         
-                        # 3. Punto final (etiqueta)
+                        # 3. Punto en la etiqueta (final)
                         folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
                         
-                        # 4. Cuadro de texto
+                        # 4. Etiqueta con el nombre (Visible siempre)
                         folium.Marker(
                             location=destino,
                             icon=folium.DivIcon(
-                                icon_size=(150, 30),
+                                icon_size=(200, 30),
                                 html=f'''
                                 <div style="
-                                    background: rgba(0, 0, 0, 0.8); 
+                                    background: rgba(0, 0, 0, 0.9); 
                                     color: white; 
-                                    padding: 3px 6px; 
+                                    padding: 2px 8px; 
                                     border: 1px solid #FFFFFF; 
-                                    font-size: 9px; 
+                                    font-size: 10px; 
                                     font-weight: bold; 
                                     border-radius: 4px;
                                     white-space: nowrap;
                                     margin-left: 5px;
+                                    box-shadow: 0px 0px 5px rgba(255,255,255,0.3);
                                 ">
                                     {str(r.get("Col_atl", "N/A"))}
                                 </div>
                                 '''
                             )
                         ).add_to(m)
+                
+                # Botón de pantalla completa
+                Fullscreen(position='topright').add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
             except Exception as e:
