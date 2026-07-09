@@ -3664,14 +3664,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         fin_raw = row.get('FECHA_HORA_FIN')
         
         # Formateo de fechas para el título
-        inicio_str = inicio_raw.strftime('%d/%m/%y %H:%M')
+        inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
         
         if pd.notnull(fin_raw):
             fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-            fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
+            fin_str = fin_dt.strftime('%H:%M %d de %B de %Y')
             delta = fin_dt - inicio_raw
         else:
-            fin_str = "N/A"
+            fin_str = "Pendiente"
             # Restamos ahora_mx (que YA tiene la zona horaria) contra inicio_raw
             delta = ahora_mx - inicio_raw
             
@@ -3713,7 +3713,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 horas = delta.seconds // 3600
                 minutos = (delta.seconds % 3600) // 60
                 duracion_str = f"{dias}d {horas}h {minutos}m"
-                fin_str = fin_raw.strftime('%d/%m/%y %H:%M')
+                fin_str = fin_raw.strftime('%H:%M %d de %B de %Y')
             else:
                 duracion_str = "N/A"
                 fin_str = "N/A"
@@ -3721,7 +3721,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             # Título completo con toda la información solicitada
             titulo_hist = (
                 f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
-                f"Fecha y hora de inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
+                f"Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
                 f"Diagnostico de la falla: {diag} | "
                 f"Fecha y hora de cierre: {fin_str} | "
                 f"Duración del evento: {duracion_str} | "
