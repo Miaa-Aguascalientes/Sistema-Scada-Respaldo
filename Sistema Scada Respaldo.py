@@ -3591,7 +3591,13 @@ def renderizar_bloque_incidencia(row, index, tipo):
             try:
                 lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                 m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
-                folium.GeoJson(gdf.__geo_interface__).add_to(m)
+
+                folium.GeoJson(
+                    gdf,
+                    name="Colonias",
+                    style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.5},
+                    tooltip=folium.GeoJsonTooltip(fields=['Col_atl'], aliases=['Colonia:'], localize=True)
+                ).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
                 
