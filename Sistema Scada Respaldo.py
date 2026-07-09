@@ -3788,7 +3788,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
 
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
-        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Fecha y hora de inicio: {inicio_str} | Diagnostico de la falla: {diag} | Fecha y hora de cierre: {fin_str} | Duración del evento: {duracion_str} | Estatus: {estatus}"
+        titulo = (
+            f"{ind} 📍 **Pozo: {row.get('NUM_POZO', 'N/A')}** "
+            f"⏱️ Inicio: {inicio_str} "
+            f"⚠️ Falla: {diag} "
+            f"✅ Cierre: {fin_str} "
+            f"⏳ Duración: {duracion_str} "
+            f"📊 Estatus: {estatus}"
+        )
         
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
