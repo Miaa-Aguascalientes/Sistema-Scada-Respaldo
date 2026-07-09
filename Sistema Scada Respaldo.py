@@ -3597,18 +3597,33 @@ def renderizar_bloque_incidencia(row, index, tipo):
                     style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
                 ).add_to(m)
                 
-                # 2. Poner nombres permanentemente (sin Tooltip, solo texto)
+                # 2. Poner nombres de forma inteligente
                 for _, row_geo in gdf.iterrows():
-                    # Solo intentamos poner nombre si existe geometría
                     if row_geo.geometry:
-                        folium.map.Marker(
-                            [row_geo.geometry.centroid.y, row_geo.geometry.centroid.x],
-                            icon=folium.DivIcon(
-                                icon_size=(150, 30),
-                                icon_anchor=(0, 0),
-                                html=f'<div style="font-size: 8pt; color: white; font-weight: bold; white-space: nowrap; text-shadow: 1px 1px 1px black;">{row_geo.get("Col_atl", "N/A")}</div>'
-                            )
-                        ).add_to(m)
+                        # FILTRO: Solo etiquetar si la colonia tiene un tamaño significativo
+                        # Ajusta el valor 0.0001 según tus datos si ves que faltan o sobran etiquetas
+                        if row_geo.geometry.area > 0.0001:
+                            folium.map.Marker(
+                                [row_geo.geometry.centroid.y, row_geo.geometry.centroid.x],
+                                icon=folium.DivIcon(
+                                    icon_size=(120, 20),
+                                    icon_anchor=(60, 10), # Centra el texto en el punto
+                                    html=f'''
+                                    <div style="
+                                        font-size: 7pt; 
+                                        color: #D3D3D3; 
+                                        font-weight: bold; 
+                                        white-space: nowrap; 
+                                        text-align: center;
+                                        text-shadow: 1px 1px 1px black;
+                                        background-color: rgba(0,0,0,0.2);
+                                        border-radius: 3px;
+                                    ">
+                                        {str(row_geo.get("Col_atl", "N/A"))[:15]}...
+                                    </div>
+                                    '''
+                                )
+                            ).add_to(m)
                 
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
                 
