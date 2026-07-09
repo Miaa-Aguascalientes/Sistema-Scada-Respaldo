@@ -3655,7 +3655,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
         
         # Título con toda la información solicitada en la cabecera
-        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {row['FECHA_HORA_INICIO'].strftime('%d/%m/%y')} | Falla: {diag} | Fin: {f_fin} | Duración: {duracion} | Estatus: {estatus}"
+        titulo = f"{ind} **Pozo: {row.get('NUM_POZO', 'N/A')}** | Inicio: {inicio_str} | Falla: {diag} | Fin: {f_fin_str} | Duración: {duracion_str} | Estatus: {estatus}"
         
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
