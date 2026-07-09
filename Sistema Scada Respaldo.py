@@ -3555,6 +3555,9 @@ import pytz
 from datetime import datetime
 from streamlit_folium import st_folium
 
+tz_mx = pytz.timezone('America/Mexico_City')
+ahora_mx = datetime.now(tz_mx)
+
 def normalizar_id(valor):
     return str(valor).strip().upper()
 
