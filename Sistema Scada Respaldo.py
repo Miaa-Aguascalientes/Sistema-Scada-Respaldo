@@ -3693,23 +3693,31 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     if meses:
         mes_sel = st.selectbox("Seleccionar mes:", meses, key="select_mes_historial")
         for index, row in df_historial[df_historial['MES_AÑO'] == mes_sel].iterrows():
-            # Cálculo sincronizado para el historial
-            inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-            fin_dt = pd.to_datetime(row.get('FECHA_FIN')).tz_localize(None).tz_localize(tz_mx)
+            inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO'))
+            fin_raw = row.get('FECHA_FIN')
             
-            delta = fin_dt - inicio_raw
-            duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+            # Validación: solo procesar si fin_raw existe
+            if pd.notnull(fin_raw):
+                fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                fin_str = fin_dt.strftime('%d/%m/%y %H:%M')
+                
+                # Asegurar que inicio también tenga zona horaria
+                inicio_dt = inicio_raw.tz_localize(None).tz_localize(tz_mx)
+                delta = fin_dt - inicio_dt
+                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+            else:
+                fin_str = "N/A"
+                duracion_str = "N/A"
             
             titulo_hist = (
                 f"🟢 **Pozo: {row.get('NUM_POZO', 'N/A')}** | "
                 f"Inicio: {inicio_raw.strftime('%d/%m/%y %H:%M')} | "
                 f"Detalles: {row.get('DIAGNOSTICO_FALLA', 'N/A')} | "
-                f"Fin: {fin_dt.strftime('%d/%m/%y %H:%M')} | "
+                f"Fin: {fin_str} | "
                 f"Duración: {duracion_str} | "
                 f"Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
             )
             
             with st.expander(titulo_hist):
                 renderizar_bloque_incidencia(row, index, "hist")
-
 
