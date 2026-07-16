@@ -1340,15 +1340,19 @@ if "graficar_pozo" in params:
                 # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
                 # Usamos el dataframe 'df' que ya contiene toda la información de los tags
                 if not df.empty:
-                    # Convertimos a CSV
-                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    # Pivotamos el DataFrame: 
+                    # index=FECHA, columns=TagName (crea una columna por cada sensor), values=VALUE
+                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE').reset_index()
+                    
+                    # Convertimos el DataFrame pivotado a CSV
+                    csv_data = df_pivot.to_csv(index=False).encode('utf-8')
                     
                     st.download_button(
-                        label="📥 Descargar todos los datos (CSV)",
+                        label="📥 Descargar datos organizados (CSV)",
                         data=csv_data,
-                        file_name=f"historial_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        file_name=f"reporte_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv",
-                        help="Descarga el historial completo de todas las variables consultadas"
+                        help="Descarga un archivo donde cada variable tiene su propia columna"
                     )
                 else:
                     st.warning("No hay datos disponibles para descargar.")
