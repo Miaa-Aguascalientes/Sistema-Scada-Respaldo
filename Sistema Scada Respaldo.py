@@ -1002,6 +1002,21 @@ if "graficar_pozo" in params:
             df['FECHA'] = pd.to_datetime(df['FECHA'])
             df = df.sort_values('FECHA', ascending=True)
 
+            with col_btn:
+            st.write("###") 
+            mask_caudal = df['TagName'].str.contains('CAU_INS', na=False)
+            df_clean = df.copy()
+            df_clean.loc[mask_caudal & ((df_clean['VALUE'] < 0) | (df_clean['VALUE'] > 100)), 'VALUE'] = None
+            df_pivot = df_clean.pivot(index='FECHA', columns='TagName', values='VALUE').reset_index()
+            csv_data = df_pivot.to_csv(index=False).encode('utf-8')
+            
+            st.download_button(
+                label="📥 Descargar",
+                data=csv_data,
+                file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv"
+            )
+
             # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
                 # Si está vacío, mostramos el aviso y salimos de esta parte
