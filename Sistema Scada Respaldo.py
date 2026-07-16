@@ -1340,22 +1340,25 @@ if "graficar_pozo" in params:
                 # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
                 # Usamos el dataframe 'df' que ya contiene toda la información de los tags
                 if not df.empty:
-                    # Pivotamos el DataFrame: 
-                    # index=FECHA, columns=TagName (crea una columna por cada sensor), values=VALUE
-                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE').reset_index()
+                    # 1. Pivotamos para tener columnas por TagName
+                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE')
                     
-                    # Convertimos el DataFrame pivotado a CSV
+                    # 2. APLICAMOS EL RELLENO HACIA ADELANTE (ffill)
+                    # Esto toma el último valor válido y lo copia en los huecos vacíos
+                    df_pivot = df_pivot.ffill().reset_index()
+                    
+                    # 3. Convertimos a CSV
                     csv_data = df_pivot.to_csv(index=False).encode('utf-8')
                     
                     st.download_button(
-                        label="📥 Descargar datos organizados (CSV)",
+                        label="📥 Descargar datos limpios (CSV)",
                         data=csv_data,
-                        file_name=f"reporte_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        file_name=f"reporte_limpio_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv",
-                        help="Descarga un archivo donde cada variable tiene su propia columna"
+                        help="Descarga los datos con los espacios vacíos rellenados con el último valor conocido"
                     )
                 else:
-                    st.warning("No hay datos disponibles para descargar.")
+                    st.warning("No hay datos disponibles para procesar.")
 
         except Exception as e: 
             st.error(f"Error: {e}")
