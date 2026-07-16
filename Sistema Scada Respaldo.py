@@ -1339,15 +1339,19 @@ if "graficar_pozo" in params:
 
                 # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
                 # Usamos el dataframe 'df' que ya contiene toda la información de los tags
-                csv_data = df.to_csv(index=False).encode('utf-8')
-                
-                st.download_button(
-                    label="📥 Descargar datos del gráfico (CSV)",
-                    data=csv_data,
-                    file_name=f"datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    help="Descarga todos los registros del rango seleccionado en formato CSV"
-                )
+                if not df.empty:
+                    # Convertimos a CSV
+                    csv_data = df.to_csv(index=False).encode('utf-8')
+                    
+                    st.download_button(
+                        label="📥 Descargar todos los datos (CSV)",
+                        data=csv_data,
+                        file_name=f"historial_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        help="Descarga el historial completo de todas las variables consultadas"
+                    )
+                else:
+                    st.warning("No hay datos disponibles para descargar.")
 
         except Exception as e: 
             st.error(f"Error: {e}")
