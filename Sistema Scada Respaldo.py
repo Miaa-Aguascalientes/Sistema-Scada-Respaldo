@@ -1051,6 +1051,37 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
+            if not df.empty:
+                    # 1. Identificamos las etiquetas que corresponden a caudal
+                    # Buscamos todas las que contengan 'CAU_INS'
+                    mask_caudal = df['TagName'].str.contains('CAU_INS', na=False)
+                    
+                    # 2. Aplicamos filtros SOLO a esas filas
+                    # Ponemos en None los valores fuera de rango solo en las filas de caudal
+                    df.loc[mask_caudal & (df['VALUE'] < 0), 'VALUE'] = None
+                    df.loc[mask_caudal & (df['VALUE'] > 100), 'VALUE'] = None
+                    
+                    # 3. Pivotamos los datos
+                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE')
+                    
+                    # 4. Aplicamos el rellenado hacia adelante (ffill) a todo el dataframe
+                    # Como ya limpiamos los valores inválidos de caudal, el ffill
+                    # tomará el último valor válido para todas las variables.
+                    df_pivot = df_pivot.ffill().reset_index()
+                    
+                    # 5. Convertimos a CSV
+                    csv_data = df_pivot.to_csv(index=False).encode('utf-8')
+                    
+                    st.download_button(
+                        label="📥 Descargar datos del grafico",
+                        data=csv_data,
+                        file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        help="Descarga los datos: Caudales (0-100 Lps) y resto de variables sin filtrar"
+                    )
+                else:
+                    st.warning("No hay datos disponibles para procesar.")
+
 # ------------------------------------------------------- PESTAÑA DE VOLÚMENES Y GRAFICO DE BARRAS DE VOLUMEN TOTALIZADO ------------------------------------------------------------------------------
             with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
@@ -1337,38 +1368,7 @@ if "graficar_pozo" in params:
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
-                # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
-                # Usamos el dataframe 'df' que ya contiene toda la información de los tags
-                if not df.empty:
-                    # 1. Identificamos las etiquetas que corresponden a caudal
-                    # Buscamos todas las que contengan 'CAU_INS'
-                    mask_caudal = df['TagName'].str.contains('CAU_INS', na=False)
-                    
-                    # 2. Aplicamos filtros SOLO a esas filas
-                    # Ponemos en None los valores fuera de rango solo en las filas de caudal
-                    df.loc[mask_caudal & (df['VALUE'] < 0), 'VALUE'] = None
-                    df.loc[mask_caudal & (df['VALUE'] > 100), 'VALUE'] = None
-                    
-                    # 3. Pivotamos los datos
-                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE')
-                    
-                    # 4. Aplicamos el rellenado hacia adelante (ffill) a todo el dataframe
-                    # Como ya limpiamos los valores inválidos de caudal, el ffill
-                    # tomará el último valor válido para todas las variables.
-                    df_pivot = df_pivot.ffill().reset_index()
-                    
-                    # 5. Convertimos a CSV
-                    csv_data = df_pivot.to_csv(index=False).encode('utf-8')
-                    
-                    st.download_button(
-                        label="📥 Descargar datos del grafico",
-                        data=csv_data,
-                        file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        help="Descarga los datos: Caudales (0-100 Lps) y resto de variables sin filtrar"
-                    )
-                else:
-                    st.warning("No hay datos disponibles para procesar.")
+                
 
         except Exception as e: 
             st.error(f"Error: {e}")
