@@ -1361,9 +1361,9 @@ if "graficar_pozo" in params:
                     csv_data = df_pivot.to_csv(index=False).encode('utf-8')
                     
                     st.download_button(
-                        label="📥 Descargar datos (Caudal filtrado)",
+                        label="📥 Descargar datos del grafico",
                         data=csv_data,
-                        file_name=f"reporte_pozo_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                         mime="text/csv",
                         help="Descarga los datos: Caudales (0-100 Lps) y resto de variables sin filtrar"
                     )
