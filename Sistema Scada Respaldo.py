@@ -1050,37 +1050,27 @@ if "graficar_pozo" in params:
     </div>
 </div>
 """, unsafe_allow_html=True)
+with header_container:
+    # Renderizado de tu HTML de indicadores
+    cabecera_placeholder.markdown(f"""
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
+        <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">Sitio: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
+        </div>
+    """, unsafe_allow_html=True)
 
-            if not df.empty:
-                    # 1. Identificamos las etiquetas que corresponden a caudal
-                    # Buscamos todas las que contengan 'CAU_INS'
-                    mask_caudal = df['TagName'].str.contains('CAU_INS', na=False)
-                    
-                    # 2. Aplicamos filtros SOLO a esas filas
-                    # Ponemos en None los valores fuera de rango solo en las filas de caudal
-                    df.loc[mask_caudal & (df['VALUE'] < 0), 'VALUE'] = None
-                    df.loc[mask_caudal & (df['VALUE'] > 100), 'VALUE'] = None
-                    
-                    # 3. Pivotamos los datos
-                    df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE')
-                    
-                    # 4. Aplicamos el rellenado hacia adelante (ffill) a todo el dataframe
-                    # Como ya limpiamos los valores inválidos de caudal, el ffill
-                    # tomará el último valor válido para todas las variables.
-                    df_pivot = df_pivot.ffill().reset_index()
-                    
-                    # 5. Convertimos a CSV
-                    csv_data = df_pivot.to_csv(index=False).encode('utf-8')
-                    
-                    st.download_button(
-                        label="📥 Descargar datos del grafico",
-                        data=csv_data,
-                        file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        help="Descarga los datos: Caudales (0-100 Lps) y resto de variables sin filtrar"
-                    )
-                else:
-                    st.warning("No hay datos disponibles para procesar.")
+    # 2. El botón aparece justo debajo por el flujo de ejecución
+    if not df.empty:
+        # (Aquí tu lógica de limpieza de df y preparación de csv_data)
+        
+        st.download_button(
+            label="📥 Descargar datos del grafico",
+            data=csv_data,
+            file_name=f"Datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
+    else:
+        st.warning("No hay datos disponibles para procesar.")
+            
 
 # ------------------------------------------------------- PESTAÑA DE VOLÚMENES Y GRAFICO DE BARRAS DE VOLUMEN TOTALIZADO ------------------------------------------------------------------------------
             with st.expander("📅 Análisis de volumen real", expanded=False):
