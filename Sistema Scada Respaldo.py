@@ -1337,7 +1337,20 @@ if "graficar_pozo" in params:
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
-        except Exception as e: st.error(f"Error: {e}")
+                # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
+                # Usamos el dataframe 'df' que ya contiene toda la información de los tags
+                csv_data = df.to_csv(index=False).encode('utf-8')
+                
+                st.download_button(
+                    label="📥 Descargar datos del gráfico (CSV)",
+                    data=csv_data,
+                    file_name=f"datos_{nombre_pozo}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    help="Descarga todos los registros del rango seleccionado en formato CSV"
+                )
+
+        except Exception as e: 
+            st.error(f"Error: {e}")
             
     st.stop()
 
