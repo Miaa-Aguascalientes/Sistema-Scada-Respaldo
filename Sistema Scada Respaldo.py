@@ -405,25 +405,35 @@ def obtener_pozos_con_incidencias_hoy():
 
 def calcular_color_colonia(props, pozos_con_incidencia):
     max_afectacion = 0
+    tiene_incidencia_activa = False
     
     for i in range(1, 11):
         pozo_col = props.get(f'Pozo_{i}')
         afectacion_col = props.get(f'Afectacion_{i}')
         
-        if pozo_col is not None and afectacion_col is not None:
+        if pozo_col is not None:
             num_col_limpio = re.sub(r'\D', '', str(pozo_col))
             if num_col_limpio:
                 num_col_normalizado = str(int(num_col_limpio))
                 
+                # Verificamos si este pozo está en la lista de incidencias activas
                 if num_col_limpio in pozos_con_incidencia or num_col_normalizado in pozos_con_incidencia:
-                    try:
-                        val_afect = float(afectacion_col)
-                        if val_afect > max_afectacion:
-                            max_afectacion = val_afect
-                    except:
-                        pass
+                    tiene_incidencia_activa = True
+                    if pd.notna(afectacion_col):
+                        try:
+                            # Limpiamos el texto eliminando '%' y espacios para convertirlo a float correctamente
+                            val_str = str(afectacion_col).replace('%', '').strip()
+                            val_afect = float(val_str)
+                            if val_afect > max_afectacion:
+                                max_afectacion = val_afect
+                        except Exception as e:
+                            pass
 
-    # Rangos de color solicitados para la afectación
+    # Si tiene incidencia activa pero no se pudo leer el porcentaje, lo mandamos a naranja por alerta
+    if tiene_incidencia_activa and max_afectacion == 0:
+        return '#FFA500', 1  
+
+    # Rangos de color según la afectación numérica real (aquí entrará el 100% en Rojo)
     if 76 <= max_afectacion <= 100:
         return '#FF0000', max_afectacion  # Rojo
     elif 51 <= max_afectacion <= 75:
@@ -433,7 +443,7 @@ def calcular_color_colonia(props, pozos_con_incidencia):
     elif 1 <= max_afectacion <= 30:
         return '#FFDAB9', max_afectacion  # Naranja bajito
     else:
-        return '#2ECC71', 0               # Color verde base si no tiene incidencia
+        return '#2ECC71', 0               # Verde si no hay incidencia activa
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
