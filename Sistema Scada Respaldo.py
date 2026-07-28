@@ -3610,18 +3610,16 @@ if sectores_data:
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS
     if ver_colonias:
         gdf_colonias = get_todas_las_colonias()
-        # Esta función ahora devuelve el diccionario con los diagnósticos de fallas activas
         dic_incidencias_activas = obtener_pozos_con_incidencias_hoy()
         
         if gdf_colonias is not None and not gdf_colonias.empty:
             
-            # Inyectamos los valores calculados directamente en las propiedades del GeoDataFrame para el Tooltip
             lista_incidencias_tooltip = []
             lista_afectacion_tooltip = []
             
             for idx, row in gdf_colonias.iterrows():
                 max_afec = 0
-                falla_encontrada = "Sin incidencia"
+                descripciones_fallas = []
                 
                 for i in range(1, 11):
                     pozo_col = row.get(f'Pozo_{i}')
@@ -3631,9 +3629,14 @@ if sectores_data:
                         num_col_limpio = re.sub(r'\D', '', str(pozo_col))
                         if num_col_limpio:
                             num_norm = str(int(num_col_limpio))
-                            # Validamos si el pozo está dentro del diccionario de incidencias activas (!= CERRADA)
+                            
+                            # Si este pozo de la colonia tiene una incidencia activa (!= CERRADA)
                             if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
-                                falla_encontrada = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                                falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                                
+                                # Formateamos indicando el pozo y su falla específica (ej. "P-037: ALTA DEMANDA")
+                                descripciones_fallas.append(f"{pozo_col}: {falla}")
+                                
                                 if pd.notna(afectacion_col):
                                     try:
                                         val_str = str(afectacion_col).replace('%', '').strip()
@@ -3643,9 +3646,9 @@ if sectores_data:
                                     except:
                                         pass
                 
-                # Asignamos los textos finales para el recuadro flotante
-                if max_afec > 0 or falla_encontrada != "Sin incidencia":
-                    lista_incidencias_tooltip.append(f"{falla_encontrada}")
+                # Definimos el texto final para el tooltip
+                if descripciones_fallas:
+                    lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
                     lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
                 else:
                     lista_incidencias_tooltip.append("Ninguna")
@@ -3656,7 +3659,6 @@ if sectores_data:
 
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
-            # --- ESTILOS ---
             def estilo_final(feature):
                 props = feature.get('properties', {})
                 nombre_actual = props.get('Col_atl')
@@ -3680,7 +3682,6 @@ if sectores_data:
             def estilo_hover(feature):
                 return {'fillOpacity': 0.8, 'weight': 4, 'color': '#34495E'}
 
-            # --- RENDERIZADO CON TOOLTIP AMPLIADO ---
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
