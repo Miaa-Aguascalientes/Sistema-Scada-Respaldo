@@ -417,7 +417,6 @@ def calcular_color_colonia(props, pozos_con_incidencia):
             if num_col_limpio:
                 num_col_normalizado = str(int(num_col_limpio))
                 
-                # Si el pozo está en la lista (lo que significa que NO está CERRADO)
                 if num_col_limpio in pozos_con_incidencia or num_col_normalizado in pozos_con_incidencia:
                     tiene_incidencia_activa = True
                     if pd.notna(afectacion_col):
@@ -429,9 +428,8 @@ def calcular_color_colonia(props, pozos_con_incidencia):
                         except:
                             pass
 
-    # Si no tiene incidencias activas (todas están cerradas o no existen), regresa verde normal
     if not tiene_incidencia_activa:
-        return '#2ECC71', 0
+        return '#3498DB', 0  # Azul para colonias sin afectación activa
 
     if tiene_incidencia_activa and max_afectacion == 0:
         return '#FFA500', 1  
@@ -446,7 +444,7 @@ def calcular_color_colonia(props, pozos_con_incidencia):
     elif 1 <= max_afectacion <= 30:
         return '#FFDAB9', max_afectacion  # Naranja bajito
     else:
-        return '#2ECC71', 0
+        return '#3498DB', 0
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
@@ -3630,11 +3628,8 @@ if sectores_data:
                         if num_col_limpio:
                             num_norm = str(int(num_col_limpio))
                             
-                            # Si este pozo de la colonia tiene una incidencia activa (!= CERRADA)
                             if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
                                 falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
-                                
-                                # Formateamos indicando el pozo y su falla específica (ej. "P-037: ALTA DEMANDA")
                                 descripciones_fallas.append(f"{pozo_col}: {falla}")
                                 
                                 if pd.notna(afectacion_col):
@@ -3646,7 +3641,6 @@ if sectores_data:
                                     except:
                                         pass
                 
-                # Definimos el texto final para el tooltip
                 if descripciones_fallas:
                     lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
                     lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
@@ -3668,9 +3662,10 @@ if sectores_data:
                 color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
                 
                 fill_color_final = '#F1C40F' if es_match else color_dinamico
-                border_color_final = '#F39C12' if es_match else '#27AE60'
+                # Borde azul elegante para las colonias normales, o naranja si están seleccionadas
+                border_color_final = '#F39C12' if es_match else ('#2980B9' if afectacion_val == 0 else '#27AE60')
                 weight_final = 3 if es_match else 1
-                opacity_final = 0.6 if es_match else (0.7 if afectacion_val > 0 else 0.2)
+                opacity_final = 0.6 if es_match else (0.7 if afectacion_val > 0 else 0.15)
                 
                 return {
                     'fillColor': fill_color_final,
@@ -3680,7 +3675,7 @@ if sectores_data:
                 }
 
             def estilo_hover(feature):
-                return {'fillOpacity': 0.8, 'weight': 4, 'color': '#34495E'}
+                return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
 
             folium.GeoJson(
                 gdf_colonias,
