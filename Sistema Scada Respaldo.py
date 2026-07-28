@@ -384,12 +384,11 @@ def obtener_pozos_con_incidencias_hoy():
     if engine is None:
         return set()
     try:
-        # Filtramos estrictamente por incidencias EN PROCESO o creadas el día de hoy
+        # Traemos únicamente las incidencias que NO estén cerradas (es decir, EN PROCESO o abiertas hoy que sigan vigentes)
         query = """
             SELECT NUM_POZO 
             FROM vw_incidencias_en_pozos 
-            WHERE ESTATUS = 'EN PROCESO' 
-               OR DATE(FECHA_HORA_INICIO) = CURDATE()
+            WHERE ESTATUS != 'CERRADA'
         """
         df_inc = pd.read_sql(query, engine)
         pozos_afectados = set()
@@ -397,7 +396,7 @@ def obtener_pozos_con_incidencias_hoy():
             numero_limpio = re.sub(r'\D', '', str(val))
             if numero_limpio:
                 pozos_afectados.add(numero_limpio)
-                pozos_afectados.add(str(int(numero_limpio))) # Soporta variaciones con ceros a la izquierda (ej. 095 vs 95)
+                pozos_afectados.add(str(int(numero_limpio)))
         return pozos_afectados
     except Exception as e:
         return set()
@@ -415,24 +414,26 @@ def calcular_color_colonia(props, pozos_con_incidencia):
             if num_col_limpio:
                 num_col_normalizado = str(int(num_col_limpio))
                 
-                # Verificamos si este pozo está en la lista de incidencias activas
+                # Si el pozo está en la lista (lo que significa que NO está CERRADO)
                 if num_col_limpio in pozos_con_incidencia or num_col_normalizado in pozos_con_incidencia:
                     tiene_incidencia_activa = True
                     if pd.notna(afectacion_col):
                         try:
-                            # Limpiamos el texto eliminando '%' y espacios para convertirlo a float correctamente
                             val_str = str(afectacion_col).replace('%', '').strip()
                             val_afect = float(val_str)
                             if val_afect > max_afectacion:
                                 max_afectacion = val_afect
-                        except Exception as e:
+                        except:
                             pass
 
-    # Si tiene incidencia activa pero no se pudo leer el porcentaje, lo mandamos a naranja por alerta
+    # Si no tiene incidencias activas (todas están cerradas o no existen), regresa verde normal
+    if not tiene_incidencia_activa:
+        return '#2ECC71', 0
+
     if tiene_incidencia_activa and max_afectacion == 0:
         return '#FFA500', 1  
 
-    # Rangos de color según la afectación numérica real (aquí entrará el 100% en Rojo)
+    # Rangos de color según la afectación activa
     if 76 <= max_afectacion <= 100:
         return '#FF0000', max_afectacion  # Rojo
     elif 51 <= max_afectacion <= 75:
@@ -442,7 +443,7 @@ def calcular_color_colonia(props, pozos_con_incidencia):
     elif 1 <= max_afectacion <= 30:
         return '#FFDAB9', max_afectacion  # Naranja bajito
     else:
-        return '#2ECC71', 0               # Verde si no hay incidencia activa
+        return '#2ECC71', 0
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
