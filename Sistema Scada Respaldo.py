@@ -382,24 +382,27 @@ def get_todas_las_colonias():
 def obtener_pozos_con_incidencias_hoy():
     engine = get_mysql_scada_engine()
     if engine is None:
-        return set()
+        return {}
     try:
-        # Traemos únicamente las incidencias que NO estén cerradas (es decir, EN PROCESO o abiertas hoy que sigan vigentes)
+        # Consultamos tanto el pozo, el estatus, como el diagnóstico de la falla
         query = """
-            SELECT NUM_POZO 
+            SELECT NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS 
             FROM vw_incidencias_en_pozos 
             WHERE ESTATUS != 'CERRADA'
         """
         df_inc = pd.read_sql(query, engine)
-        pozos_afectados = set()
-        for val in df_inc['NUM_POZO'].dropna():
-            numero_limpio = re.sub(r'\D', '', str(val))
-            if numero_limpio:
-                pozos_afectados.add(numero_limpio)
-                pozos_afectados.add(str(int(numero_limpio)))
-        return pozos_afectados
+        dic_incidencias = {}
+        for _, row in df_inc.iterrows():
+            val = row['NUM_POZO']
+            if pd.notna(val):
+                numero_limpio = re.sub(r'\D', '', str(val))
+                if numero_limpio:
+                    diagnostico = row['DIAGNOSTICO_FALLA'] or 'Sin diagnóstico'
+                    dic_incidencias[numero_limpio] = diagnostico
+                    dic_incidencias[str(int(numero_limpio))] = diagnostico
+        return dic_incidencias
     except Exception as e:
-        return set()
+        return {}
 
 def calcular_color_colonia(props, pozos_con_incidencia):
     max_afectacion = 0
@@ -3606,20 +3609,61 @@ if sectores_data:
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS
     if ver_colonias:
-        # Forzamos la carga con la función actualizada para garantizar que existan las columnas de afectación
         gdf_colonias = get_todas_las_colonias()
-        pozos_incidencias_hoy = obtener_pozos_con_incidencias_hoy()
+        # Esta función ahora devuelve el diccionario con los diagnósticos de fallas activas
+        dic_incidencias_activas = obtener_pozos_con_incidencias_hoy()
         
         if gdf_colonias is not None and not gdf_colonias.empty:
+            
+            # Inyectamos los valores calculados directamente en las propiedades del GeoDataFrame para el Tooltip
+            lista_incidencias_tooltip = []
+            lista_afectacion_tooltip = []
+            
+            for idx, row in gdf_colonias.iterrows():
+                max_afec = 0
+                falla_encontrada = "Sin incidencia"
+                
+                for i in range(1, 11):
+                    pozo_col = row.get(f'Pozo_{i}')
+                    afectacion_col = row.get(f'Afectacion_{i}')
+                    
+                    if pd.notna(pozo_col):
+                        num_col_limpio = re.sub(r'\D', '', str(pozo_col))
+                        if num_col_limpio:
+                            num_norm = str(int(num_col_limpio))
+                            # Validamos si el pozo está dentro del diccionario de incidencias activas (!= CERRADA)
+                            if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
+                                falla_encontrada = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                                if pd.notna(afectacion_col):
+                                    try:
+                                        val_str = str(afectacion_col).replace('%', '').strip()
+                                        val_f = float(val_str)
+                                        if val_f > max_afec:
+                                            max_afec = val_f
+                                    except:
+                                        pass
+                
+                # Asignamos los textos finales para el recuadro flotante
+                if max_afec > 0 or falla_encontrada != "Sin incidencia":
+                    lista_incidencias_tooltip.append(f"{falla_encontrada}")
+                    lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
+                else:
+                    lista_incidencias_tooltip.append("Ninguna")
+                    lista_afectacion_tooltip.append("0%")
+
+            gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
+            gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
+
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
+            # --- ESTILOS ---
             def estilo_final(feature):
                 props = feature.get('properties', {})
                 nombre_actual = props.get('Col_atl')
                 col_sel = st.session_state.get('colonia_resaltada')
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
-                color_dinamico, afectacion_val = calcular_color_colonia(props, pozos_incidencias_hoy)
+                color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
                 
                 fill_color_final = '#F1C40F' if es_match else color_dinamico
                 border_color_final = '#F39C12' if es_match else '#27AE60'
@@ -3636,14 +3680,15 @@ if sectores_data:
             def estilo_hover(feature):
                 return {'fillOpacity': 0.8, 'weight': 4, 'color': '#34495E'}
 
+            # --- RENDERIZADO CON TOOLTIP AMPLIADO ---
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
                 style_function=estilo_final,
                 highlight_function=estilo_hover,
                 tooltip=folium.GeoJsonTooltip(
-                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito'],
-                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:'],
+                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
+                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
                     localize=True,
                     sticky=True
                 )
