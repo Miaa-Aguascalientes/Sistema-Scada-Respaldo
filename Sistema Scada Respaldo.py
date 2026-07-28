@@ -358,11 +358,19 @@ def cargar_sectores_poligonos():
 # Función corregida para leer el campo 'geom' directamente
 @st.cache_data(ttl=3600)
 def get_todas_las_colonias():
-    # Eliminamos el filtro WHERE para obtener todo el diccionario
-    query = "SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor FROM Diccionario_colonias"
+    # Incluimos los campos de pozos y afectaciones del 1 al 10 en la consulta
+    query = """
+        SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor,
+               Pozo_1, Afectacion_1, Pozo_2, Afectacion_2, 
+               Pozo_3, Afectacion_3, Pozo_4, Afectacion_4, 
+               Pozo_5, Afectacion_5, Pozo_6, Afectacion_6, 
+               Pozo_7, Afectacion_7, Pozo_8, Afectacion_8, 
+               Pozo_9, Afectacion_9, Pozo_10, Afectacion_10 
+        FROM Diccionario_colonias
+    """
     try:
         df = pd.read_sql(query, get_mysql_telemetria_engine())
-        if not df.empty:
+        if not df.empty and df['geom_wkt'].iloc[0] is not None:
             df['geometry'] = df['geom_wkt'].apply(wkt.loads)
             gdf = gpd.GeoDataFrame(df, geometry='geometry')
             gdf.set_crs(epsg=32613, inplace=True)
@@ -370,6 +378,57 @@ def get_todas_las_colonias():
     except Exception as e:
         st.error(f"Error cargando polígonos: {e}")
     return None
+
+@st.cache_data(ttl=60)
+def obtener_pozos_con_incidencias_hoy():
+    engine = get_mysql_scada_engine()
+    if engine is None:
+        return set()
+    try:
+        query = """
+            SELECT NUM_POZO 
+            FROM vw_incidencias_en_pozos 
+            WHERE DATE(FECHA_HORA_INICIO) = CURDATE() 
+               OR ESTATUS = 'EN PROCESO'
+        """
+        df_inc = pd.read_sql(query, engine)
+        pozos_afectados = set()
+        for val in df_inc['NUM_POZO'].dropna():
+            numero_limpio = re.sub(r'\D', '', str(val))
+            if numero_limpio:
+                pozos_afectados.add(numero_limpio)
+        return pozos_afectados
+    except Exception as e:
+        return set()
+
+def calcular_color_colonia(row, pozos_con_incidencia):
+    max_afectacion = 0
+    
+    for i in range(1, 11):
+        pozo_col = row.get(f'Pozo_{i}')
+        afectacion_col = row.get(f'Afectacion_{i}')
+        
+        if pd.notna(pozo_col) and pd.notna(afectacion_col):
+            num_pozo_limpio = re.sub(r'\D', '', str(pozo_col))
+            if num_pozo_limpio in pozos_con_incidencia:
+                try:
+                    val_afect = float(afectacion_col)
+                    if val_afect > max_afectacion:
+                        max_afectacion = val_afect
+                except:
+                    pass
+
+    # Asignación de color según los rangos de afectación
+    if 76 <= max_afectacion <= 100:
+        return '#FF0000', max_afectacion  # Rojo (76% - 100%)
+    elif 51 <= max_afectacion <= 75:
+        return '#FFFF00', max_afectacion  # Amarillo (51% - 75%)
+    elif 31 <= max_afectacion <= 50:
+        return '#FFA500', max_afectacion  # Naranja (31% - 50%)
+    elif 1 <= max_afectacion <= 30:
+        return '#FFDAB9', max_afectacion  # Naranja bajito (1% - 30%)
+    else:
+        return 'transparent', 0           # Sin afectación / Sin incidencia
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
@@ -3530,9 +3589,10 @@ if sectores_data:
             except Exception as e:
                 continue
 
-# 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS (Nivel 4 espacios: fuera del FOR, pero dentro del IF padre)
+# 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS
     if ver_colonias:
         gdf_colonias = st.session_state.get('gdf_colonias_lista')
+        pozos_incidencias_hoy = obtener_pozos_con_incidencias_hoy()
         
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
@@ -3544,11 +3604,20 @@ if sectores_data:
                 col_sel = st.session_state.get('colonia_resaltada')
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
+                # Obtenemos el color dinámico por afectación
+                color_dinamico, afectacion_val = calcular_color_colonia(props, pozos_incidencias_hoy)
+                
+                # Si está seleccionada manualmente, priorizamos el estilo de selección; si no, usamos el dinámico por afectación
+                fill_color_final = '#F1C40F' if es_match else color_dinamico
+                border_color_final = '#F39C12' if es_match else '#27AE60'
+                weight_final = 3 if es_match else 1
+                opacity_final = 0.6 if es_match else (0.7 if afectacion_val > 0 else 0.2)
+                
                 return {
-                    'fillColor': '#F1C40F' if es_match else '#2ECC71', # Amarillo si es selección
-                    'color': '#F39C12' if es_match else '#27AE60',
-                    'weight': 3 if es_match else 1,
-                    'fillOpacity': 0.6 if es_match else 0.2
+                    'fillColor': fill_color_final,
+                    'color': border_color_final,
+                    'weight': weight_final,
+                    'fillOpacity': opacity_final
                 }
 
             def estilo_hover(feature):
@@ -3561,8 +3630,6 @@ if sectores_data:
                 style_function=estilo_final,
                 highlight_function=estilo_hover,
                 tooltip=folium.GeoJsonTooltip(
-                    # Asegúrate de que estos nombres coincidan con las columnas de tu DF:
-                    # ['Col_atl', 'Pozos', 'Sector', 'Distrito']
                     fields=['Col_atl', 'Pozos', 'Sector', 'Distrito'],
                     aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:'],
                     localize=True,
@@ -3572,7 +3639,7 @@ if sectores_data:
             
             fg_colonias.add_to(m)
 
-    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL (Nivel 4 espacios)
+    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
