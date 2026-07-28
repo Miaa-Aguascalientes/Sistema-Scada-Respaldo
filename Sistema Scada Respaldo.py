@@ -358,7 +358,6 @@ def cargar_sectores_poligonos():
 # Función corregida para leer el campo 'geom' directamente
 @st.cache_data(ttl=3600)
 def get_todas_las_colonias():
-    # Incluimos los campos de pozos y afectaciones del 1 al 10 en la consulta
     query = """
         SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor,
                Pozo_1, Afectacion_1, Pozo_2, Afectacion_2, 
@@ -3606,23 +3605,21 @@ if sectores_data:
 
 # 9.10. RENDERIZADO DE POLÍGONOS DE COLONIAS
     if ver_colonias:
-        gdf_colonias = st.session_state.get('gdf_colonias_lista')
+        # Forzamos la carga con la función actualizada para garantizar que existan las columnas de afectación
+        gdf_colonias = get_todas_las_colonias()
         pozos_incidencias_hoy = obtener_pozos_con_incidencias_hoy()
         
         if gdf_colonias is not None and not gdf_colonias.empty:
             fg_colonias = folium.FeatureGroup(name="Colonias")
             
-            # --- ESTILOS ---
             def estilo_final(feature):
                 props = feature.get('properties', {})
                 nombre_actual = props.get('Col_atl')
                 col_sel = st.session_state.get('colonia_resaltada')
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
-                # Obtenemos el color dinámico por afectación
                 color_dinamico, afectacion_val = calcular_color_colonia(props, pozos_incidencias_hoy)
                 
-                # Si está seleccionada manualmente, priorizamos el estilo de selección; si no, usamos el dinámico por afectación
                 fill_color_final = '#F1C40F' if es_match else color_dinamico
                 border_color_final = '#F39C12' if es_match else '#27AE60'
                 weight_final = 3 if es_match else 1
@@ -3638,7 +3635,6 @@ if sectores_data:
             def estilo_hover(feature):
                 return {'fillOpacity': 0.8, 'weight': 4, 'color': '#34495E'}
 
-            # --- RENDERIZADO CON TOOLTIP COMPLETO ---
             folium.GeoJson(
                 gdf_colonias,
                 name="Colonias",
