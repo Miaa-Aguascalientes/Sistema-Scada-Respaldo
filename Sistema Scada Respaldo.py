@@ -3660,25 +3660,29 @@ if sectores_data:
                 col_sel = st.session_state.get('colonia_resaltada')
                 es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
                 
+                # Obtenemos el color correspondiente al porcentaje desde tu función
                 color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
                 
                 fill_color_final = '#F1C40F' if es_match else color_dinamico
-                # Borde azul elegante para las colonias normales, o naranja si están seleccionadas
-                border_color_final = '#F39C12' if es_match else ('#2980B9' if afectacion_val == 0 else '#27AE60')
-                weight_final = 3 if es_match else 1
                 
-                # --- MODIFICACIÓN DE TRANSPARENCIA (FILL OPACITY) ---
+                # --- COLOR Y GROSOR DEL CONTORNO (BORDE) ---
                 if es_match:
+                    border_color_final = '#F39C12'  # Amarillo/Naranja fuerte si está seleccionada
+                    weight_final = 3                # Borde grueso para la selección
                     opacity_final = 0.5
                 elif afectacion_val > 0:
-                    opacity_final = 0.50  # <-- ¡Aquí cambias este valor! (Más transparente para que los pozos se noten bien)
+                    border_color_final = color_dinamico  # EL CONTORNO TOMA EL COLOR DE LA AFECTACIÓN (Rojo, Amarillo, Naranja, etc.)
+                    weight_final = 2.5                   # Grosor más marcado para que el contorno resalte
+                    opacity_final = 0.25                 # Relleno transparente
                 else:
-                    opacity_final = 0.08  # Muy tenue para las colonias normales sin afectación
+                    border_color_final = '#2980B9'       # Contorno azul para colonias normales
+                    weight_final = 1                     # Borde delgado normal
+                    opacity_final = 0.08                 # Relleno muy tenue
                 
                 return {
                     'fillColor': fill_color_final,
-                    'color': border_color_final,
-                    'weight': weight_final,
+                    'color': border_color_final,   # Color del contorno
+                    'weight': weight_final,         # Grosor de la línea del contorno
                     'fillOpacity': opacity_final
                 }
 
