@@ -3697,9 +3697,51 @@ if sectores_data:
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
+    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)
+
+    # --- LEYENDA VISUAL DE AFECTACIONES ---
+    st.markdown("##### 🗺️ Leyenda de Afectación en Colonias")
+    
+    col_l1, col_l2, col_l3, col_l4, col_l5, col_l6 = st.columns(6)
+    
+    with col_l1:
+        st.markdown(
+            '<div style="background-color: #FF0033; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">76% - 100%<br><span style="font-size: 11px;">Crítico / Rojo</span></div>', 
+            unsafe_allow_html=True
+        )
+    with col_l2:
+        st.markdown(
+            '<div style="background-color: #E74C3C; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">51% - 75%<br><span style="font-size: 11px;">Alto</span></div>', 
+            unsafe_allow_html=True
+        )
+    with col_l3:
+        st.markdown(
+            '<div style="background-color: #9B59B6; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">31% - 50%<br><span style="font-size: 11px;">Moderado</span></div>', 
+            unsafe_allow_html=True
+        )
+    with col_l4:
+        st.markdown(
+            '<div style="background-color: #5DADE2; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">1% - 30%<br><span style="font-size: 11px;">Leve</span></div>', 
+            unsafe_allow_html=True
+        )
+    with col_l5:
+        st.markdown(
+            '<div style="background-color: #1B4F72; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">0%<br><span style="font-size: 11px;">Normal / Sin Afectación</span></div>', 
+            unsafe_allow_html=True
+        )
+    with col_l6:
+        st.markdown(
+            '<div style="background-color: #F1C40F; padding: 8px; border-radius: 5px; text-align: center; color: black; font-weight: bold; font-size: 14px;">Selección<br><span style="font-size: 11px;">Colonia Activa</span></div>', 
+            unsafe_allow_html=True
+        )
+
+    
+
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
-# SECCION 10 Mapa de colonias Incidencias ----------------------------------------------------------------------------
+# SECCION 12 Mapa de colonias Incidencias ----------------------------------------------------------------------------
 
 import streamlit as st
 import pandas as pd
