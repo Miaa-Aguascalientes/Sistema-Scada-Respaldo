@@ -3697,10 +3697,10 @@ if sectores_data:
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
-    # --- LEYENDA VISUAL DE AFECTACIONES ---
-    st.markdown("##### 🗺️ Leyenda de Afectación en Colonias")
+    # --- % DE AFECTACIONES POR COLONIAS ---
+    st.markdown("##### 🗺️ % de Afectación en Colonias")
     
-    col_l1, col_l2, col_l3, col_l4, col_l5, col_l6 = st.columns(6)
+    col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
     
     with col_l1:
         st.markdown(
@@ -3725,11 +3725,6 @@ if sectores_data:
     with col_l5:
         st.markdown(
             '<div style="background-color: #3498DB; padding: 8px; border-radius: 5px; text-align: center; color: white; font-weight: bold; font-size: 14px;">0%<br><span style="font-size: 11px;">Normal / Sin Afectación</span></div>', 
-            unsafe_allow_html=True
-        )
-    with col_l6:
-        st.markdown(
-            '<div style="background-color: #F1C40F; padding: 8px; border-radius: 5px; text-align: center; color: black; font-weight: bold; font-size: 14px;">Selección<br><span style="font-size: 11px;">Colonia Activa</span></div>', 
             unsafe_allow_html=True
         )
 
