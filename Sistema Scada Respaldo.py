@@ -3666,7 +3666,14 @@ if sectores_data:
                 # Borde azul elegante para las colonias normales, o naranja si están seleccionadas
                 border_color_final = '#F39C12' if es_match else ('#2980B9' if afectacion_val == 0 else '#27AE60')
                 weight_final = 3 if es_match else 1
-                opacity_final = 0.25 if es_match else (0.7 if afectacion_val > 0 else 0.15)
+                
+                # --- MODIFICACIÓN DE TRANSPARENCIA (FILL OPACITY) ---
+                if es_match:
+                    opacity_final = 0.5
+                elif afectacion_val > 0:
+                    opacity_final = 0.25  # <-- ¡Aquí cambias este valor! (Más transparente para que los pozos se noten bien)
+                else:
+                    opacity_final = 0.08  # Muy tenue para las colonias normales sin afectación
                 
                 return {
                     'fillColor': fill_color_final,
