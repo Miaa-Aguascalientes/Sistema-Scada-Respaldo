@@ -3697,10 +3697,6 @@ if sectores_data:
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
-    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=600)
-
     # --- LEYENDA VISUAL DE AFECTACIONES ---
     st.markdown("##### 🗺️ Leyenda de Afectación en Colonias")
     
