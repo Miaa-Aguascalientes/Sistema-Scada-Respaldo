@@ -442,7 +442,7 @@ def calcular_color_colonia(props, pozos_con_incidencia):
     elif 31 <= max_afectacion <= 50:
         return '#FFA500', max_afectacion  # Naranja
     elif 1 <= max_afectacion <= 30:
-        return '#FFDAB9', max_afectacion  # Naranja bajito
+        return '#1084D7', max_afectacion  # Naranja bajito
     else:
         return '#3498DB', 0
 
