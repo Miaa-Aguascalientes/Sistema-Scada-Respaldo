@@ -3671,7 +3671,7 @@ if sectores_data:
                 if es_match:
                     opacity_final = 0.5
                 elif afectacion_val > 0:
-                    opacity_final = 0.25  # <-- ¡Aquí cambias este valor! (Más transparente para que los pozos se noten bien)
+                    opacity_final = 0.50  # <-- ¡Aquí cambias este valor! (Más transparente para que los pozos se noten bien)
                 else:
                     opacity_final = 0.08  # Muy tenue para las colonias normales sin afectación
                 
