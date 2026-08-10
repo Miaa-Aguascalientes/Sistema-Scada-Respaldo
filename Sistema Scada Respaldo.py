@@ -3157,6 +3157,8 @@ with st.sidebar:
                 st.write(f"🟣 {id_medidor}")
     else:
         st.warning("No hay macromedidores disponibles.")
+
+          
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
@@ -3247,6 +3249,8 @@ with col_mapa:
         </style>
         """
 
+          
+
 # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________________________
 
 def get_sector_style(feature, visible):
@@ -3314,103 +3318,104 @@ if sectores_data:
 
     fg_sectores.add_to(m)
 
+# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
+dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}    
+
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
-    if ver_colonias:
-        gdf_colonias = get_todas_las_colonias()
-        dic_incidencias_activas = obtener_pozos_con_incidencias_hoy()
+
+
+if ver_colonias:
+    gdf_colonias = get_todas_las_colonias()
+    
+    if gdf_colonias is not None and not gdf_colonias.empty:
         
-        if gdf_colonias is not None and not gdf_colonias.empty:
+        lista_incidencias_tooltip = []
+        lista_afectacion_tooltip = []
+        
+        for idx, row in gdf_colonias.iterrows():
+            max_afec = 0
+            descripciones_fallas = []
             
-            lista_incidencias_tooltip = []
-            lista_afectacion_tooltip = []
-            
-            for idx, row in gdf_colonias.iterrows():
-                max_afec = 0
-                descripciones_fallas = []
+            for i in range(1, 11):
+                pozo_col = row.get(f'Pozo_{i}')
+                afectacion_col = row.get(f'Afectacion_{i}')
                 
-                for i in range(1, 11):
-                    pozo_col = row.get(f'Pozo_{i}')
-                    afectacion_col = row.get(f'Afectacion_{i}')
-                    
-                    if pd.notna(pozo_col):
-                        num_col_limpio = re.sub(r'\D', '', str(pozo_col))
-                        if num_col_limpio:
-                            num_norm = str(int(num_col_limpio))
+                if pd.notna(pozo_col):
+                    num_col_limpio = re.sub(r'\D', '', str(pozo_col))
+                    if num_col_limpio:
+                        num_norm = str(int(num_col_limpio))
+                        
+                        if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
+                            falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                            descripciones_fallas.append(f"{pozo_col}: {falla}")
                             
-                            if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
-                                falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
-                                descripciones_fallas.append(f"{pozo_col}: {falla}")
-                                
-                                if pd.notna(afectacion_col):
-                                    try:
-                                        val_str = str(afectacion_col).replace('%', '').strip()
-                                        val_f = float(val_str)
-                                        if val_f > max_afec:
-                                            max_afec = val_f
-                                    except:
-                                        pass
-                
-                if descripciones_fallas:
-                    lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
-                    lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
-                else:
-                    lista_incidencias_tooltip.append("Ninguna")
-                    lista_afectacion_tooltip.append("0%")
-
-            gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
-            gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
-
-            fg_colonias = folium.FeatureGroup(name="Colonias")
+                            if pd.notna(afectacion_col):
+                                try:
+                                    val_str = str(afectacion_col).replace('%', '').strip()
+                                    val_f = float(val_str)
+                                    if val_f > max_afec:
+                                        max_afec = val_f
+                                except:
+                                    pass
             
-            def estilo_final(feature):
-                props = feature.get('properties', {})
-                nombre_actual = props.get('Col_atl')
-                col_sel = st.session_state.get('colonia_resaltada')
-                es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
-                
-                # Obtenemos el color correspondiente al porcentaje desde tu función
-                color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
-                
-                fill_color_final = '#F1C40F' if es_match else color_dinamico
-                
-                # --- COLOR Y GROSOR DEL CONTORNO (BORDE) ---
-                if es_match:
-                    border_color_final = '#F39C12'  # Amarillo/Naranja fuerte si está seleccionada
-                    weight_final = 3                # Borde grueso para la selección
-                    opacity_final = 0.5
-                elif afectacion_val > 0:
-                    border_color_final = color_dinamico  # EL CONTORNO TOMA EL COLOR DE LA AFECTACIÓN (Rojo, Amarillo, Naranja, etc.)
-                    weight_final = 2.5                   # Grosor más marcado para que el contorno resalte
-                    opacity_final = 0.25                 # Relleno transparente
-                else:
-                    border_color_final = '#2980B9'       # Contorno azul para colonias normales
-                    weight_final = 1                     # Borde delgado normal
-                    opacity_final = 0.08                 # Relleno muy tenue
-                
-                return {
-                    'fillColor': fill_color_final,
-                    'color': border_color_final,   # Color del contorno
-                    'weight': weight_final,         # Grosor de la línea del contorno
-                    'fillOpacity': opacity_final
-                }
+            if descripciones_fallas:
+                lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
+                lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
+            else:
+                lista_incidencias_tooltip.append("Ninguna")
+                lista_afectacion_tooltip.append("0%")
 
-            def estilo_hover(feature):
-                return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
+        gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
+        gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
 
-            folium.GeoJson(
-                gdf_colonias,
-                name="Colonias",
-                style_function=estilo_final,
-                highlight_function=estilo_hover,
-                tooltip=folium.GeoJsonTooltip(
-                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
-                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
-                    localize=True,
-                    sticky=True
-                )
-            ).add_to(fg_colonias)
+        fg_colonias = folium.FeatureGroup(name="Colonias")
+        
+        def estilo_final(feature):
+            props = feature.get('properties', {})
+            nombre_actual = props.get('Col_atl')
+            col_sel = st.session_state.get('colonia_resaltada')
+            es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
             
-            fg_colonias.add_to(m)    
+            color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
+            fill_color_final = '#F1C40F' if es_match else color_dinamico
+            
+            if es_match:
+                border_color_final = '#F39C12'
+                weight_final = 3
+                opacity_final = 0.5
+            elif afectacion_val > 0:
+                border_color_final = color_dinamico
+                weight_final = 2.5
+                opacity_final = 0.25
+            else:
+                border_color_final = '#2980B9'
+                weight_final = 1
+                opacity_final = 0.08
+            
+            return {
+                'fillColor': fill_color_final,
+                'color': border_color_final,
+                'weight': weight_final,
+                'fillOpacity': opacity_final
+            }
+
+        def estilo_hover(feature):
+            return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
+
+        folium.GeoJson(
+            gdf_colonias,
+            name="Colonias",
+            style_function=estilo_final,
+            highlight_function=estilo_hover,
+            tooltip=folium.GeoJsonTooltip(
+                fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
+                aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
+                localize=True,
+                sticky=True
+            )
+        ).add_to(fg_colonias)
+        
+        fg_colonias.add_to(m) 
     
 # 9.7. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ___________________________________________________________________________________________________________________________________
 
@@ -3430,6 +3435,10 @@ if sectores_data:
             h_par_fmt = formato_hora(h_par_val)
             v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
             a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+
+            # Validamos si este pozo tiene una incidencia registrada (limpiando formato de ID si es necesario)
+            num_limpio = re.sub(r'\D', '', str(id_p))
+            tiene_incidencia_activa = (id_p in dic_incidencias_activas or num_limpio in dic_incidencias_activas)
 
             # SOLUCIÓN AL LOGIN: Incluimos access=granted y el rol actual en la URL
             rol_actual = st.session_state.get('rol', 'usuario')
@@ -3520,6 +3529,7 @@ if sectores_data:
                 </div>
                 """
 
+            # Renderizado de la etiqueta de texto del pozo
             folium.Marker(
                 location=info['coord'],
                 icon=folium.DivIcon(
@@ -3529,7 +3539,29 @@ if sectores_data:
                 )
             ).add_to(m)
 
-            if info.get('blink'):
+            # Si tiene incidencia activa, mostramos un marcador con icono de estrella/alerta superpuesto
+            if tiene_incidencia_activa:
+                # Obtenemos el diagnóstico/motivo desde tu diccionario o estructura de incidencias
+                # (Ajusta la clave 'diagnostico' o 'motivo' según cómo guardes la información en tu diccionario)
+                info_incidencia = dic_incidencias_activas.get(id_p) or dic_incidencias_activas.get(num_limpio, {})
+                
+                if isinstance(info_incidencia, dict):
+                    diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'INCIDENCIA REGISTRADA'))
+                else:
+                    diagnostico_falla = str(info_incidencia)  # Por si lo guardas directamente como texto
+                
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.Icon(
+                        color='red',
+                        icon='wrench',
+                        prefix='fa'
+                    ),
+                    popup=folium.Popup(html_popup, max_width=450),
+                    tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
+                ).add_to(m)
+                
+            elif info.get('blink'):
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
