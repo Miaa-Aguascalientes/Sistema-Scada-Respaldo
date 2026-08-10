@@ -3808,8 +3808,8 @@ def renderizar_bloque_incidencia(row, index, tipo):
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
-            # CORRECCIÓN: Filtro estricto y exacto para evitar que P125 mezcle con P125A
-            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
+            # FILTRO ESTRICTO: Comparamos exactamente la cadena completa para separar P125 de P125A
+            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo].copy()
 
     st.markdown("""
         <style>
