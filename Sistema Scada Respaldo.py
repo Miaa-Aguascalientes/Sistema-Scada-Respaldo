@@ -3380,7 +3380,7 @@ if sectores_data:
                     opacity_final = 0.5
                 elif afectacion_val > 0:
                     border_color_final = color_dinamico  # EL CONTORNO TOMA EL COLOR DE LA AFECTACIÓN (Rojo, Amarillo, Naranja, etc.)
-                    weight_final = 1.5                   # Grosor más marcado para que el contorno resalte
+                    weight_final = 2.0                   # Grosor más marcado para que el contorno resalte
                     opacity_final = 0.25                 # Relleno transparente
                 else:
                     border_color_final = '#2980B9'       # Contorno azul para colonias normales
