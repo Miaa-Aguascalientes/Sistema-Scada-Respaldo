@@ -3536,6 +3536,15 @@ if sectores_data:
 
             # Si tiene incidencia activa, mostramos un marcador con icono de estrella/alerta superpuesto
             if tiene_incidencia_activa:
+                # Obtenemos el diagnóstico/motivo desde tu diccionario o estructura de incidencias
+                # (Ajusta la clave 'diagnostico' o 'motivo' según cómo guardes la información en tu diccionario)
+                info_incidencia = dic_incidencias_activas.get(id_p) or dic_incidencias_activas.get(num_limpio, {})
+                
+                if isinstance(info_incidencia, dict):
+                    diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'INCIDENCIA REGISTRADA'))
+                else:
+                    diagnostico_falla = str(info_incidencia)  # Por si lo guardas directamente como texto
+                
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.Icon(
@@ -3544,8 +3553,9 @@ if sectores_data:
                         prefix='fa'
                     ),
                     popup=folium.Popup(html_popup, max_width=450),
-                    tooltip=f"⚠️ POZO {id_p} - PARADO POR INCIDENCIA"
+                    tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
                 ).add_to(m)
+                
             elif info.get('blink'):
                 folium.Marker(
                     location=info['coord'],
