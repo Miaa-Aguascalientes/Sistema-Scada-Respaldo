@@ -4021,7 +4021,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     else:
         total_mes_reciente = len(df_actual)
 
-    # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO ---
+    # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO (MÁS DELGADAS) ---
     st.markdown("""
         <style>
         .metric-container {
@@ -4032,11 +4032,11 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         }
         .metric-card {
             background-color: #111418;
-            border-radius: 10px;
-            padding: 15px;
+            border-radius: 8px;
+            padding: 8px 12px;
             text-align: center;
             flex: 1;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             border: 1px solid #222d3d;
         }
         .metric-card.proceso { border-color: #d4ac0d; }
@@ -4045,9 +4045,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         .metric-card.total { border-color: #2e4053; }
         
         .metric-title {
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 2px;
             letter-spacing: 0.5px;
         }
         .metric-title.proceso { color: #f1c40f; }
@@ -4056,9 +4056,10 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         .metric-title.total { color: #bdc3c7; }
         
         .metric-value {
-            font-size: 26px;
+            font-size: 20px;
             font-weight: bold;
             color: #ffffff;
+            line-height: 1.2;
         }
         </style>
 
