@@ -3548,7 +3548,7 @@ if sectores_data:
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.Icon(
-                        color='darkred',
+                        color='red',
                         icon='wrench',
                         prefix='fa'
                     ),
