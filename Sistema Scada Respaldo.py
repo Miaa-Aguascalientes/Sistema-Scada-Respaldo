@@ -4014,10 +4014,14 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     # Calculamos el total del mes más reciente disponible en el historial o combinado
     df_historial_temp = df_historial.copy()
     df_historial_temp['MES_AÑO'] = df_historial_temp['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    meses_hist = sorted(df_historial_temp['MES_AÑO'].unique(), reverse=True)
     
-    if meses_hist:
-        mes_mas_reciente = meses_hist[0]
+    # Obtenemos los meses ordenados cronológicamente inverso usando el período real (Year-Month)
+    df_historial_temp['PERIODO'] = df_historial_temp['FECHA_HORA_INICIO'].dt.to_period('M')
+    periodos_ordenados = sorted(df_historial_temp['PERIODO'].unique(), reverse=True)
+    meses = [p.strftime('%B %Y').capitalize() for p in periodos_ordenados]
+    
+    if meses:
+        mes_mas_reciente = meses[0]
         total_mes_reciente = len(df_historial_temp[df_historial_temp['MES_AÑO'] == mes_mas_reciente]) + len(df_actual)
     else:
         total_mes_reciente = len(df_actual)
@@ -4132,14 +4136,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
     
     df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    meses = sorted(df_historial['MES_AÑO'].unique(), reverse=True)
+    df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
+    
+    periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
+    meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
     
     if meses:
-        # 1. Obtenemos el nombre del mes actual (ej: "July 2026")
+        # 1. Obtenemos el nombre del mes actual (ej: "August 2026")
         mes_actual = datetime.now().strftime('%B %Y').capitalize()
         
         # 2. Calculamos el índice del mes actual en nuestra lista ordenada
-        # Si el mes actual no está en la lista (ej: no hubo incidencias), usamos 0
         default_index = meses.index(mes_actual) if mes_actual in meses else 0
         
         # 3. Pasamos el index al selectbox
