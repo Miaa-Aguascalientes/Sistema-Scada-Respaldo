@@ -4140,20 +4140,25 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_mes_historial"
             )
         
-        # Filtramos primero por el mes seleccionado para extraer las colonias de ese mes
+        # Filtramos primero por el mes seleccionado
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Extraer las colonias afectadas disponibles en el mes (asumiendo que la columna se llama 'COLONIA' o 'COLONIAS_AFECTADAS')
-            # Ajusta el nombre del campo según tu base de datos si es diferente (ej. 'COLONIA_AFECTADA')
-            colonia_field = 'COLONIA' if 'COLONIA' in datos_mes.columns else ('COLONIAS_AFECTADAS' if 'COLONIAS_AFECTADAS' in datos_mes.columns else None)
-            
-            if colonia_field and not datos_mes.empty:
-                # Obtenemos lista única de colonias limpias
-                colonias_disponibles = sorted(datos_mes[colonia_field].dropna().astype(str).unique())
-                lista_colonias = ["Todas las colonias"] + colonias_disponibles
+            # Diccionario de colonias / mapeo de sectores o pozos afectados por colonia
+            # Usamos el diccionario disponible en el entorno o aplicación (ej. DICCIONARIO_COLONIAS o función equivalente)
+            try:
+                dict_colonias = DICCIONARIO_COLONIAS if 'DICCIONARIO_COLONIAS' in globals() else get_diccionario_colonias()
+            except Exception:
+                dict_colonias = {}
+                
+            # Extraemos las llaves o nombres de colonias del diccionario para alimentar el selectbox
+            if dict_colonias:
+                lista_colonias = ["Todas las colonias"] + sorted(list(dict_colonias.keys()))
             else:
-                lista_colonias = ["Todas las colonias"]
+                # Fallback extrayendo del propio dataframe si el diccionario no está disponible directamente
+                colonia_field = 'COLONIA' if 'COLONIA' in datos_mes.columns else ('COLONIAS_AFECTADAS' if 'COLONIAS_AFECTADAS' in datos_mes.columns else None)
+                colonias_disponibles = sorted(datos_mes[colonia_field].dropna().astype(str).unique()) if colonia_field else []
+                lista_colonias = ["Todas las colonias"] + colonias_disponibles
                 
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada:", 
@@ -4161,9 +4166,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro de colonia si se seleccionó una específica
-        if colonia_sel != "Todas las colonias" and colonia_field:
-            datos_mes = datos_mes[datos_mes[colonia_field].astype(str) == colonia_sel]
+        # Aplicar el filtro cruzado usando el diccionario de colonias si se seleccionó una en específico
+        if colonia_sel != "Todas las colonias":
+            # Obtenemos los pozos asociados a esta colonia según el diccionario
+            pozos_asociados = dict_colonias.get(colonia_sel, [])
+            if isinstance(pozos_asociados, (list, tuple, set)):
+                # Filtramos los registros del mes cuyos pozos pertenezcan a los afectados por la colonia
+                datos_mes = datos_mes[datos_mes['NUM_POZO'].isin(pozos_asociados)]
+            else:
+                # Si el diccionario retorna un único valor o formato distinto
+                datos_mes = datos_mes[datos_mes['NUM_POZO'] == pozos_asociados]
         
         if datos_mes.empty:
             st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
