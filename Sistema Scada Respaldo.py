@@ -3548,11 +3548,11 @@ if sectores_data:
                 folium.Marker(
                     location=info['coord'],
                     icon=folium.Icon(
-                        color='red',
-                        icon='star',
+                        color='darkred',
+                        icon='wrench',
                         prefix='fa'
                     ),
-                    popup=folium.Popup(html_popup, max_width=0),
+                    popup=folium.Popup(html_popup, max_width=450),
                     tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
                 ).add_to(m)
                 
