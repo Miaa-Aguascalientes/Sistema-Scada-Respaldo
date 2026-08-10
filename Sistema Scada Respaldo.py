@@ -3808,6 +3808,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
+            # CORRECCIÓN: Filtro estricto y exacto para evitar que P125 mezcle con P125A
             gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
 
     st.markdown("""
@@ -4035,11 +4036,11 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 <div class="metric-value">""" + str(total_pendientes) + """</div>
             </div>
             <div class="metric-card cerradas">
-                <div class="metric-title cerradas">CERRADAS</div>
+                <div class="metric-title cerradas">CERRADAS (HOY)</div>
                 <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
             </div>
             <div class="metric-card total">
-                <div class="metric-title total">TOTAL ACTIVAS</div>
+                <div class="metric-title total">TOTAL ACTIVAS/DÍA</div>
                 <div class="metric-value">""" + str(total_activas_y_dia) + """</div>
             </div>
         </div>
@@ -4114,6 +4115,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf_h.columns), None)
+                    if col_p_h:
+                        gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
                     for val in gdf_h['Col_atl'].dropna():
                         if isinstance(val, str):
                             for c in val.split(','):
@@ -4137,6 +4141,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf_h.columns), None)
+                    if col_p_h:
+                        gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
                     match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
                     if match:
                         pozos_validos.append(r_hist.name)
