@@ -4100,7 +4100,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
 
-    st.markdown("---")
+st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
     
     df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
@@ -4145,22 +4145,28 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
                 
-            if "select_colonia_historial" not in st.session_state:
-                st.session_state["select_colonia_historial"] = "Todas las colonias"
+            # Inicializamos la variable de control antes de crear el selectbox
+            if "filtro_colonia_val" not in st.session_state:
+                st.session_state["filtro_colonia_val"] = "Todas las colonias"
                 
-            if st.session_state["select_colonia_historial"] not in lista_colonias:
-                st.session_state["select_colonia_historial"] = "Todas las colonias"
+            if st.session_state["filtro_colonia_val"] not in lista_colonias:
+                st.session_state["filtro_colonia_val"] = "Todas las colonias"
+
+            idx_default = lista_colonias.index(st.session_state["filtro_colonia_val"])
                 
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada (Col_atl):", 
                 lista_colonias, 
+                index=idx_default,
                 key="select_colonia_historial"
             )
+            # Sincronizamos el cambio manual del usuario
+            st.session_state["filtro_colonia_val"] = colonia_sel
             
         with col_btn_reset:
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🔄 Reiniciar", use_container_width=True):
-                st.session_state["select_colonia_historial"] = "Todas las colonias"
+                st.session_state["filtro_colonia_val"] = "Todas las colonias"
                 st.rerun()
             
         if colonia_sel != "Todas las colonias":
