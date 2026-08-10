@@ -3744,7 +3744,7 @@ if ver_pozos:  # Si el checkbox está activo, creamos el FeatureGroup para los p
 
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
-    
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
     # --- % DE AFECTACIONES POR COLONIAS ---
