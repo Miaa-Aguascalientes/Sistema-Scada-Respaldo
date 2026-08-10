@@ -4035,11 +4035,11 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 <div class="metric-value">""" + str(total_pendientes) + """</div>
             </div>
             <div class="metric-card cerradas">
-                <div class="metric-title cerradas">CERRADAS (HOY)</div>
+                <div class="metric-title cerradas">CERRADAS</div>
                 <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
             </div>
             <div class="metric-card total">
-                <div class="metric-title total">TOTAL ACTIVAS/DÍA</div>
+                <div class="metric-title total">TOTAL ACTIVAS</div>
                 <div class="metric-value">""" + str(total_activas_y_dia) + """</div>
             </div>
         </div>
@@ -4093,7 +4093,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
     
     if meses:
-        col_filtro_mes, col_filtro_colonia, col_btn_reset = st.columns([2, 2, 1])
+        col_filtro_mes, col_filtro_colonia = st.columns(2)
         
         with col_filtro_mes:
             mes_actual = datetime.now().strftime('%B %Y').capitalize()
@@ -4125,27 +4125,11 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
                 
-            if "filtro_colonia_val" not in st.session_state:
-                st.session_state["filtro_colonia_val"] = "Todas las colonias"
-                
-            if st.session_state["filtro_colonia_val"] not in lista_colonias:
-                st.session_state["filtro_colonia_val"] = "Todas las colonias"
-
-            idx_default = lista_colonias.index(st.session_state["filtro_colonia_val"])
-                
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada (Col_atl):", 
                 lista_colonias, 
-                index=idx_default,
                 key="select_colonia_historial"
             )
-            st.session_state["filtro_colonia_val"] = colonia_sel
-            
-        with col_btn_reset:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔄 Reiniciar", use_container_width=True):
-                st.session_state["filtro_colonia_val"] = "Todas las colonias"
-                st.rerun()
             
         if colonia_sel != "Todas las colonias":
             pozos_validos = []
