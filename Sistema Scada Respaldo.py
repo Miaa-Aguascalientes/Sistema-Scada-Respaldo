@@ -4010,8 +4010,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
     total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
     total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
-    
-    # El indicador TOTAL ahora representa la suma total de las incidencias activas y del día (df_actual)
     total_activas_y_dia = len(df_actual)
 
     # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO (MÁS DELGADAS) ---
@@ -4096,10 +4094,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             delta = fin_dt - inicio_raw
         else:
             fin_str = "Pendiente"
-            # Restamos ahora_mx (que YA tiene la zona horaria) contra inicio_raw
             delta = ahora_mx - inicio_raw
             
-        # Formato exacto: 0d 0h 22m
         duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
 
         ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
@@ -4130,50 +4126,75 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
     
     if meses:
-        # 1. Obtenemos el nombre del mes actual (ej: "August 2026")
-        mes_actual = datetime.now().strftime('%B %Y').capitalize()
+        # Creamos columnas para colocar los filtros uno al lado del otro
+        col_filtro_mes, col_filtro_colonia = st.columns(2)
         
-        # 2. Calculamos el índice del mes actual en nuestra lista ordenada
-        default_index = meses.index(mes_actual) if mes_actual in meses else 0
+        with col_filtro_mes:
+            mes_actual = datetime.now().strftime('%B %Y').capitalize()
+            default_index = meses.index(mes_actual) if mes_actual in meses else 0
+            
+            mes_sel = st.selectbox(
+                "Seleccionar mes:", 
+                meses, 
+                index=default_index, 
+                key="select_mes_historial"
+            )
         
-        # 3. Pasamos el index al selectbox
-        mes_sel = st.selectbox(
-            "Seleccionar mes:", 
-            meses, 
-            index=default_index, 
-            key="select_mes_historial"
-        )
-        
-        # Filtramos por el mes seleccionado
+        # Filtramos primero por el mes seleccionado para extraer las colonias de ese mes
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
-        for index, row in datos_mes.iterrows():
-            inicio_raw = row['FECHA_HORA_INICIO']
-            fin_raw = row['FECHA_HORA_FIN']
+        with col_filtro_colonia:
+            # Extraer las colonias afectadas disponibles en el mes (asumiendo que la columna se llama 'COLONIA' o 'COLONIAS_AFECTADAS')
+            # Ajusta el nombre del campo según tu base de datos si es diferente (ej. 'COLONIA_AFECTADA')
+            colonia_field = 'COLONIA' if 'COLONIA' in datos_mes.columns else ('COLONIAS_AFECTADAS' if 'COLONIAS_AFECTADAS' in datos_mes.columns else None)
             
-            # Cálculo de la duración
-            if pd.notnull(fin_raw):
-                delta = fin_raw - inicio_raw
-                # Extracción de días, horas y minutos exactos
-                dias = delta.days
-                horas = delta.seconds // 3600
-                minutos = (delta.seconds % 3600) // 60
-                duracion_str = f"{dias}d {horas}h {minutos}m"
-                fin_str = fin_raw.strftime('%H:%M %d de %B de %Y')
+            if colonia_field and not datos_mes.empty:
+                # Obtenemos lista única de colonias limpias
+                colonias_disponibles = sorted(datos_mes[colonia_field].dropna().astype(str).unique())
+                lista_colonias = ["Todas las colonias"] + colonias_disponibles
             else:
-                duracion_str = "N/A"
-                fin_str = "N/A"
-            
-            # Título completo con toda la información solicitada
-            titulo_hist = (
-                f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | "
-                f"🕒 Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
-                f"⚠️ Diagnostico de la falla: {diag} | "
-                f"🏁 Fecha y hora de cierre: {fin_str} | "
-                f"⏳ Duración del evento: {duracion_str} | "
-                f"🆗 Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
+                lista_colonias = ["Todas las colonias"]
+                
+            colonia_sel = st.selectbox(
+                "Filtrar por colonia afectada:", 
+                lista_colonias, 
+                key="select_colonia_historial"
             )
             
-            with st.expander(titulo_hist):
-                # Llamamos a tu función de renderizado original pasando la fila completa
-                renderizar_bloque_incidencia(row, index, "hist")
+        # Aplicar el filtro de colonia si se seleccionó una específica
+        if colonia_sel != "Todas las colonias" and colonia_field:
+            datos_mes = datos_mes[datos_mes[colonia_field].astype(str) == colonia_sel]
+        
+        if datos_mes.empty:
+            st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
+        else:
+            for index, row in datos_mes.iterrows():
+                inicio_raw = row['FECHA_HORA_INICIO']
+                fin_raw = row['FECHA_HORA_FIN']
+                
+                # Cálculo de la duración
+                if pd.notnull(fin_raw):
+                    delta = fin_raw - inicio_raw
+                    dias = delta.days
+                    horas = delta.seconds // 3600
+                    minutos = (delta.seconds % 3600) // 60
+                    duracion_str = f"{dias}d {horas}h {minutos}m"
+                    fin_str = fin_raw.strftime('%H:%M %d de %B de %Y')
+                else:
+                    duracion_str = "N/A"
+                    fin_str = "N/A"
+                
+                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                
+                # Título completo con toda la información solicitada
+                titulo_hist = (
+                    f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | "
+                    f"🕒 Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
+                    f"⚠️ Diagnostico de la falla: {diag} | "
+                    f"🏁 Fecha y hora de cierre: {fin_str} | "
+                    f"⏳ Duración del evento: {duracion_str} | "
+                    f"🆗 Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
+                )
+                
+                with st.expander(titulo_hist):
+                    renderizar_bloque_incidencia(row, index, "hist")
