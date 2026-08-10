@@ -4144,37 +4144,37 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Diccionario de colonias / mapeo de sectores o pozos afectados por colonia
-            # Usamos el diccionario disponible en el entorno o aplicación (ej. DICCIONARIO_COLONIAS o función equivalente)
+            # Usamos el diccionario Diccionario_colonias
             try:
-                dict_colonias = DICCIONARIO_COLONIAS if 'DICCIONARIO_COLONIAS' in globals() else get_diccionario_colonias()
+                dict_colonias = Diccionario_colonias if 'Diccionario_colonias' in globals() else {}
             except Exception:
                 dict_colonias = {}
                 
-            # Extraemos las llaves o nombres de colonias del diccionario para alimentar el selectbox
-            if dict_colonias:
-                lista_colonias = ["Todas las colonias"] + sorted(list(dict_colonias.keys()))
-            else:
-                # Fallback extrayendo del propio dataframe si el diccionario no está disponible directamente
-                colonia_field = 'COLONIA' if 'COLONIA' in datos_mes.columns else ('COLONIAS_AFECTADAS' if 'COLONIAS_AFECTADAS' in datos_mes.columns else None)
-                colonias_disponibles = sorted(datos_mes[colonia_field].dropna().astype(str).unique()) if colonia_field else []
-                lista_colonias = ["Todas las colonias"] + colonias_disponibles
+            pozos_en_mes = datos_mes['NUM_POZO'].dropna().unique()
+            
+            colonias_validas = []
+            for col_nombre, pozos_asociados in dict_colonias.items():
+                if isinstance(pozos_asociados, (list, tuple, set)):
+                    if any(p in pozos_en_mes for p in pozos_asociados):
+                        colonias_validas.append(col_nombre)
+                else:
+                    if pozos_asociados in pozos_en_mes:
+                        colonias_validas.append(col_nombre)
+            
+            lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_validas)))
                 
             colonia_sel = st.selectbox(
-                "Filtrar por colonia afectada:", 
+                "Filtrar por colonia afectada (Col_atl):", 
                 lista_colonias, 
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado usando el diccionario de colonias si se seleccionó una en específico
+        # Aplicar el filtro cruzado utilizando Diccionario_colonias
         if colonia_sel != "Todas las colonias":
-            # Obtenemos los pozos asociados a esta colonia según el diccionario
             pozos_asociados = dict_colonias.get(colonia_sel, [])
             if isinstance(pozos_asociados, (list, tuple, set)):
-                # Filtramos los registros del mes cuyos pozos pertenezcan a los afectados por la colonia
                 datos_mes = datos_mes[datos_mes['NUM_POZO'].isin(pozos_asociados)]
             else:
-                # Si el diccionario retorna un único valor o formato distinto
                 datos_mes = datos_mes[datos_mes['NUM_POZO'] == pozos_asociados]
         
         if datos_mes.empty:
