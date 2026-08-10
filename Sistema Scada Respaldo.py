@@ -3315,6 +3315,8 @@ if sectores_data:
     fg_sectores.add_to(m)
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
+dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}    
+    
     if ver_colonias:
         gdf_colonias = get_todas_las_colonias()
         dic_incidencias_activas = obtener_pozos_con_incidencias_hoy()
