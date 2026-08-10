@@ -3802,11 +3802,9 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # 1. Normalización y filtrado seguro
     id_pozo = normalizar_id(row['NUM_POZO'])
     gdf = get_geometries(id_pozo)
     
-    # Filtro robusto: busca la columna correcta aunque cambie de nombre
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
@@ -3825,7 +3823,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            # --- AGREGADO: Listado de colonias arriba del mapa ---
             nombres_colonias = sorted(gdf['Col_atl'].unique())
             st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
             st.info(", ".join([str(n) for n in nombres_colonias]))
@@ -3838,26 +3835,18 @@ def renderizar_bloque_incidencia(row, index, tipo):
                     style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
                 ).add_to(m)
                 
-                # Bucle de etiquetas: Ahora el nombre SÍ aparecerá
                 for i, (_, r) in enumerate(gdf.iterrows()):
                     if r.geometry:
                         c = r.geometry.centroid
-                        # Calculamos una posición para la etiqueta (sin amontonar)
                         destino = [c.y + 0.001, c.x + 0.001]
                         
-                        # 1. Punto en el centroide (origen)
                         folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
-                        
-                        # 2. Línea guía
                         folium.PolyLine(
                             locations=[[c.y, c.x], destino],
                             color="white", weight=1
                         ).add_to(m)
-                        
-                        # 3. Punto en la etiqueta (final)
                         folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
                         
-                        # 4. Etiqueta con el nombre (Visible siempre)
                         folium.Marker(
                             location=destino,
                             icon=folium.DivIcon(
@@ -3881,9 +3870,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
                             )
                         ).add_to(m)
                 
-                # Botón de pantalla completa
                 Fullscreen(position='topright').add_to(m)
-                
                 st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
             except Exception as e:
                 st.error(f"Error al renderizar el mapa: {e}")
@@ -3893,23 +3880,20 @@ def renderizar_bloque_incidencia(row, index, tipo):
     with col2:
         st.subheader("Tiempo de Atención")
         
-        # Lógica de colores según estatus
         estatus = str(row.get('ESTATUS', '')).upper()
         if estatus == 'CERRADA':
             color_estatus = "🟢"
         elif estatus == 'PENDIENTE':
             color_estatus = "🔴"
-        else: # EN PROCESO
+        else:
             color_estatus = "🟡"
             
         tz_mx = pytz.timezone('America/Mexico_City')
         ahora_mx = datetime.now(tz_mx)
         inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
         
-        # Obtenemos el valor crudo del campo
         valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
         
-        # Validamos que no sea nulo y convertimos a float
         if pd.notnull(valor_raw):
             try:
                 estimado = float(valor_raw)
@@ -3921,12 +3905,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
             st.warning("Advertencia: No hay tiempo estimado de atención definido.")
             hora_limite = inicio
         
-        # Barra de progreso
         total_seg = (hora_limite - inicio).total_seconds()
         porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0) if total_seg > 0 else 1.0
         st.progress(porcentaje)
         
-        # Gráfico con triángulos
         data = pd.DataFrame({
             'Evento': ['Inicio', 'Ahora', 'Límite'], 
             'Tiempo': [inicio, ahora_mx, hora_limite], 
@@ -3937,7 +3919,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
         ).properties(height=50)
         st.altair_chart(chart, use_container_width=True)
         
-        # Tiempo restante con color según estatus
         restante = hora_limite - ahora_mx
         if estatus == 'CERRADA':
             st.info("✅ Incidencia Cerrada")
@@ -3946,7 +3927,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
         else:
             st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
         
-        # Indicadores debajo de la línea
         transcurrido = ahora_mx - inicio
         color_inicio = "#00CC96"
         color_ahora = "#1f77b4"
@@ -4100,7 +4080,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         with st.expander(titulo):
             renderizar_bloque_incidencia(row, index, "act")
 
-st.markdown("---")
+    st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
     
     df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
@@ -4145,7 +4125,6 @@ st.markdown("---")
             
             lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
                 
-            # Inicializamos la variable de control antes de crear el selectbox
             if "filtro_colonia_val" not in st.session_state:
                 st.session_state["filtro_colonia_val"] = "Todas las colonias"
                 
@@ -4160,7 +4139,6 @@ st.markdown("---")
                 index=idx_default,
                 key="select_colonia_historial"
             )
-            # Sincronizamos el cambio manual del usuario
             st.session_state["filtro_colonia_val"] = colonia_sel
             
         with col_btn_reset:
