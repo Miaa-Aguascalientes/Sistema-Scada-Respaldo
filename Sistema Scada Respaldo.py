@@ -3315,104 +3315,104 @@ if sectores_data:
     fg_sectores.add_to(m)
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
+# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}    
+
+if ver_colonias:
+    gdf_colonias = get_todas_las_colonias()
     
-    if ver_colonias:
-        gdf_colonias = get_todas_las_colonias()
-        dic_incidencias_activas = obtener_pozos_con_incidencias_hoy()
+    if gdf_colonias is not None and not gdf_colonias.empty:
         
-        if gdf_colonias is not None and not gdf_colonias.empty:
+        lista_incidencias_tooltip = []
+        lista_afectacion_tooltip = []
+        
+        for idx, row in gdf_colonias.iterrows():
+            max_afec = 0
+            descripciones_fallas = []
             
-            lista_incidencias_tooltip = []
-            lista_afectacion_tooltip = []
-            
-            for idx, row in gdf_colonias.iterrows():
-                max_afec = 0
-                descripciones_fallas = []
+            for i in range(1, 11):
+                pozo_col = row.get(f'Pozo_{i}')
+                afectacion_col = row.get(f'Afectacion_{i}')
                 
-                for i in range(1, 11):
-                    pozo_col = row.get(f'Pozo_{i}')
-                    afectacion_col = row.get(f'Afectacion_{i}')
-                    
-                    if pd.notna(pozo_col):
-                        num_col_limpio = re.sub(r'\D', '', str(pozo_col))
-                        if num_col_limpio:
-                            num_norm = str(int(num_col_limpio))
+                if pd.notna(pozo_col):
+                    num_col_limpio = re.sub(r'\D', '', str(pozo_col))
+                    if num_col_limpio:
+                        num_norm = str(int(num_col_limpio))
+                        
+                        if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
+                            falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                            descripciones_fallas.append(f"{pozo_col}: {falla}")
                             
-                            if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
-                                falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
-                                descripciones_fallas.append(f"{pozo_col}: {falla}")
-                                
-                                if pd.notna(afectacion_col):
-                                    try:
-                                        val_str = str(afectacion_col).replace('%', '').strip()
-                                        val_f = float(val_str)
-                                        if val_f > max_afec:
-                                            max_afec = val_f
-                                    except:
-                                        pass
-                
-                if descripciones_fallas:
-                    lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
-                    lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
-                else:
-                    lista_incidencias_tooltip.append("Ninguna")
-                    lista_afectacion_tooltip.append("0%")
-
-            gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
-            gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
-
-            fg_colonias = folium.FeatureGroup(name="Colonias")
+                            if pd.notna(afectacion_col):
+                                try:
+                                    val_str = str(afectacion_col).replace('%', '').strip()
+                                    val_f = float(val_str)
+                                    if val_f > max_afec:
+                                        max_afec = val_f
+                                except:
+                                    pass
             
-            def estilo_final(feature):
-                props = feature.get('properties', {})
-                nombre_actual = props.get('Col_atl')
-                col_sel = st.session_state.get('colonia_resaltada')
-                es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
-                
-                # Obtenemos el color correspondiente al porcentaje desde tu función
-                color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
-                
-                fill_color_final = '#F1C40F' if es_match else color_dinamico
-                
-                # --- COLOR Y GROSOR DEL CONTORNO (BORDE) ---
-                if es_match:
-                    border_color_final = '#F39C12'  # Amarillo/Naranja fuerte si está seleccionada
-                    weight_final = 3                # Borde grueso para la selección
-                    opacity_final = 0.5
-                elif afectacion_val > 0:
-                    border_color_final = color_dinamico  # EL CONTORNO TOMA EL COLOR DE LA AFECTACIÓN (Rojo, Amarillo, Naranja, etc.)
-                    weight_final = 2.5                   # Grosor más marcado para que el contorno resalte
-                    opacity_final = 0.25                 # Relleno transparente
-                else:
-                    border_color_final = '#2980B9'       # Contorno azul para colonias normales
-                    weight_final = 1                     # Borde delgado normal
-                    opacity_final = 0.08                 # Relleno muy tenue
-                
-                return {
-                    'fillColor': fill_color_final,
-                    'color': border_color_final,   # Color del contorno
-                    'weight': weight_final,         # Grosor de la línea del contorno
-                    'fillOpacity': opacity_final
-                }
+            if descripciones_fallas:
+                lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
+                lista_afectacion_tooltip.append(f"{int(max_afec)}%" if max_afec > 0 else "N/D")
+            else:
+                lista_incidencias_tooltip.append("Ninguna")
+                lista_afectacion_tooltip.append("0%")
 
-            def estilo_hover(feature):
-                return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
+        gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
+        gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
 
-            folium.GeoJson(
-                gdf_colonias,
-                name="Colonias",
-                style_function=estilo_final,
-                highlight_function=estilo_hover,
-                tooltip=folium.GeoJsonTooltip(
-                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
-                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
-                    localize=True,
-                    sticky=True
-                )
-            ).add_to(fg_colonias)
+        fg_colonias = folium.FeatureGroup(name="Colonias")
+        
+        def estilo_final(feature):
+            props = feature.get('properties', {})
+            nombre_actual = props.get('Col_atl')
+            col_sel = st.session_state.get('colonia_resaltada')
+            es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
             
-            fg_colonias.add_to(m)    
+            # Obtenemos el color correspondiente al porcentaje desde tu función
+            color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
+            
+            fill_color_final = '#F1C40F' if es_match else color_dinamico
+            
+            # --- COLOR Y GROSOR DEL CONTORNO (BORDE) ---
+            if es_match:
+                border_color_final = '#F39C12'  # Amarillo/Naranja fuerte si está seleccionada
+                weight_final = 3                # Borde grueso para la selección
+                opacity_final = 0.5
+            elif afectacion_val > 0:
+                border_color_final = color_dinamico   # EL CONTORNO TOMA EL COLOR DE LA AFECTACIÓN (Rojo, Amarillo, Naranja, etc.)
+                weight_final = 2.5                   # Grosor más marcado para que el contorno resalte
+                opacity_final = 0.25                 # Relleno transparente
+            else:
+                border_color_final = '#2980B9'       # Contorno azul para colonias normales
+                weight_final = 1                     # Borde delgado normal
+                opacity_final = 0.08                 # Relleno muy tenue
+            
+            return {
+                'fillColor': fill_color_final,
+                'color': border_color_final,   # Color del contorno
+                'weight': weight_final,          # Grosor de la línea del contorno
+                'fillOpacity': opacity_final
+            }
+
+        def estilo_hover(feature):
+            return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
+
+        folium.GeoJson(
+            gdf_colonias,
+            name="Colonias",
+            style_function=estilo_final,
+            highlight_function=estilo_hover,
+            tooltip=folium.GeoJsonTooltip(
+                fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
+                aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
+                localize=True,
+                sticky=True
+            )
+        ).add_to(fg_colonias)
+        
+        fg_colonias.add_to(m)   
     
 # 9.7. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  ___________________________________________________________________________________________________________________________________
 
