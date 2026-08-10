@@ -3794,7 +3794,6 @@ from datetime import datetime
 from streamlit_folium import st_folium
 from folium.plugins import MarkerCluster
 
-
 tz_mx = pytz.timezone('America/Mexico_City')
 ahora_mx = datetime.now(tz_mx)
 
@@ -3916,17 +3915,15 @@ def renderizar_bloque_incidencia(row, index, tipo):
                 estimado = float(valor_raw)
                 hora_limite = inicio + pd.Timedelta(hours=estimado)
             except ValueError:
-                # Esto ocurre si el campo contiene texto que no es un número
                 st.error(f"Error: El tiempo estimado '{valor_raw}' no es un número válido.")
-                hora_limite = inicio # O el valor que decidas en caso de error
+                hora_limite = inicio
         else:
-            # Esto ocurre si el campo está vacío (NaN/None)
             st.warning("Advertencia: No hay tiempo estimado de atención definido.")
-            hora_limite = inicio # O asigna un valor por defecto lógico si lo prefieres
+            hora_limite = inicio
         
         # Barra de progreso
         total_seg = (hora_limite - inicio).total_seconds()
-        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0)
+        porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0) if total_seg > 0 else 1.0
         st.progress(porcentaje)
         
         # Gráfico con triángulos
@@ -3951,11 +3948,10 @@ def renderizar_bloque_incidencia(row, index, tipo):
         
         # Indicadores debajo de la línea
         transcurrido = ahora_mx - inicio
-        color_inicio = "#00CC96" # Verde
-        color_ahora = "#1f77b4"  # Azul
-        color_limite = "#FF4B4B" # Rojo
+        color_inicio = "#00CC96"
+        color_ahora = "#1f77b4"
+        color_limite = "#FF4B4B"
 
-        # Indicadores con color aplicado mediante HTML
         st.markdown(f'<span style="color:{color_inicio}">▲</span> **Fecha de Inicio:** {inicio.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
         st.markdown(f'<span style="color:{color_ahora}">▲</span> **Tiempo actual:** {ahora_mx.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
         st.markdown(f'<span style="color:{color_limite}">▲</span> **Tiempo límite para atención:** {hora_limite.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
@@ -3965,8 +3961,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
 
         st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
 
-        # LÓGICA: SECTOR, DISTRITO Y RESPONSABLE EN COLUMNAS
-        # Primero preparamos los datos del archivo de geometrías
         if gdf is not None and not gdf.empty:
             sectores = [str(s) for s in gdf['Sector'].unique() if pd.notnull(s)]
             distritos = [str(d) for d in gdf['Distrito'].unique() if pd.notnull(d)]
@@ -3976,10 +3970,8 @@ def renderizar_bloque_incidencia(row, index, tipo):
             sector_val = 'N/A'
             distrito_val = 'N/A'
 
-        # Obtenemos el responsable de la tabla de incidencias
         responsable_val = row.get('RESPONSABLE', 'N/A')
 
-        # Mostramos los tres en columnas
         col_sec, col_dis, col_res = st.columns(3)
         with col_sec:
             st.markdown(f"📍 **Sector:** {sector_val}")
@@ -3987,8 +3979,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
             st.markdown(f"🏢 **Distrito:** {distrito_val}")
         with col_res:
             st.markdown(f"👤 **Responsable:** {responsable_val}")
-
-        
 
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
