@@ -4001,6 +4001,73 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
+    # --- CÁLCULO DE MÉTRICAS PARA LOS INDICADORES ---
+    # Contamos basándonos en el conjunto total o filtrado según prefieras (aquí usamos df_final o puedes usar df_actual/historial combinado)
+    total_en_proceso = len(df_final[df_final['ESTATUS'].str.upper() == 'EN PROCESO'])
+    total_pendientes = len(df_final[df_final['ESTATUS'].str.upper() == 'PENDIENTE'])
+    total_cerradas = len(df_final[df_final['ESTATUS'].str.upper() == 'CERRADA'])
+    total_general = len(df_final)
+
+    # --- RENDERIZADO DE TARJETAS INDICADORAS ---
+    st.markdown("""
+        <style>
+        .metric-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        .metric-card {
+            background-color: #111418;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            flex: 1;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #222d3d;
+        }
+        .metric-card.proceso { border-color: #d4ac0d; }
+        .metric-card.pendientes { border-color: #c0392b; }
+        .metric-card.cerradas { border-color: #196f3d; }
+        .metric-card.total { border-color: #2e4053; }
+        
+        .metric-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .metric-title.proceso { color: #f1c40f; }
+        .metric-title.pendientes { color: #e74c3c; }
+        .metric-title.cerradas { color: #2ecc71; }
+        .metric-title.total { color: #bdc3c7; }
+        
+        .metric-value {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+        </style>
+
+        <div class="metric-container">
+            <div class="metric-card proceso">
+                <div class="metric-title proceso">EN PROCESO</div>
+                <div class="metric-value">""" + str(total_en_proceso) + """</div>
+            </div>
+            <div class="metric-card pendientes">
+                <div class="metric-title pendientes">PENDIENTES</div>
+                <div class="metric-value">""" + str(total_pendientes) + """</div>
+            </div>
+            <div class="metric-card cerradas">
+                <div class="metric-title cerradas">CERRADAS</div>
+                <div class="metric-value">""" + str(total_cerradas) + """</div>
+            </div>
+            <div class="metric-card total">
+                <div class="metric-title total">TOTAL</div>
+                <div class="metric-value">""" + str(total_general) + """</div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
+
     # 1. Incidencias Activas
     tz_mx = pytz.timezone('America/Mexico_City')
     st.subheader("📋 Incidencias Activas y del día")
