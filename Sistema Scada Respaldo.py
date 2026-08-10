@@ -3806,17 +3806,20 @@ def renderizar_bloque_incidencia(row, index, tipo):
     gdf = get_geometries(id_pozo)
     
     if gdf is not None and not gdf.empty:
-        # Buscamos la columna de pozo exacta que devuelve la geometría
-        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf.columns), None)
-        if col_pozo:
-            # FILTRO ESTRICTO: Exigimos coincidencia exacta para que P125 no contamine P125A
-            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo].copy()
+        col_encontrada = None
+        for col in gdf.columns:
+            if gdf[col].astype(str).str.upper().str.contains(id_pozo, na=False).any():
+                col_encontrada = col
+                break
+        
+        if col_encontrada:
+            # FILTRADO ESTRICTO EXACTO PARA EVITAR QUE P125 CONTAMINE A P125A
+            gdf = gdf[gdf[col_encontrada].astype(str).str.upper() == id_pozo].copy()
+            if gdf.empty:
+                # Si la coincidencia exacta estricta no arroja filas pero contiene el texto, validamos por igualdad de tokens o longitud
+                gdf = gdf[gdf[col_encontrada].astype(str).str.upper().apply(lambda x: id_pozo in [t.strip() for t in x.replace('-', ' ').split()])].copy()
         else:
-            # Si no encuentra la columna de pozo por nombre, intentamos buscar alguna que contenga datos similares
-            for col in gdf.columns:
-                if gdf[col].apply(normalizar_id).eq(id_pozo).any():
-                    gdf = gdf[gdf[col].apply(normalizar_id) == id_pozo].copy()
-                    break
+            gdf = gdf.iloc[0:0]
 
     st.markdown("""
         <style>
@@ -3883,7 +3886,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             except Exception as e:
                 st.error(f"Error al renderizar el mapa: {e}")
         else:
-            st.warning("Sin datos geográficos disponibles.")
+            st.warning("Sin datos geográficos disponibles para este pozo.")
 
     with col2:
         st.subheader("Tiempo de Atención")
@@ -4122,9 +4125,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf_h.columns), None)
-                    if col_p_h:
-                        gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
+                    col_encontrada_h = None
+                    for col in gdf_h.columns:
+                        if gdf_h[col].astype(str).str.upper().str.contains(id_p, na=False).any():
+                            col_encontrada_h = col
+                            break
+                    if col_encontrada_h:
+                        gdf_h = gdf_h[gdf_h[col_encontrada_h].astype(str).str.upper() == id_p]
                     for val in gdf_h['Col_atl'].dropna():
                         if isinstance(val, str):
                             for c in val.split(','):
@@ -4148,9 +4155,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf_h.columns), None)
-                    if col_p_h:
-                        gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
+                    col_encontrada_h = None
+                    for col in gdf_h.columns:
+                        if gdf_h[col].astype(str).str.upper().str.contains(id_p, na=False).any():
+                            col_encontrada_h = col
+                            break
+                    if col_encontrada_h:
+                        gdf_h = gdf_h[gdf_h[col_encontrada_h].astype(str).str.upper() == id_p]
                     match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
                     if match:
                         pozos_validos.append(r_hist.name)
