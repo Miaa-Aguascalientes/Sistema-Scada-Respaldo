@@ -3996,7 +3996,6 @@ df_incidencias = get_data()
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     
-    # Aseguramos que la columna 'Col_atl' exista sin bloquear el rendimiento
     if 'Col_atl' not in df_incidencias.columns:
         df_incidencias['Col_atl'] = "N/A"
 
@@ -4006,18 +4005,15 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
-    # 1. Incidencias Activas con línea azul intenso superior
     tz_mx = pytz.timezone('America/Mexico_City')
     st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
     st.subheader("📋 Incidencias Activas y del día")
     
-    # --- CÁLCULO DE MÉTRICAS ---
     total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
     total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
     total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
     total_activas_y_dia = len(df_actual)
 
-    # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO (MÁS DELGADAS) ---
     st.markdown("""
         <style>
         .metric-container {
@@ -4127,7 +4123,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
     
     if meses:
-        col_filtro_mes, col_filtro_colonia = st.columns(2)
+        col_filtro_mes, col_filtro_colonia, col_btn_reset = st.columns([2, 2, 1])
         
         with col_filtro_mes:
             mes_actual = datetime.now().strftime('%B %Y').capitalize()
@@ -4143,7 +4139,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Extracción segura de colonias consultando individualmente solo las geometrías de los registros visibles del mes
             colonias_en_mes = []
             for _, r_hist in datos_mes.iterrows():
                 id_p = normalizar_id(r_hist['NUM_POZO'])
@@ -4160,13 +4155,24 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
             
             lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
                 
+            if "select_colonia_historial" not in st.session_state:
+                st.session_state["select_colonia_historial"] = "Todas las colonias"
+                
+            if st.session_state["select_colonia_historial"] not in lista_colonias:
+                st.session_state["select_colonia_historial"] = "Todas las colonias"
+                
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada (Col_atl):", 
                 lista_colonias, 
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado evaluando las geometrías si se selecciona una colonia específica
+        with col_btn_reset:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 Reiniciar", use_container_width=True):
+                st.session_state["select_colonia_historial"] = "Todas las colonias"
+                st.rerun()
+            
         if colonia_sel != "Todas las colonias":
             pozos_validos = []
             for _, r_hist in datos_mes.iterrows():
