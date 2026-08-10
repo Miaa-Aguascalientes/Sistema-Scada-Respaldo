@@ -4144,13 +4144,27 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Usamos directamente Diccionario_colonias y mostramos todas sus llaves disponibles para el selectbox
+            # Obtenemos Diccionario_colonias de forma segura
             try:
                 dict_colonias = Diccionario_colonias if 'Diccionario_colonias' in globals() else {}
             except Exception:
                 dict_colonias = {}
                 
-            lista_colonias = ["Todas las colonias"] + sorted(list(dict_colonias.keys()))
+            # Extraemos todos los pozos que están presentes en el historial del mes seleccionado
+            pozos_en_mes = set(datos_mes['NUM_POZO'].dropna().astype(str).str.strip().unique())
+            
+            # Filtramos el diccionario: sólo guardamos las colonias que tengan al menos un pozo asociado que pertenezca a pozos_en_mes
+            colonias_validas = []
+            for col_nombre, pozos_asociados in dict_colonias.items():
+                if isinstance(pozos_asociados, (list, tuple, set)):
+                    pozos_asoc_str = {str(p).strip() for p in pozos_asociados}
+                    if pozos_asoc_str.intersection(pozos_en_mes):
+                        colonias_validas.append(str(col_nombre).strip())
+                else:
+                    if str(pozos_asociados).strip() in pozos_en_mes:
+                        colonias_validas.append(str(col_nombre).strip())
+            
+            lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_validas)))
                 
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada (Col_atl):", 
@@ -4158,11 +4172,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado utilizando Diccionario_colonias comparando contra el pozo de la incidencia
+        # Aplicar el filtro cruzado utilizando Diccionario_colonias
         if colonia_sel != "Todas las colonias":
             pozos_asociados = dict_colonias.get(colonia_sel, [])
-            
-            # Aseguramos compatibilidad si los pozos están en formato string, lista, tupla, set o número
             if isinstance(pozos_asociados, (list, tuple, set)):
                 pozos_asociados_str = [str(p).strip() for p in pozos_asociados]
                 datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().isin(pozos_asociados_str)]
