@@ -3552,7 +3552,7 @@ if sectores_data:
                         icon='star',
                         prefix='fa'
                     ),
-                    popup=folium.Popup(html_popup, max_width=450),
+                    popup=folium.Popup(html_popup, max_width=300),
                     tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
                 ).add_to(m)
                 
