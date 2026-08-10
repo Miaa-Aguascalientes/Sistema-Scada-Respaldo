@@ -4144,12 +4144,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Usamos el diccionario Diccionario_colonias
+            # Obtenemos el diccionario de colonias donde las llaves son las colonias (campo 'Col_atl') y los valores son los pozos o sectores asociados
             try:
-                dict_colonias = Diccionario_colonias if 'Diccionario_colonias' in globals() else {}
+                dict_colonias = DICCIONARIO_COLONIAS if 'DICCIONARIO_COLONIAS' in globals() else get_diccionario_colonias()
             except Exception:
                 dict_colonias = {}
                 
+            # Extraemos únicamente las colonias del diccionario que SÍ tengan registros o coincidan con los pozos de las incidencias del mes actual
             pozos_en_mes = datos_mes['NUM_POZO'].dropna().unique()
             
             colonias_validas = []
@@ -4169,7 +4170,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado utilizando Diccionario_colonias
+        # Aplicar el filtro cruzado utilizando el diccionario de colonias seleccionado
         if colonia_sel != "Todas las colonias":
             pozos_asociados = dict_colonias.get(colonia_sel, [])
             if isinstance(pozos_asociados, (list, tuple, set)):
