@@ -3107,12 +3107,12 @@ with st.sidebar:
         
     # 8.8. CONTROL DE CAPAS ---
     with st.expander("🗺️ Control de Capas", expanded=False):
-        ver_pozos = st.checkbox("💧 Pozos", value=True)
-        ver_colonias = st.checkbox("🏙️ Colonias", value=True)
-        ver_sectores = st.checkbox("🏘️ Sectores", value=False)
-        ver_tanques = st.checkbox("🛢️ Tanques", value=False)
-        ver_rebombeos = st.checkbox("🧊 Rebombeos", value=False) # Activado por defecto para facilitar localización
-        ver_macromedidores = st.checkbox("🌀 Macromedidores", value=False)
+    ver_pozos = st.checkbox("💧 Pozos", value=True)
+    ver_colonias = st.checkbox("🏙️ Colonias", value=True)
+    ver_sectores = st.checkbox("🏘️ Sectores", value=False)
+    ver_tanques = st.checkbox("🛢️ Tanques", value=False)
+    ver_rebombeos = st.checkbox("🧊 Rebombeos", value=False)
+    ver_macromedidores = st.checkbox("🌀 Macromedidores", value=False)
         
     
     # 8.9. LISTADO DE ESTADOS ---
@@ -3159,7 +3159,7 @@ with st.sidebar:
         st.warning("No hay macromedidores disponibles.")
 
           
-                
+m = folium.Map(location=[21.8853, -102.2916], zoom_start=12)                
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
@@ -3740,8 +3740,7 @@ if ver_colonias:
 
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=600)
+    st_folium(m, width="100%", height=600, use_container_width=True)
 
     # --- % DE AFECTACIONES POR COLONIAS ---
     st.markdown("##### 🗺️ % de Afectación en Colonias")
