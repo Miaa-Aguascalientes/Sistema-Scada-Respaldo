@@ -4001,19 +4001,33 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
-    # --- CÁLCULO DE MÉTRICAS PARA LOS INDICADORES ---
-    # Contamos basándonos en el conjunto total o filtrado según prefieras (aquí usamos df_final o puedes usar df_actual/historial combinado)
-    total_en_proceso = len(df_final[df_final['ESTATUS'].str.upper() == 'EN PROCESO'])
-    total_pendientes = len(df_final[df_final['ESTATUS'].str.upper() == 'PENDIENTE'])
-    total_cerradas = len(df_final[df_final['ESTATUS'].str.upper() == 'CERRADA'])
-    total_general = len(df_final)
+    # 1. Incidencias Activas
+    tz_mx = pytz.timezone('America/Mexico_City')
+    st.subheader("📋 Incidencias Activas y del día")
+    
+    # --- CÁLCULO DE MÉTRICAS BASADAS EN DF_ACTUAL Y EL MES RECIENTE DEL HISTORIAL ---
+    total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
+    total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
+    total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
+    
+    # Calculamos el total del mes más reciente disponible en el historial o combinado
+    df_historial_temp = df_historial.copy()
+    df_historial_temp['MES_AÑO'] = df_historial_temp['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+    meses_hist = sorted(df_historial_temp['MES_AÑO'].unique(), reverse=True)
+    
+    if meses_hist:
+        mes_mas_reciente = meses_hist[0]
+        total_mes_reciente = len(df_historial_temp[df_historial_temp['MES_AÑO'] == mes_mas_reciente]) + len(df_actual)
+    else:
+        total_mes_reciente = len(df_actual)
 
-    # --- RENDERIZADO DE TARJETAS INDICADORAS ---
+    # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO ---
     st.markdown("""
         <style>
         .metric-container {
             display: flex;
             gap: 15px;
+            margin-top: 10px;
             margin-bottom: 25px;
         }
         .metric-card {
@@ -4058,19 +4072,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 <div class="metric-value">""" + str(total_pendientes) + """</div>
             </div>
             <div class="metric-card cerradas">
-                <div class="metric-title cerradas">CERRADAS</div>
-                <div class="metric-value">""" + str(total_cerradas) + """</div>
+                <div class="metric-title cerradas">CERRADAS (HOY)</div>
+                <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
             </div>
             <div class="metric-card total">
-                <div class="metric-title total">TOTAL</div>
-                <div class="metric-value">""" + str(total_general) + """</div>
+                <div class="metric-title total">TOTAL (MES)</div>
+                <div class="metric-value">""" + str(total_mes_reciente) + """</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
 
-    # 1. Incidencias Activas
-    tz_mx = pytz.timezone('America/Mexico_City')
-    st.subheader("📋 Incidencias Activas y del día")
     # Usamos la zona horaria definida arriba (tz_mx)
     ahora_mx = datetime.now(tz_mx) 
     
