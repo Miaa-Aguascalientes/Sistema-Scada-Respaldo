@@ -4006,25 +4006,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
     st.subheader("📋 Incidencias Activas y del día")
     
-    # --- CÁLCULO DE MÉTRICAS BASADAS EN DF_ACTUAL Y EL MES RECIENTE DEL HISTORIAL ---
+    # --- CÁLCULO DE MÉTRICAS ---
     total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
     total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
     total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
     
-    # Calculamos el total del mes más reciente disponible en el historial o combinado
-    df_historial_temp = df_historial.copy()
-    df_historial_temp['MES_AÑO'] = df_historial_temp['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-    
-    # Obtenemos los meses ordenados cronológicamente inverso usando el período real (Year-Month)
-    df_historial_temp['PERIODO'] = df_historial_temp['FECHA_HORA_INICIO'].dt.to_period('M')
-    periodos_ordenados = sorted(df_historial_temp['PERIODO'].unique(), reverse=True)
-    meses = [p.strftime('%B %Y').capitalize() for p in periodos_ordenados]
-    
-    if meses:
-        mes_mas_reciente = meses[0]
-        total_mes_reciente = len(df_historial_temp[df_historial_temp['MES_AÑO'] == mes_mas_reciente]) + len(df_actual)
-    else:
-        total_mes_reciente = len(df_actual)
+    # El indicador TOTAL ahora representa la suma total de las incidencias activas y del día (df_actual)
+    total_activas_y_dia = len(df_actual)
 
     # --- RENDERIZADO DE TARJETAS INDICADORAS DEBAJO DEL TÍTULO (MÁS DELGADAS) ---
     st.markdown("""
@@ -4082,8 +4070,8 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
             </div>
             <div class="metric-card total">
-                <div class="metric-title total">TOTAL (MES)</div>
-                <div class="metric-value">""" + str(total_mes_reciente) + """</div>
+                <div class="metric-title total">TOTAL ACTIVAS/DÍA</div>
+                <div class="metric-value">""" + str(total_activas_y_dia) + """</div>
             </div>
         </div>
     """, unsafe_allow_html=True)
