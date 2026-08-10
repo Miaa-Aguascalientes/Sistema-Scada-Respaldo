@@ -4001,8 +4001,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
     df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
 
-    # 1. Incidencias Activas
+    # 1. Incidencias Activas con línea blanca superior
     tz_mx = pytz.timezone('America/Mexico_City')
+    st.markdown('<hr style="border: none; height: 1px; background-color: white; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
     st.subheader("📋 Incidencias Activas y del día")
     
     # --- CÁLCULO DE MÉTRICAS BASADAS EN DF_ACTUAL Y EL MES RECIENTE DEL HISTORIAL ---
