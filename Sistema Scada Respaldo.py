@@ -4144,24 +4144,13 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Usamos el diccionario Diccionario_colonias
+            # Usamos directamente Diccionario_colonias y mostramos todas sus llaves disponibles para el selectbox
             try:
                 dict_colonias = Diccionario_colonias if 'Diccionario_colonias' in globals() else {}
             except Exception:
                 dict_colonias = {}
                 
-            pozos_en_mes = datos_mes['NUM_POZO'].dropna().unique()
-            
-            colonias_validas = []
-            for col_nombre, pozos_asociados in dict_colonias.items():
-                if isinstance(pozos_asociados, (list, tuple, set)):
-                    if any(p in pozos_en_mes for p in pozos_asociados):
-                        colonias_validas.append(col_nombre)
-                else:
-                    if pozos_asociados in pozos_en_mes:
-                        colonias_validas.append(col_nombre)
-            
-            lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_validas)))
+            lista_colonias = ["Todas las colonias"] + sorted(list(dict_colonias.keys()))
                 
             colonia_sel = st.selectbox(
                 "Filtrar por colonia afectada (Col_atl):", 
@@ -4169,13 +4158,17 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado utilizando Diccionario_colonias
+        # Aplicar el filtro cruzado utilizando Diccionario_colonias comparando contra el pozo de la incidencia
         if colonia_sel != "Todas las colonias":
             pozos_asociados = dict_colonias.get(colonia_sel, [])
+            
+            # Aseguramos compatibilidad si los pozos están en formato string, lista, tupla, set o número
             if isinstance(pozos_asociados, (list, tuple, set)):
-                datos_mes = datos_mes[datos_mes['NUM_POZO'].isin(pozos_asociados)]
+                pozos_asociados_str = [str(p).strip() for p in pozos_asociados]
+                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().isin(pozos_asociados_str)]
             else:
-                datos_mes = datos_mes[datos_mes['NUM_POZO'] == pozos_asociados]
+                pozo_str = str(pozos_asociados).strip()
+                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip() == pozo_str]
         
         if datos_mes.empty:
             st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
