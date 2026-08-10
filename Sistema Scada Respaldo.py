@@ -3107,12 +3107,12 @@ with st.sidebar:
         
     # 8.8. CONTROL DE CAPAS ---
     with st.expander("🗺️ Control de Capas", expanded=False):
-    ver_pozos = st.checkbox("💧 Pozos", value=True)
-    ver_colonias = st.checkbox("🏙️ Colonias", value=True)
-    ver_sectores = st.checkbox("🏘️ Sectores", value=False)
-    ver_tanques = st.checkbox("🛢️ Tanques", value=False)
-    ver_rebombeos = st.checkbox("🧊 Rebombeos", value=False)
-    ver_macromedidores = st.checkbox("🌀 Macromedidores", value=False)
+        ver_pozos = st.checkbox("💧 Pozos", value=True)
+        ver_colonias = st.checkbox("🏙️ Colonias", value=True)
+        ver_sectores = st.checkbox("🏘️ Sectores", value=False)
+        ver_tanques = st.checkbox("🛢️ Tanques", value=False)
+        ver_rebombeos = st.checkbox("🧊 Rebombeos", value=False) # Activado por defecto para facilitar localización
+        ver_macromedidores = st.checkbox("🌀 Macromedidores", value=False)
         
     
     # 8.9. LISTADO DE ESTADOS ---
