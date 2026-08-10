@@ -3996,19 +3996,9 @@ df_incidencias = get_data()
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
     
-    # --- SOLUCIÓN: Asegurar que la columna 'Col_atl' exista en el DataFrame principal ---
+    # Aseguramos que la columna 'Col_atl' exista sin bloquear el rendimiento
     if 'Col_atl' not in df_incidencias.columns:
-        colonias_por_pozo = []
-        for pozo in df_incidencias['NUM_POZO']:
-            id_p = normalizar_id(pozo)
-            gdf_temp = get_geometries(id_p)
-            if gdf_temp is not None and not gdf_temp.empty and 'Col_atl' in gdf_temp.columns:
-                # Unimos las colonias únicas de este pozo separadas por coma
-                col_unicas = ", ".join(gdf_temp['Col_atl'].dropna().astype(str).unique())
-                colonias_por_pozo.append(col_unicas)
-            else:
-                colonias_por_pozo.append("N/A")
-        df_incidencias['Col_atl'] = colonias_por_pozo
+        df_incidencias['Col_atl'] = "N/A"
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
@@ -4153,16 +4143,20 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
+            # Extracción segura de colonias consultando individualmente solo las geometrías de los registros visibles del mes
             colonias_en_mes = []
-            if 'Col_atl' in datos_mes.columns:
-                for val in datos_mes['Col_atl'].dropna():
-                    if isinstance(val, str):
-                        for c in val.split(','):
-                            c_limpia = c.strip()
-                            if c_limpia:
-                                colonias_en_mes.append(c_limpia)
-                    else:
-                        colonias_en_mes.append(str(val).strip())
+            for _, r_hist in datos_mes.iterrows():
+                id_p = normalizar_id(r_hist['NUM_POZO'])
+                gdf_h = get_geometries(id_p)
+                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                    for val in gdf_h['Col_atl'].dropna():
+                        if isinstance(val, str):
+                            for c in val.split(','):
+                                c_limpia = c.strip()
+                                if c_limpia:
+                                    colonias_en_mes.append(c_limpia)
+                        else:
+                            colonias_en_mes.append(str(val).strip())
             
             lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
                 
@@ -4172,8 +4166,17 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        if colonia_sel != "Todas las colonias" and 'Col_atl' in datos_mes.columns:
-            datos_mes = datos_mes[datos_mes['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False)]
+        # Aplicar el filtro cruzado evaluando las geometrías si se selecciona una colonia específica
+        if colonia_sel != "Todas las colonias":
+            pozos_validos = []
+            for _, r_hist in datos_mes.iterrows():
+                id_p = normalizar_id(r_hist['NUM_POZO'])
+                gdf_h = get_geometries(id_p)
+                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                    match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
+                    if match:
+                        pozos_validos.append(r_hist.name)
+            datos_mes = datos_mes.loc[datos_mes.index.isin(pozos_validos)]
         
         if datos_mes.empty:
             st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
