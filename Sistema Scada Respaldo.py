@@ -3157,6 +3157,9 @@ with st.sidebar:
                 st.write(f"🟣 {id_medidor}")
     else:
         st.warning("No hay macromedidores disponibles.")
+
+# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
+dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
@@ -3315,8 +3318,7 @@ if sectores_data:
     fg_sectores.add_to(m)
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
-# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
-dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}    
+
 
 if ver_colonias:
     gdf_colonias = get_todas_las_colonias()
