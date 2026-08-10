@@ -3995,6 +3995,21 @@ df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    
+    # --- SOLUCIÓN: Asegurar que la columna 'Col_atl' exista en el DataFrame principal ---
+    if 'Col_atl' not in df_incidencias.columns:
+        colonias_por_pozo = []
+        for pozo in df_incidencias['NUM_POZO']:
+            id_p = normalizar_id(pozo)
+            gdf_temp = get_geometries(id_p)
+            if gdf_temp is not None and not gdf_temp.empty and 'Col_atl' in gdf_temp.columns:
+                # Unimos las colonias únicas de este pozo separadas por coma
+                col_unicas = ", ".join(gdf_temp['Col_atl'].dropna().astype(str).unique())
+                colonias_por_pozo.append(col_unicas)
+            else:
+                colonias_por_pozo.append("N/A")
+        df_incidencias['Col_atl'] = colonias_por_pozo
+
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     hoy = pd.Timestamp.now().normalize()
     
@@ -4074,18 +4089,15 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         </div>
     """, unsafe_allow_html=True)
 
-    # Usamos la zona horaria definida arriba (tz_mx)
     ahora_mx = datetime.now(tz_mx) 
     
     for index, row in df_actual.iterrows():
         estatus = str(row.get('ESTATUS', 'N/A')).upper()
         diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
         
-        # Convertimos inicio a datetime y le asignamos la zona horaria de México
         inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
         fin_raw = row.get('FECHA_HORA_FIN')
         
-        # Formateo de fechas para el título
         inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
         
         if pd.notnull(fin_raw):
@@ -4115,7 +4127,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     st.markdown("---")
     st.subheader("📜 Historial de Incidencias Cerradas")
     
-    # Aseguramos que la columna de fecha esté en formato datetime para poder operar con ella
     df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
     df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
     
@@ -4126,7 +4137,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
     
     if meses:
-        # Creamos columnas para colocar los filtros uno al lado del otro
         col_filtro_mes, col_filtro_colonia = st.columns(2)
         
         with col_filtro_mes:
@@ -4140,11 +4150,9 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_mes_historial"
             )
         
-        # Filtramos primero por el mes seleccionado
         datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
         
         with col_filtro_colonia:
-            # Extraemos individualmente todas las colonias del campo 'Col_atl' para el mes seleccionado, dividiendo por comas
             colonias_en_mes = []
             if 'Col_atl' in datos_mes.columns:
                 for val in datos_mes['Col_atl'].dropna():
@@ -4164,7 +4172,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 key="select_colonia_historial"
             )
             
-        # Aplicar el filtro cruzado buscando de forma flexible dentro del campo 'Col_atl' de las incidencias del mes
         if colonia_sel != "Todas las colonias" and 'Col_atl' in datos_mes.columns:
             datos_mes = datos_mes[datos_mes['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False)]
         
@@ -4175,7 +4182,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 inicio_raw = row['FECHA_HORA_INICIO']
                 fin_raw = row['FECHA_HORA_FIN']
                 
-                # Cálculo de la duración
                 if pd.notnull(fin_raw):
                     delta = fin_raw - inicio_raw
                     dias = delta.days
@@ -4189,7 +4195,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 
                 diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
                 
-                # Título completo con toda la información solicitada
                 titulo_hist = (
                     f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | "
                     f"🕒 Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
