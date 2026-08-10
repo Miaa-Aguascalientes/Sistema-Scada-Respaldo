@@ -3249,8 +3249,7 @@ with col_mapa:
         </style>
         """
 
-# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
-dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}          
+          
 
 # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________________________
 
@@ -3318,6 +3317,9 @@ if sectores_data:
             continue
 
     fg_sectores.add_to(m)
+
+# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
+dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}    
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
 
