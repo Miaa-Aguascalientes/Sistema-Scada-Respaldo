@@ -3806,10 +3806,17 @@ def renderizar_bloque_incidencia(row, index, tipo):
     gdf = get_geometries(id_pozo)
     
     if gdf is not None and not gdf.empty:
-        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
+        # Buscamos la columna de pozo exacta que devuelve la geometría
+        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf.columns), None)
         if col_pozo:
-            # FILTRO ESTRICTO: Comparamos exactamente la cadena completa para separar P125 de P125A
+            # FILTRO ESTRICTO: Exigimos coincidencia exacta para que P125 no contamine P125A
             gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo].copy()
+        else:
+            # Si no encuentra la columna de pozo por nombre, intentamos buscar alguna que contenga datos similares
+            for col in gdf.columns:
+                if gdf[col].apply(normalizar_id).eq(id_pozo).any():
+                    gdf = gdf[gdf[col].apply(normalizar_id) == id_pozo].copy()
+                    break
 
     st.markdown("""
         <style>
@@ -3824,7 +3831,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            nombres_colonias = sorted(gdf['Col_atl'].unique())
+            nombres_colonias = sorted(gdf['Col_atl'].dropna().unique())
             st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
             st.info(", ".join([str(n) for n in nombres_colonias]))
             try:
@@ -4115,7 +4122,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf_h.columns), None)
+                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf_h.columns), None)
                     if col_p_h:
                         gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
                     for val in gdf_h['Col_atl'].dropna():
@@ -4141,7 +4148,7 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf_h.columns), None)
+                    col_p_h = next((c for c in ['NUM_POZO', 'Pozo', 'pozo', 'NUMERO_POZO', 'sitio'] if c in gdf_h.columns), None)
                     if col_p_h:
                         gdf_h = gdf_h[gdf_h[col_p_h].apply(normalizar_id) == id_p]
                     match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
