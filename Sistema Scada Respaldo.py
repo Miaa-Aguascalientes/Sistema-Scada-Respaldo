@@ -3249,6 +3249,73 @@ with col_mapa:
         </style>
         """
 
+# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________________________
+
+def get_sector_style(feature, visible):
+    return {
+        'fillColor': '#00d4ff',
+        'color': '#00d4ff' if visible else 'transparent',
+        'weight': 1.5 if visible else 0,
+        'fillOpacity': 0.12 if visible else 0.01,
+    }
+
+sectores_data = cargar_sectores_poligonos()
+
+if sectores_data:
+    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
+    
+    for s in sectores_data:
+        try:
+            if not s.get('geo'): continue
+            
+            nombre_sec = s['sector']
+            geo_dict = json.loads(s['geo'])
+            
+            sector_encoded = urllib.parse.quote(nombre_sec)
+            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
+            
+            html_popup = f"""
+            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed #00d4ff;">
+                <h4 style="margin:0 0 8px 0; color:#00d4ff; text-align:center;">{nombre_sec}</h4>
+                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
+                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
+                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
+                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
+                </table>
+                
+                <a href="{url_acceso}" target="_blank" 
+                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
+                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
+                          border-radius: 5px; transition: 0.3s;">
+                   🚀 ABRIR SECTOR
+                </a>
+            </div>
+            """
+            estilo = {
+                'fillColor': '#00d4ff',
+                'color': '#00d4ff' if ver_sectores else 'transparent',
+                'weight': 1.5 if ver_sectores else 0,
+                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
+            }
+
+            folium.GeoJson(
+                geo_dict,
+                style_function=lambda x, stl=estilo: stl,
+                highlight_function=lambda x: {
+                    'fillColor': '#00d4ff', 
+                    'color': '#ffffff', 
+                    'weight': 3, 
+                    'fillOpacity': 0.4
+                },
+                tooltip=f"Sector: {nombre_sec}",
+                popup=folium.Popup(html_popup, max_width=260)
+            ).add_to(fg_sectores)
+
+        except Exception:
+            continue
+
+    fg_sectores.add_to(m)                
+
 # Declaración global de incidencias para que esté disponible para pozos y colonias siempre
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
 
@@ -3515,72 +3582,7 @@ if ver_colonias:
                     popup=folium.Popup(html_popup, max_width=450)
                 ).add_to(m)
 
-# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________________________
-
-def get_sector_style(feature, visible):
-    return {
-        'fillColor': '#00d4ff',
-        'color': '#00d4ff' if visible else 'transparent',
-        'weight': 1.5 if visible else 0,
-        'fillOpacity': 0.12 if visible else 0.01,
-    }
-
-sectores_data = cargar_sectores_poligonos()
-
-if sectores_data:
-    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
-    
-    for s in sectores_data:
-        try:
-            if not s.get('geo'): continue
-            
-            nombre_sec = s['sector']
-            geo_dict = json.loads(s['geo'])
-            
-            sector_encoded = urllib.parse.quote(nombre_sec)
-            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
-            
-            html_popup = f"""
-            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed #00d4ff;">
-                <h4 style="margin:0 0 8px 0; color:#00d4ff; text-align:center;">{nombre_sec}</h4>
-                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
-                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
-                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
-                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
-                </table>
-                
-                <a href="{url_acceso}" target="_blank" 
-                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
-                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
-                          border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
-                </a>
-            </div>
-            """
-            estilo = {
-                'fillColor': '#00d4ff',
-                'color': '#00d4ff' if ver_sectores else 'transparent',
-                'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
-            }
-
-            folium.GeoJson(
-                geo_dict,
-                style_function=lambda x, stl=estilo: stl,
-                highlight_function=lambda x: {
-                    'fillColor': '#00d4ff', 
-                    'color': '#ffffff', 
-                    'weight': 3, 
-                    'fillOpacity': 0.4
-                },
-                tooltip=f"Sector: {nombre_sec}",
-                popup=folium.Popup(html_popup, max_width=260)
-            ).add_to(fg_sectores)
-
-        except Exception:
-            continue
-
-    fg_sectores.add_to(m)                  
+          
 
 # 9.8. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ________________________________________________________________________________________________________________________________
     if ver_tanques:
