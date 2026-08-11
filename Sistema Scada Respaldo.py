@@ -3814,6 +3814,9 @@ if ver_pozos:
 
 import streamlit as st
 import pandas as pd
+import geopandas as gpd
+from shapely import wkt
+import re
 import folium
 from folium.plugins import Fullscreen
 import altair as alt
@@ -3828,6 +3831,54 @@ ahora_mx = datetime.now(tz_mx)
 def normalizar_id(valor):
     return str(valor).strip().upper()
 
+@st.cache_data(ttl=60)
+def get_geometries(num_pozo):
+    if not num_pozo:
+        return None
+        
+    id_busqueda = str(num_pozo).strip().upper()
+    engine = get_mysql_telemetria_engine()
+    if engine is None:
+        return None
+        
+    try:
+        # CONSULTA ESTRICTA Y SEGURA: Evitamos comodines peligrosos en SQL
+        query = """
+            SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor 
+            FROM Diccionario_colonias 
+            WHERE Pozos = %s 
+               OR Pozos LIKE %s 
+               OR Pozos LIKE %s 
+               OR Pozos LIKE %s
+        """
+        p_exacto = id_busqueda
+        p_comienza = f"{id_busqueda},%"
+        p_medio = f"%, {id_busqueda},%"
+        p_termina = f"%, {id_busqueda}"
+        
+        df = pd.read_sql(query, engine, params=(p_exacto, p_comienza, p_medio, p_termina))
+        
+        # FILTRO DE SEGURIDAD EN MEMORIA: Verificamos elemento por elemento en la lista de pozos
+        if not df.empty:
+            def pozo_en_lista(cell_value):
+                if pd.isna(cell_value):
+                    return False
+                pozos_en_celda = [p.strip().upper() for p in str(cell_value).replace(';', ',').split(',')]
+                return id_busqueda in pozos_en_celda
+
+            df = df[df['Pozos'].apply(pozo_en_lista)]
+
+        if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
+            df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+            gdf = gpd.GeoDataFrame(df, geometry='geometry')
+            gdf.set_crs(epsg=32613, inplace=True)
+            return gdf.to_crs(epsg=4326)
+            
+    except Exception as e:
+        st.error(f"Error en BD al obtener geometrías: {e}")
+        
+    return None
+
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
     val = row['NUM_POZO']
@@ -3836,17 +3887,14 @@ def renderizar_bloque_incidencia(row, index, tipo):
     else:
         id_pozo_original = ""
     
-    # Llamamos a get_geometries
+    # Llamamos a la nueva función get_geometries optimizada y estricta
     gdf = get_geometries(id_pozo_original) if id_pozo_original else None
 
-    # FILTRO DE SEGURIDAD BLINDADO: Si get_geometries devuelve registros mezclados de otros pozos, 
-    # los filtramos estrictamente aquí en memoria carácter por carácter.
+    # FILTRO DE SEGURIDAD ADICIONAL EN MEMORIA
     if gdf is not None and not gdf.empty:
-        # Buscamos qué columna representa el identificador del pozo dentro del GeoDataFrame
         col_pozo_encontrada = next((c for c in gdf.columns if c.upper() in ['NUM_POZO', 'POZO', 'ID_POZO', 'CVE_POZO', 'SITE', 'SITIO']), None)
         
         if col_pozo_encontrada:
-            # Comparamos de forma exacta y estricta (ej. 'P-087A' == 'P-087A')
             gdf = gdf[gdf[col_pozo_encontrada].astype(str).str.strip().str.upper() == id_pozo_original]
 
     st.markdown("""
