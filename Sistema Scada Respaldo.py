@@ -728,27 +728,28 @@ def get_diccionario_completo():
 # 3.8. Funcion para optener las colonias del diccionario de colonias
 @st.cache_data(ttl=60)
 def get_geometries(num_pozo):
-    numero_limpio = re.sub(r'\D', '', str(num_pozo))
-    busqueda = numero_limpio if numero_limpio else str(num_pozo)
-    
-    # La consulta ya trae los campos, vamos a asegurarnos de que no se pierdan
-    query = f"""
+  numero_limpio = re.sub(r'\D', '', str(num_pozo))
+  busqueda = numero_limpio if numero_limpio else str(num_pozo)
+
+  query = f"""
     SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
     FROM Diccionario_colonias 
     WHERE Pozos LIKE '%%{busqueda}%%'
     """
-    
-    try:
-        df = pd.read_sql(query, get_mysql_telemetria_engine())
-        if not df.empty and df['geom_wkt'].iloc[0] is not None:
-            df['geometry'] = df['geom_wkt'].apply(wkt.loads)
-            gdf = gpd.GeoDataFrame(df, geometry='geometry')
-            gdf.set_crs(epsg=32613, inplace=True)
-            # Retornamos el gdf con las columnas intactas
-            return gdf.to_crs(epsg=4326)
-    except Exception as e:
-        st.error(f"Error en BD: {e}")
-    return None
+
+  try:
+    engine = get_mysql_telemetria_engine()
+    if engine is None:
+      return None
+    df = pd.read_sql(query, engine)
+    if not df.empty and df['geom_wkt'].iloc[0] is not None:
+      df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+      gdf = gpd.GeoDataFrame(df, geometry='geometry')
+      gdf.set_crs(epsg=32613, inplace=True)
+      return gdf.to_crs(epsg=4326)
+  except Exception as e:
+    st.error(f'Error en BD (Diccionario de colonias): {e}')
+  return None
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
 params = st.query_params
