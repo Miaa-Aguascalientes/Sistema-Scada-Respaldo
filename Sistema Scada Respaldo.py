@@ -4046,30 +4046,36 @@ def renderizar_bloque_incidencia(row, index, tipo):
             st.markdown(f"🏢 **Distrito:** {distrito_val}")
         with col_res:
             st.markdown(f"👤 **Responsable:** {responsable_val}")
+            
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
 
 if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
     df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+    df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
     
     if 'Col_atl' not in df_incidencias.columns:
         df_incidencias['Col_atl'] = "N/A"
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
     
-    # CORRECCIÓN DE ZONA HORARIA Y FILTRADO
+    # Definimos 'hoy' sin zona horaria
     hoy = pd.Timestamp.now(tz=pytz.timezone('America/Mexico_City')).normalize().tz_localize(None)
     
-    # Aseguramos que la columna sea datetime y eliminamos zona horaria para comparar
-    fechas_limpias = pd.to_datetime(df_final['FECHA_HORA_INICIO']).dt.tz_localize(None).dt.normalize()
+    # Normalizamos fechas de inicio y fin para comparar sin horas de diferencia
+    f_inicio_norm = df_final['FECHA_HORA_INICIO'].dt.tz_localize(None).dt.normalize()
+    f_fin_norm = df_final['FECHA_HORA_FIN'].dt.tz_localize(None).dt.normalize()
     
+    # 1. Activas puras (En proceso o pendientes)
     mask_activas = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
-    mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & (fechas_limpias == hoy)
+    
+    # 2. Cerradas que iniciaron HOY o que se cerraron HOY
+    mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & ((f_inicio_norm == hoy) | (f_fin_norm == hoy))
     
     df_actual = df_final[mask_activas | mask_cerradas_hoy]
     
-    # Aquí está el cambio crítico para evitar el error en la siguiente línea:
-    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (fechas_limpias < hoy)]
+    # El historial solo es lo que se cerró antes de hoy y cuya fecha de inicio tampoco es hoy
+    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)]
 
     tz_mx = pytz.timezone('America/Mexico_City')
     st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
