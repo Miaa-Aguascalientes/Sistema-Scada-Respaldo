@@ -3440,9 +3440,11 @@ if ver_pozos:
         # AQUÍ VA LA VALIDACIÓN TOLERANTE CON/SIN GUION
         # ==========================================
         id_p_limpio = str(id_p).strip().upper()
-        id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)$', r'\1-\2', id_p_limpio)
+        
+        # Generar posibles variantes con o sin guion y con sufijos de letra (ej. P087A / P-087A)
+        id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
         id_p_sin_guion = id_p_limpio.replace('-', '')
-
+        
         tiene_incidencia_activa = (
             id_p_limpio in dic_incidencias_activas or 
             id_p_con_guion in dic_incidencias_activas or 
