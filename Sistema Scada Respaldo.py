@@ -3336,6 +3336,7 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
 
+
 if ver_colonias:
     gdf_colonias = get_todas_las_colonias()
     
@@ -3353,42 +3354,13 @@ if ver_colonias:
                 afectacion_col = row.get(f'Afectacion_{i}')
                 
                 if pd.notna(pozo_col):
-                    # Manejar celdas que puedan contener múltiples pozos separados por comas
-                    celda_pozos = str(pozo_col).split(',')
-                    
-                    for sub_pozo in celda_pozos:
-                        sub_pozo_str = sub_pozo.strip()
-                        if not sub_pozo_str:
-                            continue
-                            
-                        sub_upper = sub_pozo_str.upper()
-                        match_encontrado = None
-                        falla = None
+                    num_col_limpio = re.sub(r'\D', '', str(pozo_col))
+                    if num_col_limpio:
+                        num_norm = str(int(num_col_limpio))
                         
-                        # 1. Coincidencia directa exacta
-                        if sub_pozo_str in dic_incidencias_activas:
-                            match_encontrado = sub_pozo_str
-                            falla = dic_incidencias_activas[sub_pozo_str]
-                        elif sub_upper in dic_incidencias_activas:
-                            match_encontrado = sub_upper
-                            falla = dic_incidencias_activas[sub_upper]
-                        else:
-                            # 2. Coincidencia flexible ignorando guiones y prefijos (ej: P-095 vs P095 o 095)
-                            num_limpio_col = re.sub(r'\D', '', sub_upper)
-                            sufijo_col = ''.join(re.findall(r'[A-Z]', sub_upper))
-                            
-                            for k, v in dic_incidencias_activas.items():
-                                k_upper = str(k).upper()
-                                num_limpio_k = re.sub(r'\D', '', k_upper)
-                                sufijo_k = ''.join(re.findall(r'[A-Z]', k_upper))
-                                
-                                if num_limpio_col and num_limpio_col == num_limpio_k and sufijo_col == sufijo_k:
-                                    match_encontrado = k
-                                    falla = v
-                                    break
-                        
-                        if match_encontrado and falla:
-                            descripciones_fallas.append(f"{sub_pozo_str}: {falla}")
+                        if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
+                            falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                            descripciones_fallas.append(f"{pozo_col}: {falla}")
                             
                             if pd.notna(afectacion_col):
                                 try:
@@ -3456,7 +3428,7 @@ if ver_colonias:
             )
         ).add_to(fg_colonias)
         
-        fg_colonias.add_to(m)
+        fg_colonias.add_to(m) 
 
       
     
@@ -3848,20 +3820,9 @@ def renderizar_bloque_incidencia(row, index, tipo):
     gdf = get_geometries(id_pozo)
     
     if gdf is not None and not gdf.empty:
-        col_encontrada = None
-        for col in gdf.columns:
-            if gdf[col].astype(str).str.upper().str.contains(id_pozo, na=False).any():
-                col_encontrada = col
-                break
-        
-        if col_encontrada:
-            # FILTRADO ESTRICTO EXACTO PARA EVITAR QUE P125 CONTAMINE A P125A
-            gdf = gdf[gdf[col_encontrada].astype(str).str.upper() == id_pozo].copy()
-            if gdf.empty:
-                # Si la coincidencia exacta estricta no arroja filas pero contiene el texto, validamos por igualdad de tokens o longitud
-                gdf = gdf[gdf[col_encontrada].astype(str).str.upper().apply(lambda x: id_pozo in [t.strip() for t in x.replace('-', ' ').split()])].copy()
-        else:
-            gdf = gdf.iloc[0:0]
+        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
+        if col_pozo:
+            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
 
     st.markdown("""
         <style>
@@ -3876,7 +3837,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            nombres_colonias = sorted(gdf['Col_atl'].dropna().unique())
+            nombres_colonias = sorted(gdf['Col_atl'].unique())
             st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
             st.info(", ".join([str(n) for n in nombres_colonias]))
             try:
@@ -3928,7 +3889,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
             except Exception as e:
                 st.error(f"Error al renderizar el mapa: {e}")
         else:
-            st.warning("Sin datos geográficos disponibles para este pozo.")
+            st.warning("Sin datos geográficos disponibles.")
 
     with col2:
         st.subheader("Tiempo de Atención")
@@ -4088,11 +4049,11 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 <div class="metric-value">""" + str(total_pendientes) + """</div>
             </div>
             <div class="metric-card cerradas">
-                <div class="metric-title cerradas">CERRADAS (HOY)</div>
+                <div class="metric-title cerradas">CERRADAS</div>
                 <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
             </div>
             <div class="metric-card total">
-                <div class="metric-title total">TOTAL ACTIVAS/DÍA</div>
+                <div class="metric-title total">TOTAL ACTIVAS</div>
                 <div class="metric-value">""" + str(total_activas_y_dia) + """</div>
             </div>
         </div>
@@ -4167,13 +4128,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_encontrada_h = None
-                    for col in gdf_h.columns:
-                        if gdf_h[col].astype(str).str.upper().str.contains(id_p, na=False).any():
-                            col_encontrada_h = col
-                            break
-                    if col_encontrada_h:
-                        gdf_h = gdf_h[gdf_h[col_encontrada_h].astype(str).str.upper() == id_p]
                     for val in gdf_h['Col_atl'].dropna():
                         if isinstance(val, str):
                             for c in val.split(','):
@@ -4197,13 +4151,6 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
                 id_p = normalizar_id(r_hist['NUM_POZO'])
                 gdf_h = get_geometries(id_p)
                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                    col_encontrada_h = None
-                    for col in gdf_h.columns:
-                        if gdf_h[col].astype(str).str.upper().str.contains(id_p, na=False).any():
-                            col_encontrada_h = col
-                            break
-                    if col_encontrada_h:
-                        gdf_h = gdf_h[gdf_h[col_encontrada_h].astype(str).str.upper() == id_p]
                     match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
                     if match:
                         pozos_validos.append(r_hist.name)
