@@ -3832,37 +3832,15 @@ def normalizar_id(valor):
 def renderizar_bloque_incidencia(row, index, tipo):
     id_pozo_original = str(row['NUM_POZO']).strip().upper()
     
-    # Extraer el prefijo actual (ej. 'P' o 'R') y el número limpio base
-    match = re.match(r'^([A-Z]+)[-]?(\d+[A-Z]*)', id_pozo_original)
-    if match:
-        prefijo = match.group(1)
-        base_num = match.group(2)
-        # Generar únicamente variantes estrictas para el mismo tipo de letra (P o R)
-        variantes_ids = {
-            id_pozo_original,
-            f"{prefijo}-{base_num}",
-            f"{prefijo}{base_num}"
-        }
-    else:
-        variantes_ids = {id_pozo_original}
+    # Llamada a la función de geometrías con el ID exacto
+    gdf = get_geometries(id_pozo_original)
     
-    # Recopilar geometrías exclusivamente para las variantes permitidas de este pozo
-    gdfs_encontrados = []
-    for vid in variantes_ids:
-        gdf_temp = get_geometries(vid)
-        if gdf_temp is not None and not gdf_temp.empty:
-            gdfs_encontrados.append(gdf_temp)
-            
-    if gdfs_encontrados:
-        gdf = pd.concat(gdfs_encontrados, ignore_index=True).drop_duplicates(subset=['Col_atl'] if 'Col_atl' in gdfs_encontrados[0].columns else None)
-    else:
-        gdf = None
-    
+    # Filtro de seguridad estricto en memoria para descartar cualquier cruce de otros pozos
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
-            # Filtrar estrictamente para que coincida exactamente con el pozo y sus formatos sin cruzar otros números
-            gdf = gdf[gdf[col_pozo].apply(lambda x: str(x).strip().upper() in variantes_ids or str(x).strip().upper().replace('-', '') == id_pozo_original.replace('-', ''))]
+            id_busqueda_limpio = id_pozo_original.replace('-', '')
+            gdf = gdf[gdf[col_pozo].apply(lambda x: str(x).strip().upper().replace('-', '') == id_busqueda_limpio)]
 
     st.markdown("""
         <style>
@@ -4013,7 +3991,6 @@ def renderizar_bloque_incidencia(row, index, tipo):
             st.markdown(f"🏢 **Distrito:** {distrito_val}")
         with col_res:
             st.markdown(f"👤 **Responsable:** {responsable_val}")
-
 # --- LÓGICA PRINCIPAL ---
 df_incidencias = get_data()
 
