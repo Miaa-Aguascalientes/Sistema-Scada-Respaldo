@@ -3436,9 +3436,18 @@ if ver_pozos:
         v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
         a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        # CORRECCIÓN: Uso estricto de la clave exacta sin eliminar letras ni guiones medios
-        id_p_exacto = str(id_p).strip().upper()
-        tiene_incidencia_activa = (id_p_exacto in dic_incidencias_activas)
+        # ==========================================
+        # AQUÍ VA LA VALIDACIÓN TOLERANTE CON/SIN GUION
+        # ==========================================
+        id_p_limpio = str(id_p).strip().upper()
+        id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)$', r'\1-\2', id_p_limpio)
+        id_p_sin_guion = id_p_limpio.replace('-', '')
+
+        tiene_incidencia_activa = (
+            id_p_limpio in dic_incidencias_activas or 
+            id_p_con_guion in dic_incidencias_activas or 
+            id_p_sin_guion in dic_incidencias_activas
+        )
 
         rol_actual = st.session_state.get('rol', 'usuario')
         nombre_codificado = urllib.parse.quote(id_p)
@@ -3538,9 +3547,15 @@ if ver_pozos:
             )
         ).add_to(fg_pozos)
 
-        # 2. Marcador condicional
+        # ==========================================
+        # 2. MARCADOR CONDICIONAL (USANDO LAS VARIANTES)
+        # ==========================================
         if tiene_incidencia_activa:
-            info_incidencia = dic_incidencias_activas.get(id_p_exacto, {})
+            info_incidencia = (
+                dic_incidencias_activas.get(id_p_limpio) or 
+                dic_incidencias_activas.get(id_p_con_guion) or 
+                dic_incidencias_activas.get(id_p_sin_guion, {})
+            )
             
             if isinstance(info_incidencia, dict):
                 diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'INCIDENCIA REGISTRADA'))
@@ -3576,7 +3591,6 @@ if ver_pozos:
             ).add_to(fg_pozos)
 
     fg_pozos.add_to(m)
-
           
 
 # 9.8. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ________________________________________________________________________________________________________________________________
