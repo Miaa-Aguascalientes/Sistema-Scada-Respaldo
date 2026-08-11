@@ -3830,15 +3830,24 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    # Usando exactamente la misma lógica limpia y directa de tu función de incidencias
     val = row['NUM_POZO']
     if pd.notna(val):
         id_pozo_original = str(val).strip().upper()
     else:
         id_pozo_original = ""
     
-    # Llamamos a get_geometries utilizando el ID idéntico, limpio y sin variaciones forzadas
+    # Llamamos a get_geometries
     gdf = get_geometries(id_pozo_original) if id_pozo_original else None
+
+    # FILTRO DE SEGURIDAD BLINDADO: Si get_geometries devuelve registros mezclados de otros pozos, 
+    # los filtramos estrictamente aquí en memoria carácter por carácter.
+    if gdf is not None and not gdf.empty:
+        # Buscamos qué columna representa el identificador del pozo dentro del GeoDataFrame
+        col_pozo_encontrada = next((c for c in gdf.columns if c.upper() in ['NUM_POZO', 'POZO', 'ID_POZO', 'CVE_POZO', 'SITE', 'SITIO']), None)
+        
+        if col_pozo_encontrada:
+            # Comparamos de forma exacta y estricta (ej. 'P-087A' == 'P-087A')
+            gdf = gdf[gdf[col_pozo_encontrada].astype(str).str.strip().str.upper() == id_pozo_original]
 
     st.markdown("""
         <style>
