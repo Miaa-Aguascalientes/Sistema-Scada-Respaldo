@@ -3323,7 +3323,6 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
 
-
 if ver_colonias:
     gdf_colonias = get_todas_las_colonias()
     
@@ -3341,22 +3340,20 @@ if ver_colonias:
                 afectacion_col = row.get(f'Afectacion_{i}')
                 
                 if pd.notna(pozo_col):
-                    num_col_limpio = re.sub(r'\D', '', str(pozo_col))
-                    if num_col_limpio:
-                        num_norm = str(int(num_col_limpio))
+                    pozo_str = str(pozo_col).strip()
+                    
+                    if pozo_str in dic_incidencias_activas:
+                        falla = dic_incidencias_activas[pozo_str]
+                        descripciones_fallas.append(f"{pozo_col}: {falla}")
                         
-                        if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
-                            falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
-                            descripciones_fallas.append(f"{pozo_col}: {falla}")
-                            
-                            if pd.notna(afectacion_col):
-                                try:
-                                    val_str = str(afectacion_col).replace('%', '').strip()
-                                    val_f = float(val_str)
-                                    if val_f > max_afec:
-                                        max_afec = val_f
-                                except:
-                                    pass
+                        if pd.notna(afectacion_col):
+                            try:
+                                val_str = str(afectacion_col).replace('%', '').strip()
+                                val_f = float(val_str)
+                                if val_f > max_afec:
+                                    max_afec = val_f
+                            except:
+                                pass
             
             if descripciones_fallas:
                 lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
@@ -3415,7 +3412,7 @@ if ver_colonias:
             )
         ).add_to(fg_colonias)
         
-        fg_colonias.add_to(m) 
+        fg_colonias.add_to(m)
 
       
     
