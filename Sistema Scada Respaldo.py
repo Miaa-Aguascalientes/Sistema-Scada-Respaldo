@@ -3830,17 +3830,15 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    id_pozo_original = str(row['NUM_POZO']).strip().upper()
+    # Usando exactamente la misma lógica limpia y directa de tu función de incidencias
+    val = row['NUM_POZO']
+    if pd.notna(val):
+        id_pozo_original = str(val).strip().upper()
+    else:
+        id_pozo_original = ""
     
-    # Llamada a la función de geometrías con el ID exacto
-    gdf = get_geometries(id_pozo_original)
-    
-    # Filtro de seguridad estricto en memoria para descartar cualquier cruce de otros pozos
-    if gdf is not None and not gdf.empty:
-        col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
-        if col_pozo:
-            id_busqueda_limpio = id_pozo_original.replace('-', '')
-            gdf = gdf[gdf[col_pozo].apply(lambda x: str(x).strip().upper().replace('-', '') == id_busqueda_limpio)]
+    # Llamamos a get_geometries utilizando el ID idéntico, limpio y sin variaciones forzadas
+    gdf = get_geometries(id_pozo_original) if id_pozo_original else None
 
     st.markdown("""
         <style>
