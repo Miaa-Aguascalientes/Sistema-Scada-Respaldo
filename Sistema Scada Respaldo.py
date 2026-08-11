@@ -3340,47 +3340,51 @@ if ver_colonias:
                 afectacion_col = row.get(f'Afectacion_{i}')
                 
                 if pd.notna(pozo_col):
-                    pozo_str = str(pozo_col).strip()
-                    pozo_upper = pozo_str.upper()
+                    # Manejar celdas que puedan contener múltiples pozos separados por comas
+                    celda_pozos = str(pozo_col).split(',')
                     
-                    # Extraer números y letras clave para matchear correctamente sin confundir R087 con R087A
-                    match_encontrado = None
-                    falla = None
-                    
-                    # 1. Buscar coincidencia exacta directa
-                    if pozo_str in dic_incidencias_activas:
-                        match_encontrado = pozo_str
-                        falla = dic_incidencias_activas[pozo_str]
-                    elif pozo_upper in dic_incidencias_activas:
-                        match_encontrado = pozo_upper
-                        falla = dic_incidencias_activas[pozo_upper]
-                    else:
-                        # 2. Buscar por coincidencia flexible normalizando prefijos (ej. P087A vs R087A) pero respetando sufijos
-                        num_limpio_col = re.sub(r'\D', '', pozo_upper)
-                        sufijo_col = ''.join(re.findall(r'[A-Z]', pozo_upper))
-                        
-                        for k, v in dic_incidencias_activas.items():
-                            k_upper = str(k).upper()
-                            num_limpio_k = re.sub(r'\D', '', k_upper)
-                            sufijo_k = ''.join(re.findall(r'[A-Z]', k_upper))
+                    for sub_pozo in celda_pozos:
+                        sub_pozo_str = sub_pozo.strip()
+                        if not sub_pozo_str:
+                            continue
                             
-                            # Si los números coinciden exactamente y los sufijos (letras al final como A) también coinciden
-                            if num_limpio_col and num_limpio_col == num_limpio_k and sufijo_col == sufijo_k:
-                                match_encontrado = k
-                                falla = v
-                                break
-                    
-                    if match_encontrado and falla:
-                        descripciones_fallas.append(f"{pozo_col}: {falla}")
+                        sub_upper = sub_pozo_str.upper()
+                        match_encontrado = None
+                        falla = None
                         
-                        if pd.notna(afectacion_col):
-                            try:
-                                val_str = str(afectacion_col).replace('%', '').strip()
-                                val_f = float(val_str)
-                                if val_f > max_afec:
-                                    max_afec = val_f
-                            except:
-                                pass
+                        # 1. Coincidencia directa exacta
+                        if sub_pozo_str in dic_incidencias_activas:
+                            match_encontrado = sub_pozo_str
+                            falla = dic_incidencias_activas[sub_pozo_str]
+                        elif sub_upper in dic_incidencias_activas:
+                            match_encontrado = sub_upper
+                            falla = dic_incidencias_activas[sub_upper]
+                        else:
+                            # 2. Coincidencia flexible ignorando guiones y prefijos (ej: P-095 vs P095 o 095)
+                            num_limpio_col = re.sub(r'\D', '', sub_upper)
+                            sufijo_col = ''.join(re.findall(r'[A-Z]', sub_upper))
+                            
+                            for k, v in dic_incidencias_activas.items():
+                                k_upper = str(k).upper()
+                                num_limpio_k = re.sub(r'\D', '', k_upper)
+                                sufijo_k = ''.join(re.findall(r'[A-Z]', k_upper))
+                                
+                                if num_limpio_col and num_limpio_col == num_limpio_k and sufijo_col == sufijo_k:
+                                    match_encontrado = k
+                                    falla = v
+                                    break
+                        
+                        if match_encontrado and falla:
+                            descripciones_fallas.append(f"{sub_pozo_str}: {falla}")
+                            
+                            if pd.notna(afectacion_col):
+                                try:
+                                    val_str = str(afectacion_col).replace('%', '').strip()
+                                    val_f = float(val_str)
+                                    if val_f > max_afec:
+                                        max_afec = val_f
+                                except:
+                                    pass
             
             if descripciones_fallas:
                 lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
