@@ -3341,9 +3341,36 @@ if ver_colonias:
                 
                 if pd.notna(pozo_col):
                     pozo_str = str(pozo_col).strip()
+                    pozo_upper = pozo_str.upper()
                     
+                    # Extraer números y letras clave para matchear correctamente sin confundir R087 con R087A
+                    match_encontrado = None
+                    falla = None
+                    
+                    # 1. Buscar coincidencia exacta directa
                     if pozo_str in dic_incidencias_activas:
+                        match_encontrado = pozo_str
                         falla = dic_incidencias_activas[pozo_str]
+                    elif pozo_upper in dic_incidencias_activas:
+                        match_encontrado = pozo_upper
+                        falla = dic_incidencias_activas[pozo_upper]
+                    else:
+                        # 2. Buscar por coincidencia flexible normalizando prefijos (ej. P087A vs R087A) pero respetando sufijos
+                        num_limpio_col = re.sub(r'\D', '', pozo_upper)
+                        sufijo_col = ''.join(re.findall(r'[A-Z]', pozo_upper))
+                        
+                        for k, v in dic_incidencias_activas.items():
+                            k_upper = str(k).upper()
+                            num_limpio_k = re.sub(r'\D', '', k_upper)
+                            sufijo_k = ''.join(re.findall(r'[A-Z]', k_upper))
+                            
+                            # Si los números coinciden exactamente y los sufijos (letras al final como A) también coinciden
+                            if num_limpio_col and num_limpio_col == num_limpio_k and sufijo_col == sufijo_k:
+                                match_encontrado = k
+                                falla = v
+                                break
+                    
+                    if match_encontrado and falla:
                         descripciones_fallas.append(f"{pozo_col}: {falla}")
                         
                         if pd.notna(afectacion_col):
