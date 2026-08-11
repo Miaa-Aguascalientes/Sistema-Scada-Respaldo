@@ -3318,9 +3318,7 @@ if sectores_data:
 # Declaración global de incidencias para que esté disponible para pozos y colonias siempre
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
 
-# 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS ____________________________________________________________________________________________________________________________________________
-
-
+# 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS
 if ver_colonias:
     gdf_colonias = get_todas_las_colonias()
     
@@ -3338,12 +3336,13 @@ if ver_colonias:
                 afectacion_col = row.get(f'Afectacion_{i}')
                 
                 if pd.notna(pozo_col):
-                    num_col_limpio = re.sub(r'\D', '', str(pozo_col))
-                    if num_col_limpio:
-                        num_norm = str(int(num_col_limpio))
-                        
-                        if num_norm in dic_incidencias_activas or num_col_limpio in dic_incidencias_activas:
-                            falla = dic_incidencias_activas.get(num_norm, dic_incidencias_activas.get(num_col_limpio, 'Activa'))
+                    # CORRECCIÓN: Conservamos la nomenclatura exacta (letras y guiones como P-095)
+                    id_pozo_exacto = str(pozo_col).strip().upper()
+                    
+                    if id_pozo_exacto:
+                        # Buscamos directamente por la clave exacta en el diccionario de incidencias
+                        if id_pozo_exacto in dic_incidencias_activas:
+                            falla = dic_incidencias_activas.get(id_pozo_exacto, 'Activa')
                             descripciones_fallas.append(f"{pozo_col}: {falla}")
                             
                             if pd.notna(afectacion_col):
@@ -3412,7 +3411,7 @@ if ver_colonias:
             )
         ).add_to(fg_colonias)
         
-        fg_colonias.add_to(m) 
+        fg_colonias.add_to(m)
 
       
     
