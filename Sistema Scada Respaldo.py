@@ -3830,13 +3830,39 @@ def normalizar_id(valor):
 
 @st.fragment
 def renderizar_bloque_incidencia(row, index, tipo):
-    id_pozo = normalizar_id(row['NUM_POZO'])
-    gdf = get_geometries(id_pozo)
+    id_pozo_original = str(row['NUM_POZO']).strip().upper()
+    
+    # Generar variantes de búsqueda para abarcar P-087A, R-087, R-087A, etc.
+    id_limpio = id_pozo_original.replace('-', '')
+    id_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'-'.join(filter(None, r'\1 \2 \3'.split())), id_limpio) # Asegurar formato con guion genérico
+    # O de forma más directa para tus prefijos comunes (P / R):
+    variantes_ids = {
+        id_pozo_original,
+        id_limpio,
+        re.sub(r'^([A-Z]+)', 'P-', id_pozo_original),
+        re.sub(r'^([A-Z]+)', 'R-', id_pozo_original),
+        id_pozo_original.replace('P-', '').replace('R-', ''),
+        f"P-{id_pozo_original.replace('P-', '').replace('R-', '')}",
+        f"R-{id_pozo_original.replace('P-', '').replace('R-', '')}"
+    }
+    
+    # Recopilar geometrías para todas las variantes posibles del pozo
+    gdfs_encontrados = []
+    for vid in variantes_ids:
+        gdf_temp = get_geometries(vid)
+        if gdf_temp is not None and not gdf_temp.empty:
+            gdfs_encontrados.append(gdf_temp)
+            
+    if gdfs_encontrados:
+        gdf = pd.concat(gdfs_encontrados, ignore_index=True).drop_duplicates(subset=['Col_atl'] if 'Col_atl' in gdfs_encontrados[0].columns else None)
+    else:
+        gdf = None
     
     if gdf is not None and not gdf.empty:
         col_pozo = next((c for c in ['NUM_POZO', 'Pozo', 'pozo'] if c in gdf.columns), None)
         if col_pozo:
-            gdf = gdf[gdf[col_pozo].apply(normalizar_id) == id_pozo]
+            # Filtrar de manera flexible si la columna del geodataframe contiene alguna de nuestras variantes
+            gdf = gdf[gdf[col_pozo].apply(lambda x: normalizar_id(x) in {v.replace('-', '') for v in variantes_ids} or normalizar_id(x) in variantes_ids)]
 
     st.markdown("""
         <style>
@@ -3851,7 +3877,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
     
     with col1:
         if gdf is not None and not gdf.empty:
-            nombres_colonias = sorted(gdf['Col_atl'].unique())
+            nombres_colonias = sorted(gdf['Col_atl'].dropna().unique())
             st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
             st.info(", ".join([str(n) for n in nombres_colonias]))
             try:
@@ -3899,7 +3925,7 @@ def renderizar_bloque_incidencia(row, index, tipo):
                         ).add_to(m)
                 
                 Fullscreen(position='topright').add_to(m)
-                st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo}_{index}")
+                st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo_original}_{index}")
             except Exception as e:
                 st.error(f"Error al renderizar el mapa: {e}")
         else:
