@@ -384,6 +384,7 @@ def obtener_pozos_con_incidencias_hoy():
     if engine is None:
         return {}
     try:
+        # Consultamos tanto el pozo, el estatus, como el diagnóstico de la falla
         query = """
             SELECT NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS 
             FROM vw_incidencias_en_pozos 
@@ -394,11 +395,11 @@ def obtener_pozos_con_incidencias_hoy():
         for _, row in df_inc.iterrows():
             val = row['NUM_POZO']
             if pd.notna(val):
-                # CORRECCIÓN: Conservamos letras, números y guiones medios (ej. P-087A, R-087)
-                id_limpio = str(val).strip().upper()
-                if id_limpio:
+                numero_limpio = re.sub(r'\D', '', str(val))
+                if numero_limpio:
                     diagnostico = row['DIAGNOSTICO_FALLA'] or 'Sin diagnóstico'
-                    dic_incidencias[id_limpio] = diagnostico
+                    dic_incidencias[numero_limpio] = diagnostico
+                    dic_incidencias[str(int(numero_limpio))] = diagnostico
         return dic_incidencias
     except Exception as e:
         return {}
@@ -412,19 +413,20 @@ def calcular_color_colonia(props, pozos_con_incidencia):
         afectacion_col = props.get(f'Afectacion_{i}')
         
         if pozo_col is not None:
-            # CORRECCIÓN: Conservamos el formato exacto con letras y guiones sin borrar con \D
-            id_col_normalizado = str(pozo_col).strip().upper()
-            
-            if id_col_normalizado in pozos_con_incidencia:
-                tiene_incidencia_activa = True
-                if pd.notna(afectacion_col):
-                    try:
-                        val_str = str(afectacion_col).replace('%', '').strip()
-                        val_afect = float(val_str)
-                        if val_afect > max_afectacion:
-                            max_afectacion = val_afect
-                    except:
-                        pass
+            num_col_limpio = re.sub(r'\D', '', str(pozo_col))
+            if num_col_limpio:
+                num_col_normalizado = str(int(num_col_limpio))
+                
+                if num_col_limpio in pozos_con_incidencia or num_col_normalizado in pozos_con_incidencia:
+                    tiene_incidencia_activa = True
+                    if pd.notna(afectacion_col):
+                        try:
+                            val_str = str(afectacion_col).replace('%', '').strip()
+                            val_afect = float(val_str)
+                            if val_afect > max_afectacion:
+                                max_afectacion = val_afect
+                        except:
+                            pass
 
     if not tiene_incidencia_activa:
         return '#3498DB', 0  # Azul para colonias sin afectación activa
@@ -726,40 +728,26 @@ def get_diccionario_completo():
 # 3.8. Funcion para optener las colonias del diccionario de colonias
 @st.cache_data(ttl=60)
 def get_geometries(num_pozo):
-    if not num_pozo:
-        return None
-        
-    pozo_str = str(num_pozo).strip()
+    numero_limpio = re.sub(r'\D', '', str(num_pozo))
+    busqueda = numero_limpio if numero_limpio else str(num_pozo)
     
-    # Extraer tanto la parte numérica como las letras para hacer una búsqueda SQL precisa
-    num_limpio = re.sub(r'\D', '', pozo_str)
+    # La consulta ya trae los campos, vamos a asegurarnos de que no se pierdan
+    query = f"""
+    SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
+    FROM Diccionario_colonias 
+    WHERE Pozos LIKE '%%{busqueda}%%'
+    """
     
-    # Si tenemos un número limpio, buscamos por número y también por coincidencia exacta de texto
-    if num_limpio:
-        query = f"""
-            SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
-            FROM Diccionario_colonias 
-            WHERE Pozos LIKE '%%{num_limpio}%%' OR Pozos LIKE '%%{pozo_str}%%'
-        """
-    else:
-        query = f"""
-            SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
-            FROM Diccionario_colonias 
-            WHERE Pozos LIKE '%%{pozo_str}%%'
-        """
-
     try:
-        engine = get_mysql_telemetria_engine()
-        if engine is None:
-            return None
-        df = pd.read_sql(query, engine)
-        if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
+        df = pd.read_sql(query, get_mysql_telemetria_engine())
+        if not df.empty and df['geom_wkt'].iloc[0] is not None:
             df['geometry'] = df['geom_wkt'].apply(wkt.loads)
             gdf = gpd.GeoDataFrame(df, geometry='geometry')
             gdf.set_crs(epsg=32613, inplace=True)
+            # Retornamos el gdf con las columnas intactas
             return gdf.to_crs(epsg=4326)
     except Exception as e:
-        st.error(f'Error en BD (Diccionario de colonias): {e}')
+        st.error(f"Error en BD: {e}")
     return None
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
