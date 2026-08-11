@@ -728,28 +728,41 @@ def get_diccionario_completo():
 # 3.8. Funcion para optener las colonias del diccionario de colonias
 @st.cache_data(ttl=60)
 def get_geometries(num_pozo):
-  numero_limpio = re.sub(r'\D', '', str(num_pozo))
-  busqueda = numero_limpio if numero_limpio else str(num_pozo)
+    if not num_pozo:
+        return None
+        
+    pozo_str = str(num_pozo).strip()
+    
+    # Extraer tanto la parte numérica como las letras para hacer una búsqueda SQL precisa
+    num_limpio = re.sub(r'\D', '', pozo_str)
+    
+    # Si tenemos un número limpio, buscamos por número y también por coincidencia exacta de texto
+    if num_limpio:
+        query = f"""
+            SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
+            FROM Diccionario_colonias 
+            WHERE Pozos LIKE '%%{num_limpio}%%' OR Pozos LIKE '%%{pozo_str}%%'
+        """
+    else:
+        query = f"""
+            SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
+            FROM Diccionario_colonias 
+            WHERE Pozos LIKE '%%{pozo_str}%%'
+        """
 
-  query = f"""
-    SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
-    FROM Diccionario_colonias 
-    WHERE Pozos LIKE '%%{busqueda}%%'
-    """
-
-  try:
-    engine = get_mysql_telemetria_engine()
-    if engine is None:
-      return None
-    df = pd.read_sql(query, engine)
-    if not df.empty and df['geom_wkt'].iloc[0] is not None:
-      df['geometry'] = df['geom_wkt'].apply(wkt.loads)
-      gdf = gpd.GeoDataFrame(df, geometry='geometry')
-      gdf.set_crs(epsg=32613, inplace=True)
-      return gdf.to_crs(epsg=4326)
-  except Exception as e:
-    st.error(f'Error en BD (Diccionario de colonias): {e}')
-  return None
+    try:
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return None
+        df = pd.read_sql(query, engine)
+        if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
+            df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+            gdf = gpd.GeoDataFrame(df, geometry='geometry')
+            gdf.set_crs(epsg=32613, inplace=True)
+            return gdf.to_crs(epsg=4326)
+    except Exception as e:
+        st.error(f'Error en BD (Diccionario de colonias): {e}')
+    return None
 
 # 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
 params = st.query_params
