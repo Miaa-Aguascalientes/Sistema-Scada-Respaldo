@@ -3565,7 +3565,7 @@ if ver_pozos:
         ).add_to(fg_pozos)
 
         # ==========================================
-        # 2. MARCADOR CONDICIONAL (USANDO LAS VARIANTES)
+        # 2. MARCADOR CONDICIONAL (GLOBO DESPLAZADO MÁS A LA DERECHA)
         # ==========================================
         if tiene_incidencia_activa:
             info_incidencia = (
@@ -3575,16 +3575,47 @@ if ver_pozos:
             )
             
             if isinstance(info_incidencia, dict):
-                diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'INCIDENCIA REGISTRADA'))
+                diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA'))
             else:
                 diagnostico_falla = str(info_incidencia)
             
+            # Ampliamos el contenedor y movemos la tarjeta más a la derecha (left: 75px)
+            html_globo_incidencia = f"""
+            <div style="position: relative; width: 350px; height: 80px; pointer-events: none; font-family: sans-serif;">
+                <!-- Línea SVG conectora más larga -->
+                <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
+                    <line x1="15" y1="65" x2="75" y2="35" stroke="#ff4d4d" stroke-width="2" />
+                    <!-- Puntito blanco exacto sobre la coordenada del pozo -->
+                    <circle cx="15" cy="65" r="4" fill="#ffffff" stroke="#ff4d4d" stroke-width="2" />
+                </svg>
+                
+                <!-- Tarjeta de texto desplazada aún más a la derecha -->
+                <div style="
+                    position: absolute;
+                    top: 0px;
+                    left: 75px;
+                    display: inline-flex;
+                    align-items: center;
+                    background: #000000;
+                    border: 2px solid #ff4d4d;
+                    border-radius: 6px;
+                    padding: 4px 8px;
+                    white-space: nowrap;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+                    pointer-events: auto;">
+                    <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
+                    <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
+                    <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla.upper()}</span>
+                </div>
+            </div>
+            """
+            
             folium.Marker(
                 location=info['coord'],
-                icon=folium.Icon(
-                    color='red',
-                    icon='wrench',
-                    prefix='fa'
+                icon=folium.DivIcon(
+                    icon_size=(350, 80),
+                    icon_anchor=(15, 65),  # Ancla en el punto exacto del pozo
+                    html=html_globo_incidencia
                 ),
                 popup=folium.Popup(html_popup, max_width=450),
                 tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
