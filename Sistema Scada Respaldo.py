@@ -4056,10 +4056,16 @@ if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
         df_incidencias['Col_atl'] = "N/A"
 
     df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
-    hoy = pd.Timestamp.now().normalize()
     
-    df_actual = df_final[df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE']) | ((df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() == hoy))]
-    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (df_final['FECHA_HORA_INICIO'].dt.normalize() < hoy)]
+    # CORRECCIÓN DE ZONA HORARIA Y FILTRADO DE CERRADAS DE HOY
+    hoy = pd.Timestamp.now(tz=pytz.timezone('America/Mexico_City')).normalize()
+    fecha_inicio_normalized = df_final['FECHA_HORA_INICIO'].dt.tz_localize(None).dt.normalize()
+    
+    mask_activas = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
+    mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & (fecha_inicio_normalized == hoy)
+    
+    df_actual = df_final[mask_activas | mask_cerradas_hoy]
+    df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (fecha_inicio_normalized < hoy)]
 
     tz_mx = pytz.timezone('America/Mexico_City')
     st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
