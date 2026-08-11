@@ -384,7 +384,6 @@ def obtener_pozos_con_incidencias_hoy():
     if engine is None:
         return {}
     try:
-        # Consultamos tanto el pozo, el estatus, como el diagnóstico de la falla
         query = """
             SELECT NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS 
             FROM vw_incidencias_en_pozos 
@@ -395,11 +394,11 @@ def obtener_pozos_con_incidencias_hoy():
         for _, row in df_inc.iterrows():
             val = row['NUM_POZO']
             if pd.notna(val):
-                numero_limpio = re.sub(r'\D', '', str(val))
-                if numero_limpio:
+                # CORRECCIÓN: Conservamos letras, números y guiones medios (ej. P-087A, R-087)
+                id_limpio = str(val).strip().upper()
+                if id_limpio:
                     diagnostico = row['DIAGNOSTICO_FALLA'] or 'Sin diagnóstico'
-                    dic_incidencias[numero_limpio] = diagnostico
-                    dic_incidencias[str(int(numero_limpio))] = diagnostico
+                    dic_incidencias[id_limpio] = diagnostico
         return dic_incidencias
     except Exception as e:
         return {}
@@ -413,20 +412,19 @@ def calcular_color_colonia(props, pozos_con_incidencia):
         afectacion_col = props.get(f'Afectacion_{i}')
         
         if pozo_col is not None:
-            num_col_limpio = re.sub(r'\D', '', str(pozo_col))
-            if num_col_limpio:
-                num_col_normalizado = str(int(num_col_limpio))
-                
-                if num_col_limpio in pozos_con_incidencia or num_col_normalizado in pozos_con_incidencia:
-                    tiene_incidencia_activa = True
-                    if pd.notna(afectacion_col):
-                        try:
-                            val_str = str(afectacion_col).replace('%', '').strip()
-                            val_afect = float(val_str)
-                            if val_afect > max_afectacion:
-                                max_afectacion = val_afect
-                        except:
-                            pass
+            # CORRECCIÓN: Conservamos el formato exacto con letras y guiones sin borrar con \D
+            id_col_normalizado = str(pozo_col).strip().upper()
+            
+            if id_col_normalizado in pozos_con_incidencia:
+                tiene_incidencia_activa = True
+                if pd.notna(afectacion_col):
+                    try:
+                        val_str = str(afectacion_col).replace('%', '').strip()
+                        val_afect = float(val_str)
+                        if val_afect > max_afectacion:
+                            max_afectacion = val_afect
+                    except:
+                        pass
 
     if not tiene_incidencia_activa:
         return '#3498DB', 0  # Azul para colonias sin afectación activa
