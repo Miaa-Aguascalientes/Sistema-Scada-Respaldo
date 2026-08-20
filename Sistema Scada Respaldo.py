@@ -33,34 +33,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- LLAVE DE CIFRADO FIJA Y SEGURA ---
-# Garantiza que el cifrado y descifrado sean consistentes en toda la app.
-SECRET_FERNET_KEY = b"12345678901234567890123456789012"
 
-
-def get_fernet_cipher():
-  try:
-    key = st.secrets["security"]["fernet_key"].encode()
-  except Exception:
-    key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_FERNET_KEY).digest())
-  return Fernet(key)
-
-
-def encriptar_pwd(password_plana):
-  try:
-    f = get_fernet_cipher()
-    return f.encrypt(password_plana.encode()).decode()
-  except Exception:
-    return password_plana
-
-
-def desencriptar_pwd(password_cifrada):
-  try:
-    f = get_fernet_cipher()
-    return f.decrypt(password_cifrada.encode()).decode()
-  except Exception:
-    # Si la contraseña en la BD era texto plano antiguo, la devuelve tal cual
-    return password_cifrada
 
 # 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
 
@@ -105,6 +78,35 @@ def verificar_credenciales(usuario_input, password_input):
     except Exception as e:
         st.error(f"Error al consultar usuario: {e}")
         return None
+
+# --- LLAVE DE CIFRADO FIJA Y SEGURA ---
+# Garantiza que el cifrado y descifrado sean consistentes en toda la app.
+SECRET_FERNET_KEY = b"12345678901234567890123456789012"
+
+
+def get_fernet_cipher():
+  try:
+    key = st.secrets["security"]["fernet_key"].encode()
+  except Exception:
+    key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_FERNET_KEY).digest())
+  return Fernet(key)
+
+
+def encriptar_pwd(password_plana):
+  try:
+    f = get_fernet_cipher()
+    return f.encrypt(password_plana.encode()).decode()
+  except Exception:
+    return password_plana
+
+
+def desencriptar_pwd(password_cifrada):
+  try:
+    f = get_fernet_cipher()
+    return f.decrypt(password_cifrada.encode()).decode()
+  except Exception:
+    # Si la contraseña en la BD era texto plano antiguo, la devuelve tal cual
+    return password_cifrada
 
 # 0.3. ESTILO VISUAL HUD AJUSTADO
 st.markdown("""
