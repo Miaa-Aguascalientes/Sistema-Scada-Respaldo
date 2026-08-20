@@ -37,8 +37,6 @@ st.set_page_config(
 
 
 
-# 0. SECCION -------------------------------------------------------------------------------- 0. SISTEMA DE AUTENTICACIÓN HUD DEFINITIVO --------------------------------------------------------------------
-
 # 0.1. INICIALIZACIÓN DE ESTADOS
 if "autenticado" not in st.session_state:
   query_params = st.query_params
@@ -59,7 +57,6 @@ def get_mysql_telemetria_engine():
   try:
     c = st.secrets["mysql_telemetria"]
     pwd = urllib.parse.quote_plus(c["password"])
-    # pool_pre_ping=True es vital para evitar que el mapa se quede en blanco por conexión muerta
     engine = create_engine(
         f"mysql+mysqlconnector://{c['user']}:{pwd}@{c['host']}/{c['database']}",
         pool_recycle=3600,
@@ -105,7 +102,6 @@ def verificar_credenciales(usuario_input, password_input):
     if engine is None:
       return None
 
-    # Consulta parametrizada usando SQLAlchemy text para evitar inyección SQL
     query = text(
         "SELECT password, tipo_usuario FROM usuarios WHERE usuario = :usr"
     )
@@ -118,8 +114,6 @@ def verificar_credenciales(usuario_input, password_input):
     pwd_almacenada = str(df_user["password"].iloc[0])
     tipo_usuario = df_user["tipo_usuario"].iloc[0]
 
-    # Intentar comparar desencriptando la contraseña de la BD,
-    # o hacer coincidencia directa si está en texto plano / ya cifrada
     pwd_decifrada = desencriptar_pwd(pwd_almacenada)
 
     if str(password_input) == pwd_decifrada or str(
@@ -162,11 +156,11 @@ st.markdown(
     
     @keyframes spin { 100% { transform: rotate(360deg); } }
     
-    /* --- ESTILO INTEGRADO PARA INPUTS (El ajuste clave) --- */
+    /* --- ESTILO INTEGRADO PARA INPUTS --- */
     div[data-testid="stTextInputRootElement"] {
         background-color: #0d1b2a !important;
         border: 1px solid #1f4068 !important;
-        border-radius: 0px !important; /* Estilo recto como en la imagen */
+        border-radius: 0px !important;
         padding: 0px 10px !important; 
         height: 40px !important;
         box-shadow: none !important;
@@ -177,12 +171,11 @@ st.markdown(
         color: #00d4ff !important; 
         border: none !important;
         height: 100% !important;
-        font-family: 'Courier New', monospace; /* Estilo terminal */
+        font-family: 'Courier New', monospace;
         font-size: 15px !important;
         padding: 0 !important;
     }
     
-    /* Eliminar cualquier foco o sombra al interactuar */
     div[data-testid="stTextInputRootElement"]:focus-within {
         border: 1px solid #00d4ff !important;
         box-shadow: none !important;
@@ -208,7 +201,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 0.4. LÓGICA DE INTERFAZ (COLUMNAS AJUSTADAS) ---
+# 0.4. LÓGICA DE INTERFAZ
 if not st.session_state.autenticado:
   col_esp1, col_vis, col_log, col_esp2 = st.columns([0.1, 1.8, 2, 1.1])
 
