@@ -25,6 +25,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 from sqlalchemy.exc import OperationalError
 import pytz
 from datetime import datetime
+from sqlalchemy import create_engine, text
+from cryptography.fernet import Fernet
 
 st.set_page_config(
     page_title="Sistema Scada", 
