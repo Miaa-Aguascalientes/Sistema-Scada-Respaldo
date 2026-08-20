@@ -9,6 +9,7 @@ import json
 import urllib.parse
 from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
+import base64
 import hashlib
 import bcrypt
 import time
