@@ -3276,11 +3276,15 @@ with col_mapa:
         control=True
     ).add_to(m)
 
-            # 2. Capas de Fondo (Selectors)
+    # 2. Capas de Fondo (Vista Nocturna)
+    api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+    
     folium.TileLayer(
-        tiles="CartoDB dark_matter",
+        tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
         name="Vista Nocturna",
-        attr="CartoDB",
+        attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains="abcd",
+        max_zoom=20,
         overlay=False,
         control=True
     ).add_to(m)
