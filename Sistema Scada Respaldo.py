@@ -3701,7 +3701,7 @@ if ver_pozos:
         else:
             folium.CircleMarker(
                 location=info['coord'],
-                radius=2,
+                radius=3,
                 color=info['color_final'],
                 fill=True,
                 fill_color=info['color_final'],
