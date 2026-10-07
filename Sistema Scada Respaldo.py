@@ -520,15 +520,19 @@ def calcular_color_colonia(props, pozos_con_incidencia):
 
 # 2.10. Funcion para optener los poligonos de los sectores y sus demas campos
 def calcular_color_sector_por_campo(sector_id, df_colonias, pozos_con_incidencia):
-    if df_colonias is None or df_colonias.empty or 'Sector' not in df_colonias.columns:
+    if df_colonias is None or getattr(df_colonias, 'empty', True):
+        return '#3498DB', 0
+        
+    # Buscamos la columna de sector sin importar si está en mayúscula o minúscula
+    col_sector = next((c for c in df_colonias.columns if c.lower() == 'sector'), None)
+    if not col_sector:
         return '#3498DB', 0
         
     sec_str = str(sector_id).strip()
-    # Relación directa haciendo match por el campo 'Sector' de ambas tablas
-    colonias_del_sector = df_colonias[df_colonias['Sector'].astype(str).str.strip() == sec_str]
+    colonias_del_sector = df_colonias[df_colonias[col_sector].astype(str).str.strip() == sec_str]
     
     if colonias_del_sector.empty:
-        return '#3498DB', 0  # Azul por defecto si el sector no tiene registros en el diccionario de colonias
+        return '#3498DB', 0  
         
     suma_afectacion = 0.0
     tiene_incidencia_activa = False
@@ -556,12 +560,11 @@ def calcular_color_sector_por_campo(sector_id, df_colonias, pozos_con_incidencia
                             pass
 
     if not tiene_incidencia_activa:
-        return '#3498DB', 0  # Azul (Sin afectación activa)
+        return '#3498DB', 0  # Azul
 
     if tiene_incidencia_activa and suma_afectacion == 0:
         return '#FFA500', 1  # Naranja
 
-    # Rangos de color basados en la afectación acumulada de los pozos de las colonias del sector
     if 76 <= suma_afectacion <= 100:
         return '#FF0000', suma_afectacion  # Rojo
     elif 51 <= suma_afectacion <= 75:
@@ -3387,64 +3390,62 @@ sectores_data = cargar_sectores_poligonos()
 
 if sectores_data:
     fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
-    df_colonias_all = get_todas_las_colonias() # Contiene el campo 'Sector' y los porcentajes de afectación
+    df_colonias_all = get_todas_las_colonias() 
+    rol_usuario = st.session_state.get('rol', 'usuario')
     
     for s in sectores_data:
-        try:
-            if not s.get('geo'): continue
+        if not s.get('geo'): continue
+        
+        nombre_sec = s['sector']
+        geo_dict = json.loads(s['geo']) if isinstance(s['geo'], str) else s['geo']
+        
+        # Obtenemos color y porcentaje haciendo el match por el campo 'Sector'
+        color_sec, afectacion_sec = calcular_color_sector_por_campo(nombre_sec, df_colonias_all, dic_incidencias_activas)
+        
+        sector_encoded = urllib.parse.quote(str(nombre_sec))
+        url_acceso = f"/?sector={sector_encoded}&access=granted&role={rol_usuario}"
+        
+        html_popup = f"""
+        <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed {color_sec};">
+            <h4 style="margin:0 0 8px 0; color:{color_sec}; text-align:center;">Sector: {nombre_sec}</h4>
+            <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
+                <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
+                <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
+                <tr><td><b>Afectación:</b></td><td style="text-align:right; color:{color_sec};"><b>{afectacion_sec}%</b></td></tr>
+                <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
+            </table>
             
-            nombre_sec = s['sector']
-            geo_dict = json.loads(s['geo'])
-            
-            # Obtenemos color y porcentaje haciendo el match por el campo 'Sector'
-            color_sec, afectacion_sec = calcular_color_sector_por_campo(nombre_sec, df_colonias_all, dic_incidencias_activas)
-            
-            sector_encoded = urllib.parse.quote(str(nombre_sec))
-            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
-            
-            html_popup = f"""
-            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed {color_sec};">
-                <h4 style="margin:0 0 8px 0; color:{color_sec}; text-align:center;">Sector: {nombre_sec}</h4>
-                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
-                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
-                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
-                    <tr><td><b>Afectación:</b></td><td style="text-align:right; color:{color_sec};"><b>{afectacion_sec}%</b></td></tr>
-                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
-                </table>
-                
-                <a href="{url_acceso}" target="_blank" 
-                   style="display: block; text-align: center; background-color: {color_sec}; color: #0b1a29; 
-                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
-                          border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
-                </a>
-            </div>
-            """
-            
-            estilo = {
-                'fillColor': color_sec,
-                'color': color_sec if ver_sectores else 'transparent',
-                'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.25 if ver_sectores else 0.0001
-            }
+            <a href="{url_acceso}" target="_blank" 
+               style="display: block; text-align: center; background-color: {color_sec}; color: #0b1a29; 
+                      text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
+                      border-radius: 5px; transition: 0.3s;">
+               🚀 ABRIR SECTOR
+            </a>
+        </div>
+        """
+        
+        # Si 'ver_sectores' está activo se muestra con el color y opacidad, si no, transparente pero interactivo
+        estilo = {
+            'fillColor': color_sec,
+            'color': color_sec if ver_sectores else 'transparent',
+            'weight': 1.5 if ver_sectores else 0,
+            'fillOpacity': 0.25 if ver_sectores else 0.0001
+        }
 
-            folium.GeoJson(
-                geo_dict,
-                style_function=lambda x, stl=estilo: stl,
-                highlight_function=lambda x: {
-                    'fillColor': color_sec, 
-                    'color': '#ffffff', 
-                    'weight': 3, 
-                    'fillOpacity': 0.5
-                },
-                tooltip=f"Sector: {nombre_sec} | Afectación: {afectacion_sec}%",
-                popup=folium.Popup(html_popup, max_width=260)
-            ).add_to(fg_sectores)
+        folium.GeoJson(
+            geo_dict,
+            style_function=lambda x, stl=estilo: stl,
+            highlight_function=lambda x: {
+                'fillColor': color_sec, 
+                'color': '#ffffff', 
+                'weight': 3, 
+                'fillOpacity': 0.5
+            },
+            tooltip=f"Sector: {nombre_sec} | Afectación: {afectacion_sec}%",
+            popup=folium.Popup(html_popup, max_width=260)
+        ).add_to(fg_sectores)
 
-        except Exception:
-            continue
-
-    fg_sectores.add_to(m)              
+    fg_sectores.add_to(m)           
 
 # Declaración global de incidencias para que esté disponible para pozos y colonias siempre
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
