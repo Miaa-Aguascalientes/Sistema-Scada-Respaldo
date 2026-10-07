@@ -523,7 +523,6 @@ def calcular_color_sector_por_campo(sector_id, df_colonias, pozos_con_incidencia
     if df_colonias is None or getattr(df_colonias, 'empty', True):
         return '#3498DB', 0
         
-    # Buscamos la columna de sector sin importar si está en mayúscula o minúscula
     col_sector = next((c for c in df_colonias.columns if c.lower() == 'sector'), None)
     if not col_sector:
         return '#3498DB', 0
@@ -536,6 +535,7 @@ def calcular_color_sector_por_campo(sector_id, df_colonias, pozos_con_incidencia
         
     suma_afectacion = 0.0
     tiene_incidencia_activa = False
+    pozos_ya_contados = set()  # <--- EVITA QUE SE SUME EL MISMO POZO MÚLTIPLES VECES
     
     for _, row in colonias_del_sector.iterrows():
         for i in range(1, 11):
@@ -552,12 +552,16 @@ def calcular_color_sector_por_campo(sector_id, df_colonias, pozos_con_incidencia
                     id_p_sin_guion in pozos_con_incidencia):
                     
                     tiene_incidencia_activa = True
-                    if pd.notna(afectacion_col):
-                        try:
-                            val_str = str(afectacion_col).replace('%', '').strip()
-                            suma_afectacion += float(val_str)
-                        except:
-                            pass
+                    
+                    # Solo sumamos la afectación del pozo si no lo habíamos contado antes en este sector
+                    if id_p_limpio not in pozos_ya_contados:
+                        pozos_ya_contados.add(id_p_limpio)
+                        if pd.notna(afectacion_col):
+                            try:
+                                val_str = str(afectacion_col).replace('%', '').strip()
+                                suma_afectacion += float(val_str)
+                            except:
+                                pass
 
     if not tiene_incidencia_activa:
         return '#3498DB', 0  # Azul
