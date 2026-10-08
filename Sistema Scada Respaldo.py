@@ -4325,10 +4325,6 @@ if ver_pozos:
 
 
 
-    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=600)
-
 # ---INDICADORES DE % DE AFECTACIONES POR COLONIAS --------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     st.markdown("##### 🗺️ % de Afectación en Colonias")
@@ -4385,7 +4381,10 @@ if ver_pozos:
             unsafe_allow_html=True
         )
 
-    
+
+    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)    
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
