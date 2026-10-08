@@ -3723,11 +3723,11 @@ with col_mapa:
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Tarjetas con todas las colonias afectadas, su sector y la incidencia, ordenadas de la más antigua a la más actual
+# PANEL DERECHO: Tarjetas agrupadas por Sector con todas sus colonias afectadas
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
-            // COLONIAS AFECTADAS
+            // COLONIAS AFECTADAS POR SECTOR
         </h4>
     """, unsafe_allow_html=True)
 
@@ -3756,35 +3756,61 @@ with col_colonias:
             }
             incidencias_dict[p_num.replace('-', '')] = incidencias_dict[p_num]
 
-    tarjetas_afectadas = []
+    sectores_afectados_dict = {}
+
     if 'gdf_sectores' in locals() and gdf_sectores is not None:
         for _, row in gdf_sectores.iterrows():
             nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
             pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
+            
+            sector_incidencias = []
+            earliest_date = pd.Timestamp.max
             
             for i in range(1, 11):
                 p_col = row.get(f'Pozo_{i}')
                 if pd.notna(p_col):
                     p_clean = str(p_col).strip().upper()
                     p_clean_no_hyphen = p_clean.replace('-', '')
-                    
                     inc_data = incidencias_dict.get(p_clean) or incidencias_dict.get(p_clean_no_hyphen)
                     if inc_data:
-                        col_atl_val = row.get('Col_atl')
-                        if pd.notna(col_atl_val):
-                            for col in str(col_atl_val).split(','):
-                                tarjetas_afectadas.append({
-                                    'colonia': col.strip(),
-                                    'sector': nombre_sec,
-                                    'incidencia': inc_data['diagnostico'],
-                                    'fecha_inicio': inc_data['fecha_inicio']
-                                })
+                        sector_incidencias.append(inc_data['diagnostico'])
+                        if inc_data['fecha_inicio'] < earliest_date:
+                            earliest_date = inc_data['fecha_inicio']
 
-    if tarjetas_afectadas:
-        df_tarjetas = pd.DataFrame(tarjetas_afectadas)
-        df_tarjetas = df_tarjetas.sort_values(by='fecha_inicio', ascending=True).drop_duplicates(subset=['colonia'])
+            for p_off in pozos_apagados:
+                p_clean = str(p_off).strip().upper()
+                p_clean_no_hyphen = p_clean.replace('-', '')
+                inc_data = incidencias_dict.get(p_clean) or incidencias_dict.get(p_clean_no_hyphen)
+                if inc_data:
+                    sector_incidencias.append(inc_data['diagnostico'])
+                    if inc_data['fecha_inicio'] < earliest_date:
+                        earliest_date = inc_data['fecha_inicio']
 
-        for _, tarjeta in df_tarjetas.iterrows():
+            if sector_incidencias:
+                col_atl_val = row.get('Col_atl')
+                colonias_sector = []
+                if pd.notna(col_atl_val):
+                    for col in str(col_atl_val).split(','):
+                        colonias_sector.append(col.strip())
+                
+                incidencia_txt = ", ".join(list(set(sector_incidencias)))
+                
+                if nombre_sec not in sectores_afectados_dict:
+                    sectores_afectados_dict[nombre_sec] = {
+                        'sector': nombre_sec,
+                        'incidencia': incidencia_txt,
+                        'fecha_inicio': earliest_date if earliest_date != pd.Timestamp.max else pd.Timestamp.now(),
+                        'colonias': set(colonias_sector)
+                    }
+                else:
+                    sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
+
+    if sectores_afectados_dict:
+        lista_sectores_afec = list(sectores_afectados_dict.values())
+        lista_sectores_afec.sort(key=lambda x: x['fecha_inicio'])
+
+        for sec_item in lista_sectores_afec:
+            colonias_str = ", ".join(sorted(sec_item['colonias']))
             st.markdown(f"""
                 <div style="
                     background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
@@ -3796,13 +3822,13 @@ with col_colonias:
                     box-shadow: 0px 2px 5px rgba(0,0,0,0.4);
                 ">
                     <div style="color: #00d4ff; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
-                        🏙️ {tarjeta['colonia']}
+                        🏘️ Sector: {sec_item['sector']}
                     </div>
-                    <div style="color: #c9d1d9; font-size: 11px; margin-bottom: 2px;">
-                        <b>Sector:</b> {tarjeta['sector']}
+                    <div style="color: #c9d1d9; font-size: 11px; margin-bottom: 4px;">
+                        <b>Colonias:</b> {colonias_str}
                     </div>
                     <div style="color: #ff4b4b; font-size: 11px;">
-                        <b>Incidencia:</b> {tarjeta['incidencia']}
+                        <b>Incidencia:</b> {sec_item['incidencia']}
                     </div>
                 </div>
             """, unsafe_allow_html=True)
