@@ -546,7 +546,7 @@ def variantes_id_pozo(valor):
     id_sin_guion = id_limpio.replace('-', '')
     return {id_limpio, id_con_guion, id_sin_guion}
 
-# 2.6.2. Pozos fuera de servicio de un sector -> (lista de pozos OFF, suma de afectación)
+# 2.6.2. Pozos con incidencia activa de un sector -> (lista de pozos OFF, suma de afectación)
 # Revisa DOS fuentes del Diccionario_sectores:
 #   a) Pozo_1..Pozo_10 (con su Afectacion_N)
 #   b) El campo 'Pozos' (lista separada por comas, ej. "R-038, R-038B"), para no perder pozos
@@ -2137,15 +2137,28 @@ for id_p, info in mapa_pozos_dict.items():
         pozos_sin_telemetria.append(id_p)
         continue
 
-    tag_l1 = info['voltajes_l'][0]
-    _, fecha_str = data_scada.get(tag_l1, (0, "N/A"))
-    es_falla_com = False
-    if fecha_str != "N/A":
+    # REGLA: si el último dato entregado en sus voltajes (L1, L2, L3) tiene más de 4 h -> FALLA COM. (naranja)
+    # Se toma la fecha MÁS RECIENTE de las tres fases; si no hay ninguna fecha válida también es falla.
+    fechas_volt = []
+    for tag_v in info['voltajes_l']:
+        if not tag_v or str(tag_v).strip() in ('N/A', '0', 'None', 'Sin telemetria'):
+            continue
+        _, f_str = data_scada.get(str(tag_v).strip(), (0, "N/A"))
+        if f_str == "N/A":
+            continue
         try:
-            fecha_dt = dt.datetime.strptime(f"{ahora.year}/{fecha_str}", "%Y/%d/%m %H:%M")
-            if (ahora - fecha_dt).total_seconds() / 3600 > 4: es_falla_com = True
-        except: es_falla_com = True
-    else: es_falla_com = True
+            f_dt = dt.datetime.strptime(f"{ahora.year}/{f_str}", "%Y/%d/%m %H:%M")
+            # El dato viene sin año: si queda en el futuro (ej. dato del 31/12 leído en enero) es del año pasado
+            if f_dt > ahora + dt.timedelta(days=1):
+                f_dt = f_dt.replace(year=ahora.year - 1)
+            fechas_volt.append(f_dt)
+        except Exception:
+            pass
+
+    if fechas_volt:
+        es_falla_com = (ahora - max(fechas_volt)).total_seconds() / 3600 > 4
+    else:
+        es_falla_com = True
 
     if es_falla_com:
         info.update({'status_label': 'FALLA COM.', 'color_final': '#FFA500', 'blink': True})
@@ -3421,10 +3434,9 @@ gdf_sectores = get_todos_los_sectores()
 sectores_data = cargar_sectores_poligonos()   # Postgres: se usa solo para el popup (población, fugas) y el link
 
 if gdf_sectores is not None and not gdf_sectores.empty:
-        # Fuera de servicio = apagados en SCADA + pozos con incidencia abierta (ej. EMBOBINADO ABIERTO)
+        # Un sector SOLO se pinta si alguno de sus pozos tiene una INCIDENCIA ACTIVA registrada.
+    # Un pozo apagado sin incidencia (ej. por nivel de tanque) es operación normal y NO pinta el sector.
     pozos_off_norm = set()
-    for _p in pozos_off:
-        pozos_off_norm |= variantes_id_pozo(_p)
     _inc_sec = obtener_pozos_con_incidencias_hoy()
     for _p in _inc_sec.keys():
         pozos_off_norm |= variantes_id_pozo(_p)
