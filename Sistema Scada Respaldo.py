@@ -3858,6 +3858,10 @@ with col_l5:
     st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal / Sin Afectación</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 
+# 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
+folium.LayerControl(position='topright', collapsed=False).add_to(m)
+folium_static(m, width=None, height=600)    
+
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
