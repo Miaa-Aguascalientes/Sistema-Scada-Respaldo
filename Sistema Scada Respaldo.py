@@ -3352,7 +3352,7 @@ st.markdown(f"""
 
 st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 
-# ÚNICA DIVISIÓN EN 3 COLUMNAS: Mapa principal, espacio de capas y el panel derecho de tarjetas
+# 3 columnas: Mapa principal, espacio de capas y el panel derecho de tarjetas de sectores
 col_mapa, col_capas, col_colonias = st.columns([0.70, 0.03, 0.27])
 
 with col_mapa:
@@ -3841,7 +3841,7 @@ with col_colonias:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-# Leyenda inferior única de porcentajes de afectación
+# LEYENDA ÚNICA DE PORCENTAJES (Solo aparece una vez abajo del mapa principal)
 st.markdown("##### 🗺️ % de Afectación en Colonias")
 col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
 estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px 5px; border-radius: 10px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
@@ -3856,7 +3856,6 @@ with col_l4:
     st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
 with col_l5:
     st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal / Sin Afectación</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
-
 
     
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
