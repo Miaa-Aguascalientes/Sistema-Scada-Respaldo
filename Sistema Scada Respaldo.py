@@ -3739,7 +3739,7 @@ with col_mapa:
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Tarjetas con scroll vertical estricto para mostrar máximo 6 tarjetas
+# PANEL DERECHO: Tarjetas agrupadas con altura fija y scroll limpio (máximo 6 tarjetas visibles)
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3821,18 +3821,15 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
-    # CONTENEDOR CON ALTURA ESTRICTA DE 400PX PARA LIMITAR A MÁXIMO 6 TARJETAS Y FORZAR LA BARRA DESPLAZADORA
-    st.markdown("""
-        <div style="height: 400px; max-height: 400px; overflow-y: scroll !important; padding-right: 5px;">
-    """, unsafe_allow_html=True)
-
+    # Construir todas las tarjetas en un string único para evitar que se rompa el contenedor en Streamlit
+    cards_html = ""
     if sectores_afectados_dict:
         lista_sectores_afec = list(sectores_afectados_dict.values())
         lista_sectores_afec.sort(key=lambda x: x['fecha_inicio'])
 
         for sec_item in lista_sectores_afec:
             colonias_str = ", ".join(sorted(sec_item['colonias']))
-            st.markdown(f"""
+            cards_html += f"""
                 <div style="
                     background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
                     border: 1px solid #1f4068;
@@ -3852,15 +3849,20 @@ with col_colonias:
                         <b>Incidencia:</b> {sec_item['incidencia']}
                     </div>
                 </div>
-            """, unsafe_allow_html=True)
+            """
     else:
-        st.markdown("""
+        cards_html = """
             <div style="color: #00ff00; font-size: 12px; text-align: center; margin-top: 20px;">
                 🟢 Sin afectaciones activas registradas.
             </div>
-        """, unsafe_allow_html=True)
+        """
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Contenedor final con altura estricta para exactamente 6 tarjetas visibles y scroll automático
+    st.markdown(f"""
+        <div style="height: 480px; max-height: 480px; overflow-y: auto; padding-right: 5px;">
+            {cards_html}
+        </div>
+    """, unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
 
