@@ -3331,7 +3331,7 @@ with st.sidebar:
 
           
                 
-# 9. SECCION------------------------------------------------------------------------------ 9. MAPA PRINCIPAL Y RANKING -----------------------------------------------------------------------------------------------------------
+# 9. SECCION------------------------------------------------------------------------------ 9. MAPA PRINCIPAL Y RANKING LATERAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
 # Indicadores superiores
@@ -3350,10 +3350,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # 📌 DISTRIBUCIÓN LATERAL LIMPIA: MAPA (72%) Y RANKING (28%)
-col_mapa, col_ranking = st.columns([0.72, 0.28], gap="small")
+col_mapa, col_ranking = st.columns([0.72, 0.28], gap="medium")
 
 with col_mapa:
-    st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
     m = folium.Map(
         location=st.session_state.centro_mapa, 
         zoom_start=st.session_state.zoom_inicial, 
@@ -3706,7 +3705,6 @@ with col_mapa:
 
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # 📌 COLUMNA DERECHA: RANKING DE AFECTACIONES
 with col_ranking:
