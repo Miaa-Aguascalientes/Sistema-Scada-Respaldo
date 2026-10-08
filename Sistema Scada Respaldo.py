@@ -3331,7 +3331,7 @@ with st.sidebar:
 
           
                 
-# 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
+# 9. SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
 # Indicadores usando el sistema de Grid para que ocupen todo el ancho
@@ -3351,13 +3351,14 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
-col_mapa, col_capas = st.columns([0.94, 0.06])
+
+# MODIFICACIÓN: Dividimos en 3 columnas (Mapa, Capas y el panel derecho de Colonias Afectadas)
+col_mapa, col_capas, col_colonias = st.columns([0.70, 0.05, 0.25])
 
 with col_mapa:
     m = folium.Map(
         location=st.session_state.centro_mapa, 
         zoom_start=st.session_state.zoom_inicial, 
-        
     )
 
     folium.TileLayer(
@@ -3391,8 +3392,7 @@ with col_mapa:
 
     Fullscreen().add_to(m)
 
-
-# 9.2. Añadir el resaltado del sector si existe
+    # 9.2. Añadir el resaltado del sector si existe
     if datos_sector_resaltado:
         folium.GeoJson(
             json.loads(datos_sector_resaltado['geo']),
@@ -3424,87 +3424,374 @@ with col_mapa:
         </style>
         """
 
-# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL
-gdf_sectores = get_todos_los_sectores()
-sectores_data = cargar_sectores_poligonos()
+    # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL
+    gdf_sectores = get_todos_los_sectores()
+    sectores_data = cargar_sectores_poligonos()
 
-if gdf_sectores is not None and not gdf_sectores.empty:
-    pozos_off_norm = set()
-    _inc_sec = obtener_pozos_con_incidencias_hoy()
-    for _p in _inc_sec.keys():
-        pozos_off_norm |= variantes_id_pozo(_p)
+    if gdf_sectores is not None and not gdf_sectores.empty:
+        pozos_off_norm = set()
+        _inc_sec = obtener_pozos_con_incidencias_hoy()
+        for _p in _inc_sec.keys():
+            pozos_off_norm |= variantes_id_pozo(_p)
 
-    info_pg = {str(s_['sector']).split('.')[0].strip(): s_ for s_ in (sectores_data or [])}
+        info_pg = {str(s_['sector']).split('.')[0].strip(): s_ for s_ in (sectores_data or [])}
 
-    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
+        fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
 
-    for _, row in gdf_sectores.iterrows():
-        try:
-            if row.geometry is None or row.geometry.is_empty:
+        for _, row in gdf_sectores.iterrows():
+            try:
+                if row.geometry is None or row.geometry.is_empty:
+                    continue
+
+                nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
+                if not nombre_sec or nombre_sec.lower() in ('none', 'nan'):
+                    nombre_sec = str(row.get('Col_atl', 'S/N')).strip()
+
+                pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
+                color_sec, afectacion_sec = calcular_color_sector(bool(pozos_apagados), suma_afec)
+                hay_afectacion = afectacion_sec > 0
+
+                txt_pozos_off = ", ".join(pozos_apagados) if pozos_apagados else "Ninguno"
+                txt_afec = (f"{int(suma_afec)}%" if suma_afec > 0 else "N/D") if pozos_apagados else "0%"
+
+                datos_pg = info_pg.get(nombre_sec, {})
+                sector_encoded = urllib.parse.quote(nombre_sec)
+                url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
+
+                html_popup = f"""
+                <div style="font-family: 'Segoe UI', sans-serif; width: 230px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed {color_sec};">
+                    <h4 style="margin:0 0 8px 0; color:{color_sec}; text-align:center;">{nombre_sec}</h4>
+                    <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
+                        <tr><td><b>Población:</b></td><td style="text-align:right;">{(datos_pg.get('Poblacion') or 0):,.0f}</td></tr>
+                        <tr><td><b>Pozos:</b></td><td style="text-align:right;">{row.get('Pozos', '')}</td></tr>
+                        <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{datos_pg.get('Fugas_Tot', 0)}</td></tr>
+                        <tr><td><b>Pozos fuera de servicio:</b></td><td style="text-align:right; color:#ff4b4b;">{txt_pozos_off}</td></tr>
+                        <tr><td><b>Afectación:</b></td><td style="text-align:right;">{txt_afec}</td></tr>
+                    </table>
+                    <a href="{url_acceso}" target="_blank" 
+                       style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
+                              text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
+                              border-radius: 5px; transition: 0.3s;">
+                       🚀 ABRIR SECTOR
+                    </a>
+                </div>
+                """
+
+                if ver_sectores:
+                    if hay_afectacion:
+                        estilo = {'fillColor': color_sec, 'color': color_sec, 'weight': 2.5, 'fillOpacity': 0.25}
+                    else:
+                        estilo = {'fillColor': '#3498DB', 'color': '#2980B9', 'weight': 1, 'fillOpacity': 0.08}
+                else:
+                    estilo = {'fillColor': '#3498DB', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}
+
+                folium.GeoJson(
+                    row.geometry.__geo_interface__,
+                    style_function=lambda x, stl=estilo: stl,
+                    highlight_function=lambda x, c=color_sec: {
+                        'fillColor': c if hay_afectacion else '#3498DB',
+                        'color': '#ffffff',
+                        'weight': 3,
+                        'fillOpacity': 0.6
+                    },
+                    tooltip=f"Sector: {nombre_sec} | Pozos OFF: {txt_pozos_off} | Afectación: {txt_afec}",
+                    popup=folium.Popup(html_popup, max_width=270)
+                ).add_to(fg_sectores)
+
+            except Exception:
                 continue
 
-            nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
-            if not nombre_sec or nombre_sec.lower() in ('none', 'nan'):
-                nombre_sec = str(row.get('Col_atl', 'S/N')).strip()
+        fg_sectores.add_to(m)
 
-            pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
-            color_sec, afectacion_sec = calcular_color_sector(bool(pozos_apagados), suma_afec)
-            hay_afectacion = afectacion_sec > 0
+    # Declaración global de incidencias activas
+    dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
 
-            txt_pozos_off = ", ".join(pozos_apagados) if pozos_apagados else "Ninguno"
-            txt_afec = (f"{int(suma_afec)}%" if suma_afec > 0 else "N/D") if pozos_apagados else "0%"
-
-            datos_pg = info_pg.get(nombre_sec, {})
-            sector_encoded = urllib.parse.quote(nombre_sec)
-            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
-
-            html_popup = f"""
-            <div style="font-family: 'Segoe UI', sans-serif; width: 230px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed {color_sec};">
-                <h4 style="margin:0 0 8px 0; color:{color_sec}; text-align:center;">{nombre_sec}</h4>
-                <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
-                    <tr><td><b>Población:</b></td><td style="text-align:right;">{(datos_pg.get('Poblacion') or 0):,.0f}</td></tr>
-                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{row.get('Pozos', '')}</td></tr>
-                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{datos_pg.get('Fugas_Tot', 0)}</td></tr>
-                    <tr><td><b>Pozos fuera de servicio:</b></td><td style="text-align:right; color:#ff4b4b;">{txt_pozos_off}</td></tr>
-                    <tr><td><b>Afectación:</b></td><td style="text-align:right;">{txt_afec}</td></tr>
-                </table>
-                <a href="{url_acceso}" target="_blank" 
-                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
-                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
-                          border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
-                </a>
-            </div>
-            """
-
-            if ver_sectores:
-                if hay_afectacion:
-                    estilo = {'fillColor': color_sec, 'color': color_sec, 'weight': 2.5, 'fillOpacity': 0.25}
+    # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS
+    if ver_colonias:
+        gdf_colonias = get_todas_las_colonias()
+        
+        if gdf_colonias is not None and not gdf_colonias.empty:
+            lista_incidencias_tooltip = []
+            lista_afectacion_tooltip = []
+            
+            for idx, row in gdf_colonias.iterrows():
+                suma_afec = 0.0
+                descripciones_fallas = []
+                
+                for i in range(1, 11):
+                    pozo_col = row.get(f'Pozo_{i}')
+                    afectacion_col = row.get(f'Afectacion_{i}')
+                    
+                    if pd.notna(pozo_col):
+                        id_p_limpio = str(pozo_col).strip().upper()
+                        id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
+                        id_p_sin_guion = id_p_limpio.replace('-', '')
+                        
+                        if (id_p_limpio in dic_incidencias_activas or 
+                            id_p_con_guion in dic_incidencias_activas or 
+                            id_p_sin_guion in dic_incidencias_activas):
+                            
+                            falla = (
+                                dic_incidencias_activas.get(id_p_limpio) or 
+                                dic_incidencias_activas.get(id_p_con_guion) or 
+                                dic_incidencias_activas.get(id_p_sin_guion, 'Activa')
+                            )
+                            if isinstance(falla, dict):
+                                falla_txt = falla.get('diagnostico', falla.get('motivo', 'Activa'))
+                            else:
+                                falla_txt = str(falla)
+                                
+                            descripciones_fallas.append(f"{pozo_col}: {falla_txt}")
+                            
+                            if pd.notna(afectacion_col):
+                                try:
+                                    val_str = str(afectacion_col).replace('%', '').strip()
+                                    val_f = float(val_str)
+                                    suma_afec += val_f
+                                except:
+                                    pass
+                
+                if descripciones_fallas:
+                    lista_incidencias_tooltip.append(" | ".join(descripciones_fallas))
+                    lista_afectacion_tooltip.append(f"{int(suma_afec)}%" if suma_afec > 0 else "N/D")
                 else:
-                    estilo = {'fillColor': '#3498DB', 'color': '#2980B9', 'weight': 1, 'fillOpacity': 0.08}
-            else:
-                estilo = {'fillColor': '#3498DB', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}
+                    lista_incidencias_tooltip.append("Ninguna")
+                    lista_afectacion_tooltip.append("0%")
+
+            gdf_colonias['Info_Incidencia'] = lista_incidencias_tooltip
+            gdf_colonias['Info_Porcentaje'] = lista_afectacion_tooltip
+
+            fg_colonias = folium.FeatureGroup(name="Colonias")
+            
+            def estilo_final(feature):
+                props = feature.get('properties', {})
+                nombre_actual = props.get('Col_atl')
+                col_sel = st.session_state.get('colonia_resaltada')
+                es_match = (col_sel is not None and nombre_actual == col_sel.get('Col_atl'))
+                
+                color_dinamico, afectacion_val = calcular_color_colonia(props, dic_incidencias_activas)
+                fill_color_final = '#F1C40F' if es_match else color_dinamico
+                
+                if es_match:
+                    border_color_final = '#F39C12'
+                    weight_final = 3
+                    opacity_final = 0.5
+                elif afectacion_val > 0:
+                    border_color_final = color_dinamico
+                    weight_final = 2.5
+                    opacity_final = 0.25
+                else:
+                    border_color_final = '#2980B9'
+                    weight_final = 1
+                    opacity_final = 0.08
+                
+                return {
+                    'fillColor': fill_color_final,
+                    'color': border_color_final,
+                    'weight': weight_final,
+                    'fillOpacity': opacity_final
+                }
+
+            def estilo_hover(feature):
+                return {'fillOpacity': 0.8, 'weight': 4, 'color': '#FFFFFF'}
 
             folium.GeoJson(
-                row.geometry.__geo_interface__,
-                style_function=lambda x, stl=estilo: stl,
-                highlight_function=lambda x, c=color_sec: {
-                    'fillColor': c if hay_afectacion else '#3498DB',
-                    'color': '#ffffff',
-                    'weight': 3,
-                    'fillOpacity': 0.6
-                },
-                tooltip=f"Sector: {nombre_sec} | Pozos OFF: {txt_pozos_off} | Afectación: {txt_afec}",
-                popup=folium.Popup(html_popup, max_width=270)
-            ).add_to(fg_sectores)
+                gdf_colonias,
+                name="Colonias",
+                style_function=estilo_final,
+                highlight_function=estilo_hover,
+                tooltip=folium.GeoJsonTooltip(
+                    fields=['Col_atl', 'Pozos', 'Sector', 'Distrito', 'Info_Incidencia', 'Info_Porcentaje'],
+                    aliases=['Colonia:', 'Pozos:', 'Sector:', 'Distrito:', 'Incidencia:', 'Afectación:'],
+                    localize=True,
+                    sticky=True
+                )
+            ).add_to(fg_colonias)
+            
+            fg_colonias.add_to(m)
 
-        except Exception:
-            continue
+    # 9.7. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL
+    if ver_pozos:  
+        fg_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True)
 
-    fg_sectores.add_to(m)
-else:
-    # Aviso preventivo por si la tabla Diccionario_sectores no responde o viene vacía
-    st.sidebar.warning("⚠️ No se pudieron cargar los polígonos de los sectores.")
+        for id_p, info in mapa_pozos_dict.items():
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+            q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+            p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+            sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+            dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+            tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+            col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            h_arr_fmt = formato_hora(h_arr_val)
+            h_par_fmt = formato_hora(h_par_val)
+            v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+            a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+
+            id_p_limpio = str(id_p).strip().upper()
+            id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
+            id_p_sin_guion = id_p_limpio.replace('-', '')
+            
+            tiene_incidencia_activa = (
+                id_p_limpio in dic_incidencias_activas or 
+                id_p_con_guion in dic_incidencias_activas or 
+                id_p_sin_guion in dic_incidencias_activas
+            )
+
+            rol_actual = st.session_state.get('rol', 'usuario')
+            nombre_codificado = urllib.parse.quote(id_p)
+            url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+
+            html_popup = f"""
+                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🚀 Presión: <b>{p:.2f} kg</b></span>
+                            <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                                📊 VER ANÁLISIS HISTÓRICO
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            """
+
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(
+                    icon_size=(150,36),
+                    icon_anchor=(-12, 6),
+                    html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+                )
+            ).add_to(fg_pozos)
+
+            if tiene_incidencia_activa:
+                info_incidencia = (
+                    dic_incidencias_activas.get(id_p_limpio) or 
+                    dic_incidencias_activas.get(id_p_con_guion) or 
+                    dic_incidencias_activas.get(id_p_sin_guion, {})
+                )
+                diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA')) if isinstance(info_incidencia, dict) else str(info_incidencia)
+                
+                html_globo_incidencia = f"""
+                <div style="position: relative; width: 350px; height: 80px; pointer-events: none; font-family: sans-serif;">
+                    <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
+                        <line x1="15" y1="65" x2="75" y2="35" stroke="#ff4d4d" stroke-width="2" />
+                        <circle cx="15" cy="65" r="4" fill="#ffffff" stroke="#ff4d4d" stroke-width="2" />
+                    </svg>
+                    <div style="
+                        position: absolute;
+                        top: 0px;
+                        left: 75px;
+                        display: inline-flex;
+                        align-items: center;
+                        background: #000000;
+                        border: 2px solid #ff4d4d;
+                        border-radius: 6px;
+                        padding: 4px 8px;
+                        white-space: nowrap;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.6);
+                        pointer-events: auto;">
+                        <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
+                        <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
+                        <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla.upper()}</span>
+                    </div>
+                </div>
+                """
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(icon_size=(350, 80), icon_anchor=(15, 65), html=html_globo_incidencia),
+                    popup=folium.Popup(html_popup, max_width=450),
+                    tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
+                ).add_to(fg_pozos)
+            elif info.get('blink'):
+                folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
+            else:
+                folium.CircleMarker(location=info['coord'], radius=3, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
+
+        fg_pozos.add_to(m)
+
+    # Renderizado final del mapa principal
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)
+
+# NUEVA COLUMNA DERECHA: Listado de Colonias Afectadas (Estilo HUD)
+with col_colonias:
+    st.markdown("""
+        <div style="
+            background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
+            border: 1px solid #00d4ff;
+            border-radius: 10px;
+            padding: 15px;
+            height: 600px;
+            overflow-y: auto;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+        ">
+            <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
+                // COLONIAS AFECTADAS
+            </h4>
+    """, unsafe_allow_html=True)
+
+    colonias_afectadas = set()
+    if 'gdf_sectores' in locals() and gdf_sectores is not None:
+        for _, row in gdf_sectores.iterrows():
+            pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
+            
+            if pozos_apagados or suma_afec > 0:
+                col_atl_val = row.get('Col_atl')
+                if pd.notna(col_atl_val):
+                    for col in str(col_atl_val).split(','):
+                        colonias_afectadas.add(col.strip())
+
+    if colonias_afectadas:
+        for idx, colonia in enumerate(sorted(colonias_afectadas), start=1):
+            st.markdown(f"""
+                <div style="color: #69ADDD; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed rgba(31, 64, 104, 0.6);">
+                    <span style="color: #00d4ff; font-weight: bold;">{idx}.</span> {colonia}
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div style="color: #00ff00; font-size: 12px; text-align: center; margin-top: 20px;">
+                🟢 Sin afectaciones activas.
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# Leyenda inferior de porcentajes de afectación
+st.markdown("##### 🗺️ % de Afectación en Colonias")
+col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
+estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px 5px; border-radius: 10px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+
+with col_l1:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Rojo (Crítico)</span><span style="color: #FF0000; font-size: 1.1rem; font-weight: bold;">76% - 100%</span></div>', unsafe_allow_html=True)
+with col_l2:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Amarillo (Alto)</span><span style="color: #FFFF00; font-size: 1.1rem; font-weight: bold;">51% - 75%</span></div>', unsafe_allow_html=True)
+with col_l3:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Naranja (Moderado)</span><span style="color: #FFA500; font-size: 1.1rem; font-weight: bold;">31% - 50%</span></div>', unsafe_allow_html=True)
+with col_l4:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
+with col_l5:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal / Sin Afectación</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
+```[cite: 1, 2]
 
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
