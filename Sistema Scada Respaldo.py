@@ -445,6 +445,29 @@ def get_todas_las_colonias():
         st.error(f"Error cargando polígonos: {e}")
     return None
 
+# Polígonos de Diccionario_sectores (mismos campos que Diccionario_colonias)
+@st.cache_data(ttl=3600)
+def get_todos_los_sectores():
+    query = """
+        SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor,
+               Pozo_1, Afectacion_1, Pozo_2, Afectacion_2, 
+               Pozo_3, Afectacion_3, Pozo_4, Afectacion_4, 
+               Pozo_5, Afectacion_5, Pozo_6, Afectacion_6, 
+               Pozo_7, Afectacion_7, Pozo_8, Afectacion_8, 
+               Pozo_9, Afectacion_9, Pozo_10, Afectacion_10 
+        FROM Diccionario_sectores
+    """
+    try:
+        df = pd.read_sql(query, get_mysql_telemetria_engine())
+        if not df.empty and df['geom_wkt'].iloc[0] is not None:
+            df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+            gdf = gpd.GeoDataFrame(df, geometry='geometry')
+            gdf.set_crs(epsg=32613, inplace=True)
+            return gdf.to_crs(epsg=4326)
+    except Exception as e:
+        st.error(f"Error cargando polígonos de sectores: {e}")
+    return None
+
 @st.cache_data(ttl=60)
 def obtener_pozos_con_incidencias_hoy():
     engine = get_mysql_scada_engine()
@@ -515,6 +538,48 @@ def calcular_color_colonia(props, pozos_con_incidencia):
         return '#69ADDD', suma_afectacion  # Naranja bajito
     else:
         return '#FF0000', suma_afectacion  # Por si supera el 100%
+
+# 2.6.1. Normaliza ids de pozos (con y sin guion) para comparar contra pozos fuera de servicio
+def variantes_id_pozo(valor):
+    id_limpio = str(valor).strip().upper()
+    id_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_limpio)
+    id_sin_guion = id_limpio.replace('-', '')
+    return {id_limpio, id_con_guion, id_sin_guion}
+
+# 2.6.2. Pozos fuera de servicio de un sector -> (lista de pozos OFF, suma de afectación)
+def analizar_sector_fuera_servicio(props, pozos_off_norm):
+    pozos_apagados = []
+    suma_afectacion = 0.0
+    for i in range(1, 11):
+        pozo_s = props.get(f'Pozo_{i}')
+        afectacion_s = props.get(f'Afectacion_{i}')
+        if pozo_s is None or pd.isna(pozo_s):
+            continue
+        if variantes_id_pozo(pozo_s) & pozos_off_norm:
+            pozos_apagados.append(str(pozo_s).strip())
+            if afectacion_s is not None and pd.notna(afectacion_s):
+                try:
+                    suma_afectacion += float(str(afectacion_s).replace('%', '').strip())
+                except:
+                    pass
+    return pozos_apagados, suma_afectacion
+
+# 2.6.3. Color del sector según la afectación acumulada (mismos rangos que colonias)
+def calcular_color_sector(hay_pozos_off, suma_afectacion):
+    if not hay_pozos_off:
+        return '#00d4ff', 0          # Cian: sector sin pozos fuera de servicio
+    if suma_afectacion == 0:
+        return '#FFA500', 1          # Hay pozos OFF pero sin % capturado
+    if 76 <= suma_afectacion <= 100:
+        return '#FF0000', suma_afectacion
+    elif 51 <= suma_afectacion <= 75:
+        return '#FFFF00', suma_afectacion
+    elif 31 <= suma_afectacion <= 50:
+        return '#FFA500', suma_afectacion
+    elif 1 <= suma_afectacion <= 30:
+        return '#69ADDD', suma_afectacion
+    else:
+        return '#FF0000', suma_afectacion  # Supera el 100%
 
 # 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
@@ -3324,40 +3389,52 @@ with col_mapa:
         </style>
         """
 
-# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________________________
+# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL (pintados según pozos fuera de servicio) ____________________________________________________________________________________
 
-def get_sector_style(feature, visible):
-    return {
-        'fillColor': '#00d4ff',
-        'color': '#00d4ff' if visible else 'transparent',
-        'weight': 1.5 if visible else 0,
-        'fillOpacity': 0.12 if visible else 0.01,
-    }
+gdf_sectores = get_todos_los_sectores()
+sectores_data = cargar_sectores_poligonos()   # Postgres: se usa solo para el popup (población, fugas) y el link
 
-sectores_data = cargar_sectores_poligonos()
+if gdf_sectores is not None and not gdf_sectores.empty:
+    # Pozos apagados (calculados en 6.10 desde SCADA), normalizados con y sin guion
+    pozos_off_norm = set()
+    for _p in pozos_off:
+        pozos_off_norm |= variantes_id_pozo(_p)
 
-if sectores_data:
+    # Datos extra del sector (Postgres) indexados por nombre de sector
+    info_pg = {str(s_['sector']).split('.')[0].strip(): s_ for s_ in (sectores_data or [])}
+
     fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
-    
-    for s in sectores_data:
+
+    for _, row in gdf_sectores.iterrows():
         try:
-            if not s.get('geo'): continue
-            
-            nombre_sec = s['sector']
-            geo_dict = json.loads(s['geo'])
-            
+            if row.geometry is None or row.geometry.is_empty:
+                continue
+
+            nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
+            if not nombre_sec or nombre_sec.lower() in ('none', 'nan'):
+                nombre_sec = str(row.get('Col_atl', 'S/N')).strip()
+
+            pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
+            color_sec, afectacion_sec = calcular_color_sector(bool(pozos_apagados), suma_afec)
+            hay_afectacion = afectacion_sec > 0
+
+            txt_pozos_off = ", ".join(pozos_apagados) if pozos_apagados else "Ninguno"
+            txt_afec = (f"{int(suma_afec)}%" if suma_afec > 0 else "N/D") if pozos_apagados else "0%"
+
+            datos_pg = info_pg.get(nombre_sec, {})
             sector_encoded = urllib.parse.quote(nombre_sec)
             url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.rol}"
-            
+
             html_popup = f"""
-            <div style="font-family: 'Segoe UI', sans-serif; width: 220px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed #00d4ff;">
-                <h4 style="margin:0 0 8px 0; color:#00d4ff; text-align:center;">{nombre_sec}</h4>
+            <div style="font-family: 'Segoe UI', sans-serif; width: 230px; background-color: #0b1a29; color: white; padding: 12px; border-radius: 10px; border: 1px dashed {color_sec};">
+                <h4 style="margin:0 0 8px 0; color:{color_sec}; text-align:center;">{nombre_sec}</h4>
                 <table style="width:100%; font-size: 11px; margin-bottom: 10px; border-collapse: collapse;">
-                    <tr><td><b>Población:</b></td><td style="text-align:right;">{s.get('Poblacion', 0):,.0f}</td></tr>
-                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{s.get('Pozos_Sector', 0)}</td></tr>
-                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{s.get('Fugas_Tot', 0)}</td></tr>
+                    <tr><td><b>Población:</b></td><td style="text-align:right;">{(datos_pg.get('Poblacion') or 0):,.0f}</td></tr>
+                    <tr><td><b>Pozos:</b></td><td style="text-align:right;">{row.get('Pozos', '')}</td></tr>
+                    <tr><td><b>Fugas:</b></td><td style="text-align:right; color:#ff4b4b;">{datos_pg.get('Fugas_Tot', 0)}</td></tr>
+                    <tr><td><b>Pozos fuera de servicio:</b></td><td style="text-align:right; color:#ff4b4b;">{txt_pozos_off}</td></tr>
+                    <tr><td><b>Afectación:</b></td><td style="text-align:right;">{txt_afec}</td></tr>
                 </table>
-                
                 <a href="{url_acceso}" target="_blank" 
                    style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
                           text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
@@ -3366,30 +3443,32 @@ if sectores_data:
                 </a>
             </div>
             """
-            estilo = {
-                'fillColor': '#00d4ff',
-                'color': '#00d4ff' if ver_sectores else 'transparent',
-                'weight': 1.5 if ver_sectores else 0,
-                'fillOpacity': 0.12 if ver_sectores else 0.0001 # Invisible pero "clicable"
-            }
+
+            if ver_sectores:
+                if hay_afectacion:
+                    estilo = {'fillColor': color_sec, 'color': color_sec, 'weight': 2.5, 'fillOpacity': 0.25}
+                else:
+                    estilo = {'fillColor': '#00d4ff', 'color': '#00d4ff', 'weight': 1.5, 'fillOpacity': 0.12}
+            else:
+                estilo = {'fillColor': '#00d4ff', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}  # Invisible pero "clicable"
 
             folium.GeoJson(
-                geo_dict,
+                row.geometry.__geo_interface__,
                 style_function=lambda x, stl=estilo: stl,
-                highlight_function=lambda x: {
-                    'fillColor': '#00d4ff', 
-                    'color': '#ffffff', 
-                    'weight': 3, 
-                    'fillOpacity': 0.4
+                highlight_function=lambda x, c=color_sec: {
+                    'fillColor': c,
+                    'color': '#ffffff',
+                    'weight': 3,
+                    'fillOpacity': 0.6
                 },
-                tooltip=f"Sector: {nombre_sec}",
-                popup=folium.Popup(html_popup, max_width=260)
+                tooltip=f"Sector: {nombre_sec} | Pozos OFF: {txt_pozos_off} | Afectación: {txt_afec}",
+                popup=folium.Popup(html_popup, max_width=270)
             ).add_to(fg_sectores)
 
         except Exception:
             continue
 
-    fg_sectores.add_to(m)                
+    fg_sectores.add_to(m)
 
 # Declaración global de incidencias para que esté disponible para pozos y colonias siempre
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
