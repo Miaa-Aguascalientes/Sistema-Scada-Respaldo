@@ -3733,18 +3733,9 @@ with col_mapa:
 # NUEVA COLUMNA DERECHA: Listado de Colonias Afectadas (Estilo HUD)
 with col_colonias:
     st.markdown("""
-        <div style="
-            background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
-            border: 1px solid #00d4ff;
-            border-radius: 10px;
-            padding: 15px;
-            height: 600px;
-            overflow-y: auto;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-        ">
-            <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
-                // COLONIAS AFECTADAS
-            </h4>
+        <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
+            // COLONIAS AFECTADAS
+        </h4>
     """, unsafe_allow_html=True)
 
     colonias_afectadas = set()
