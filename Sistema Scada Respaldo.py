@@ -3331,7 +3331,7 @@ with st.sidebar:
 
           
                 
-# 9. SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
+# 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
 # Indicadores usando el sistema de Grid para que ocupen todo el ancho
@@ -3352,8 +3352,8 @@ st.markdown(f"""
 
 st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 
-# MODIFICACIÓN: Dividimos en 3 columnas (Mapa, Capas y el panel derecho de Colonias Afectadas)
-col_mapa, col_capas, col_colonias = st.columns([0.70, 0.05, 0.25])
+# DIVISIÓN EN 3 COLUMNAS: Mapa principal, separador de capas y el panel derecho de tarjetas
+col_mapa, col_capas, col_colonias = st.columns([0.70, 0.03, 0.27])
 
 with col_mapa:
     m = folium.Map(
@@ -3377,7 +3377,6 @@ with col_mapa:
         control=True
     ).add_to(m)
 
-    # 2. Capas de Fondo (Vista Nocturna)
     api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
     
     folium.TileLayer(
@@ -3392,14 +3391,12 @@ with col_mapa:
 
     Fullscreen().add_to(m)
 
-    # 9.2. Añadir el resaltado del sector si existe
     if datos_sector_resaltado:
         folium.GeoJson(
             json.loads(datos_sector_resaltado['geo']),
             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 3, 'fillOpacity': 0.4}
         ).add_to(m)
 
-    # 9.3. FUNCIÓN PARA HORARIO 00:00
     def formato_hora(decimal):
         try:
             if decimal == "N/A" or decimal is None: return "00:00"
@@ -3409,7 +3406,6 @@ with col_mapa:
         except:
             return "00:00"
 
-    # 9.4. FUNCIÓN PARA ICONO PARPADEANTE PEQUEÑO (8px)
     def get_blink_icon(color):
         return f"""
         <div style="
@@ -3424,7 +3420,6 @@ with col_mapa:
         </style>
         """
 
-    # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL
     gdf_sectores = get_todos_los_sectores()
     sectores_data = cargar_sectores_poligonos()
 
@@ -3503,13 +3498,10 @@ with col_mapa:
 
         fg_sectores.add_to(m)
 
-    # Declaración global de incidencias activas
     dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
 
-    # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS
     if ver_colonias:
         gdf_colonias = get_todas_las_colonias()
-        
         if gdf_colonias is not None and not gdf_colonias.empty:
             lista_incidencias_tooltip = []
             lista_afectacion_tooltip = []
@@ -3610,7 +3602,6 @@ with col_mapa:
             
             fg_colonias.add_to(m)
 
-    # 9.7. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL
     if ver_pozos:  
         fg_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True)
 
@@ -3726,11 +3717,13 @@ with col_mapa:
 
         fg_pozos.add_to(m)
 
-    # Renderizado final del mapa principal
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
-# NUEVA COLUMNA DERECHA: Tarjetas de Colonias Afectadas ordenadas de más antigua a más actual
+with col_capas:
+    st.write("")
+
+# PANEL DERECHO: Tarjetas con todas las colonias afectadas, su sector y la incidencia, ordenadas de la más antigua a la más actual
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3753,7 +3746,6 @@ with col_colonias:
     except:
         df_inc_activas = pd.DataFrame()
 
-    # Mapeo de pozos activos con su diagnóstico y fecha de inicio
     incidencias_dict = {}
     if not df_inc_activas.empty:
         for _, r_inc in df_inc_activas.iterrows():
@@ -3790,7 +3782,6 @@ with col_colonias:
 
     if tarjetas_afectadas:
         df_tarjetas = pd.DataFrame(tarjetas_afectadas)
-        # Ordenar estrictamente de la más antigua a la más actual (ASC)
         df_tarjetas = df_tarjetas.sort_values(by='fecha_inicio', ascending=True).drop_duplicates(subset=['colonia'])
 
         for _, tarjeta in df_tarjetas.iterrows():
@@ -3822,9 +3813,7 @@ with col_colonias:
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
-
-
+st.markdown('</div>', unsafe_allow_html=True)
 
 # Leyenda inferior de porcentajes de afectación
 st.markdown("##### 🗺️ % de Afectación en Colonias")
@@ -3841,8 +3830,6 @@ with col_l4:
     st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
 with col_l5:
     st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal / Sin Afectación</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
-
-
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
