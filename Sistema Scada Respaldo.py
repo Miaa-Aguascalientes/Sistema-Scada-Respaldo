@@ -3739,7 +3739,7 @@ with col_mapa:
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Tarjetas ordenadas por antigüedad con pozo, tiempo fuera, porcentaje e incidencia
+# PANEL DERECHO: Tarjetas con colores dinámicos basados en la afectación
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3822,6 +3822,7 @@ with col_colonias:
                         'sector': nombre_sec,
                         'pozo': pozos_txt,
                         'incidencia': incidencia_txt,
+                        'afectacion_num': suma_afec,
                         'afectacion': f"{int(suma_afec)}%",
                         'fecha_inicio': earliest_date if earliest_date != pd.Timestamp.max else pd.Timestamp.now(),
                         'colonias': set(colonias_sector)
@@ -3851,19 +3852,32 @@ with col_colonias:
                 else:
                     tiempo_fuera = f"{horas}h {minutos}m"
 
+                # Asignar color de borde izquierdo según la escala de afectación
+                val_afec = sec_item['afectacion_num']
+                if val_afec >= 76:
+                    color_borde = '#FF0000' # Rojo (Crítico)
+                elif val_afec >= 51:
+                    color_borde = '#FFFF00' # Amarillo (Alto)
+                elif val_afec >= 31:
+                    color_borde = '#FFA500' # Naranja (Moderado)
+                elif val_afec >= 1:
+                    color_borde = '#69ADDD' # Azul Claro (Leve)
+                else:
+                    color_borde = '#3498DB' # Normal
+
                 st.markdown(f"""
                     <div style="
                         background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
                         border: 1px solid #1f4068;
-                        border-left: 4px solid #00d4ff;
+                        border-left: 5px solid {color_borde};
                         border-radius: 6px;
                         padding: 10px;
                         margin-bottom: 8px;
                         box-shadow: 0px 2px 5px rgba(0,0,0,0.4);
                     ">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <span style="color: #00d4ff; font-weight: bold; font-size: 13px;">Sector: {sec_item['sector']}</span>
-                            <span style="background: #ff4b4b; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {sec_item['afectacion']}</span>
+                            <span style="color: {color_borde}; font-weight: bold; font-size: 13px;">Sector: {sec_item['sector']}</span>
+                            <span style="background: {color_borde}; color: black; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {sec_item['afectacion']}</span>
                         </div>
                         <div style="color: #ffffff; font-size: 11px; margin-bottom: 3px;">
                             <b>Pozo(s):</b> {sec_item['pozo']} | <b>Fuera de operacion:</b> {tiempo_fuera}
