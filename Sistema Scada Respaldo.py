@@ -3864,19 +3864,6 @@ with col_colonias:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
-    # LEYENDA DE PORCENTAJES UBICADA ABAJO EN LA MISMA COLUMNA DERECHA
-    st.markdown("<p style='font-size: 12px; font-weight: bold; color: #00d4ff; text-align: center; margin: 5px 0;'>🗺️ % Afectación</p>", unsafe_allow_html=True)
-    
-    estilo_tarjeta_leg = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 6px 2px; border-radius: 6px; text-align: center; margin-bottom: 4px;"
-    
-    st.markdown(f'<div style="{estilo_tarjeta_leg}"><span style="color: #888; font-size: 0.6rem; display:block;">Rojo (Crítico)</span><span style="color: #FF0000; font-size: 0.9rem; font-weight: bold;">76% - 100%</span></div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="{estilo_tarjeta_leg}"><span style="color: #888; font-size: 0.6rem; display:block;">Amarillo (Alto)</span><span style="color: #FFFF00; font-size: 0.9rem; font-weight: bold;">51% - 75%</span></div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="{estilo_tarjeta_leg}"><span style="color: #888; font-size: 0.6rem; display:block;">Naranja (Moderado)</span><span style="color: #FFA500; font-size: 0.9rem; font-weight: bold;">31% - 50%</span></div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="{estilo_tarjeta_leg}"><span style="color: #888; font-size: 0.6rem; display:block;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 0.9rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
-    st.markdown(f'<div style="{estilo_tarjeta_leg}"><span style="color: #888; font-size: 0.6rem; display:block;">Normal</span><span style="color: #3498DB; font-size: 0.9rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
