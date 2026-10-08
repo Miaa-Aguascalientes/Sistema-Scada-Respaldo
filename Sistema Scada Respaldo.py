@@ -547,10 +547,6 @@ def variantes_id_pozo(valor):
     return {id_limpio, id_con_guion, id_sin_guion}
 
 # 2.6.2. Pozos con incidencia activa de un sector -> (lista de pozos OFF, suma de afectación)
-# Revisa DOS fuentes del Diccionario_sectores:
-#   a) Pozo_1..Pozo_10 (con su Afectacion_N)
-#   b) El campo 'Pozos' (lista separada por comas, ej. "R-038, R-038B"), para no perder pozos
-#      que no tengan columna Pozo_N capturada. Estos suman afectación solo si también están en (a).
 def analizar_sector_fuera_servicio(props, pozos_off_norm):
     pozos_apagados = []
     vistos = set()
@@ -593,7 +589,7 @@ def analizar_sector_fuera_servicio(props, pozos_off_norm):
 # 2.6.3. Color del sector según la afectación acumulada (mismos rangos que colonias)
 def calcular_color_sector(hay_pozos_off, suma_afectacion):
     if not hay_pozos_off:
-        return '#00d4ff', 0          # Cian: sector sin pozos fuera de servicio
+        return '#3498DB', 0          # Azul oscuro de colonias: sector sin pozos fuera de servicio
     if suma_afectacion == 0:
         return '#FFA500', 1          # Hay pozos OFF pero sin % capturado
     if 76 <= suma_afectacion <= 100:
