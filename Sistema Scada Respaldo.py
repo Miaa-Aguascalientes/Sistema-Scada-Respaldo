@@ -3860,7 +3860,7 @@ with col_l5:
 
 # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
 folium.LayerControl(position='topright', collapsed=False).add_to(m)
-folium_static(m, width=None, height=600)    
+
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
