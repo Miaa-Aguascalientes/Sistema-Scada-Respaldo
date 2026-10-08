@@ -3426,21 +3426,7 @@ with col_mapa:
 
 # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL (pintados según pozos fuera de servicio) ____________________________________________________________________________________
 
-gdf_sectores = get_todos_los_sectores()
-sectores_data = cargar_sectores_poligonos()   # Postgres: se usa solo para el popup (población, fugas) y el link
-
-if gdf_sectores is not None and not gdf_sectores.empty:
-        # Un sector SOLO se pinta si alguno de sus pozos tiene una INCIDENCIA ACTIVA registrada.
-    # Un pozo apagado sin incidencia (ej. por nivel de tanque) es operación normal y NO pinta el sector.
-    pozos_off_norm = set()
-    _inc_sec = obtener_pozos_con_incidencias_hoy()
-    for _p in _inc_sec.keys():
-        pozos_off_norm |= variantes_id_pozo(_p)
-
-    # Datos extra del sector (Postgres) indexados por nombre de sector
-    info_pg = {str(s_['sector']).split('.')[0].strip(): s_ for s_ in (sectores_data or [])}
-
-    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
+fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
 
     for _, row in gdf_sectores.iterrows():
         try:
@@ -3483,17 +3469,19 @@ if gdf_sectores is not None and not gdf_sectores.empty:
 
             if ver_sectores:
                 if hay_afectacion:
+                    # Si tiene afectación activa, usa el color de alerta correspondiente (rojo, amarillo, etc.)
                     estilo = {'fillColor': color_sec, 'color': color_sec, 'weight': 2.5, 'fillOpacity': 0.25}
                 else:
-                    estilo = {'fillColor': '#00d4ff', 'color': '#00d4ff', 'weight': 1.5, 'fillOpacity': 0.12}
+                    # Estilo idéntico al de las colonias normales (Azul oscuro #3498DB y baja opacidad)
+                    estilo = {'fillColor': '#3498DB', 'color': '#2980B9', 'weight': 1, 'fillOpacity': 0.08}
             else:
-                estilo = {'fillColor': '#00d4ff', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}  # Invisible pero "clicable"
+                estilo = {'fillColor': '#3498DB', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}
 
             folium.GeoJson(
                 row.geometry.__geo_interface__,
                 style_function=lambda x, stl=estilo: stl,
                 highlight_function=lambda x, c=color_sec: {
-                    'fillColor': c,
+                    'fillColor': c if hay_afectacion else '#3498DB',
                     'color': '#ffffff',
                     'weight': 3,
                     'fillOpacity': 0.6
