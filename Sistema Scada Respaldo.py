@@ -3424,7 +3424,17 @@ with col_mapa:
         </style>
         """
 
-# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL (pintados según pozos fuera de servicio) ____________________________________________________________________________________
+# 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL
+gdf_sectores = get_todos_los_sectores()
+sectores_data = cargar_sectores_poligonos()
+
+if gdf_sectores is not None and not gdf_sectores.empty:
+    pozos_off_norm = set()
+    _inc_sec = obtener_pozos_con_incidencias_hoy()
+    for _p in _inc_sec.keys():
+        pozos_off_norm |= variantes_id_pozo(_p)
+
+    info_pg = {str(s_['sector']).split('.')[0].strip(): s_ for s_ in (sectores_data or [])}
 
     fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
 
@@ -3469,10 +3479,8 @@ with col_mapa:
 
             if ver_sectores:
                 if hay_afectacion:
-                    # Si tiene afectación activa, usa el color de alerta correspondiente (rojo, amarillo, etc.)
                     estilo = {'fillColor': color_sec, 'color': color_sec, 'weight': 2.5, 'fillOpacity': 0.25}
                 else:
-                    # Estilo idéntico al de las colonias normales (Azul oscuro #3498DB y baja opacidad)
                     estilo = {'fillColor': '#3498DB', 'color': '#2980B9', 'weight': 1, 'fillOpacity': 0.08}
             else:
                 estilo = {'fillColor': '#3498DB', 'color': 'transparent', 'weight': 0, 'fillOpacity': 0.0001}
@@ -3494,8 +3502,13 @@ with col_mapa:
             continue
 
     fg_sectores.add_to(m)
+else:
+    # Aviso preventivo por si la tabla Diccionario_sectores no responde o viene vacía
+    st.sidebar.warning("⚠️ No se pudieron cargar los polígonos de los sectores.")
 
-# Declaración global de incidencias para que esté disponible para pozos y colonias siempre
+
+# --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
+
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}            
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS __________________________________________________________________________________________________________________________________
