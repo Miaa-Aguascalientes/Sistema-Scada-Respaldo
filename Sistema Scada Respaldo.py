@@ -3919,7 +3919,61 @@ with col_mapa_principal:
                     popup=folium.Popup(html_popup_mm, max_width=300)
                 ).add_to(m)
                 
-                color_texto = "#FF4C4C"
+                color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
+                html_etiqueta = f"""
+                <div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000; white-space: nowrap;">
+                    {id_mm} - {info.get('nombre', 'N/A')}
+                </div>
+                """
+                
+                folium.Marker(
+                    location=info['coord'], 
+                    icon=folium.DivIcon(icon_anchor=(-15, 10), html=html_etiqueta)
+                ).add_to(m)
+                
+            except Exception as e:
+                continue
+
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 📌 COLUMNA DERECHA: RANKING DE AFECTACIONES EN SEGUNDA COLUMNA
+with col_ranking:
+    st.markdown("""
+        <div style="background: rgba(11, 26, 41, 0.95); border: 1px solid #1f4068; padding: 12px; border-radius: 10px; height: 600px; overflow-y: auto;">
+            <h4 style="color: #00d4ff; text-align: center; font-size: 13px; margin-top: 0; border-bottom: 1px solid #1f4068; padding-bottom: 8px;">
+                🏆 RANKING AFECTACIONES
+            </h4>
+    """, unsafe_allow_html=True)
+
+    if 'ranking_colonias_afectadas' in locals() and ranking_colonias_afectadas:
+        df_rank = pd.DataFrame(ranking_colonias_afectadas)
+        df_rank = df_rank.sort_values(by='tiempo_inicio', ascending=True).reset_index(drop=True)
+
+        ahora_actual = datetime.now()
+        for idx, row in df_rank.iterrows():
+            tiempo_transcurrido = ahora_actual - row['tiempo_inicio']
+            dias = tiempo_transcurrido.days
+            horas = tiempo_transcurrido.seconds // 3600
+            
+            tiempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas} hrs"
+            
+            st.markdown(f"""
+                <div style="background: rgba(255, 0, 0, 0.1); border-left: 3px solid #ff4b4b; padding: 6px; margin-bottom: 6px; border-radius: 3px;">
+                    <div style="font-size: 10px; font-weight: bold; color: #ffffff;">#{idx+1} - {row['colonia']}</div>
+                    <div style="font-size: 9px; color: #00ffcc;">Sector: {row['sector']}</div>
+                    <div style="font-size: 9px; color: #ff9999; margin-top: 2px;">⏳ Fuera: <b>{tiempo_str}</b></div>
+                </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div style="text-align: center; color: #888; margin-top: 40px; font-size: 11px;">
+                ✅ Sin afectaciones activas.
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
