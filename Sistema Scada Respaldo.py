@@ -3331,7 +3331,7 @@ with st.sidebar:
 
           
                 
-# 9. SECCION------------------------------------------------------------------------------ 9. MAPA PRINCIPAL Y RANKING DE AFECTACIONES -----------------------------------------------------------------------------------------------------------
+# 9. SECCION------------------------------------------------------------------------------ 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
 # Indicadores usando el sistema de Grid para que ocupen todo el ancho
@@ -3352,8 +3352,8 @@ st.markdown(f"""
 
 st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 
-# 📌 DIVIDIMOS LA PANTALLA: 75% MAPA / 25% RANKING DE COLONIAS AFECTADAS
-col_mapa, col_ranking = st.columns([0.75, 0.25])
+# 📌 DISTRIBUCIÓN LIMPIA: MAPA A LA IZQUIERDA (80%) / RANKING A LA DERECHA (20%)
+col_mapa, col_ranking = st.columns([0.80, 0.20])
 
 with col_mapa:
     m = folium.Map(
@@ -3419,11 +3419,10 @@ with col_mapa:
         </style>
         """
 
-    # --- CARGA Y RENDERIZADO DE SECTORES ---
+    # --- 1. RENDERIZADO DE SECTORES Y RECOLECCIÓN PARA EL RANKING ---
     gdf_sectores = get_todos_los_sectores()
     sectores_data = cargar_sectores_poligonos()
 
-    # Estructura para recolectar datos del ranking
     ranking_colonias_afectadas = []
     pozos_off_norm = set()
     _inc_sec = obtener_pozos_con_incidencias_hoy()
@@ -3448,13 +3447,10 @@ with col_mapa:
                 color_sec, afectacion_sec = calcular_color_sector(bool(pozos_apagados), suma_afec)
                 hay_afectacion = afectacion_sec > 0
 
-                # Recolectar datos para el ranking si el sector tiene afectación activa
                 if hay_afectacion:
-                    # Buscamos la fecha de inicio más antigua entre los pozos con incidencia de este sector
                     tiempo_mas_antiguo = datetime.now()
                     for p_off in pozos_apagados:
                         p_limpio = str(p_off).strip().upper()
-                        # Consultamos la fecha de inicio de la incidencia de este pozo
                         engine_inc = get_mysql_scada_engine()
                         if engine_inc:
                             q_fec = f"SELECT FECHA_HORA_INICIO FROM vw_incidencias_en_pozos WHERE NUM_POZO LIKE '%{p_limpio}%' AND ESTATUS != 'CERRADA' ORDER BY FECHA_HORA_INICIO ASC LIMIT 1"
@@ -3524,9 +3520,9 @@ with col_mapa:
 
         fg_sectores.add_to(m)
 
-    # 📌 RENDERIZADO DE LAS DEMÁS CAPAS (Pozos, Colonias, etc.)
     dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}
 
+    # --- 2. RENDERIZADO DE COLONIAS ---
     if ver_colonias:
         gdf_colonias = get_todas_las_colonias()
         if gdf_colonias is not None and not gdf_colonias.empty:
@@ -3548,20 +3544,118 @@ with col_mapa:
             ).add_to(fg_colonias)
             fg_colonias.add_to(m)
 
+    # --- 3. RENDERIZADO DE POZOS (RECUPERADO ÍNTEGRO) ---
+    if ver_pozos:  
+        fg_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True)
+
+        for id_p, info in mapa_pozos_dict.items():
+            d = lambda tag: data_scada.get(tag, (0, "N/A"))
+            is_st = (info['status_label'] == 'SIN TELEMETRÍA')
+            q, f_q = d(info['caudal']) if not is_st else (0.0, "N/A")
+            p, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+            sumer, f_s = d(info['sumergencia']) if not is_st else (0.0, "N/A")
+            dinam, f_d = d(info['nivel_dinamico']) if not is_st else (0.0, "N/A")
+            tanq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+            col, f_col = d(info['columna']) if not is_st else (0.0, "N/A")
+            h_arr_val, f_h_arr = d(info['h_arranque']) if not is_st else (0.0, "N/A")
+            h_par_val, f_h_par = d(info['h_paro']) if not is_st else (0.0, "N/A")
+            h_arr_fmt = formato_hora(h_arr_val)
+            h_par_fmt = formato_hora(h_par_val)
+            v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
+            a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
+
+            id_p_limpio = str(id_p).strip().upper()
+            id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
+            id_p_sin_guion = id_p_limpio.replace('-', '')
+            
+            tiene_incidencia_activa = (
+                id_p_limpio in dic_incidencias_activas or 
+                id_p_con_guion in dic_incidencias_activas or 
+                id_p_sin_guion in dic_incidencias_activas
+            )
+
+            rol_actual = st.session_state.get('rol', 'usuario')
+            nombre_codificado = urllib.parse.quote(id_p)
+            url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
+
+            html_popup = f"""
+                <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                        <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                            <span>💧 Caudal: <b>{q:.2f} L/s</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
+                        </div>
+                        <div style="display: flex; align-items: baseline; font-size: 11px;">
+                            <span>🚀 Presión: <b>{p:.2f} kg</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                        </div>
+                    </div>
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                        <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                            <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">📊 VER ANÁLISIS HISTÓRICO</div>
+                        </a>
+                    </div>
+                </div>
+            """
+
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(
+                    icon_size=(150,36), icon_anchor=(-12, 6),
+                    html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_p}</div>'
+                )
+            ).add_to(fg_pozos)
+
+            if tiene_incidencia_activa:
+                info_incidencia = (
+                    dic_incidencias_activas.get(id_p_limpio) or 
+                    dic_incidencias_activas.get(id_p_con_guion) or 
+                    dic_incidencias_activas.get(id_p_sin_guion, {})
+                )
+                diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA')) if isinstance(info_incidencia, dict) else str(info_incidencia)
+                
+                html_globo_incidencia = f"""
+                <div style="position: relative; width: 350px; height: 80px; pointer-events: none; font-family: sans-serif;">
+                    <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
+                        <line x1="15" y1="65" x2="75" y2="35" stroke="#ff4d4d" stroke-width="2" />
+                        <circle cx="15" cy="65" r="4" fill="#ffffff" stroke="#ff4d4d" stroke-width="2" />
+                    </svg>
+                    <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
+                        <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
+                        <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
+                        <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla.upper()}</span>
+                    </div>
+                </div>
+                """
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(icon_size=(350, 80), icon_anchor=(15, 65), html=html_globo_incidencia),
+                    popup=folium.Popup(html_popup, max_width=450),
+                    tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
+                ).add_to(fg_pozos)
+            elif info.get('blink'):
+                folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
+            else:
+                folium.CircleMarker(location=info['coord'], radius=3, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
+
+        fg_pozos.add_to(m)
+
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
-# 📌 COLUMNA DERECHA: RANKING DE COLONIAS / SECTORES AFECTADOS POR TIEMPO
+# 📌 COLUMNA DERECHA: RANKING DE AFECTACIONES (En su propio espacio)
 with col_ranking:
     st.markdown("""
-        <div style="background: rgba(11, 26, 41, 0.95); border: 1px solid #1f4068; padding: 15px; border-radius: 10px; height: 600px; overflow-y: auto;">
-            <h4 style="color: #00d4ff; text-align: center; font-size: 14px; margin-top: 0; border-bottom: 1px solid #1f4068; padding-bottom: 8px;">
-                🏆 RANKING DE AFECTACIONES
+        <div style="background: rgba(11, 26, 41, 0.95); border: 1px solid #1f4068; padding: 12px; border-radius: 10px; height: 600px; overflow-y: auto;">
+            <h4 style="color: #00d4ff; text-align: center; font-size: 13px; margin-top: 0; border-bottom: 1px solid #1f4068; padding-bottom: 8px;">
+                🏆 RANKING AFECTACIONES
             </h4>
     """, unsafe_allow_html=True)
 
     if ranking_colonias_afectadas:
-        # Ordenar el ranking: el que tenga la fecha de inicio más antigua (más tiempo fuera de servicio) va primero
         df_rank = pd.DataFrame(ranking_colonias_afectadas)
         df_rank = df_rank.sort_values(by='tiempo_inicio', ascending=True).reset_index(drop=True)
 
@@ -3574,23 +3668,22 @@ with col_ranking:
             tiempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas} hrs"
             
             st.markdown(f"""
-                <div style="background: rgba(255, 0, 0, 0.1); border-left: 4px solid #ff4b4b; padding: 8px; margin-bottom: 8px; border-radius: 4px;">
-                    <div style="font-size: 11px; font-weight: bold; color: #ffffff;">#{idx+1} - {row['colonia']}</div>
-                    <div style="font-size: 10px; color: #00ffcc;">Sector: {row['sector']}</div>
-                    <div style="font-size: 10px; color: #ff9999; margin-top: 2px;">⏳ Fuera de servicio: <b>{tiempo_str}</b></div>
+                <div style="background: rgba(255, 0, 0, 0.1); border-left: 3px solid #ff4b4b; padding: 6px; margin-bottom: 6px; border-radius: 3px;">
+                    <div style="font-size: 10px; font-weight: bold; color: #ffffff;">#{idx+1} - {row['colonia']}</div>
+                    <div style="font-size: 9px; color: #00ffcc;">Sector: {row['sector']}</div>
+                    <div style="font-size: 9px; color: #ff9999; margin-top: 2px;">⏳ Fuera: <b>{tiempo_str}</b></div>
                 </div>
             """, unsafe_allow_html=True)
     else:
         st.markdown("""
-            <div style="text-align: center; color: #888; margin-top: 50px; font-size: 12px;">
-                ✅ Sin afectaciones activas registradas en los sectores.
+            <div style="text-align: center; color: #888; margin-top: 40px; font-size: 11px;">
+                ✅ Sin afectaciones activas.
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
