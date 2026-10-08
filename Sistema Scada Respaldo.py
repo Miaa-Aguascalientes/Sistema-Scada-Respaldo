@@ -547,21 +547,47 @@ def variantes_id_pozo(valor):
     return {id_limpio, id_con_guion, id_sin_guion}
 
 # 2.6.2. Pozos fuera de servicio de un sector -> (lista de pozos OFF, suma de afectación)
+# Revisa DOS fuentes del Diccionario_sectores:
+#   a) Pozo_1..Pozo_10 (con su Afectacion_N)
+#   b) El campo 'Pozos' (lista separada por comas, ej. "R-038, R-038B"), para no perder pozos
+#      que no tengan columna Pozo_N capturada. Estos suman afectación solo si también están en (a).
 def analizar_sector_fuera_servicio(props, pozos_off_norm):
     pozos_apagados = []
+    vistos = set()
     suma_afectacion = 0.0
+
+    # a) Columnas Pozo_N / Afectacion_N
     for i in range(1, 11):
         pozo_s = props.get(f'Pozo_{i}')
         afectacion_s = props.get(f'Afectacion_{i}')
-        if pozo_s is None or pd.isna(pozo_s):
+        if pozo_s is None or pd.isna(pozo_s) or not str(pozo_s).strip():
+            continue
+        clave = str(pozo_s).strip().upper().replace('-', '')
+        if clave in vistos:
             continue
         if variantes_id_pozo(pozo_s) & pozos_off_norm:
+            vistos.add(clave)
             pozos_apagados.append(str(pozo_s).strip())
             if afectacion_s is not None and pd.notna(afectacion_s):
                 try:
                     suma_afectacion += float(str(afectacion_s).replace('%', '').strip())
                 except:
                     pass
+
+    # b) Campo 'Pozos' (todos los pozos que alimentan al sector)
+    txt_pozos = props.get('Pozos')
+    if txt_pozos is not None and pd.notna(txt_pozos):
+        for tok in re.split(r'[,;/\s]+', str(txt_pozos)):
+            tok = tok.strip()
+            if not tok:
+                continue
+            clave = tok.upper().replace('-', '')
+            if clave in vistos:
+                continue
+            if variantes_id_pozo(tok) & pozos_off_norm:
+                vistos.add(clave)
+                pozos_apagados.append(tok)
+
     return pozos_apagados, suma_afectacion
 
 # 2.6.3. Color del sector según la afectación acumulada (mismos rangos que colonias)
@@ -3395,9 +3421,12 @@ gdf_sectores = get_todos_los_sectores()
 sectores_data = cargar_sectores_poligonos()   # Postgres: se usa solo para el popup (población, fugas) y el link
 
 if gdf_sectores is not None and not gdf_sectores.empty:
-    # Pozos apagados (calculados en 6.10 desde SCADA), normalizados con y sin guion
+        # Fuera de servicio = apagados en SCADA + pozos con incidencia abierta (ej. EMBOBINADO ABIERTO)
     pozos_off_norm = set()
     for _p in pozos_off:
+        pozos_off_norm |= variantes_id_pozo(_p)
+    _inc_sec = obtener_pozos_con_incidencias_hoy()
+    for _p in _inc_sec.keys():
         pozos_off_norm |= variantes_id_pozo(_p)
 
     # Datos extra del sector (Postgres) indexados por nombre de sector
