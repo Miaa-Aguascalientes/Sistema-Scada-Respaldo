@@ -3841,6 +3841,22 @@ with col_colonias:
 
 st.markdown('</div>', unsafe_allow_html=True)
 
+# LEYENDA ÚNICA DE PORCENTAJES (Solo aparece una vez abajo del mapa principal)
+st.markdown("##### 🗺️ % de Afectación en Colonias")
+col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
+estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px 5px; border-radius: 10px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+
+with col_l1:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Rojo (Crítico)</span><span style="color: #FF0000; font-size: 1.1rem; font-weight: bold;">76% - 100%</span></div>', unsafe_allow_html=True)
+with col_l2:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Amarillo (Alto)</span><span style="color: #FFFF00; font-size: 1.1rem; font-weight: bold;">51% - 75%</span></div>', unsafe_allow_html=True)
+with col_l3:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Naranja (Moderado)</span><span style="color: #FFA500; font-size: 1.1rem; font-weight: bold;">31% - 50%</span></div>', unsafe_allow_html=True)
+with col_l4:
+    st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
+with col_l5:
+    st.mark
+
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
@@ -4322,64 +4338,6 @@ if ver_pozos:
                 
             except Exception as e:
                 continue
-
-
-
-# ---INDICADORES DE % DE AFECTACIONES POR COLONIAS --------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    st.markdown("##### 🗺️ % de Afectación en Colonias")
-    
-    col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
-    
-    estilo_tarjeta = """
-        background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); 
-        border: 1px solid #1f4068; 
-        padding: 10px 5px; 
-        border-radius: 10px; 
-        text-align: center; 
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-    """
-
-    with col_l1:
-        st.markdown(
-            f'<div style="{estilo_tarjeta}">'
-            f'<span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Rojo (Crítico)</span>'
-            f'<span style="color: #FF0000; font-size: 1.1rem; font-weight: bold; text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);">76% - 100%</span>'
-            f'</div>', 
-            unsafe_allow_html=True
-        )
-    with col_l2:
-        st.markdown(
-            f'<div style="{estilo_tarjeta}">'
-            f'<span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Amarillo (Alto)</span>'
-            f'<span style="color: #FFFF00; font-size: 1.1rem; font-weight: bold; text-shadow: 0 0 8px rgba(255, 255, 0, 0.5);">51% - 75%</span>'
-            f'</div>', 
-            unsafe_allow_html=True
-        )
-    with col_l3:
-        st.markdown(
-            f'<div style="{estilo_tarjeta}">'
-            f'<span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Naranja (Moderado)</span>'
-            f'<span style="color: #FFA500; font-size: 1.1rem; font-weight: bold; text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);">31% - 50%</span>'
-            f'</div>', 
-            unsafe_allow_html=True
-        )
-    with col_l4:
-        st.markdown(
-            f'<div style="{estilo_tarjeta}">'
-            f'<span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span>'
-            f'<span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold; text-shadow: 0 0 8px rgba(105, 173, 221, 0.5);">1% - 30%</span>'
-            f'</div>', 
-            unsafe_allow_html=True
-        )
-    with col_l5:
-        st.markdown(
-            f'<div style="{estilo_tarjeta}">'
-            f'<span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal / Sin Afectación</span>'
-            f'<span style="color: #3498DB; font-size: 1.1rem; font-weight: bold; text-shadow: 0 0 8px rgba(52, 152, 219, 0.5);">0%</span>'
-            f'</div>', 
-            unsafe_allow_html=True
-        )
 
 
     # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
