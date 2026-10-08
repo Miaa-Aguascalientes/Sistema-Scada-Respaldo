@@ -3718,7 +3718,7 @@ with col_mapa:
         fg_pozos.add_to(m)
 
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=520)
+    folium_static(m, width=None, height=600)
 
     # LEYENDA DE PORCENTAJES UBICADA DIRECTAMENTE DEBAJO DEL MAPA PRINCIPAL
     st.markdown("##### 🗺️ % de Afectación en Colonias")
