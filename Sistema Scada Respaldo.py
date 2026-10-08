@@ -3807,8 +3807,6 @@ with col_colonias:
 
     # --- INICIO DEL CONTENEDOR CON BARRA DESPLAZADA (SCROLL) ---
     st.markdown("""
-    
-    # --- CONTENEDOR CON ALTURA REDUCIDA Y ESTILO DE SCROLL FORZADO ---
         <div style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
     """, unsafe_allow_html=True)
 
