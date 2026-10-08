@@ -3739,7 +3739,7 @@ with col_mapa:
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Tarjetas con scroll vertical controlado
+# PANEL DERECHO: Tarjetas con scroll vertical estricto para mostrar máximo 6 tarjetas
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3821,9 +3821,9 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
-    # CONTENEDOR CON SCROLL FORZADO (Altura máxima de 500px para emparejar con el mapa y la leyenda)
+    # CONTENEDOR CON ALTURA ESTRICTA DE 400PX PARA LIMITAR A MÁXIMO 6 TARJETAS Y FORZAR LA BARRA DESPLAZADORA
     st.markdown("""
-        <div style="max-height: 500px; overflow-y: scroll; padding-right: 5px;">
+        <div style="height: 400px; max-height: 400px; overflow-y: scroll !important; padding-right: 5px;">
     """, unsafe_allow_html=True)
 
     if sectores_afectados_dict:
