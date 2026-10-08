@@ -3426,7 +3426,7 @@ with col_mapa:
 
 # 9.5. RENDERIZADO DE SECTORES EN EL MAPA PRINCIPAL (pintados según pozos fuera de servicio) ____________________________________________________________________________________
 
-fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
+    fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos", z_index=1)
 
     for _, row in gdf_sectores.iterrows():
         try:
