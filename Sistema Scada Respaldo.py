@@ -3805,9 +3805,9 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
-    # --- INICIO DEL CONTENEDOR CON BARRA DESPLAZADA (SCROLL) ---
+    # --- CONTENEDOR CON ALTURA REDUCIDA Y ESTILO DE SCROLL FORZADO ---
     st.markdown("""
-        <div style="max-height: 300px; overflow-y: auto; padding-right: 5px;">
+        <div style="max-height: 300px; overflow-y: scroll; padding-right: 5px; border: 1px solid #1f4068; border-radius: 6px;">
     """, unsafe_allow_html=True)
 
     if sectores_afectados_dict:
@@ -3844,7 +3844,6 @@ with col_colonias:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- CIERRE DEL CONTENEDOR DE SCROLL ---
     st.markdown("</div>", unsafe_allow_html=True)
 
 # LEYENDA ÚNICA DE PORCENTAJES (Solo aparece una vez abajo del mapa principal)
