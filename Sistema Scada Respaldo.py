@@ -3353,7 +3353,7 @@ st.markdown(f"""
 st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
 
 # 3 columnas: Mapa principal, espacio de capas y el panel derecho de tarjetas de sectores
-col_mapa, col_capas, col_colonias = st.columns([0.70, 0.03, 0.27])
+col_mapa, col_capas, col_colonias = st.columns([0.75, 0.02, 0.22])
 
 with col_mapa:
     m = folium.Map(
