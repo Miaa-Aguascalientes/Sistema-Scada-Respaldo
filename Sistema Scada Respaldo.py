@@ -3718,12 +3718,28 @@ with col_mapa:
         fg_pozos.add_to(m)
 
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=600)
+    folium_static(m, width=None, height=520)
+
+    # LEYENDA DE PORCENTAJES UBICADA DIRECTAMENTE DEBAJO DEL MAPA PRINCIPAL
+    st.markdown("##### 🗺️ % de Afectación en Colonias")
+    col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
+    estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px 5px; border-radius: 10px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+
+    with col_l1:
+        st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Rojo (Crítico)</span><span style="color: #FF0000; font-size: 1.1rem; font-weight: bold;">76% - 100%</span></div>', unsafe_allow_html=True)
+    with col_l2:
+        st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Amarillo (Alto)</span><span style="color: #FFFF00; font-size: 1.1rem; font-weight: bold;">51% - 75%</span></div>', unsafe_allow_html=True)
+    with col_l3:
+        st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Naranja (Moderado)</span><span style="color: #FFA500; font-size: 1.1rem; font-weight: bold;">31% - 50%</span></div>', unsafe_allow_html=True)
+    with col_l4:
+        st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
+    with col_l5:
+        st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Tarjetas con Scroll + Leyenda de Porcentajes compacta abajo en la misma columna
+# PANEL DERECHO: Tarjetas con scroll vertical controlado
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3805,9 +3821,9 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
-    # CONTENEDOR CON SCROLL FORZADO (Altura máxima de 380px para que aparezca la barra)
+    # CONTENEDOR CON SCROLL FORZADO (Altura máxima de 500px para emparejar con el mapa y la leyenda)
     st.markdown("""
-        <div style="max-height: 380px; overflow-y: scroll; padding-right: 5px; margin-bottom: 10px;">
+        <div style="max-height: 500px; overflow-y: scroll; padding-right: 5px;">
     """, unsafe_allow_html=True)
 
     if sectores_afectados_dict:
@@ -3845,6 +3861,8 @@ with col_colonias:
         """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
     # LEYENDA DE PORCENTAJES UBICADA ABAJO EN LA MISMA COLUMNA DERECHA
     st.markdown("<p style='font-size: 12px; font-weight: bold; color: #00d4ff; text-align: center; margin: 5px 0;'>🗺️ % Afectación</p>", unsafe_allow_html=True)
