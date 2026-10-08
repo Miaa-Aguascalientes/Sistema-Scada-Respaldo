@@ -3830,7 +3830,7 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
-    with st.container(height=480):
+    with st.container(height=600):
         if sectores_afectados_dict:
             lista_sectores_afec = list(sectores_afectados_dict.values())
             # Ordenar de la incidencia más antigua a la más reciente
