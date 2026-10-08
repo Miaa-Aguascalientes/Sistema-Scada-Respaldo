@@ -4031,12 +4031,7 @@ if ver_pozos:
         v = [d(t) for t in info['voltajes_l']] if not is_st else [(0.0, "N/A")]*3
         a = [d(t) for t in info['amperajes_l']] if not is_st else [(0.0, "N/A")]*3
 
-        # ==========================================
-        # AQUÍ VA LA VALIDACIÓN TOLERANTE CON/SIN GUION
-        # ==========================================
         id_p_limpio = str(id_p).strip().upper()
-        
-        # Generar posibles variantes con o sin guion y con sufijos de letra (ej. P087A / P-087A)
         id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
         id_p_sin_guion = id_p_limpio.replace('-', '')
         
@@ -4048,7 +4043,6 @@ if ver_pozos:
 
         rol_actual = st.session_state.get('rol', 'usuario')
         nombre_codificado = urllib.parse.quote(id_p)
-        
         url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
         html_popup = f"""
@@ -4057,7 +4051,6 @@ if ver_pozos:
                     <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
                     <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                
                 <div style="margin-bottom: 12px;">
                     <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
                     <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
@@ -4069,62 +4062,7 @@ if ver_pozos:
                         <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
                     </div>
                 </div>
-
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px;">
-                        <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
-                    <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
-                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                            <th style="padding: 4px;">Fase</th>
-                            <th style="padding: 4px;">Voltaje / Act.</th>
-                            <th style="padding: 4px;">Amp / Act.</th>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 6px 4px;">L1-L2</td>
-                            <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
-                            <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
-                        </tr>
-                        <tr style="border-bottom: 1px solid #222;">
-                            <td style="padding: 6px 4px;">L2-L3</td>
-                            <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
-                            <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 6px 4px;">L1-L3</td>
-                            <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
-                            <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
-                        </tr>
-                    </table>
-                    <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; paddingTop: 5px;">HORARIOS</div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                        <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
-                    </div>
-                    <div style="display: flex; align-items: baseline; font-size: 11px;">
-                        <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
-                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
-                    </div>
-
-                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                <div style="border-top: 1px solid #333; padding-top: 10px;">
                     <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
                         <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
                             📊 VER ANÁLISIS HISTÓRICO
@@ -4132,9 +4070,8 @@ if ver_pozos:
                     </a>
                 </div>
             </div>
-            """
+        """
 
-        # 1. Etiqueta de texto del pozo
         folium.Marker(
             location=info['coord'],
             icon=folium.DivIcon(
@@ -4144,133 +4081,96 @@ if ver_pozos:
             )
         ).add_to(fg_pozos)
 
-        # ==========================================
-        # 2. MARCADOR CONDICIONAL (GLOBO DESPLAZADO MÁS A LA DERECHA)
-        # ==========================================
         if tiene_incidencia_activa:
             info_incidencia = (
                 dic_incidencias_activas.get(id_p_limpio) or 
                 dic_incidencias_activas.get(id_p_con_guion) or 
                 dic_incidencias_activas.get(id_p_sin_guion, {})
             )
+            diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA')) if isinstance(info_incidencia, dict) else str(info_incidencia)
             
-            if isinstance(info_incidencia, dict):
-                diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA'))
-            else:
-                diagnostico_falla = str(info_incidencia)
-            
-            # Ampliamos el contenedor y movemos la tarjeta más a la derecha (left: 75px)
             html_globo_incidencia = f"""
             <div style="position: relative; width: 350px; height: 80px; pointer-events: none; font-family: sans-serif;">
-                <!-- Línea SVG conectora más larga -->
                 <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
                     <line x1="15" y1="65" x2="75" y2="35" stroke="#ff4d4d" stroke-width="2" />
-                    <!-- Puntito blanco exacto sobre la coordenada del pozo -->
                     <circle cx="15" cy="65" r="4" fill="#ffffff" stroke="#ff4d4d" stroke-width="2" />
                 </svg>
-                
-                <!-- Tarjeta de texto desplazada aún más a la derecha -->
                 <div style="
-                    position: absolute;
-                    top: 0px;
-                    left: 75px;
-                    display: inline-flex;
-                    align-items: center;
-                    background: #000000;
-                    border: 2px solid #ff4d4d;
-                    border-radius: 6px;
-                    padding: 4px 8px;
-                    white-space: nowrap;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.6);
-                    pointer-events: auto;">
+                    position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center;
+                    background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px;
+                    white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
                     <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
                     <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
                     <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla.upper()}</span>
                 </div>
             </div>
             """
-            
             folium.Marker(
                 location=info['coord'],
-                icon=folium.DivIcon(
-                    icon_size=(350, 80),
-                    icon_anchor=(15, 65),  # Ancla en el punto exacto del pozo
-                    html=html_globo_incidencia
-                ),
+                icon=folium.DivIcon(icon_size=(350, 80), icon_anchor=(15, 65), html=html_globo_incidencia),
                 popup=folium.Popup(html_popup, max_width=450),
                 tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
             ).add_to(fg_pozos)
-            
         elif info.get('blink'):
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(html=get_blink_icon(info['color_final'])),
-                popup=folium.Popup(html_popup, max_width=450)
-            ).add_to(fg_pozos)
+            folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
         else:
-            folium.CircleMarker(
-                location=info['coord'],
-                radius=3,
-                color=info['color_final'],
-                fill=True,
-                fill_color=info['color_final'],
-                fill_opacity=1,
-                popup=folium.Popup(html_popup, max_width=450)
-            ).add_to(fg_pozos)
+            folium.CircleMarker(location=info['coord'], radius=3, color=info['color_final'], fill=True, fill_color=info['color_final'], fill_opacity=1, popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
 
     fg_pozos.add_to(m)
-          
 
-# 9.8. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL ________________________________________________________________________________________________________________________________
-    if ver_tanques:
-        for id_tq, info in mapa_tanques_dict.items():
-            try:
-                val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
-                n_max = info['nivel_max'] if info['nivel_max'] else 1.0
-                porcentaje = (val_nivel / n_max) * 100
-                
-                url_grafico = (
-                    f"?graficar_tanque={info['tag_nivel']}"
-                    f"&nombre={info['nombre'].replace(' ', '%20')}"
-                    f"&access=granted"
-                    f"&role={st.session_state.get('rol', 'usuario')}"
-                )
 
-                html_popup_tq = f"""
-                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 250px; border: 2px solid #00d4ff; font-family: sans-serif;">
-                    <b style="color: #00d4ff; font-size: 14px;">TANQUE: {info['nombre']}</b><br>
-                    <hr style="border: 0.5px solid #333;">
-                    <div style="font-size: 12px; margin-bottom: 10px;">
-                        💧 Nivel Actual: <b>{val_nivel:.2f} m</b>
-                    </div>
-                    
-                    <div style="text-align: center;">
-                        <a href="{url_grafico}" target="_blank" 
-                           style="background-color: #00d4ff; color: black; padding: 10px; 
-                                  text-decoration: none; border-radius: 5px; font-weight: bold; 
-                                  font-size: 11px; display: inline-block; width: 90%; border: 1px solid #00d4ff;">
-                            📊 VER GRÁFICO HISTÓRICO
-                        </a>
-                    </div>
-                    <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
+# =========================================================================================================
+# 9.8. RENDERIZADO DE TANQUES (AHORA ES INDEPENDIENTE, FUERA DEL BLOQUE DE POZOS)
+# =========================================================================================================
+if ver_tanques:
+    for id_tq, info in mapa_tanques_dict.items():
+        try:
+            val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
+            n_max = info['nivel_max'] if info['nivel_max'] else 1.0
+            porcentaje = (val_nivel / n_max) * 100
+            
+            url_grafico = (
+                f"?graficar_tanque={info['tag_nivel']}"
+                f"&nombre={info['nombre'].replace(' ', '%20')}"
+                f"&access=granted"
+                f"&role={st.session_state.get('rol', 'usuario')}"
+            )
+
+            html_popup_tq = f"""
+            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 250px; border: 2px solid #00d4ff; font-family: sans-serif;">
+                <b style="color: #00d4ff; font-size: 14px;">TANQUE: {info['nombre']}</b><br>
+                <hr style="border: 0.5px solid #333;">
+                <div style="font-size: 12px; margin-bottom: 10px;">
+                    💧 Nivel Actual: <b>{val_nivel:.2f} m</b>
                 </div>
-                """
-                
-                folium.RegularPolygonMarker(
-                    location=info['coord'],
-                    number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
-                    popup=folium.Popup(html_popup_tq, max_width=300),
-                    tooltip=f"Tanque: {info['nombre']}"
-                ).add_to(m)
+                <div style="text-align: center;">
+                    <a href="{url_grafico}" target="_blank" 
+                       style="background-color: #00d4ff; color: black; padding: 10px; 
+                              text-decoration: none; border-radius: 5px; font-weight: bold; 
+                              font-size: 11px; display: inline-block; width: 90%; border: 1px solid #00d4ff;">
+                        📊 VER GRÁFICO HISTÓRICO
+                    </a>
+                </div>
+                <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
+            </div>
+            """
+            
+            folium.RegularPolygonMarker(
+                location=info['coord'],
+                number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
+                popup=folium.Popup(html_popup_tq, max_width=300),
+                tooltip=f"Tanque: {info['nombre']}"
+            ).add_to(m)
 
-                folium.Marker(
-                    location=info['coord'],
-                    icon=folium.DivIcon(
-                        icon_anchor=(20, -10),
-                        html=f'<div style="font-size: 9px; font-weight: bold; color: #00d4ff; text-shadow: 1px 1px #000;">{id_tq}</div>'
-                    )
-                ).add_to(m)
-            except: continue
+            folium.Marker(
+                location=info['coord'],
+                icon=folium.DivIcon(
+                    icon_anchor=(20, -10),
+                    html=f'<div style="font-size: 9px; font-weight: bold; color: #00d4ff; text-shadow: 1px 1px #000;">{id_tq}</div>'
+                )
+            ).add_to(m)
+        except: 
+            continue
             
 # 9.9.  RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL ___________________________________________________________________________________________________________________
     if ver_rebombeos:
