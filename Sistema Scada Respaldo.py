@@ -4285,7 +4285,9 @@ if ver_macromedidores:
         except Exception:
             continue
 
-
+    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)
 
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
