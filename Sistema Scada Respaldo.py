@@ -3739,7 +3739,7 @@ with col_mapa:
 with col_capas:
     st.write("")
 
-# PANEL DERECHO: Usamos st.container(height=480) para scroll nativo limpio y máximo 6 tarjetas a la vista
+# PANEL DERECHO: Tarjetas ordenadas por antigüedad con pozo, tiempo fuera, porcentaje e incidencia
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3766,9 +3766,11 @@ with col_colonias:
     if not df_inc_activas.empty:
         for _, r_inc in df_inc_activas.iterrows():
             p_num = str(r_inc['NUM_POZO']).strip().upper()
+            f_inicio = pd.to_datetime(r_inc['FECHA_HORA_INICIO'])
             incidencias_dict[p_num] = {
+                'pozo': p_num,
                 'diagnostico': r_inc['DIAGNOSTICO_FALLA'],
-                'fecha_inicio': pd.to_datetime(r_inc['FECHA_HORA_INICIO'])
+                'fecha_inicio': f_inicio
             }
             incidencias_dict[p_num.replace('-', '')] = incidencias_dict[p_num]
 
@@ -3779,6 +3781,7 @@ with col_colonias:
             nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
             pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
             
+            sector_pozos = []
             sector_incidencias = []
             earliest_date = pd.Timestamp.max
             
@@ -3789,6 +3792,7 @@ with col_colonias:
                     p_clean_no_hyphen = p_clean.replace('-', '')
                     inc_data = incidencias_dict.get(p_clean) or incidencias_dict.get(p_clean_no_hyphen)
                     if inc_data:
+                        sector_pozos.append(inc_data['pozo'])
                         sector_incidencias.append(inc_data['diagnostico'])
                         if inc_data['fecha_inicio'] < earliest_date:
                             earliest_date = inc_data['fecha_inicio']
@@ -3798,6 +3802,7 @@ with col_colonias:
                 p_clean_no_hyphen = p_clean.replace('-', '')
                 inc_data = incidencias_dict.get(p_clean) or incidencias_dict.get(p_clean_no_hyphen)
                 if inc_data:
+                    sector_pozos.append(inc_data['pozo'])
                     sector_incidencias.append(inc_data['diagnostico'])
                     if inc_data['fecha_inicio'] < earliest_date:
                         earliest_date = inc_data['fecha_inicio']
@@ -3810,11 +3815,14 @@ with col_colonias:
                         colonias_sector.append(col.strip())
                 
                 incidencia_txt = ", ".join(list(set(sector_incidencias)))
+                pozos_txt = ", ".join(list(set(sector_pozos)))
                 
                 if nombre_sec not in sectores_afectados_dict:
                     sectores_afectados_dict[nombre_sec] = {
                         'sector': nombre_sec,
+                        'pozo': pozos_txt,
                         'incidencia': incidencia_txt,
+                        'afectacion': f"{int(suma_afec)}%",
                         'fecha_inicio': earliest_date if earliest_date != pd.Timestamp.max else pd.Timestamp.now(),
                         'colonias': set(colonias_sector)
                     }
@@ -3824,10 +3832,25 @@ with col_colonias:
     with st.container(height=480):
         if sectores_afectados_dict:
             lista_sectores_afec = list(sectores_afectados_dict.values())
+            # Ordenar de la incidencia más antigua a la más reciente
             lista_sectores_afec.sort(key=lambda x: x['fecha_inicio'])
+
+            ahora = pd.Timestamp.now()
 
             for sec_item in lista_sectores_afec:
                 colonias_str = ", ".join(sorted(sec_item['colonias']))
+                
+                # Calcular tiempo fuera de operación
+                delta = ahora - sec_item['fecha_inicio']
+                dias = delta.days
+                horas = delta.seconds // 3600
+                minutos = (delta.seconds % 3600) // 60
+                
+                if dias > 0:
+                    tiempo_fuera = f"{dias}d {horas}h"
+                else:
+                    tiempo_fuera = f"{horas}h {minutos}m"
+
                 st.markdown(f"""
                     <div style="
                         background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
@@ -3838,8 +3861,12 @@ with col_colonias:
                         margin-bottom: 8px;
                         box-shadow: 0px 2px 5px rgba(0,0,0,0.4);
                     ">
-                        <div style="color: #00d4ff; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
-                            Sector: {sec_item['sector']}
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                            <span style="color: #00d4ff; font-weight: bold; font-size: 13px;">Sector: {sec_item['sector']}</span>
+                            <span style="background: #ff4b4b; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {sec_item['afectacion']}</span>
+                        </div>
+                        <div style="color: #ffffff; font-size: 11px; margin-bottom: 3px;">
+                            <b>Pozo(s):</b> {sec_item['pozo']} | <b>Fuera de operacion:</b> {tiempo_fuera}
                         </div>
                         <div style="color: #c9d1d9; font-size: 11px; margin-bottom: 4px;">
                             <b>Colonias:</b> {colonias_str}
@@ -3857,7 +3884,6 @@ with col_colonias:
             """, unsafe_allow_html=True)
 
 st.markdown('</div>', unsafe_allow_html=True)
-
 
 # --------------------------------------------- Declaración global de incidencias para que esté disponible para pozos y colonias siempre -------------------------------------------------------------------------------------
 
