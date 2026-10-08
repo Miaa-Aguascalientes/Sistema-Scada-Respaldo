@@ -3805,6 +3805,11 @@ with col_colonias:
                 else:
                     sectores_afectados_dict[nombre_sec]['colonias'].update(colonias_sector)
 
+    # --- INICIO DEL CONTENEDOR CON BARRA DESPLAZADA (SCROLL) ---
+    st.markdown("""
+        <div style="max-height: 550px; overflow-y: auto; padding-right: 5px;">
+    """, unsafe_allow_html=True)
+
     if sectores_afectados_dict:
         lista_sectores_afec = list(sectores_afectados_dict.values())
         lista_sectores_afec.sort(key=lambda x: x['fecha_inicio'])
@@ -3839,7 +3844,8 @@ with col_colonias:
             </div>
         """, unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+    # --- CIERRE DEL CONTENEDOR DE SCROLL ---
+    st.markdown("</div>", unsafe_allow_html=True)
 
 # LEYENDA ÚNICA DE PORCENTAJES (Solo aparece una vez abajo del mapa principal)
 st.markdown("##### 🗺️ % de Afectación en Colonias")
