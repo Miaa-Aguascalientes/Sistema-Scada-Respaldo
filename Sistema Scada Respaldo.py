@@ -3730,7 +3730,7 @@ with col_mapa:
     folium.LayerControl(position='topright', collapsed=False).add_to(m)
     folium_static(m, width=None, height=600)
 
-# NUEVA COLUMNA DERECHA: Listado de Colonias Afectadas (Estilo HUD)
+# NUEVA COLUMNA DERECHA: Tarjetas de Colonias Afectadas ordenadas de más antigua a más actual
 with col_colonias:
     st.markdown("""
         <h4 style="color: #00d4ff; text-align: center; font-size: 14px; border-bottom: 1px solid #1f4068; padding-bottom: 8px; margin-top: 0;">
@@ -3738,34 +3738,93 @@ with col_colonias:
         </h4>
     """, unsafe_allow_html=True)
 
-    colonias_afectadas = set()
+    try:
+        engine_scada = get_mysql_scada_engine()
+        if engine_scada:
+            q_inc = """
+                SELECT NUM_POZO, DIAGNOSTICO_FALLA, FECHA_HORA_INICIO, ESTATUS 
+                FROM vw_incidencias_en_pozos 
+                WHERE ESTATUS != 'CERRADA'
+                ORDER BY FECHA_HORA_INICIO ASC
+            """
+            df_inc_activas = pd.read_sql(q_inc, engine_scada)
+        else:
+            df_inc_activas = pd.DataFrame()
+    except:
+        df_inc_activas = pd.DataFrame()
+
+    # Mapeo de pozos activos con su diagnóstico y fecha de inicio
+    incidencias_dict = {}
+    if not df_inc_activas.empty:
+        for _, r_inc in df_inc_activas.iterrows():
+            p_num = str(r_inc['NUM_POZO']).strip().upper()
+            incidencias_dict[p_num] = {
+                'diagnostico': r_inc['DIAGNOSTICO_FALLA'],
+                'fecha_inicio': pd.to_datetime(r_inc['FECHA_HORA_INICIO'])
+            }
+            incidencias_dict[p_num.replace('-', '')] = incidencias_dict[p_num]
+
+    tarjetas_afectadas = []
     if 'gdf_sectores' in locals() and gdf_sectores is not None:
         for _, row in gdf_sectores.iterrows():
+            nombre_sec = str(row.get('Sector', '')).split('.')[0].strip()
             pozos_apagados, suma_afec = analizar_sector_fuera_servicio(row, pozos_off_norm)
             
-            if pozos_apagados or suma_afec > 0:
-                col_atl_val = row.get('Col_atl')
-                if pd.notna(col_atl_val):
-                    for col in str(col_atl_val).split(','):
-                        colonias_afectadas.add(col.strip())
+            for i in range(1, 11):
+                p_col = row.get(f'Pozo_{i}')
+                if pd.notna(p_col):
+                    p_clean = str(p_col).strip().upper()
+                    p_clean_no_hyphen = p_clean.replace('-', '')
+                    
+                    inc_data = incidencias_dict.get(p_clean) or incidencias_dict.get(p_clean_no_hyphen)
+                    if inc_data:
+                        col_atl_val = row.get('Col_atl')
+                        if pd.notna(col_atl_val):
+                            for col in str(col_atl_val).split(','):
+                                tarjetas_afectadas.append({
+                                    'colonia': col.strip(),
+                                    'sector': nombre_sec,
+                                    'incidencia': inc_data['diagnostico'],
+                                    'fecha_inicio': inc_data['fecha_inicio']
+                                })
 
-    if colonias_afectadas:
-        for idx, colonia in enumerate(sorted(colonias_afectadas), start=1):
+    if tarjetas_afectadas:
+        df_tarjetas = pd.DataFrame(tarjetas_afectadas)
+        # Ordenar estrictamente de la más antigua a la más actual (ASC)
+        df_tarjetas = df_tarjetas.sort_values(by='fecha_inicio', ascending=True).drop_duplicates(subset=['colonia'])
+
+        for _, tarjeta in df_tarjetas.iterrows():
             st.markdown(f"""
-                <div style="color: #69ADDD; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed rgba(31, 64, 104, 0.6);">
-                    <span style="color: #00d4ff; font-weight: bold;">{idx}.</span> {colonia}
+                <div style="
+                    background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
+                    border: 1px solid #1f4068;
+                    border-left: 4px solid #00d4ff;
+                    border-radius: 6px;
+                    padding: 10px;
+                    margin-bottom: 8px;
+                    box-shadow: 0px 2px 5px rgba(0,0,0,0.4);
+                ">
+                    <div style="color: #00d4ff; font-weight: bold; font-size: 13px; margin-bottom: 4px;">
+                        🏙️ {tarjeta['colonia']}
+                    </div>
+                    <div style="color: #c9d1d9; font-size: 11px; margin-bottom: 2px;">
+                        <b>Sector:</b> {tarjeta['sector']}
+                    </div>
+                    <div style="color: #ff4b4b; font-size: 11px;">
+                        <b>Incidencia:</b> {tarjeta['incidencia']}
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
     else:
         st.markdown("""
             <div style="color: #00ff00; font-size: 12px; text-align: center; margin-top: 20px;">
-                🟢 Sin afectaciones activas.
+                🟢 Sin afectaciones activas registradas.
             </div>
         """, unsafe_allow_html=True)
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-st.markdown('</div>', unsafe_allow_html=True)
+
 
 # Leyenda inferior de porcentajes de afectación
 st.markdown("##### 🗺️ % de Afectación en Colonias")
