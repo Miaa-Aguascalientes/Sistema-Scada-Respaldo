@@ -32,7 +32,9 @@ import altair as alt
 from folium.plugins import MarkerCluster
 import datetime
 import plotly.express as px
-
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
+import datetime as dt
 
 
 st.set_page_config(
@@ -41,8 +43,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-
 
 # 0.1. INICIALIZACIÓN DE ESTADOS
 if "autenticado" not in st.session_state:
@@ -57,8 +57,6 @@ if "fase_carga" not in st.session_state:
   st.session_state.fase_carga = False
 
 # 0.2. FUNCIONES DE BASE DE DATOS (REFORZADAS)
-
-
 @st.cache_resource
 def get_mysql_telemetria_engine():
   try:
@@ -77,7 +75,6 @@ def get_mysql_telemetria_engine():
 
 # --- LLAVE DE CIFRADO FIJA Y SEGURA ---
 SECRET_FERNET_KEY = b"12345678901234567890123456789012"
-
 
 def get_fernet_cipher():
   try:
@@ -1077,13 +1074,7 @@ if tag_a_graficar:
     
     st.stop()
 
-# 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
-
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
-import pandas as pd
-import plotly.graph_objects as go
-import streamlit as st
+# 4.6. SECCION -------------------------------------------------------------------------------- 4.6. GRAFICAR LOS POZOS --------------------------------------------------------------------
 
 params = st.query_params
 
@@ -1589,12 +1580,6 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
-import streamlit as st
-import pandas as pd
-import datetime as dt
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
