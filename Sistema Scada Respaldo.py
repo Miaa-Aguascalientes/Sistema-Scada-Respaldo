@@ -3391,7 +3391,7 @@ with col_mapa:
         </style>
         """
 
-# 9.5.  ------------------------------------------------------------------- RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores)
+# 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores)
 if ver_sectores:
     gdf_sectores = get_todos_los_sectores_geo()
     
@@ -3404,14 +3404,12 @@ if ver_sectores:
             suma_afec_sec = 0.0
             descripciones_fallas_sec = []
             
-            # Formateamos las colonias en formato de lista vertical limpia o separadas por saltos de línea <br>
+            # Formateamos las colonias en formato de lista vertical limpia
             col_atl_raw = str(row.get('Col_atl', ''))
             if pd.isna(row.get('Col_atl')) or not col_atl_raw.strip():
                 colonias_html = "Sin colonias registradas"
             else:
-                # Separamos por comas y construimos una lista limpia en HTML vertical
                 lista_c = [c.strip() for c in col_atl_raw.split(',') if c.strip()]
-                # Limitamos o estructuramos con viñetas o saltos de línea para que baje ordenadamente
                 colonias_html = "<br>".join([f"• {c}" for c in lista_c])
                 
             lista_colonias_sec_tooltip.append(colonias_html)
@@ -3480,35 +3478,39 @@ if ver_sectores:
         def estilo_hover_sector(feature):
             return {'fillOpacity': 0.8, 'weight': 3, 'color': '#FFFFFF'}
 
-        # Usamos folium.Popup en lugar de GeoJsonTooltip estándar para permitir formato HTML en lista vertical limpia
+        # Recorremos cada fila creando un Feature GeoJSON válido que conserva sus propiedades
         for _, row in gdf_sectores.iterrows():
-            geom_json = row['geometry'].__geo_interface__
-            props = row.to_dict()
+            feature_dict = {
+                'type': 'Feature',
+                'geometry': row['geometry'].__geo_interface__,
+                'properties': row.drop('geometry').to_dict()
+            }
             
-            color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
+            props = feature_dict['properties']
+            color_dinamico, _ = calcular_color_sector(props, dic_incidencias_activas)
             
             html_popup_sector = f"""
             <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 320px; max-height: 300px; overflow-y: auto; border: 2px solid {color_dinamico}; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 15px;">SECTOR: {row.get('Sector', 'N/A')}</b>
+                <b style="color: #00d4ff; font-size: 15px;">SECTOR: {props.get('Sector', 'N/A')}</b>
                 <hr style="border: 0.5px solid #333; margin: 6px 0;">
                 <div style="font-size: 11px; line-height: 1.4;">
-                    <b>Pozos:</b> {row.get('Pozos', 'N/A')}<br>
-                    <b>Incidencia:</b> <span style="color: #ff4d4d;">{row.get('Info_Incidencia', 'Ninguna')}</span><br>
-                    <b>Afectación:</b> <span style="color: #ffff00;">{row.get('Info_Porcentaje', '0%')}</span><br>
+                    <b>Pozos:</b> {props.get('Pozos', 'N/A')}<br>
+                    <b>Incidencia:</b> <span style="color: #ff4d4d;">{props.get('Info_Incidencia', 'Ninguna')}</span><br>
+                    <b>Afectación:</b> <span style="color: #ffff00;">{props.get('Info_Porcentaje', '0%')}</span><br>
                     <b style="display: block; margin-top: 6px; color: #00ffcc;">Colonias afectadas:</b>
                     <div style="margin-top: 3px; padding-left: 5px; color: #d1d5db; font-size: 10px; max-height: 120px; overflow-y: auto;">
-                        {row.get('Info_Colonias', 'Sin registro')}
+                        {props.get('Info_Colonias', 'Sin registro')}
                     </div>
                 </div>
             </div>
             """
             
             folium.GeoJson(
-                geom_json,
+                feature_dict,
                 style_function=estilo_final_sector,
                 highlight_function=estilo_hover_sector,
                 popup=folium.Popup(html_popup_sector, max_width=350),
-                tooltip=f"Sector: {row.get('Sector', 'N/A')} (Clic para ver detalle)"
+                tooltip=f"Sector: {props.get('Sector', 'N/A')} (Clic para ver detalle)"
             ).add_to(fg_sectores)
         
         fg_sectores.add_to(m)
