@@ -28,14 +28,6 @@ import pytz
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
-import altair as alt
-from folium.plugins import MarkerCluster
-import datetime
-import plotly.express as px
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
-import datetime as dt
-
 
 st.set_page_config(
     page_title="Sistema Scada", 
@@ -43,6 +35,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+
 
 # 0.1. INICIALIZACIÓN DE ESTADOS
 if "autenticado" not in st.session_state:
@@ -57,6 +51,8 @@ if "fase_carga" not in st.session_state:
   st.session_state.fase_carga = False
 
 # 0.2. FUNCIONES DE BASE DE DATOS (REFORZADAS)
+
+
 @st.cache_resource
 def get_mysql_telemetria_engine():
   try:
@@ -75,6 +71,7 @@ def get_mysql_telemetria_engine():
 
 # --- LLAVE DE CIFRADO FIJA Y SEGURA ---
 SECRET_FERNET_KEY = b"12345678901234567890123456789012"
+
 
 def get_fernet_cipher():
   try:
@@ -895,6 +892,10 @@ tag_a_graficar = params.get("graficar_tanque", None)
 nombre_tq = params.get("nombre", "Tanque")
 
 if tag_a_graficar:
+    import datetime
+    import plotly.express as px
+    import pandas as pd
+    import plotly.graph_objects as go
     
     st.title(f"📊 Análisis de Nivel: {nombre_tq}")
     
@@ -1074,7 +1075,13 @@ if tag_a_graficar:
     
     st.stop()
 
-# 4.6. SECCION -------------------------------------------------------------------------------- 4.6. GRAFICAR LOS POZOS --------------------------------------------------------------------
+# 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
+
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
 
 params = st.query_params
 
@@ -1580,6 +1587,12 @@ if "graficar_pozo" in params:
     st.stop()
 
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
+import streamlit as st
+import pandas as pd
+import datetime as dt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
 
 # --- Configuración de página ---
 if "ver_grafico" in st.query_params:
@@ -4067,6 +4080,19 @@ if ver_pozos:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 # SECCION 12 Mapa de colonias Incidencias ----------------------------------------------------------------------------
+
+import streamlit as st
+import pandas as pd
+import geopandas as gpd
+from shapely import wkt
+import re
+import folium
+from folium.plugins import Fullscreen
+import altair as alt
+import pytz
+from datetime import datetime
+from streamlit_folium import st_folium
+from folium.plugins import MarkerCluster
 
 tz_mx = pytz.timezone('America/Mexico_City')
 ahora_mx = datetime.now(tz_mx)
