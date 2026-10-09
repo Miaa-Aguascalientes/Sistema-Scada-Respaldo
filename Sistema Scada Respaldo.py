@@ -4119,174 +4119,109 @@ if ver_pozos:
     fg_pozos.add_to(m)
 
 
-# =========================================================================================================
-# 9.8. RENDERIZADO DE TANQUES
-# =========================================================================================================
-if ver_tanques:
-    for id_tq, info in mapa_tanques_dict.items():
-        try:
-            val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
-            n_max = info['nivel_max'] if info['nivel_max'] else 1.0
-            
-            url_grafico = (
-                f"?graficar_tanque={info['tag_nivel']}"
-                f"&nombre={info['nombre'].replace(' ', '%20')}"
-                f"&access=granted"
-                f"&role={st.session_state.get('rol', 'usuario')}"
-            )
+    # =========================================================================
+    # 9.8. RENDERIZADO DE TANQUES
+    # =========================================================================
+    if ver_tanques:
+        fg_tanques = folium.FeatureGroup(name="Tanques", overlay=True, control=True)
+        for id_tq, info in mapa_tanques_dict.items():
+            try:
+                val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
+                url_grafico = f"?graficar_tanque={info['tag_nivel']}&nombre={info['nombre'].replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
 
-            html_popup_tq = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 250px; border: 2px solid #00d4ff; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 14px;">TANQUE: {info['nombre']}</b><br>
-                <hr style="border: 0.5px solid #333;">
-                <div style="font-size: 12px; margin-bottom: 10px;">
-                    💧 Nivel Actual: <b>{val_nivel:.2f} m</b>
+                html_popup_tq = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 250px; border: 2px solid #00d4ff; font-family: sans-serif;">
+                    <b style="color: #00d4ff; font-size: 14px;">TANQUE: {info['nombre']}</b><br>
+                    <hr style="border: 0.5px solid #333;">
+                    <div style="font-size: 12px; margin-bottom: 10px;">💧 Nivel Actual: <b>{val_nivel:.2f} m</b></div>
+                    <div style="text-align: center;">
+                        <a href="{url_grafico}" target="_blank" style="background-color: #00d4ff; color: black; padding: 10px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%; border: 1px solid #00d4ff;">📊 VER GRÁFICO HISTÓRICO</a>
+                    </div>
                 </div>
-                <div style="text-align: center;">
-                    <a href="{url_grafico}" target="_blank" 
-                       style="background-color: #00d4ff; color: black; padding: 10px; 
-                              text-decoration: none; border-radius: 5px; font-weight: bold; 
-                              font-size: 11px; display: inline-block; width: 90%; border: 1px solid #00d4ff;">
-                        📊 VER GRÁFICO HISTÓRICO
-                    </a>
+                """
+                folium.RegularPolygonMarker(location=info['coord'], number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff", popup=folium.Popup(html_popup_tq, max_width=300), tooltip=f"Tanque: {info['nombre']}").add_to(fg_tanques)
+                folium.Marker(location=info['coord'], icon=folium.DivIcon(icon_anchor=(20, -10), html=f'<div style="font-size: 9px; font-weight: bold; color: #00d4ff; text-shadow: 1px 1px #000;">{id_tq}</div>')).add_to(fg_tanques)
+            except: 
+                continue
+        fg_tanques.add_to(m)
+
+    # =========================================================================
+    # 9.9. RENDERIZADO DE REBOMBEOS
+    # =========================================================================
+    if ver_rebombeos:
+        fg_rebombeos = folium.FeatureGroup(name="Rebombeos", overlay=True, control=True)
+        for id_rb, info in mapa_rebombeos_dict.items():
+            try:
+                d = lambda tag: data_scada.get(tag, (0, "N/A"))
+                pres, f_p = d(info['presion'])
+                ntq, f_t = d(info['nivel_tanque'])
+                v_rb = [d(t) for t in info['voltajes_l']]
+                a_rb = [d(t) for t in info['amperajes_l']]
+
+                html_popup_rb = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                    <div style="font-size: 11px; margin-bottom: 5px;">
+                        🚀 Presión: <b>{pres:.2f} kg</b><br>🔋 Nivel Tanque: <b>{ntq:.2f} m</b>
+                    </div>
                 </div>
-                <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
-            </div>
-            """
-            
-            folium.RegularPolygonMarker(
-                location=info['coord'],
-                number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
-                popup=folium.Popup(html_popup_tq, max_width=300),
-                tooltip=f"Tanque: {info['nombre']}"
-            ).add_to(m)
+                """
+                if info.get('blink'):
+                    folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(fg_rebombeos)
+                else:
+                    folium.RegularPolygonMarker(location=info['coord'], number_of_sides=4, radius=6, color=info['color_final'], fill=True, fill_color=info['color_final'], popup=folium.Popup(html_popup_rb, max_width=350)).add_to(fg_rebombeos)
+                
+                folium.Marker(location=info['coord'], icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000;">{id_rb}</div>')).add_to(fg_rebombeos)
+            except Exception:
+                continue
+        fg_rebombeos.add_to(m)
 
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(
-                    icon_anchor=(20, -10),
-                    html=f'<div style="font-size: 9px; font-weight: bold; color: #00d4ff; text-shadow: 1px 1px #000;">{id_tq}</div>'
-                )
-            ).add_to(m)
-        except: 
-            continue
-            
-# =========================================================================================================
-# 9.9. RENDERIZADO DE REBOMBEOS
-# =========================================================================================================
-if ver_rebombeos:
-    for id_rb, info in mapa_rebombeos_dict.items():
-        try:
-            d = lambda tag: data_scada.get(tag, (0, "N/A"))
-            pres, f_p = d(info['presion'])
-            ntq, f_t = d(info['nivel_tanque'])
-            v_rb = [d(t) for t in info['voltajes_l']]
-            a_rb = [d(t) for t in info['amperajes_l']]
+    # =========================================================================
+    # 9.10. RENDERIZADO DE MACROMEDIDORES
+    # =========================================================================
+    if ver_macromedidores:
+        fg_macros = folium.FeatureGroup(name="Macromedidores", overlay=True, control=True)
+        datos_macromedidores = cargar_medidores_desde_db()
+        fecha_limite = datetime.now() - timedelta(days=5)
 
-            html_popup_rb = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                <div style="display: flex; justify-content: space-between;">
-                    <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
-                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+        for id_mm, info in datos_macromedidores.items():
+            if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar':
+                continue
+            try:
+                ultima_f = info.get('ultima_fecha')
+                es_falla = ultima_f < fecha_limite if pd.notna(ultima_f) else False
+                fecha_str = ultima_f.strftime('%Y-%m-%d') if pd.notna(ultima_f) else "N/A"
+                
+                color_borde = '#FF0000' if es_falla else '#B19CD9'
+                color_relleno = '#8B0000' if es_falla else '#800080'
+                
+                url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                
+                html_popup_mm = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid {color_borde}; font-family: sans-serif;">
+                    <b style="color: {color_borde}; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
+                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                    <div style="font-size: 12px;">📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>📡 Última transmisión: <b>{fecha_str}</b></div>
+                    <div style="margin-top: 10px; text-align: center;"><a href="{url_pestaña}" target="_blank" style="background-color: {color_borde}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a></div>
                 </div>
-                <hr style="border: 0.5px solid #333; margin: 8px 0;">
-                <div style="font-size: 11px; margin-bottom: 5px;">
-                    🚀 Presión: <b>{pres:.2f} kg</b> <span style="color:#FFFF00; font-size:8px;">{f_p}</span><br>
-                    🔋 Nivel Tanque: <b>{ntq:.2f} m</b> <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
-                </div>
-                <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
-                    <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                        <th>Fase</th><th>Voltaje</th><th>Amp</th>
-                    </tr>
-                    <tr><td>L1-L2</td><td>{v_rb[0][0]:.0f}V</td><td>{a_rb[0][0]:.1f}A</td></tr>
-                    <tr><td>L2-L3</td><td>{v_rb[1][0]:.0f}V</td><td>{a_rb[1][0]:.1f}A</td></tr>
-                    <tr><td>L1-L3</td><td>{v_rb[2][0]:.0f}V</td><td>{a_rb[2][0]:.1f}A</td></tr>
-                </table>
-            </div>
-            """
-            if info.get('blink'):
-                folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
-            else:
-                folium.RegularPolygonMarker(location=info['coord'], number_of_sides=4, radius=6, color=info['color_final'], fill=True, fill_color=info['color_final'], popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
-            
-            folium.Marker(location=info['coord'], icon=folium.DivIcon(icon_anchor=(-15, 15), html=f'<div style="font-size: 10px; font-weight: bold; color: {info["color_final"]}; text-shadow: 1px 1px #000;">{id_rb}</div>')).add_to(m)
-        except Exception:
-            continue
+                """
+                
+                folium.Marker(
+                    location=info['coord'],
+                    icon=folium.DivIcon(icon_size=(20, 20), icon_anchor=(10, 10), html=f'<svg width="20" height="20"><circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9"/></svg>'),
+                    popup=folium.Popup(html_popup_mm, max_width=300)
+                ).add_to(fg_macros)
+            except Exception:
+                continue
+        fg_macros.add_to(m)
 
-# =========================================================================================================
-# 9.10. RENDERIZADO DE MACROMEDIDORES
-# =========================================================================================================
-if ver_macromedidores:
-    from datetime import datetime, timedelta
-    datos_macromedidores = cargar_medidores_desde_db()
-    fecha_limite = datetime.now() - timedelta(days=5)
-
-    for id_mm, info in datos_macromedidores.items():
-        if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar':
-            continue
-
-        try:
-            ultima_f = info.get('ultima_fecha')
-            if pd.notna(ultima_f):
-                es_falla = ultima_f < fecha_limite
-                fecha_str = ultima_f.strftime('%Y-%m-%d')
-            else:
-                es_falla = False
-                fecha_str = "N/A"
-
-            color_borde = '#FF0000' if es_falla else '#B19CD9'
-            color_relleno = '#8B0000' if es_falla else '#800080'
-            color_popup = '#FF0000' if es_falla else '#800080'
-            clase_animacion = "pulsante" if es_falla else ""
-
-            url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
-            
-            html_popup_mm = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid {color_popup}; font-family: sans-serif;">
-                <b style="color: {color_popup}; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
-                <hr style="border: 0.5px solid #333; margin: 8px 0;">
-                <div style="font-size: 12px;">
-                    📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
-                    📡 Última transmisión: <b>{fecha_str}</b>
-                </div>
-                <div style="margin-top: 10px; text-align: center;">
-                    <a href="{url_pestaña}" target="_blank" style="background-color: {color_popup}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
-                </div>
-            </div>
-            """
-            
-            html_svg = f"""
-            <svg width="20" height="20" class="{clase_animacion}">
-                <circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9" />
-            </svg>
-            """
-            
-            folium.Marker(
-                location=info['coord'],
-                icon=folium.DivIcon(icon_size=(20, 20), icon_anchor=(10, 10), html=html_svg),
-                popup=folium.Popup(html_popup_mm, max_width=300)
-            ).add_to(m)
-            
-            color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
-            html_etiqueta = f"""
-            <div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000; white-space: nowrap;">
-                {id_mm} - {info.get('nombre', 'N/A')}
-            </div>
-            """
-            
-            folium.Marker(
-                location=info['coord'], 
-                icon=folium.DivIcon(icon_anchor=(-15, 10), html=html_etiqueta)
-            ).add_to(m)
-            
-        except Exception:
-            continue
-
-# =========================================================================================================
-# RENDERIZADO ÚNICO Y FINAL DEL MAPA PRINCIPAL
-# =========================================================================================================
-folium.LayerControl(position='topright', collapsed=False).add_to(m)
-st_folium(m, width="100%", height=600, key="mapa_principal_miaa_2026")
+    # RENDERIZADO ÚNICO DEL MAPA PRINCIPAL
+    folium.LayerControl(position='topright', collapsed=False).add_to(m)
+    folium_static(m, width=None, height=600)
 
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
