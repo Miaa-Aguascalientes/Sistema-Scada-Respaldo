@@ -4012,44 +4012,20 @@ if ver_colonias:
 # 9.8. RENDERIZADO DE TANQUES (AHORA ES INDEPENDIENTE, FUERA DEL BLOQUE DE POZOS)
 # =========================================================================================================
 if ver_tanques:
+    fg_tanques = folium.FeatureGroup(name="Tanques", overlay=True, control=True)
+    
     for id_tq, info in mapa_tanques_dict.items():
         try:
             val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
-            n_max = info['nivel_max'] if info['nivel_max'] else 1.0
-            porcentaje = (val_nivel / n_max) * 100
+            # ... (código de HTML y popup) ...
             
-            url_grafico = (
-                f"?graficar_tanque={info['tag_nivel']}"
-                f"&nombre={info['nombre'].replace(' ', '%20')}"
-                f"&access=granted"
-                f"&role={st.session_state.get('rol', 'usuario')}"
-            )
-
-            html_popup_tq = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 250px; border: 2px solid #00d4ff; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 14px;">TANQUE: {info['nombre']}</b><br>
-                <hr style="border: 0.5px solid #333;">
-                <div style="font-size: 12px; margin-bottom: 10px;">
-                    💧 Nivel Actual: <b>{val_nivel:.2f} m</b>
-                </div>
-                <div style="text-align: center;">
-                    <a href="{url_grafico}" target="_blank" 
-                       style="background-color: #00d4ff; color: black; padding: 10px; 
-                              text-decoration: none; border-radius: 5px; font-weight: bold; 
-                              font-size: 11px; display: inline-block; width: 90%; border: 1px solid #00d4ff;">
-                        📊 VER GRÁFICO HISTÓRICO
-                    </a>
-                </div>
-                <div style="margin-top: 10px; font-size: 9px; color: #888; text-align: center;">ID: {id_tq}</div>
-            </div>
-            """
-            
+            # Se añaden al FeatureGroup en lugar de directamente a 'm'
             folium.RegularPolygonMarker(
                 location=info['coord'],
                 number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff",
                 popup=folium.Popup(html_popup_tq, max_width=300),
                 tooltip=f"Tanque: {info['nombre']}"
-            ).add_to(m)
+            ).add_to(fg_tanques)
 
             folium.Marker(
                 location=info['coord'],
@@ -4057,7 +4033,12 @@ if ver_tanques:
                     icon_anchor=(20, -10),
                     html=f'<div style="font-size: 9px; font-weight: bold; color: #00d4ff; text-shadow: 1px 1px #000;">{id_tq}</div>'
                 )
-            ).add_to(m)
+            ).add_to(fg_tanques)
+        except: 
+            continue
+            
+    # Finalmente se añade el grupo completo al mapa
+    fg_tanques.add_to(m)
         
                   
     
