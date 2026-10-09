@@ -3310,6 +3310,15 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
+# Definición de pestañas principales debajo del título
+tab_incidencias, tab_tanques, tab_rebombeos, tab_macromedidores = st.tabs([
+    "🚨 Incidencias Fuera de Servicio", 
+    "🛢️ Tanques y Mapa", 
+    "🧊 Rebombeos y Mapa", 
+    "🌀 Macromedidores"
+])
+
+
 # Indicadores usando el sistema de Grid para que ocupen todo el ancho
 c_total = total_q if 'total_q' in locals() else 0.0
 p_prom = (total_p / max(len(pozos_on), 1)) if 'total_p' in locals() else 0.0
