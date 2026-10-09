@@ -564,8 +564,9 @@ def calcular_color_sector(props, pozos_con_incidencia):
                     except:
                         pass
 
+    # Colores exactamente iguales a los de las colonias:
     if not tiene_incidencia_activa:
-        return '#3498DB', 0  # Azul para sectores sin afectación activa
+        return '#3498DB', 0  # Azul estándar para sectores sin afectación
 
     if tiene_incidencia_activa and suma_afectacion == 0:
         return '#FFA500', 1  
@@ -577,7 +578,7 @@ def calcular_color_sector(props, pozos_con_incidencia):
     elif 31 <= suma_afectacion <= 50:
         return '#FFA500', suma_afectacion  # Naranja
     elif 1 <= suma_afectacion <= 30:
-        return '#69ADDD', suma_afectacion  # Azul Claro / Naranja bajito
+        return '#69ADDD', suma_afectacion  # Azul Claro
     else:
         return '#FF0000', suma_afectacion
 
@@ -3390,7 +3391,7 @@ with col_mapa:
         </style>
         """
 
-# 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores)
+# 9.5.  -----------------------------------------------------------------------  RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------
 if ver_sectores:
     gdf_sectores = get_todos_los_sectores_geo()
     
@@ -3444,18 +3445,19 @@ if ver_sectores:
         
         def estilo_final_sector(feature):
             props = feature.get('properties', {})
-            nombre_sec = props.get('Sector')
             
+            # Obtenemos el color dinámico y el valor de afectación usando la misma lógica
             color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
             
+            # Lógica de pesos y opacidades idéntica a las colonias
             if afectacion_val > 0:
                 border_color_final = color_dinamico
                 weight_final = 2.5
                 opacity_final = 0.25
             else:
-                border_color_final = '#00d4ff'
-                weight_final = 1.5
-                opacity_final = 0.12
+                border_color_final = '#2980B9' # Mismo tono de contorno base que las colonias
+                weight_final = 1
+                opacity_final = 0.08         # Misma opacidad ligera de relleno base
             
             return {
                 'fillColor': color_dinamico,
