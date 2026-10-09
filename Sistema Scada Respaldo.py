@@ -3478,7 +3478,7 @@ if ver_sectores:
         def estilo_hover_sector(feature):
             return {'fillOpacity': 0.8, 'weight': 3, 'color': '#FFFFFF'}
 
-        # Recorremos cada fila creando un Feature GeoJSON válido que conserva sus propiedades
+        # Recorremos cada fila creando el Feature y añadiendo el botón de acceso al sector
         for _, row in gdf_sectores.iterrows():
             feature_dict = {
                 'type': 'Feature',
@@ -3489,19 +3489,30 @@ if ver_sectores:
             props = feature_dict['properties']
             color_dinamico, _ = calcular_color_sector(props, dic_incidencias_activas)
             
+            nombre_sec = str(props.get('Sector', 'N/A'))
+            sector_encoded = urllib.parse.quote(nombre_sec)
+            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+            
             html_popup_sector = f"""
             <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 320px; max-height: 300px; overflow-y: auto; border: 2px solid {color_dinamico}; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 15px;">SECTOR: {props.get('Sector', 'N/A')}</b>
+                <b style="color: #00d4ff; font-size: 15px;">SECTOR: {nombre_sec}</b>
                 <hr style="border: 0.5px solid #333; margin: 6px 0;">
-                <div style="font-size: 11px; line-height: 1.4;">
+                <div style="font-size: 11px; line-height: 1.4; margin-bottom: 10px;">
                     <b>Pozos:</b> {props.get('Pozos', 'N/A')}<br>
                     <b>Incidencia:</b> <span style="color: #ff4d4d;">{props.get('Info_Incidencia', 'Ninguna')}</span><br>
                     <b>Afectación:</b> <span style="color: #ffff00;">{props.get('Info_Porcentaje', '0%')}</span><br>
                     <b style="display: block; margin-top: 6px; color: #00ffcc;">Colonias afectadas:</b>
-                    <div style="margin-top: 3px; padding-left: 5px; color: #d1d5db; font-size: 10px; max-height: 120px; overflow-y: auto;">
+                    <div style="margin-top: 3px; padding-left: 5px; color: #d1d5db; font-size: 10px; max-height: 100px; overflow-y: auto;">
                         {props.get('Info_Colonias', 'Sin registro')}
                     </div>
                 </div>
+                
+                <a href="{url_acceso}" target="_blank" 
+                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
+                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
+                          border-radius: 5px; transition: 0.3s;">
+                   🚀 ABRIR SECTOR
+                </a>
             </div>
             """
             
@@ -3510,7 +3521,7 @@ if ver_sectores:
                 style_function=estilo_final_sector,
                 highlight_function=estilo_hover_sector,
                 popup=folium.Popup(html_popup_sector, max_width=350),
-                tooltip=f"Sector: {props.get('Sector', 'N/A')} (Clic para ver detalle)"
+                tooltip=f"Sector: {nombre_sec} (Clic para ver detalle)"
             ).add_to(fg_sectores)
         
         fg_sectores.add_to(m)
