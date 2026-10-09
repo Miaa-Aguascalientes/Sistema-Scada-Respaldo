@@ -3331,14 +3331,59 @@ with st.sidebar:
 
           
                 
-# 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
+# 9. SECCIÓN PRINCIPAL DEL MAPA
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
-# Indicadores usando el sistema de Grid para que ocupen todo el ancho
+# =========================================================================
+# 📍 AQUÍ COLOCO LAS PESTAÑAS (TABS) JUSTO ARRIBA DE LOS INDICADORES
+# =========================================================================
+tab_tanques, tab_rebombeos, tab_macro, tab_incidencias = st.tabs([
+    "🛢️ Tanques", 
+    "🧊 Rebombeos", 
+    "🌀 Macromedidores", 
+    "⚠️ Incidencias y Colonias"
+])
+
+with tab_tanques:
+    st.markdown("### 🛢️ Resumen de Tanques")
+    if mapa_tanques_dict:
+        for id_tq, info in mapa_tanques_dict.items():
+            val_nivel, _ = data_scada.get(info['tag_nivel'], (0, "N/A"))
+            st.write(f"**Tanque {id_tq} ({info['nombre']}):** Nivel Actual = {val_nivel:.2f} m")
+    else:
+        st.info("No hay tanques registrados.")
+
+with tab_rebombeos:
+    st.markdown("### 🧊 Resumen de Rebombeos")
+    if mapa_rebombeos_dict:
+        for id_rb, info in mapa_rebombeos_dict.items():
+            st.write(f"**Rebombeo {id_rb}:** Estado = {info['status_label']}")
+    else:
+        st.info("No hay rebombeos registrados.")
+
+with tab_macro:
+    st.markdown("### 🌀 Listado de Macromedidores")
+    datos_macros_tab = cargar_medidores_desde_db()
+    if datos_macros_tab:
+        for id_mm, info in datos_macros_tab.items():
+            if str(id_mm) != '1000' and info.get('nombre') != 'Sin instalar':
+                st.write(f"**Macro {id_mm}:** {info.get('nombre')} - Última transmisión: {info.get('ultima_fecha')}")
+    else:
+        st.info("No hay macromedidores disponibles.")
+
+with tab_incidencias:
+    st.markdown("### ⚠️ Incidencias Activas y Colonias Afectadas")
+    if 'df_incidencias' in locals() and not df_incidencias.empty:
+        st.dataframe(df_incidencias[['NUM_POZO', 'COLONIA', 'DIAGNOSTICO_FALLA', 'ESTATUS']], use_container_width=True)
+    else:
+        st.info("No hay incidencias activas en este momento.")
+
+# =========================================================================
+# TUS INDICADORES ORIGINALES CONTINÚAN AQUÍ ABAJO
+# =========================================================================
 c_total = total_q if 'total_q' in locals() else 0.0
 p_prom = (total_p / max(len(pozos_on), 1)) if 'total_p' in locals() else 0.0
 
-# Render de indicadores
 st.markdown(f"""
     <div class="contenedor-indicadores">
         <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">💧 Caudal total</p><p style="color:#00ffcc; font-size:1.1rem; font-weight:bold; margin:0;">{c_total:.1f} l/s</p></div>
