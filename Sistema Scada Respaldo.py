@@ -4120,14 +4120,13 @@ if ver_pozos:
 
 
 # =========================================================================================================
-# 9.8. RENDERIZADO DE TANQUES (AHORA ES INDEPENDIENTE, FUERA DEL BLOQUE DE POZOS)
+# 9.8. RENDERIZADO DE TANQUES
 # =========================================================================================================
 if ver_tanques:
     for id_tq, info in mapa_tanques_dict.items():
         try:
             val_nivel, fecha_tq = data_scada.get(info['tag_nivel'], (0, "N/A"))
             n_max = info['nivel_max'] if info['nivel_max'] else 1.0
-            porcentaje = (val_nivel / n_max) * 100
             
             url_grafico = (
                 f"?graficar_tanque={info['tag_nivel']}"
@@ -4173,7 +4172,7 @@ if ver_tanques:
             continue
             
 # =========================================================================================================
-# 9.9. RENDERIZADO DE REBOMBEOS (INDEPENDIENTE)
+# 9.9. RENDERIZADO DE REBOMBEOS
 # =========================================================================================================
 if ver_rebombeos:
     for id_rb, info in mapa_rebombeos_dict.items():
@@ -4214,9 +4213,8 @@ if ver_rebombeos:
         except Exception:
             continue
 
-
 # =========================================================================================================
-# 9.10. RENDERIZADO DE MACROMEDIDORES (INDEPENDIENTE Y BLINDADO)
+# 9.10. RENDERIZADO DE MACROMEDIDORES
 # =========================================================================================================
 if ver_macromedidores:
     from datetime import datetime, timedelta
@@ -4228,7 +4226,6 @@ if ver_macromedidores:
             continue
 
         try:
-            # Validación segura de fecha para evitar errores si es NaN/NaT
             ultima_f = info.get('ultima_fecha')
             if pd.notna(ultima_f):
                 es_falla = ultima_f < fecha_limite
@@ -4285,9 +4282,11 @@ if ver_macromedidores:
         except Exception:
             continue
 
-    # 9.11. CONTROL DE CAPAS Y RENDERIZADO FINAL 
-    folium.LayerControl(position='topright', collapsed=False).add_to(m)
-    folium_static(m, width=None, height=600)
+# =========================================================================================================
+# RENDERIZADO ÚNICO Y FINAL DEL MAPA PRINCIPAL
+# =========================================================================================================
+folium.LayerControl(position='topright', collapsed=False).add_to(m)
+st_folium(m, width="100%", height=600, key="mapa_principal_miaa_2026")
 
 
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
