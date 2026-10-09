@@ -28,6 +28,8 @@ import pytz
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
+import altair as alt
+from folium.plugins import MarkerCluster
 
 st.set_page_config(
     page_title="Sistema Scada", 
@@ -4080,19 +4082,6 @@ if ver_pozos:
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 
 # SECCION 12 Mapa de colonias Incidencias ----------------------------------------------------------------------------
-
-import streamlit as st
-import pandas as pd
-import geopandas as gpd
-from shapely import wkt
-import re
-import folium
-from folium.plugins import Fullscreen
-import altair as alt
-import pytz
-from datetime import datetime
-from streamlit_folium import st_folium
-from folium.plugins import MarkerCluster
 
 tz_mx = pytz.timezone('America/Mexico_City')
 ahora_mx = datetime.now(tz_mx)
