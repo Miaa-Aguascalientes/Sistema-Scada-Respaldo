@@ -30,6 +30,10 @@ from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
 import altair as alt
 from folium.plugins import MarkerCluster
+import datetime
+import plotly.express as px
+
+
 
 st.set_page_config(
     page_title="Sistema Scada", 
@@ -894,10 +898,6 @@ tag_a_graficar = params.get("graficar_tanque", None)
 nombre_tq = params.get("nombre", "Tanque")
 
 if tag_a_graficar:
-    import datetime
-    import plotly.express as px
-    import pandas as pd
-    import plotly.graph_objects as go
     
     st.title(f"📊 Análisis de Nivel: {nombre_tq}")
     
