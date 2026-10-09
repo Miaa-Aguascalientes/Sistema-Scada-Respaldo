@@ -448,7 +448,7 @@ def get_todas_las_colonias():
 @st.cache_data(ttl=3600)
 def get_todos_los_sectores_geo():
     query = """
-        SELECT ST_AsText(geom) as geom_wkt, Sector, Pozos, 
+        SELECT ST_AsText(geom) as geom_wkt, Sector, Pozos, Col_atl,
                Pozo_1, Afectacion_1, Pozo_2, Afectacion_2, 
                Pozo_3, Afectacion_3, Pozo_4, Afectacion_4, 
                Pozo_5, Afectacion_5, Pozo_6, Afectacion_6, 
@@ -3391,17 +3391,24 @@ with col_mapa:
         </style>
         """
 
-# 9.5.  -----------------------------------------------------------------------  RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------
+# 9.5.  --------------------------------------------------------------  RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------
 if ver_sectores:
     gdf_sectores = get_todos_los_sectores_geo()
     
     if gdf_sectores is not None and not gdf_sectores.empty:
         lista_incidencias_sec_tooltip = []
         lista_afectacion_sec_tooltip = []
+        lista_colonias_sec_tooltip = [] # <--- NUEVA LISTA PARA COLONIAS
         
         for idx, row in gdf_sectores.iterrows():
             suma_afec_sec = 0.0
             descripciones_fallas_sec = []
+            
+            # Capturamos el valor de Col_atl del sector de forma limpia
+            col_atl_val = str(row.get('Col_atl', 'N/A'))
+            if pd.isna(row.get('Col_atl')) or not col_atl_val.strip():
+                col_atl_val = "Sin colonias registradas"
+            lista_colonias_sec_tooltip.append(col_atl_val)
             
             for i in range(1, 11):
                 pozo_sec = row.get(f'Pozo_{i}')
@@ -3440,24 +3447,22 @@ if ver_sectores:
 
         gdf_sectores['Info_Incidencia'] = lista_incidencias_sec_tooltip
         gdf_sectores['Info_Porcentaje'] = lista_afectacion_sec_tooltip
+        gdf_sectores['Info_Colonias'] = lista_colonias_sec_tooltip # <--- ASIGNAMOS LA COLUMNA
 
         fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos")
         
         def estilo_final_sector(feature):
             props = feature.get('properties', {})
-            
-            # Obtenemos el color dinámico y el valor de afectación usando la misma lógica
             color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
             
-            # Lógica de pesos y opacidades idéntica a las colonias
             if afectacion_val > 0:
                 border_color_final = color_dinamico
                 weight_final = 2.5
                 opacity_final = 0.25
             else:
-                border_color_final = '#2980B9' # Mismo tono de contorno base que las colonias
+                border_color_final = '#2980B9'
                 weight_final = 1
-                opacity_final = 0.08         # Misma opacidad ligera de relleno base
+                opacity_final = 0.08
             
             return {
                 'fillColor': color_dinamico,
@@ -3475,15 +3480,14 @@ if ver_sectores:
             style_function=estilo_final_sector,
             highlight_function=estilo_hover_sector,
             tooltip=folium.GeoJsonTooltip(
-                fields=['Sector', 'Pozos', 'Info_Incidencia', 'Info_Porcentaje'],
-                aliases=['Sector:', 'Pozos:', 'Incidencia:', 'Afectación:'],
+                fields=['Sector', 'Pozos', 'Info_Incidencia', 'Info_Porcentaje', 'Info_Colonias'], # <--- AÑADIDO
+                aliases=['Sector:', 'Pozos:', 'Incidencia:', 'Afectación:', 'Colonias:'],          # <--- AÑADIDO
                 localize=True,
                 sticky=True
             )
         ).add_to(fg_sectores)
         
         fg_sectores.add_to(m)
-
          
 
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS __________________________________________________________________________________________________________________________________
