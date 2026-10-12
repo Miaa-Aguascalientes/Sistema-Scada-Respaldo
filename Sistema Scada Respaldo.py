@@ -2736,69 +2736,69 @@ with pestaña_mapa:
 
     with col_panel_derecho:
         st.markdown('<div style="margin-top: 0px;"></div>', unsafe_allow_html=True)
-        st.markdown('<h4 style="color: #00d4ff; font-size: 12px; text-align: center; margin-bottom: 8px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
+        st.markdown('<h4 style="color: #00d4ff; font-size: 12px; text-align: center; margin-bottom: 12px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
         
-        # 'margin-bottom: 14px' para separarlos más, y un padding más compacto para hacerlos más angostos visualmente
-        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 14px; padding: 5px 6px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+        # Tarjetas más angostas, con separación vertical mayor (margin-bottom: 16px) y alineación interna horizontal
+        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 16px; padding: 8px 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
 
         st.markdown(f'''
             <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #00d4ff;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                <div style="color: #00d4ff; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
                 </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Caudal Total</p>
-                    <p style="color:#00ffcc; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{c_total:.1f} L/s</p>
-                </div>
-            </div>
-
-            <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #00d4ff;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Presión Promedio</p>
-                    <p style="color:#ffff00; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{p_prom:.2f} kg</p>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">CAUDAL TOTAL</p>
+                    <p style="color:#00ffcc; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{c_total:.1f} L/s</p>
                 </div>
             </div>
 
             <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #00ff00;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+                <div style="color: #00d4ff; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Sitios Encendidos</p>
-                    <p style="color:#00ff00; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_on)}</p>
-                </div>
-            </div>
-
-            <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #ff4d4d;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><text x="12" y="16" font-size="12" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">A</text></svg>
-                </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Sitios Apagados</p>
-                    <p style="color:#ff4d4d; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_off)}</p>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">PRESIÓN PROMEDIO</p>
+                    <p style="color:#ffff00; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{p_prom:.2f} kg</p>
                 </div>
             </div>
 
             <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #ffaa00;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div style="color: #00ff00; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
                 </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Fallas Comunicación</p>
-                    <p style="color:#ffaa00; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_falla_com)}</p>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">SITIOS ENCENDIDOS</p>
+                    <p style="color:#00ff00; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_on)}</p>
                 </div>
             </div>
 
             <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 28px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 4px; margin-right: 4px; color: #a0aec0;">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path></svg>
+                <div style="color: #ff4d4d; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><text x="12" y="16" font-size="12" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">A</text></svg>
                 </div>
-                <div style="flex-grow: 1; text-align: center;">
-                    <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">Sin Telemetría</p>
-                    <p style="color:#ffffff; font-size:0.95rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_sin_telemetria)}</p>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">SITIOS APAGADOS</p>
+                    <p style="color:#ff4d4d; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_off)}</p>
+                </div>
+            </div>
+
+            <div style="{estilo_tarjeta}">
+                <div style="color: #ffaa00; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                </div>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">FALLAS COMUNICACIÓN</p>
+                    <p style="color:#ffaa00; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_falla_com)}</p>
+                </div>
+            </div>
+
+            <div style="{estilo_tarjeta}">
+                <div style="color: #a0aec0; margin-right: 12px; display: flex; align-items: center;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path></svg>
+                </div>
+                <div style="text-align: left; width: 100%;">
+                    <p style="color:#a0aec0; font-size:0.6rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">SIN TELEMETRÍA</p>
+                    <p style="color:#ffffff; font-size:1.1rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_sin_telemetria)}</p>
                 </div>
             </div>
         ''', unsafe_allow_html=True)
