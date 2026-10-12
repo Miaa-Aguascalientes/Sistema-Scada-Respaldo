@@ -2878,9 +2878,6 @@ with pestaña_mapa:
             ).add_to(m)
 
          
-
-
-
 # 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------------------------------------------------------------------------------------------------
         if ver_sectores:
             gdf_sectores = get_todos_los_sectores_geo()
@@ -3232,6 +3229,8 @@ with pestaña_mapa:
 
             fg_pozos.add_to(m)
 
+
+# 9.8. RENDERIZADO DE TANQUES EN EL MAPA PRINCIPAL  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
         if ver_tanques:
             for id_tq, info in mapa_tanques_dict.items():
                 try:
@@ -3251,19 +3250,48 @@ with pestaña_mapa:
                     folium.RegularPolygonMarker(location=info['coord'], number_of_sides=6, radius=5, color="#00d4ff", fill=True, fill_color="#00d4ff", popup=folium.Popup(html_popup_tq, max_width=300), tooltip=f"Tanque: {info['nombre']}").add_to(m)
                 except: continue
 
+# 9.9.  RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         if ver_rebombeos:
             for id_rb, info in mapa_rebombeos_dict.items():
                 try:
                     d = lambda tag: data_scada.get(tag, (0, "N/A"))
-                    pres, f_p = d(info['presion'])
-                    ntq, f_t = d(info['nivel_tanque'])
-                    html_popup_rb = f"""<div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;"><b>REBOMBEO: {id_rb}</b></div>"""
+                    is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
+                    
+                    pres, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+                    ntq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+                    
+                    v_rb = [d(t) for t in info.get('voltajes_l', [])] if not is_st and info.get('voltajes_l') else [(0.0, "N/A")]*3
+                    a_rb = [d(t) for t in info.get('amperajes_l', [])] if not is_st and info.get('amperajes_l') else [(0.0, "N/A")]*3
+
+                    html_popup_rb = f"""
+                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
+                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                    </div>
+                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                    <div style="font-size: 11px; margin-bottom: 5px;">
+                        🚀 Presión: <b>{pres:.2f} kg</b> <span style="color:#FFFF00; font-size:8px;">{f_p}</span><br>
+                        🔋 Nivel Tanque: <b>{ntq:.2f} m</b> <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
+                    </div>
+                    <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th>Fase</th><th>Voltaje</th><th>Amp</th>
+                        </tr>
+                        <tr><td>L1-L2</td><td>{v_rb[0][0]:.0f}V</td><td>{a_rb[0][0]:.1f}A</td></tr>
+                        <tr><td>L2-L3</td><td>{v_rb[1][0]:.0f}V</td><td>{a_rb[1][0]:.1f}A</td></tr>
+                        <tr><td>L1-L3</td><td>{v_rb[2][0]:.0f}V</td><td>{a_rb[2][0]:.1f}A</td></tr>
+                    </table>
+                </div>
+                """
+                    
                     if info.get('blink'):
                         folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
                     else:
                         folium.RegularPolygonMarker(location=info['coord'], number_of_sides=4, radius=6, color=info['color_final'], fill=True, fill_color=info['color_final'], popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
                 except: continue
 
+# 9.10. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         if ver_macromedidores:
             datos_macromedidores = cargar_medidores_desde_db()
             fecha_limite = datetime.now() - timedelta(days=5)
