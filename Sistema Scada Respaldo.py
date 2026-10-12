@@ -3107,31 +3107,87 @@ with pestaña_mapa:
                 url_pozo_graf = f"?graficar_pozo={id_p}&nombre={nombre_codificado}&access=granted&role={rol_actual}"
 
                 html_popup = f"""
-                    <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
-                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
-                            <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
-                            <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                        </div>
-                        <div style="margin-bottom: 12px;">
-                            <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
-                            <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
-                                <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
-                                <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
-                            </div>
-                            <div style="display: flex; align-items: baseline; font-size: 11px;">
-                                <span>🚀 Presión: <b>{p:.2f} kg</b></span>
-                                <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
-                            </div>
-                        </div>
-                        <div style="border-top: 1px solid #333; padding-top: 10px;">
-                            <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
-                                <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
-                                    📊 VER ANÁLISIS HISTÓRICO
-                                </div>
-                            </a>
-                        </div>
+            <div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;">
+                    <b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
+                </div>
+                
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>💧 Caudal: <b>{q:.2f} L/s</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span>
                     </div>
-                """
+                    <div style="display: flex; align-items: baseline; font-size: 11px;">
+                        <span>🚀 Presión: <b>{p:.2f} kg</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">NIVELES</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>🔋 Nivel de Tanque:<b>{tanq:.2f} mts</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_t}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>📉 Nivel Dinámico/Estatico: <b>{dinam:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_d}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>📏 Sumergencia: <b>{sumer:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_s}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px;">
+                        <span>🏗️ Longitud de Columna: <b>{col:.2f} m</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_col}</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div>
+                    <table style="width: 100%; font-size: 10px; border-collapse: collapse; margin-bottom: 8px;">
+                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                            <th style="padding: 4px;">Fase</th>
+                            <th style="padding: 4px;">Voltaje / Act.</th>
+                            <th style="padding: 4px;">Amp / Act.</th>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 6px 4px;">L1-L2</td>
+                            <td><b>{v[0][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[0][1]}</span></td>
+                            <td><b>{a[0][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[0][1]}</span></td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #222;">
+                            <td style="padding: 6px 4px;">L2-L3</td>
+                            <td><b>{v[1][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[1][1]}</span></td>
+                            <td><b>{a[1][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[1][1]}</span></td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 6px 4px;">L1-L3</td>
+                            <td><b>{v[2][0]:.1f}V</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{v[2][1]}</span></td>
+                            <td><b>{a[2][0]:.1f}A</b> <span style="color:#FFFF00; font-size:8px; margin-left:4px;">{a[2][1]}</span></td>
+                        </tr>
+                    </table>
+                    <div style="font-size: 10px; color: #888; margin-bottom: 4px; border-top: 1px solid #222; paddingTop: 5px;">HORARIOS</div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;">
+                        <span>▶️ Arranque: <b>{h_arr_fmt}</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_arr}</span>
+                    </div>
+                    <div style="display: flex; align-items: baseline; font-size: 11px;">
+                        <span>⏹️ Paro: <b>{h_par_fmt}</b></span>
+                        <span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_h_par}</span>
+                    </div>
+
+                    <div style="border-top: 1px solid #333; padding-top: 10px;">
+                    <a href="{url_pozo_graf}" target="_blank" style="text-decoration: none;">
+                        <div style="background: #00d4ff; color: #050a10; text-align: center; padding: 10px; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                            📊 VER ANÁLISIS HISTÓRICO
+                        </div>
+                    </a>
+                </div>
+            </div>
+            """
 
                 folium.Marker(
                     location=info['coord'],
