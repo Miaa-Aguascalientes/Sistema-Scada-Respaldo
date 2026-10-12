@@ -2736,14 +2736,42 @@ with pestaña_mapa:
 
     with col_panel_derecho:
         st.markdown('<div style="margin-top: 0px;"></div>', unsafe_allow_html=True)
-        st.markdown('<h4 style="color: #00d4ff; font-size: 11px; text-align: center; margin-bottom: 14px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
+        st.markdown('<h4 style="color: #00d4ff; font-size: 11px; text-align: center; margin-bottom: 16px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
         
-        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 20px; padding: 6px 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+        # Estilos de animación incorporados para que el sistema se vea "vivo"
+        st.markdown('''
+            <style>
+                @keyframes pulse-glow {
+                    0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(46,204,113,0.4)); }
+                    50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(46,204,113,0.9)); }
+                    100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(46,204,113,0.4)); }
+                }
+                @keyframes radar-spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                @keyframes warning-blink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                }
+                @keyframes water-flow {
+                    0% { stroke-dashoffset: 24; }
+                    100% { stroke-dashoffset: 0; }
+                }
+                .icon-encendido { animation: pulse-glow 2s infinite ease-in-out; transform-origin: center; }
+                .icon-presion { animation: radar-spin 8s infinite linear; transform-origin: center; }
+                .icon-alerta { animation: warning-blink 1.2s infinite ease-in-out; }
+                .icon-flujo { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
+            </style>
+        ''', unsafe_allow_html=True)
+
+        # Margen inferior de 40px exactos entre cada indicador
+        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 40px; padding: 6px 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
 
         st.markdown(f'''
             <div style="{estilo_tarjeta}">
                 <div style="flex: 0 0 32px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 6px; margin-right: 6px; color: #52a3f5;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4m-17.07 7.07l2.83-2.83m8.48-8.48l2.83-2.83"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path class="icon-flujo" d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4m-17.07 7.07l2.83-2.83m8.48-8.48l2.83-2.83"></path><circle cx="12" cy="12" r="3" fill="currentColor"></circle></svg>
                 </div>
                 <div style="flex-grow: 1; text-align: center;">
                     <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">CAUDAL TOTAL</p>
@@ -2753,7 +2781,7 @@ with pestaña_mapa:
 
             <div style="{estilo_tarjeta}">
                 <div style="flex: 0 0 32px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 6px; margin-right: 6px; color: #52a3f5;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                    <svg class="icon-presion" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
                 </div>
                 <div style="flex-grow: 1; text-align: center;">
                     <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">PRESIÓN PROMEDIO</p>
@@ -2763,7 +2791,7 @@ with pestaña_mapa:
 
             <div style="{estilo_tarjeta}">
                 <div style="flex: 0 0 32px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 6px; margin-right: 6px; color: #2ecc71;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2m-15.07 7.07l1.41-1.41m11.32-11.32l1.41-1.41"></path></svg>
+                    <svg class="icon-encendido" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4" fill="currentColor"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2m-15.07 7.07l1.41-1.41m11.32-11.32l1.41-1.41"></path></svg>
                 </div>
                 <div style="flex-grow: 1; text-align: center;">
                     <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">SITIOS ENCENDIDOS</p>
@@ -2782,8 +2810,8 @@ with pestaña_mapa:
             </div>
 
             <div style="{estilo_tarjeta}">
-                <div style="flex: 0 0 32px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 6px; margin-right: 6px; color: #e74c3c;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div style="flex: 0 0 32px; display: flex; justify-content: center; align-items: center; border-right: 1px solid rgba(255,255,255,0.15); padding-right: 6px; margin-right: 6px; color: #f39c12;">
+                    <svg class="icon-alerta" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                 </div>
                 <div style="flex-grow: 1; text-align: center;">
                     <p style="color:#a0aec0; font-size:0.55rem; font-weight:bold; margin:0 0 2px 0; text-transform:uppercase;">FALLAS COMUNICACIÓN</p>
