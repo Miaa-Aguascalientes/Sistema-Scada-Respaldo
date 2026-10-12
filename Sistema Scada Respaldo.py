@@ -2739,7 +2739,7 @@ with pestaña_mapa:
         st.markdown('<h4 style="color: #00d4ff; font-size: 11px; text-align: center; margin-bottom: 14px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
         
         # 'margin-bottom: 20px' separa mucho más cada tarjeta verticalmente
-        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 20px; padding: 6px 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+        estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; border-radius: 6px; display: flex; align-items: center; margin-bottom: 30px; padding: 6px 8px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
 
         st.markdown(f'''
             <div style="{estilo_tarjeta}">
