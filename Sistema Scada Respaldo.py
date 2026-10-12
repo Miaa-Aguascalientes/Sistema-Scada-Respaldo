@@ -3181,7 +3181,7 @@ with pestaña_mapa:
                 except: continue
 
         folium.LayerControl(position='topright', collapsed=False).add_to(m)
-        folium_static(m, width=None, height=600)
+        folium_static(m, width=None, height=700)
 
     st.markdown("##### 🗺️ % de Afectación en Colonias")
     col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
