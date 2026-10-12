@@ -28,6 +28,7 @@ import pytz
 from datetime import datetime
 from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
+import altair as alt
 
 st.set_page_config(
     page_title="Sistema Scada", 
