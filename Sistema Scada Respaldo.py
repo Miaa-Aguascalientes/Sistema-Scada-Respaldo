@@ -2732,7 +2732,7 @@ with pestaña_mapa:
     p_prom = (total_p / max(len(pozos_on), 1)) if 'total_p' in locals() else 0.0
 
     # 3 Columnas: Mapa más ancho (0.80), separador pequeño (0.02) y panel lateral estrecho (0.18)
-    col_mapa, col_capas, col_panel_derecho = st.columns([0.82, 0.01, 0.13])
+    col_mapa, col_capas, col_panel_derecho = st.columns([0.85, 0.01, 0.10])
 
     with col_panel_derecho:
         st.markdown('<div style="margin-top: 0px;"></div>', unsafe_allow_html=True)
