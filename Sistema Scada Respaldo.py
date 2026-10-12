@@ -2731,21 +2731,44 @@ with pestaña_mapa:
     c_total = total_q if 'total_q' in locals() else 0.0
     p_prom = (total_p / max(len(pozos_on), 1)) if 'total_p' in locals() else 0.0
 
-    st.markdown(f"""
-        <div class="contenedor-indicadores">
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">💧 Caudal total</p><p style="color:#00ffcc; font-size:1.1rem; font-weight:bold; margin:0;">{c_total:.1f} l/s</p></div>
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">📉 Presión promedio</p><p style="color:#ffff00; font-size:1.1rem; font-weight:bold; margin:0;">{p_prom:.2f} kg</p></div>
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">🟢 Sitios encendidos</p><p style="color:#00ff00; font-size:1.1rem; font-weight:bold; margin:0;">{len(pozos_on)}</p></div>
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">🔴 Sitios apagados</p><p style="color:#ff0000; font-size:1.1rem; font-weight:bold; margin:0;">{len(pozos_off)}</p></div>
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">⚠️ fallas de comunicación</p><p style="color:#ffaa00; font-size:1.1rem; font-weight:bold; margin:0;">{len(pozos_falla_com)}</p></div>
-            <div class="card-indicador"><p style="color:#ffffff; font-size:0.8rem; margin:0;">⚪ Sin telemetria</p><p style="color:#ffffff; font-size:1.1rem; font-weight:bold; margin:0;">{len(pozos_sin_telemetria)}</p></div>
-        </div>
-    """, unsafe_allow_html=True)
+    # Definimos 3 columnas: Mapa (ancho principal), Espaciador/Controles de capa (opcional), y Panel lateral derecho para Indicadores
+    col_mapa, col_capas, col_panel_derecho = st.columns([0.72, 0.03, 0.25])
 
-    st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
-    col_mapa, col_capas = st.columns([0.94, 0.06])
+    with col_panel_derecho:
+        st.markdown('<div style="margin-top: 90px;"></div>', unsafe_allow_html=True)
+        st.markdown('<h4 style="color: #00d4ff; font-size: 14px; text-align: center; margin-bottom: 12px; letter-spacing: 1px;">// ESTADO GENERAL</h4>', unsafe_allow_html=True)
+        
+        estilo_tarjeta_lateral = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 12px 10px; border-radius: 8px; text-align: center; margin-bottom: 10px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
+
+        st.markdown(f'''
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">💧 Caudal total</p>
+                <p style="color:#00ffcc; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{c_total:.1f} l/s</p>
+            </div>
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">📉 Presión promedio</p>
+                <p style="color:#ffff00; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{p_prom:.2f} kg</p>
+            </div>
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">🟢 Sitios encendidos</p>
+                <p style="color:#00ff00; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_on)}</p>
+            </div>
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">🔴 Sitios apagados</p>
+                <p style="color:#ff0000; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_off)}</p>
+            </div>
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">⚠️ Fallas de comunicación</p>
+                <p style="color:#ffaa00; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_falla_com)}</p>
+            </div>
+            <div style="{estilo_tarjeta_lateral}">
+                <p style="color:#ffffff; font-size:0.75rem; font-weight:bold; margin:0 0 4px 0; text-transform:uppercase;">⚪ Sin telemetría</p>
+                <p style="color:#ffffff; font-size:1.25rem; font-weight:bold; margin:0; font-family:'Courier New', monospace;">{len(pozos_sin_telemetria)}</p>
+            </div>
+        ''', unsafe_allow_html=True)
 
     with col_mapa:
+        st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
         m = folium.Map(
             location=st.session_state.centro_mapa, 
             zoom_start=st.session_state.zoom_inicial, 
@@ -3133,7 +3156,6 @@ with pestaña_mapa:
     with col_l3: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Naranja (Moderado)</span><span style="color: #FFA500; font-size: 1.1rem; font-weight: bold;">31% - 50%</span></div>', unsafe_allow_html=True)
     with col_l4: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
-
 # ==============================================================================
 # PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TRASLADADA AL TOPE DE LAS PESTAÑAS)
 # ==============================================================================
