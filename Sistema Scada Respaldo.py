@@ -2903,140 +2903,115 @@ with pestaña_mapa:
         """
 
         
-# 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores)
-if ver_sectores:
-    gdf_sectores = get_todos_los_sectores_geo()
-    
-    if gdf_sectores is not None and not gdf_sectores.empty:
-        lista_incidencias_sec_tooltip = []
-        lista_afectacion_sec_tooltip = []
-        lista_colonias_sec_tooltip = []
-        
-        for idx, row in gdf_sectores.iterrows():
-            suma_afec_sec = 0.0
-            descripciones_fallas_sec = []
-            
-            # Formateamos las colonias en formato de lista vertical limpia
-            col_atl_raw = str(row.get('Col_atl', ''))
-            if pd.isna(row.get('Col_atl')) or not col_atl_raw.strip():
-                colonias_html = "Sin colonias registradas"
-            else:
-                lista_c = [c.strip() for c in col_atl_raw.split(',') if c.strip()]
-                colonias_html = "<br>".join([f"• {c}" for c in lista_c])
+# 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------------------------------------------------------------------------------------------------
+        if ver_sectores:
+            gdf_sectores = get_todos_los_sectores_geo()
+            if gdf_sectores is not None and not gdf_sectores.empty:
+                lista_incidencias_sec_tooltip = []
+                lista_afectacion_sec_tooltip = []
+                lista_colonias_sec_tooltip = []
                 
-            lista_colonias_sec_tooltip.append(colonias_html)
-            
-            for i in range(1, 11):
-                pozo_sec = row.get(f'Pozo_{i}')
-                afectacion_sec = row.get(f'Afectacion_{i}')
-                
-                if pd.notna(pozo_sec):
-                    id_p_limpio = str(pozo_sec).strip().upper()
-                    id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
-                    id_p_sin_guion = id_p_limpio.replace('-', '')
+                for idx, row in gdf_sectores.iterrows():
+                    suma_afec_sec = 0.0
+                    descripciones_fallas_sec = []
+                    col_atl_raw = str(row.get('Col_atl', ''))
+                    if pd.isna(row.get('Col_atl')) or not col_atl_raw.strip():
+                        colonias_html = "Sin colonias registradas"
+                    else:
+                        lista_c = [c.strip() for c in col_atl_raw.split(',') if c.strip()]
+                        colonias_html = "<br>".join([f"• {c}" for c in lista_c])
+                    lista_colonias_sec_tooltip.append(colonias_html)
                     
-                    if (id_p_limpio in dic_incidencias_activas or 
-                        id_p_con_guion in dic_incidencias_activas or 
-                        id_p_sin_guion in dic_incidencias_activas):
-                        
-                        falla = (
-                            dic_incidencias_activas.get(id_p_limpio) or 
-                            dic_incidencias_activas.get(id_p_con_guion) or 
-                            dic_incidencias_activas.get(id_p_sin_guion, 'Activa')
-                        )
-                        falla_txt = falla.get('diagnostico', falla.get('motivo', 'Activa')) if isinstance(falla, dict) else str(falla)
-                        descripciones_fallas_sec.append(f"{pozo_sec}: {falla_txt}")
-                        
-                        if pd.notna(afectacion_sec):
-                            try:
-                                val_str = str(afectacion_sec).replace('%', '').strip()
-                                suma_afec_sec += float(val_str)
-                            except:
-                                pass
-            
-            if descripciones_fallas_sec:
-                lista_incidencias_sec_tooltip.append(" | ".join(descripciones_fallas_sec))
-                lista_afectacion_sec_tooltip.append(f"{int(suma_afec_sec)}%" if suma_afec_sec > 0 else "N/D")
-            else:
-                lista_incidencias_sec_tooltip.append("Ninguna")
-                lista_afectacion_sec_tooltip.append("0%")
+                    for i in range(1, 11):
+                        pozo_sec = row.get(f'Pozo_{i}')
+                        afectacion_sec = row.get(f'Afectacion_{i}')
+                        if pd.notna(pozo_sec):
+                            id_p_limpio = str(pozo_sec).strip().upper()
+                            id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
+                            id_p_sin_guion = id_p_limpio.replace('-', '')
+                            
+                            if (id_p_limpio in dic_incidencias_activas or 
+                                id_p_con_guion in dic_incidencias_activas or 
+                                id_p_sin_guion in dic_incidencias_activas):
+                                
+                                falla = (
+                                    dic_incidencias_activas.get(id_p_limpio) or 
+                                    dic_incidencias_activas.get(id_p_con_guion) or 
+                                    dic_incidencias_activas.get(id_p_sin_guion, 'Activa')
+                                )
+                                falla_txt = falla.get('diagnostico', falla.get('motivo', 'Activa')) if isinstance(falla, dict) else str(falla)
+                                descripciones_fallas_sec.append(f"{pozo_sec}: {falla_txt}")
+                                
+                                if pd.notna(afectacion_sec):
+                                    try:
+                                        val_str = str(afectacion_sec).replace('%', '').strip()
+                                        suma_afec_sec += float(val_str)
+                                    except: pass
+                    
+                    if descripciones_fallas_sec:
+                        lista_incidencias_sec_tooltip.append(" | ".join(descripciones_fallas_sec))
+                        lista_afectacion_sec_tooltip.append(f"{int(suma_afec_sec)}%" if suma_afec_sec > 0 else "N/D")
+                    else:
+                        lista_incidencias_sec_tooltip.append("Ninguna")
+                        lista_afectacion_sec_tooltip.append("0%")
 
-        gdf_sectores['Info_Incidencia'] = lista_incidencias_sec_tooltip
-        gdf_sectores['Info_Porcentaje'] = lista_afectacion_sec_tooltip
-        gdf_sectores['Info_Colonias'] = lista_colonias_sec_tooltip
+                gdf_sectores['Info_Incidencia'] = lista_incidencias_sec_tooltip
+                gdf_sectores['Info_Porcentaje'] = lista_afectacion_sec_tooltip
+                gdf_sectores['Info_Colonias'] = lista_colonias_sec_tooltip
 
-        fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos")
-        
-        def estilo_final_sector(feature):
-            props = feature.get('properties', {})
-            color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
-            
-            if afectacion_val > 0:
-                border_color_final = color_dinamico
-                weight_final = 2.5
-                opacity_final = 0.25
-            else:
-                border_color_final = '#2980B9'
-                weight_final = 1
-                opacity_final = 0.08
-            
-            return {
-                'fillColor': color_dinamico,
-                'color': border_color_final,
-                'weight': weight_final,
-                'fillOpacity': opacity_final
-            }
+                fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos")
+                def estilo_final_sector(feature):
+                    props = feature.get('properties', {})
+                    color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
+                    if afectacion_val > 0:
+                        border_color_final = color_dinamico
+                        weight_final = 2.5
+                        opacity_final = 0.25
+                    else:
+                        border_color_final = '#2980B9'
+                        weight_final = 1
+                        opacity_final = 0.08
+                    return {'fillColor': color_dinamico, 'color': border_color_final, 'weight': weight_final, 'fillOpacity': opacity_final}
 
-        def estilo_hover_sector(feature):
-            return {'fillOpacity': 0.8, 'weight': 3, 'color': '#FFFFFF'}
+                def estilo_hover_sector(feature):
+                    return {'fillOpacity': 0.8, 'weight': 3, 'color': '#FFFFFF'}
 
-        # Recorremos cada fila creando el Feature y añadiendo el botón de acceso al sector
-        for _, row in gdf_sectores.iterrows():
-            feature_dict = {
-                'type': 'Feature',
-                'geometry': row['geometry'].__geo_interface__,
-                'properties': row.drop('geometry').to_dict()
-            }
-            
-            props = feature_dict['properties']
-            color_dinamico, _ = calcular_color_sector(props, dic_incidencias_activas)
-            
-            nombre_sec = str(props.get('Sector', 'N/A'))
-            sector_encoded = urllib.parse.quote(nombre_sec)
-            url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.get('rol', 'usuario')}"
-            
-            html_popup_sector = f"""
-            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 320px; max-height: 300px; overflow-y: auto; border: 2px solid {color_dinamico}; font-family: sans-serif;">
-                <b style="color: #00d4ff; font-size: 15px;">SECTOR: {nombre_sec}</b>
-                <hr style="border: 0.5px solid #333; margin: 6px 0;">
-                <div style="font-size: 11px; line-height: 1.4; margin-bottom: 10px;">
-                    <b>Pozos:</b> {props.get('Pozos', 'N/A')}<br>
-                    <b>Incidencia:</b> <span style="color: #ff4d4d;">{props.get('Info_Incidencia', 'Ninguna')}</span><br>
-                    <b>Afectación:</b> <span style="color: #ffff00;">{props.get('Info_Porcentaje', '0%')}</span><br>
-                    <b style="display: block; margin-top: 6px; color: #00ffcc;">Colonias afectadas:</b>
-                    <div style="margin-top: 3px; padding-left: 5px; color: #d1d5db; font-size: 10px; max-height: 100px; overflow-y: auto;">
-                        {props.get('Info_Colonias', 'Sin registro')}
+                for _, row in gdf_sectores.iterrows():
+                    feature_dict = {
+                        'type': 'Feature',
+                        'geometry': row['geometry'].__geo_interface__,
+                        'properties': row.drop('geometry').to_dict()
+                    }
+                    props = feature_dict['properties']
+                    color_dinamico, _ = calcular_color_sector(props, dic_incidencias_activas)
+                    nombre_sec = str(props.get('Sector', 'N/A'))
+                    sector_encoded = urllib.parse.quote(nombre_sec)
+                    url_acceso = f"/?sector={sector_encoded}&access=granted&role={st.session_state.get('rol', 'usuario')}"
+                    
+                    html_popup_sector = f"""
+                    <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 320px; max-height: 300px; overflow-y: auto; border: 2px solid {color_dinamico}; font-family: sans-serif;">
+                        <b style="color: #00d4ff; font-size: 15px;">SECTOR: {nombre_sec}</b>
+                        <hr style="border: 0.5px solid #333; margin: 6px 0;">
+                        <div style="font-size: 11px; line-height: 1.4; margin-bottom: 10px;">
+                            <b>Pozos:</b> {props.get('Pozos', 'N/A')}<br>
+                            <b>Incidencia:</b> <span style="color: #ff4d4d;">{props.get('Info_Incidencia', 'Ninguna')}</span><br>
+                            <b>Afectación:</b> <span style="color: #ffff00;">{props.get('Info_Porcentaje', '0%')}</span><br>
+                            <b style="display: block; margin-top: 6px; color: #00ffcc;">Colonias afectadas:</b>
+                            <div style="margin-top: 3px; padding-left: 5px; color: #d1d5db; font-size: 10px; max-height: 100px; overflow-y: auto;">
+                                {props.get('Info_Colonias', 'Sin registro')}
+                            </div>
+                        </div>
+                        <a href="{url_acceso}" target="_blank" style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; border-radius: 5px; transition: 0.3s;">🚀 ABRIR SECTOR</a>
                     </div>
-                </div>
-                
-                <a href="{url_acceso}" target="_blank" 
-                   style="display: block; text-align: center; background-color: #00d4ff; color: #0b1a29; 
-                          text-decoration: none; font-weight: bold; font-size: 12px; padding: 8px; 
-                          border-radius: 5px; transition: 0.3s;">
-                   🚀 ABRIR SECTOR
-                </a>
-            </div>
-            """
-            
-            folium.GeoJson(
-                feature_dict,
-                style_function=estilo_final_sector,
-                highlight_function=estilo_hover_sector,
-                popup=folium.Popup(html_popup_sector, max_width=350),
-                tooltip=f"Sector: {nombre_sec} (Clic para ver detalle)"
-            ).add_to(fg_sectores)
-        
-        fg_sectores.add_to(m)
+                    """
+                    folium.GeoJson(
+                        feature_dict,
+                        style_function=estilo_final_sector,
+                        highlight_function=estilo_hover_sector,
+                        popup=folium.Popup(html_popup_sector, max_width=350),
+                        tooltip=f"Sector: {nombre_sec} (Clic para ver detalle)"
+                    ).add_to(fg_sectores)
+                fg_sectores.add_to(m)
         
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
