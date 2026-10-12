@@ -3319,26 +3319,27 @@ tab_incidencias, = st.tabs(["📍 Mapa y Listado de Afectaciones"])
 with tab_incidencias:
     # 1. Obtener datos de incidencias activas
     df_inc = get_data()  # Esta función ya existe en tu código
-    
+
     if isinstance(df_inc, pd.DataFrame) and not df_inc.empty:
         # Filtrar solo las que NO están cerradas (activas)
         df_inc_activas = df_inc[df_inc['ESTATUS'].str.upper() != 'CERRADA'].copy()
-        
+
         if not df_inc_activas.empty:
             # --- MAPA DE SECTORES AFECTADOS ---
             st.markdown("### 🗺️ Mapa de Sectores Afectados")
-            
+
             # Cargar polígonos de sectores
             gdf_sectores = get_todos_los_sectores_geo()
-            
+
             if gdf_sectores is not None and not gdf_sectores.empty:
                 # Crear mapa base centrado en Aguascalientes
                 m_inc = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles="CartoDB dark_matter")
-                
+
                 # Diccionario de incidencias para búsqueda rápida
                 dic_inc = {}
                 for _, row in df_inc_activas.iterrows():
-                    id_p = normalizar_id(row['NUM_POZO'])
+                    val_pozo = row['NUM_POZO']
+                    id_p = str(val_pozo).strip().upper() if pd.notna(val_pozo) else ""
                     if id_p:
                         dic_inc[id_p] = {
                             'diagnostico': row.get('DIAGNOSTICO_FALLA', 'N/A'),
@@ -3346,12 +3347,12 @@ with tab_incidencias:
                             'inicio': row.get('FECHA_HORA_INICIO'),
                             'fin': row.get('FECHA_HORA_FIN')
                         }
-                
+
                 # Colorear sectores según incidencias
                 for _, row in gdf_sectores.iterrows():
                     props = row.drop('geometry').to_dict()
                     color, afectacion = calcular_color_sector(props, dic_inc)
-                    
+
                     # Solo dibujar sectores con afectación > 0
                     if afectacion > 0:
                         folium.GeoJson(
@@ -3364,39 +3365,45 @@ with tab_incidencias:
                             },
                             tooltip=f"Sector: {props.get('Sector', 'N/A')} - Afectación: {afectacion}%"
                         ).add_to(m_inc)
-                
+
                 # Añadir marcadores de pozos afectados
                 for id_p, info in dic_inc.items():
                     if id_p in mapa_pozos_dict:
                         coord = mapa_pozos_dict[id_p]['coord']
                         folium.Marker(
                             location=coord,
-                            popup=f"Pozo: {id_p}<br>Falla: {info['diagnostico']}<br>Estatus: {info['estatus']}",
+                            popup=folium.Popup(
+                                f"<b>Pozo:</b> {id_p}<br>"
+                                f"<b>Falla:</b> {info['diagnostico']}<br>"
+                                f"<b>Estatus:</b> {info['estatus']}<br>"
+                                f"<b>Inicio:</b> {info['inicio']}",
+                                max_width=250
+                            ),
                             icon=folium.Icon(color='red', icon='exclamation-sign')
                         ).add_to(m_inc)
-                
+
                 folium.LayerControl().add_to(m_inc)
                 folium_static(m_inc, width=None, height=500)
             else:
                 st.warning("No se pudieron cargar los polígonos de sectores.")
-            
+
             st.markdown("---")
-            
+
             # --- LISTADO DE COLONIAS FUERA DE OPERACIÓN ---
             st.markdown("### 🏘️ Colonias Fuera de Operación")
-            
+
             # Cargar todas las colonias
             gdf_colonias = get_todas_las_colonias()
-            
+
             if gdf_colonias is not None and not gdf_colonias.empty:
                 # Lista para almacenar colonias afectadas
                 colonias_afectadas = []
-                
+
                 for _, row in gdf_colonias.iterrows():
                     # Buscar si algún pozo de esta colonia está en la lista de incidencias
                     pozos_colonia = str(row.get('Pozos', '')).split(',')
                     pozos_colonia = [p.strip().upper() for p in pozos_colonia if p.strip()]
-                    
+
                     for pozo in pozos_colonia:
                         if pozo in dic_inc:
                             colonias_afectadas.append({
@@ -3408,7 +3415,7 @@ with tab_incidencias:
                                 'Inicio': dic_inc[pozo]['inicio']
                             })
                             break  # Solo una vez por colonia
-                
+
                 if colonias_afectadas:
                     # Mostrar como tarjetas
                     for col in colonias_afectadas:
@@ -3423,12 +3430,12 @@ with tab_incidencias:
                     st.success("✅ No hay colonias afectadas por incidencias activas.")
             else:
                 st.warning("No se pudieron cargar los datos de colonias.")
-            
+
             st.markdown("---")
-            
+
             # --- LISTADO DE POZOS FUERA DE SERVICIO ---
             st.markdown("### 💧 Pozos Fuera de Servicio")
-            
+
             if not df_inc_activas.empty:
                 for _, row in df_inc_activas.iterrows():
                     st.markdown(f"""
