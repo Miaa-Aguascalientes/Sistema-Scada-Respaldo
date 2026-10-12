@@ -2871,38 +2871,16 @@ with pestaña_mapa:
         Fullscreen().add_to(m)
 
 # 9.2. Añadir el resaltado del sector si existe
-    if datos_sector_resaltado:
-        folium.GeoJson(
-            json.loads(datos_sector_resaltado['geo']),
-            style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 3, 'fillOpacity': 0.4}
-        ).add_to(m)
+        if datos_sector_resaltado:
+            folium.GeoJson(
+                json.loads(datos_sector_resaltado['geo']),
+                style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 3, 'fillOpacity': 0.4}
+            ).add_to(m)
 
-    # 9.3. FUNCIÓN PARA HORARIO 00:00
-    def formato_hora(decimal):
-        try:
-            if decimal == "N/A" or decimal is None: return "00:00"
-            horas = int(float(decimal))
-            minutos = int((float(decimal) - horas) * 60)
-            return f"{horas:02d}:{minutos:02d}"
-        except:
-            return "00:00"
+         
 
-    # 9.4. FUNCIÓN PARA ICONO PARPADEANTE PEQUEÑO (8px)
-    def get_blink_icon(color):
-        return f"""
-        <div style="
-            width: 8px; height: 8px; 
-            background-color: {color}; 
-            border-radius: 50%; 
-            box-shadow: 0 0 8px {color};
-            animation: blinker 1s linear infinite;">
-        </div>
-        <style>
-        @keyframes blinker {{ 50% {{ opacity: 0.2; }} }}
-        </style>
-        """
 
-        
+
 # 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------------------------------------------------------------------------------------------------
         if ver_sectores:
             gdf_sectores = get_todos_los_sectores_geo()
@@ -3012,7 +2990,7 @@ with pestaña_mapa:
                         tooltip=f"Sector: {nombre_sec} (Clic para ver detalle)"
                     ).add_to(fg_sectores)
                 fg_sectores.add_to(m)
-        
+
 # 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
         if ver_colonias:
