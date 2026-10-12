@@ -3362,7 +3362,7 @@ with pestaña_mapa:
         folium.LayerControl(position='topright', collapsed=False).add_to(m)
         folium_static(m, width=None, height=650)
 
-    st.markdown("##### 🗺️ % de Afectación en Colonias")
+    st.markdown("##### 🗺️ % de Afectación en Sectores")
     col_l1, col_l2, col_l3, col_l4, col_l5 = st.columns(5)
     estilo_tarjeta = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px 5px; border-radius: 10px; text-align: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);"
 
