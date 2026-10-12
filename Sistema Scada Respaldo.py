@@ -1586,6 +1586,7 @@ if "graficar_pozo" in params:
             
     st.stop()
 
+
 # 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -1907,7 +1908,7 @@ if "ver_grafico" in st.query_params:
 
     st.stop()
 
-# 5. ESTILO CSS GENERAL
+# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
         [data-testid="collapsedControl"], button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
@@ -2036,7 +2037,8 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 6. PROCESAMIENTO DE DATOS BASE
+# 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 sectores = cargar_sectores_poligonos()
 mapa_pozos_dict = cargar_mapa_pozos_desde_db()
 mapa_tanques_dict = cargar_tanques_desde_db()
@@ -2107,7 +2109,8 @@ for id_rb, info in mapa_rebombeos_dict.items():
         else:
             info.update({'status_label': 'OPERANDO', 'color_final': '#00FF00', 'blink': False})
 
-# 7. DETALLE DE SECTOR
+# 7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+
 if sector_seleccionado:
     st.markdown(
         f"""
@@ -2573,7 +2576,8 @@ if sector_seleccionado:
 
         st.stop()
     
-# 8. SIDEBAR
+# 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 with st.sidebar:
     st.markdown('<div class="sidebar-logo"><img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg"></div>', unsafe_allow_html=True)
 
