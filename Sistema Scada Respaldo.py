@@ -2870,12 +2870,18 @@ with pestaña_mapa:
 
         Fullscreen().add_to(m)
 
+# 9.2. Añadir el resaltado del sector si existe
         if datos_sector_resaltado:
             folium.GeoJson(
                 json.loads(datos_sector_resaltado['geo']),
                 style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 3, 'fillOpacity': 0.4}
             ).add_to(m)
 
+         
+
+
+
+# 9.5. RENDERIZADO DE POLÍGONOS DE SECTORES (Diccionario_sectores) ----------------------------------------------------------------------------------------------------------------------------------------------
         if ver_sectores:
             gdf_sectores = get_todos_los_sectores_geo()
             if gdf_sectores is not None and not gdf_sectores.empty:
@@ -2985,6 +2991,8 @@ with pestaña_mapa:
                     ).add_to(fg_sectores)
                 fg_sectores.add_to(m)
 
+# 9.6. RENDERIZADO DE POLÍGONOS DE COLONIAS --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
         if ver_colonias:
             gdf_colonias = get_todas_las_colonias()
             if gdf_colonias is not None and not gdf_colonias.empty:
@@ -3063,6 +3071,8 @@ with pestaña_mapa:
                     )
                 ).add_to(fg_colonias)
                 fg_colonias.add_to(m)
+
+# 9.7. RENDERIZADO DE POZOS EN EL MAPA PRINCIPAL  -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 
         if ver_pozos:  
             fg_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True)
