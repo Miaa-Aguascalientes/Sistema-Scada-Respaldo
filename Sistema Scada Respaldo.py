@@ -3502,7 +3502,14 @@ with pestaña_incidencias:
             duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
             ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
             
-            titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | 🛠️ Estatus: {estatus}"
+            titulo = (
+                f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** "
+                f" |⏱️ Fecha y hora de inicio: {inicio_str} "
+                f" |⚠️ Diagnostico de la falla: {diag} "
+                f" |✅ Fecha y hora de cierre: {fin_str} "
+                f" |⏳ Duración del evento: {duracion_str} "
+                f" |🛠️ Estatus: {estatus}"
+            )
             with st.expander(titulo):
                 renderizar_bloque_incidencia(row, index, "act")
 
@@ -3526,6 +3533,13 @@ with pestaña_incidencias:
                 fin_raw = row['FECHA_HORA_FIN']
                 duracion_str = f"{(fin_raw - inicio_raw).days}d {(fin_raw - inicio_raw).seconds//3600}h" if pd.notnull(fin_raw) else "N/A"
                 
-                titulo_hist = f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | 🕒 Inicio: {inicio_raw.strftime('%H:%M %d/%m/%Y')} | ⏳ Duración: {duracion_str}"
+                titulo_hist = (
+                    f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | "
+                    f"🕒 Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
+                    f"⚠️ Diagnostico de la falla: {diag} | "
+                    f"🏁 Fecha y hora de cierre: {fin_str} | "
+                    f"⏳ Duración del evento: {duracion_str} | "
+                    f"🆗 Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
+                )
                 with st.expander(titulo_hist):
                     renderizar_bloque_incidencia(row, index, "hist")
