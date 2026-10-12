@@ -3293,17 +3293,70 @@ with pestaña_mapa:
 
 # 9.10. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         if ver_macromedidores:
+            from datetime import datetime, timedelta
             datos_macromedidores = cargar_medidores_desde_db()
             fecha_limite = datetime.now() - timedelta(days=5)
+
             for id_mm, info in datos_macromedidores.items():
-                if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar': continue
+                # --- FILTRO ---
+                if str(id_mm) == '1000' or info.get('nombre') == 'Sin instalar':
+                    continue
+
+                # --- LÓGICA DE ESTADO Y COLOR ---
                 es_falla = info['ultima_fecha'] < fecha_limite
+                
+                color_borde = '#FF0000' if es_falla else '#B19CD9'
+                color_relleno = '#8B0000' if es_falla else '#800080'
                 color_popup = '#FF0000' if es_falla else '#800080'
+                clase_animacion = "pulsante" if es_falla else ""
+
                 try:
+                    # Recuperamos la lógica completa del botón de gráfico
                     url_pestaña = f"?ver_grafico={id_mm}&nombre={info.get('nombre', 'Medidor').replace(' ', '%20')}&access=granted&role={st.session_state.get('rol', 'usuario')}"
-                    html_popup_mm = f"""<div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid {color_popup};"><a href="{url_pestaña}" target="_blank">📊 ABRIR GRÁFICO</a></div>"""
-                    folium.Marker(location=info['coord'], popup=folium.Popup(html_popup_mm, max_width=300)).add_to(m)
-                except: continue
+                    
+                    html_popup_mm = f"""
+                    <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 220px; border: 2px solid {color_popup}; font-family: sans-serif;">
+                        <b style="color: {color_popup}; font-size: 14px;">MACROMEDIDOR: {id_mm}</b>
+                        <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                        <div style="font-size: 12px;">
+                            📍 Nombre: <b>{info.get('nombre', 'N/A')}</b><br>
+                            📡 Última transmisión: <b>{info['ultima_fecha'].strftime('%Y-%m-%d')}</b>
+                        </div>
+                        <div style="margin-top: 10px; text-align: center;">
+                            <a href="{url_pestaña}" target="_blank" style="background-color: {color_popup}; color: white; padding: 8px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 11px; display: inline-block; width: 90%;">📊 ABRIR GRÁFICO</a>
+                        </div>
+                    </div>
+                    """
+                    
+                    # SVG con la clase de parpadeo (pulsante)
+                    html_svg = f"""
+                    <svg width="20" height="20" class="{clase_animacion}">
+                        <circle cx="10" cy="10" r="6" stroke="{color_borde}" stroke-width="2" fill="{color_relleno}" fill-opacity="0.9" />
+                    </svg>
+                    """
+                    
+                    # Punto principal
+                    folium.Marker(
+                        location=info['coord'],
+                        icon=folium.DivIcon(icon_size=(20, 20), icon_anchor=(10, 10), html=html_svg),
+                        popup=folium.Popup(html_popup_mm, max_width=300)
+                    ).add_to(m)
+                    
+                    # Texto combinado: ID y Nombre
+                    color_texto = "#FF4C4C" if es_falla else "#FFFFFF"
+                    html_etiqueta = f"""
+                    <div style="font-size: 11px; font-weight: bold; color: {color_texto}; text-shadow: 1px 1px #000; white-space: nowrap;">
+                        - {id_mm} {info.get('nombre', 'N/A')}
+                    </div>
+                    """
+                    
+                    folium.Marker(
+                        location=info['coord'], 
+                        icon=folium.DivIcon(icon_anchor=(-15, 10), html=html_etiqueta)
+                    ).add_to(m)
+                    
+                except Exception as e:
+                    continue
 
         folium.LayerControl(position='topright', collapsed=False).add_to(m)
         folium_static(m, width=None, height=650)
