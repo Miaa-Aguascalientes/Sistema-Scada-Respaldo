@@ -33,7 +33,7 @@ st.set_page_config(
     page_title="Sistema Scada", 
     page_icon="https://www.miaa.mx/favicon.ico", 
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 
