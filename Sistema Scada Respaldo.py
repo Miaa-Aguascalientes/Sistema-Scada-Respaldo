@@ -13,8 +13,8 @@ import base64
 import hashlib
 import bcrypt
 import time
-import datetime as dt
-from datetime import timedelta
+import urllib.parse
+from datetime import datetime, timedelta
 import plotly.graph_objects as go
 from folium.plugins import MousePosition, LocateControl
 from streamlit_folium import st_folium
@@ -25,9 +25,9 @@ import re
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from sqlalchemy.exc import OperationalError
 import pytz
+from datetime import datetime
+from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
-import plotly.express as px
-from plotly.subplots import make_subplots
 
 st.set_page_config(
     page_title="Sistema Scada", 
@@ -35,6 +35,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+
 
 # 0.1. INICIALIZACIÓN DE ESTADOS
 if "autenticado" not in st.session_state:
@@ -49,6 +51,8 @@ if "fase_carga" not in st.session_state:
   st.session_state.fase_carga = False
 
 # 0.2. FUNCIONES DE BASE DE DATOS (REFORZADAS)
+
+
 @st.cache_resource
 def get_mysql_telemetria_engine():
   try:
@@ -64,8 +68,10 @@ def get_mysql_telemetria_engine():
     st.error(f"⚠️ ERROR CRÍTICO DE CONEXIÓN: {e}")
     return None
 
+
 # --- LLAVE DE CIFRADO FIJA Y SEGURA ---
 SECRET_FERNET_KEY = b"12345678901234567890123456789012"
+
 
 def get_fernet_cipher():
   try:
@@ -74,6 +80,7 @@ def get_fernet_cipher():
     key = base64.urlsafe_b64encode(hashlib.sha256(SECRET_FERNET_KEY).digest())
   return Fernet(key)
 
+
 def encriptar_pwd(password_plana):
   try:
     f = get_fernet_cipher()
@@ -81,12 +88,14 @@ def encriptar_pwd(password_plana):
   except Exception:
     return password_plana
 
+
 def desencriptar_pwd(password_cifrada):
   try:
     f = get_fernet_cipher()
     return f.decrypt(password_cifrada.encode()).decode()
   except Exception:
     return password_cifrada
+
 
 def verificar_credenciales(usuario_input, password_input):
   try:
@@ -118,14 +127,17 @@ def verificar_credenciales(usuario_input, password_input):
     st.error(f"Error al consultar usuario: {e}")
     return None
 
+
 # 0.3. ESTILO VISUAL HUD AJUSTADO
 st.markdown(
     """
 <style>
+    /* Configuración base */
     .stApp { background-color: #050a10 !important; }
     .block-container { padding: 0 !important; max-width: 100% !important; }
     header, footer { visibility: hidden !important; }
     
+    /* HUD Visual Elements */
     .visual-core { position: relative; width: 480px; height: 480px; margin: auto; }
     .ring { position: absolute; border-radius: 50%; border: 4px solid transparent; animation: spin var(--d) linear infinite; }
     .r1 { width: 100%; height: 100%; border-top: 8px solid #00d4ff; border-bottom: 8px solid #00d4ff; --d: 4s; }
@@ -133,6 +145,7 @@ st.markdown(
     .center-logo { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
     .logo-miaa { width: 190px; filter: drop-shadow(0 0 15px #00d4ff); }
     
+    /* Login Box */
     .login-box { 
         background: rgba(0, 212, 255, 0.05); 
         border-left: 8px solid #00d4ff; 
@@ -144,6 +157,7 @@ st.markdown(
     
     @keyframes spin { 100% { transform: rotate(360deg); } }
     
+    /* --- ESTILO INTEGRADO PARA INPUTS --- */
     div[data-testid="stTextInputRootElement"] {
         background-color: #0d1b2a !important;
         border: 1px solid #1f4068 !important;
@@ -168,6 +182,7 @@ st.markdown(
         box-shadow: none !important;
     }
     
+    /* Botones */
     .stButton button { 
         background: #00d4ff !important; 
         color: #050a10 !important; 
@@ -187,12 +202,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 0.4. LÓGICA DE INTERFAZ DE LOGIN
+# 0.4. LÓGICA DE INTERFAZ
 if not st.session_state.autenticado:
   col_esp1, col_vis, col_log, col_esp2 = st.columns([0.1, 1.8, 2, 1.1])
 
   with col_vis:
-    st.markdown('<div style="height: 12vh;"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="height: 12vh;"></div>', unsafe_allow_html=True
+    )
     st.markdown(
         f"""
         <div class="visual-core">
@@ -207,11 +224,17 @@ if not st.session_state.autenticado:
     )
 
   with col_log:
-    st.markdown('<div style="height: 20vh;"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="height: 20vh;"></div>', unsafe_allow_html=True
+    )
 
     if not st.session_state.fase_carga:
       st.markdown('<div class="login-box">', unsafe_allow_html=True)
-      st.markdown('<h2 style="color:#00d4ff; font-size:18px;">// INGRESE SUS CREDENCIALES</h2>', unsafe_allow_html=True)
+      st.markdown(
+          '<h2 style="color:#00d4ff; font-size:18px;">// INGRESE SUS'
+          " CREDENCIALES</h2>",
+          unsafe_allow_html=True,
+      )
 
       with st.form("login_form", clear_on_submit=False):
         u = st.text_input("USUARIO", key="u_login")
@@ -231,7 +254,10 @@ if not st.session_state.autenticado:
 
     else:
       st.markdown('<div class="login-box">', unsafe_allow_html=True)
-      st.markdown('<h2 style="color:#00d4ff; font-size:18px;">// CARGANDO SCADA...</h2>', unsafe_allow_html=True)
+      st.markdown(
+          '<h2 style="color:#00d4ff; font-size:18px;">// CARGANDO SCADA...</h2>',
+          unsafe_allow_html=True,
+      )
       prog = st.progress(0)
       status = st.empty()
 
@@ -263,7 +289,7 @@ if not st.session_state.autenticado:
 
   st.stop()
 
-# 1. CONFIGURACIÓN DE PÁGINA
+# 1.  SECCION---------------------------------------------------------------------------1. CONFIGURACIÓN DE PÁGINA ----------------------------------------------------------------------------------------------------------
 params = st.query_params
 sector_seleccionado = params.get("sector", None)
 
@@ -280,9 +306,11 @@ st.set_page_config(
 )
 count = st_autorefresh(interval=300000, limit=1000, key="scada_refresh")
 
-# 2. FUNCIONES DE CONEXIÓN
-from sqlalchemy import create_engine, event
+# 2.  SECCION------------------------------------------------------------------------------2. FUNCIONES DE CONEXIÓN ------------------------------------------------------------------------------------------------------
 
+from sqlalchemy import create_engine, event # Asegúrate de importar 'event' aquí
+
+# 2.1. Secretos de la base de datos de SCADA
 @st.cache_resource
 def get_mysql_scada_engine():
     try:
@@ -290,11 +318,13 @@ def get_mysql_scada_engine():
         pwd = urllib.parse.quote_plus(c["password"])
         engine = create_engine(f"mysql+mysqlconnector://{c['user']}:{pwd}@{c['host']}/{c['database']}")
         
+        # --- AÑADIR ESTE BLOQUE AQUÍ ---
         @event.listens_for(engine, "connect")
         def set_big_selects(dbapi_connection, connection_record):
             cursor = dbapi_connection.cursor()
             cursor.execute("SET SESSION SQL_BIG_SELECTS=1;")
             cursor.close()
+        # -------------------------------
         
         with engine.connect() as conn: pass 
         return engine
@@ -302,6 +332,7 @@ def get_mysql_scada_engine():
         st.error(f"Error al conectar a la BD: {e}")
         return None
 
+# 2.2. Secretos de la base de datos de Telemetria 2
 @st.cache_resource
 def get_mysql_telemetria_engine():
     try:
@@ -312,19 +343,23 @@ def get_mysql_telemetria_engine():
         return engine
     except: return None
 
+# 2.3. Secretos de la base de datos de POSTGRES
 @st.cache_resource
 def get_postgres_conn():
     try: 
+        # Simplemente crea y retorna el objeto de conexión
         conn = psycopg2.connect(**st.secrets["postgres"])
         return conn
     except Exception as e: 
         st.error(f"Error de conexión Postgres: {e}")
         return None
         
+ # 2.4. Funcion para cargar el ultimo dato de SCADA
 def cargar_datos_scada(lista_tags):
     engine = get_mysql_scada_engine()
     if not engine or not lista_tags: return {}
     try:
+      
         tags_str = "', '".join(lista_tags)
         query = f"""
             SELECT r.NAME, h.VALUE, h.FECHA 
@@ -334,10 +369,12 @@ def cargar_datos_scada(lista_tags):
             AND h.FECHA = (SELECT MAX(FECHA) FROM VfiTagNumHistory_Ultimo WHERE GATEID = h.GATEID)
         """
         df = pd.read_sql(query, engine)
+        
         return {row['NAME']: (row['VALUE'], row['FECHA'].strftime('%d/%m %H:%M') if row['FECHA'] else "N/A") for _, row in df.iterrows()}
     except Exception as e:
         return {}
 
+# 2.5. Funcion para optener los ultimos 7 dias de valores de SCADA
 def obtener_historia_7_dias(tag_name):
     engine = get_mysql_scada_engine()
     if not engine or not tag_name: return pd.DataFrame()
@@ -356,8 +393,10 @@ def obtener_historia_7_dias(tag_name):
     except:
         return pd.DataFrame()
         
+# 2.6. Funcion para optener los poligonos de los sectores y sus demas campos
 @st.cache_data(ttl=3600)
 def cargar_sectores_poligonos():
+    # Obtenemos una conexión fresca
     conn = psycopg2.connect(**st.secrets["postgres"])
     if not conn: return []
     try:
@@ -371,15 +410,19 @@ def cargar_sectores_poligonos():
                    ST_AsGeoJSON(ST_Transform(geom, 4326)) as geo 
             FROM "Sectorizacion"."Sectores_hidr"
         """
+        # Leemos los datos
         df = pd.read_sql(query, conn)
         return df.to_dict('records')
     except Exception as e:
         st.error(f"Error al cargar sectores: {e}")
         return []
     finally:
+        # El bloque finally asegura que la conexión se cierre SIEMPRE
+        # al terminar la función, exitosa o fallida.
         if conn:
             conn.close()
 
+# Función corregida para leer el campo 'geom' directamente
 @st.cache_data(ttl=3600)
 def get_todas_las_colonias():
     query = """
@@ -440,6 +483,7 @@ def obtener_pozos_con_incidencias_hoy():
         for _, row in df_inc.iterrows():
             val = row['NUM_POZO']
             if pd.notna(val):
+                # CORRECCIÓN: Conservamos letras, números y guiones medios (ej. P-087A, R-087)
                 id_limpio = str(val).strip().upper()
                 if id_limpio:
                     diagnostico = row['DIAGNOSTICO_FALLA'] or 'Sin diagnóstico'
@@ -457,6 +501,7 @@ def calcular_color_colonia(props, pozos_con_incidencia):
         afectacion_col = props.get(f'Afectacion_{i}')
         
         if pozo_col is not None:
+            # Normalización robusta con y sin guion (ej. P087A / P-087A)
             id_p_limpio = str(pozo_col).strip().upper()
             id_p_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_p_limpio)
             id_p_sin_guion = id_p_limpio.replace('-', '')
@@ -470,26 +515,28 @@ def calcular_color_colonia(props, pozos_con_incidencia):
                     try:
                         val_str = str(afectacion_col).replace('%', '').strip()
                         val_afect = float(val_str)
+                        # ⚠️ CAMBIO CLAVE: Sumar los porcentajes en lugar de buscar el máximo
                         suma_afectacion += val_afect
                     except:
                         pass
 
     if not tiene_incidencia_activa:
-        return '#3498DB', 0
+        return '#3498DB', 0  # Azul para colonias sin afectación activa
 
     if tiene_incidencia_activa and suma_afectacion == 0:
         return '#FFA500', 1  
 
+    # Rangos de color según la afectación acumulada total
     if 76 <= suma_afectacion <= 100:
-        return '#FF0000', suma_afectacion
+        return '#FF0000', suma_afectacion  # Rojo
     elif 51 <= suma_afectacion <= 75:
-        return '#FFFF00', suma_afectacion
+        return '#FFFF00', suma_afectacion  # Amarillo
     elif 31 <= suma_afectacion <= 50:
-        return '#FFA500', suma_afectacion
+        return '#FFA500', suma_afectacion  # Naranja
     elif 1 <= suma_afectacion <= 30:
-        return '#69ADDD', suma_afectacion
+        return '#69ADDD', suma_afectacion  # Naranja bajito
     else:
-        return '#FF0000', suma_afectacion
+        return '#FF0000', suma_afectacion  # Por si supera el 100%
 
 def calcular_color_sector(props, pozos_con_incidencia):
     suma_afectacion = 0.0
@@ -517,23 +564,25 @@ def calcular_color_sector(props, pozos_con_incidencia):
                     except:
                         pass
 
+    # Colores exactamente iguales a los de las colonias:
     if not tiene_incidencia_activa:
-        return '#3498DB', 0
+        return '#3498DB', 0  # Azul estándar para sectores sin afectación
 
     if tiene_incidencia_activa and suma_afectacion == 0:
         return '#FFA500', 1  
 
     if 76 <= suma_afectacion <= 100:
-        return '#FF0000', suma_afectacion
+        return '#FF0000', suma_afectacion  # Rojo
     elif 51 <= suma_afectacion <= 75:
-        return '#FFFF00', suma_afectacion
+        return '#FFFF00', suma_afectacion  # Amarillo
     elif 31 <= suma_afectacion <= 50:
-        return '#FFA500', suma_afectacion
+        return '#FFA500', suma_afectacion  # Naranja
     elif 1 <= suma_afectacion <= 30:
-        return '#69ADDD', suma_afectacion
+        return '#69ADDD', suma_afectacion  # Azul Claro
     else:
         return '#FF0000', suma_afectacion
 
+# 2.7. Funcion para cambiar el formato de horas
 def formato_hora(decimal):
     try:
         if decimal == "N/A" or decimal is None: return "00:00"
@@ -543,6 +592,7 @@ def formato_hora(decimal):
     except:
         return "00:00"
 
+# 2.8. Funcion para el color de los sectores
 def get_blink_icon(color):
     return f"""
     <div style="
@@ -557,7 +607,9 @@ def get_blink_icon(color):
     </style>
     """
 
-# 3. CARGA DE DATOS DE DICCIONARIOS
+# 3. SECCION -------------------------------------------------------------------------------- 3. CARGA DE DATOS DE DICCIONARIOS -------------------------------------------------------------------------------------------
+
+# 3.1 Funcion para optener la base de datos Diccionario_de_pozos  
 @st.cache_data(ttl=3600) 
 def cargar_mapa_pozos_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -593,6 +645,7 @@ def cargar_mapa_pozos_desde_db():
     except:
         return {}
 
+# 3.2. Funcion para optener la base de datos Diccionario_de_tanques
 @st.cache_data(ttl=3600)
 def cargar_tanques_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -604,8 +657,10 @@ def cargar_tanques_desde_db():
         nuevo_mapa_tq = {}
         for _, row in df_tq.iterrows():
             try:
+
                 coords_str = str(row['coord']).strip().replace('(', '').replace(')', '')
                 lat, lon = map(float, coords_str.split(','))
+                
                 n_max = float(row['Nivel_max']) if row.get('Nivel_max') is not None else 1.0
                 if n_max <= 0: n_max = 1.0
 
@@ -620,6 +675,7 @@ def cargar_tanques_desde_db():
         return nuevo_mapa_tq
     except: return {}
         
+# 3.3. Funcion para optener la base de datos Diccionario_de_rebombeos
 @st.cache_data(ttl=3600)
 def cargar_rebombeos_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -647,6 +703,7 @@ def cargar_rebombeos_desde_db():
         return nuevo_mapa_rb
     except: return {}
 
+# 3.4. Funcion para optener los puntos de control de la base de datos Diccionario_puntos_de_control
 @st.cache_data(ttl=5)
 def cargar_puntos_de_control_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -658,6 +715,8 @@ def cargar_puntos_de_control_desde_db():
             try:
                 raw_c = str(r['coord']).replace('(', '').replace(')', '').replace(' ', '').strip()
                 lat_s, lon_s = raw_c.split(',')
+                
+                # Obtenemos la serie
                 id_reg_val = r.get('Serie', r.get('Registrador', 'ID'))
                 
                 d_res[str(id_reg_val)] = {
@@ -669,6 +728,7 @@ def cargar_puntos_de_control_desde_db():
                     "tag_q": r.get('Caudal'),     
                     "tag_vbat": r.get('bateria'), 
                     "tag_idx": r.get('indice'),
+                    # --- CRUCIAL: Agregamos la Serie aquí para que el marcador la vea ---
                     "Serie": str(id_reg_val) 
                 }
             except Exception as e:
@@ -677,6 +737,7 @@ def cargar_puntos_de_control_desde_db():
     except Exception as e:
         return {}
 
+# 3.5. Funcion para optener los puntos de criticos de la base de datos Diccionario_puntos_criticos
 @st.cache_data(ttl=5)
 def cargar_puntos_criticos_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -690,9 +751,10 @@ def cargar_puntos_criticos_desde_db():
                 lat_s, lon_s = raw_c.split(',')
                 id_reg = r.get('Serie', r.get('Registrador', 'ID'))
                 
+                # CORRECCIÓN AQUÍ: Guardar explícitamente 'Domicilio'
                 d_res[str(id_reg)] = {
-                    "nombre": str(r.get('Colonia', 'S/C')),
-                    "Domicilio": str(r.get('Domicilio', 'Sin Domicilio')),
+                    "nombre": str(r.get('Colonia', 'S/C')), # Usamos Colonia para el nombre interno
+                    "Domicilio": str(r.get('Domicilio', 'Sin Domicilio')), # <--- CLAVE NUEVA
                     "coord": [float(lat_s), float(lon_s)],
                     "sector": str(r['Sector']).split('.')[0].strip(),
                     "tag_p1": r.get('Presion_1'),
@@ -704,6 +766,7 @@ def cargar_puntos_criticos_desde_db():
     except Exception as e:
         return {}
         
+# 3.4. Funcion para optener las valvulas reductoras de presion de la base de datos Diccionario_vrp
 @st.cache_data(ttl=5)
 def cargar_vrp_desde_db():
     engine = get_mysql_telemetria_engine()
@@ -715,6 +778,8 @@ def cargar_vrp_desde_db():
             try:
                 raw_c = str(r['coord']).replace('(', '').replace(')', '').replace(' ', '').strip()
                 lat_s, lon_s = raw_c.split(',')
+                
+                # Obtenemos el valor de la serie
                 id_val = r.get('Serie', 'ID_VRP')
                 
                 d_res[str(id_val)] = {
@@ -724,17 +789,22 @@ def cargar_vrp_desde_db():
                     "tag_p1": r.get('Presion_1'),
                     "tag_p2": r.get('Presion_2'),
                     "tag_q": r.get('Caudal'),
+                    # --- AGREGAMOS ESTA LÍNEA ---
                     "Serie": str(id_val)
                 }
             except: continue
         return d_res
     except: return {}
 
+# 3.5. Funcion para optener los macromedidores desde la base de datos
+
 @st.cache_data(ttl=3600)
 def cargar_medidores_desde_db():
     engine = get_mysql_telemetria_engine()
     if not engine: return {}
     try:
+        # Consulta modificada para obtener la fecha más reciente por medidor
+        # Agrupamos por Medidor para obtener el último registro de cada uno
         query = """
             SELECT Medidor, Nombre, Lat, Lon, Flujo, Presion, Consumo, MAX(FECHA) as UltimaFecha 
             FROM MACROMEDIDORES 
@@ -750,20 +820,24 @@ def cargar_medidores_desde_db():
                 "flujo": row['Flujo'],
                 "presion": row['Presion'],
                 "consumo": row['Consumo'],
-                "ultima_fecha": pd.to_datetime(row['UltimaFecha'])
+                "ultima_fecha": pd.to_datetime(row['UltimaFecha']) # Convertimos a formato fecha
             }
         return datos_medidores
     except Exception as e:
         st.error(f"Error al cargar datos: {e}")
         return {}
         
+# 3.6. Funcion para optener las incidencias
 @st.cache_data(ttl=60)
 def get_data():
     engine = get_mysql_scada_engine()
+    
     if engine is None:
         st.error("No se pudo establecer conexión.")
         return pd.DataFrame()
+        
     try:
+        # AQUÍ ES DONDE AGREGAS TODOS LOS CAMPOS QUE QUIERAS TRAER
         query = """
             SELECT NUM_POZO, COLONIA, FECHA_HORA_INICIO, FECHA_HORA_FIN, 
                    DIAGNOSTICO_FALLA, TIEMPO_ESTIMADO_ATENCION, RESPONSABLE, ESTATUS 
@@ -776,52 +850,68 @@ def get_data():
         st.error(f"Error: {e}")
         return pd.DataFrame()
         
+# 3.7. Funcion para optener las colonias del diccionario de colonias        
 @st.cache_data(ttl=60)
 def get_diccionario_completo():
     try:
+        # Asegúrate de que get_engine_telemetria() esté disponible en tu archivo
         query = "SELECT Pozos, Col_atl, Sector, Distrito, Supervisor, ST_AsText(geom) as geom_wkt FROM Diccionario_colonias"
         return pd.read_sql(query, get_mysql_telemetria_engine())
     except Exception as e:
         st.error(f"Error en get_diccionario_colonias: {e}")
         return pd.DataFrame()
         
+# 3.8. Funcion para optener las colonias del diccionario de colonias
 @st.cache_data(ttl=60)
 def get_geometries(num_pozo):
     numero_limpio = re.sub(r'\D', '', str(num_pozo))
     busqueda = numero_limpio if numero_limpio else str(num_pozo)
+    
+    # La consulta ya trae los campos, vamos a asegurarnos de que no se pierdan
     query = f"""
     SELECT ST_AsText(geom) as geom_wkt, Col_atl, Sector, Distrito, Supervisor 
     FROM Diccionario_colonias 
     WHERE Pozos LIKE '%%{busqueda}%%'
     """
+    
     try:
         df = pd.read_sql(query, get_mysql_telemetria_engine())
         if not df.empty and df['geom_wkt'].iloc[0] is not None:
             df['geometry'] = df['geom_wkt'].apply(wkt.loads)
             gdf = gpd.GeoDataFrame(df, geometry='geometry')
             gdf.set_crs(epsg=32613, inplace=True)
+            # Retornamos el gdf con las columnas intactas
             return gdf.to_crs(epsg=4326)
     except Exception as e:
         st.error(f"Error en BD: {e}")
     return None
 
-# 4. GRAFICO DE TANQUES
+# 4. SECCION -------------------------------------------------------------------------------- 4. GRAFICAR LOS TANQUES EN EL POPUP --------------------------------------------------------------------
 params = st.query_params
 tag_a_graficar = params.get("graficar_tanque", None)
 nombre_tq = params.get("nombre", "Tanque")
 
 if tag_a_graficar:
+    import datetime
+    import plotly.express as px
+    import pandas as pd
+    import plotly.graph_objects as go
+    
     st.title(f"📊 Análisis de Nivel: {nombre_tq}")
+    
+    # 4.1. FILTROS DE FECHA ---
     col_f1, col_f2 = st.columns([1, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
             "Selecciona un rango:",
             ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-            index=3,
+            index=3, # <--- CAMBIO: Ahora selecciona 'Últimos 14 días' por defecto
             key="pop_selector_final_v8"
         )
 
     hoy = datetime.date.today()
+    
+    # 4.2. Lógica de selección de fechas
     if opcion_fecha == "Hoy":
         fecha_inicio = hoy
         fecha_fin = hoy
@@ -839,6 +929,7 @@ if tag_a_graficar:
             rango = st.date_input("Periodo:", value=(hoy - datetime.timedelta(days=7), hoy), max_value=hoy, key="pop_cal_v8")
             fecha_inicio, fecha_fin = rango if isinstance(rango, tuple) and len(rango)==2 else (hoy, hoy)
 
+    # 4.3. CONSULTA A LA BASE DE DATOS
     try:
         engine = get_mysql_scada_engine()
         f_desde = f"{fecha_inicio} 00:00:00"
@@ -852,13 +943,16 @@ if tag_a_graficar:
             AND h.FECHA BETWEEN '{f_desde}' AND '{f_hasta}'
             ORDER BY h.FECHA ASC
         """
+        
         df_hist = pd.read_sql(query, engine)
 
         if not df_hist.empty:
             df_hist['FECHA'] = pd.to_datetime(df_hist['FECHA'])
             df_hist['VALUE'] = df_hist['VALUE'].round(2)
             
+            # 4.4. CREACIÓN DEL GRÁFICO DE ÁREA DESVANECIDA
             fig = go.Figure()
+
             fig.add_trace(go.Scatter(
                 x=df_hist['FECHA'],
                 y=df_hist['VALUE'],
@@ -866,23 +960,34 @@ if tag_a_graficar:
                 line=dict(color='#00d4ff', width=2),
                 marker=dict(size=4, color='#00d4ff'),
                 fill='tozeroy',
-                fillcolor='rgba(0, 212, 255, 0.2)',
+                fillcolor='rgba(0, 212, 255, 0.2)', # Efecto desvanecido
                 hovertemplate="<b>%{y:.2f} m</b><extra></extra>"
             ))
 
+            # 1. Definimos las fechas de tus líneas y el diccionario de traducción
             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                        7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
             fechas_lineas = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
 
+            # 2. Lógica de filtrado dinámico para evitar amontonamiento
+            # Si seleccionas muchos días, mostramos solo una etiqueta cada X días
             num_dias = len(fechas_lineas)
-            paso = 2 if num_dias > 15 and num_dias <= 30 else (5 if num_dias > 30 else 1)
+            if num_dias > 15:
+                paso = 2 if num_dias <= 30 else 5  # Muestra cada 2 días o cada 5
+            else:
+                paso = 1
+            
+            # Aplicamos el filtro al rango
             ticks_filtrados = fechas_lineas[::paso]
 
+            # 3. Construimos etiquetas solo para los ticks filtrados
             etiquetas_filtradas = [
                 f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
                 for d in ticks_filtrados
             ]
 
+            # 4. CONFIGURACIÓN DEL EJE X
             fig.update_xaxes(
                 tickvals=ticks_filtrados,
                 ticktext=etiquetas_filtradas,
@@ -906,34 +1011,80 @@ if tag_a_graficar:
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)',
                 height=600,
+                # --- CONFIGURACIÓN DEL EJE X CON RANGE SLIDER ---
                 xaxis=dict(
-                    rangeslider=dict(visible=True, thickness=0.08),
+                    rangeslider=dict(
+                        visible=True,
+                        thickness=0.08
+                    ),
                     type="date",
                     showgrid=True,
                     gridcolor='#333'
                 ),
-                yaxis=dict(tickformat=".2f", showgrid=True, gridcolor='#333'),
-                hoverlabel=dict(bgcolor="#1f2c38", font_size=12)
+                yaxis=dict(
+                    tickformat=".2f",
+                    showgrid=True,
+                    gridcolor='#333'
+                ),
+                hoverlabel=dict(
+                    bgcolor="#1f2c38",
+                    font_size=12
+                )
             )
 
             dias_intermedios = pd.date_range(start=fecha_inicio, end=fecha_fin, freq='D')
+            
             for dia in dias_intermedios:
                 es_lunes = dia.weekday() == 0
-                delta = pd.Timedelta(hours=1)
-                fig.add_vrect(x0=dia - delta, x1=dia + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                fig.add_vline(x=dia, line_width=1.5, line_dash="dash", line_color="yellow" if es_lunes else "white", opacity=0.5, layer="above")
+                
+                # 1. El sombreado gris (la "sombra" detrás de la línea)
+                # Usamos un ancho fijo (delta) para que sea una franja pequeña
+                delta = pd.Timedelta(hours=1) # Ajusta este valor para hacer la sombra más ancha o angosta
+                
+                fig.add_vrect(
+                    x0=dia - delta,
+                    x1=dia + delta,
+                    fillcolor="gray",
+                    opacity=0.2, # Ajusta esta opacidad para que sea más clara o más oscura
+                    layer="below",
+                    line_width=0
+                )
+                
+                # 2. La línea punteada encima
+                fig.add_vline(
+                    x=dia, 
+                    line_width=1.5,
+                    line_dash="dash",
+                    line_color="yellow" if es_lunes else "white",
+                    opacity=0.5,
+                    layer="above"
+                )
                 
             st.plotly_chart(fig, use_container_width=True)
+            
             with st.expander("Ver tabla de datos detallada"):
-                st.dataframe(df_hist[['FECHA', 'VALUE']].sort_values(by='FECHA', ascending=False), use_container_width=True)
+                st.dataframe(
+                    df_hist[['FECHA', 'VALUE']].sort_values(by='FECHA', ascending=False), 
+                    use_container_width=True
+                )
         else:
             st.warning(f"No hay datos registrados desde el {f_desde} hasta el {f_hasta}")
+            
     except Exception as e:
         st.error(f"Error en la consulta: {e}")
+    
     st.stop()
 
-# 5. GRAFICO DE POZOS
+# 4.6. SECCION -------------------------------------------------------------------------------- 5. GRAFICAR LOS POZOS --------------------------------------------------------------------
+
+from plotly.subplots import make_subplots
+from datetime import datetime, timedelta
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
 params = st.query_params
+
 if "graficar_pozo" in params:
     id_pozo_graf = params["graficar_pozo"]
     nombre_pozo = params.get("nombre", id_pozo_graf)
@@ -946,6 +1097,7 @@ if "graficar_pozo" in params:
         st.stop()
 
     cabecera_placeholder = st.empty()
+    
     col_f1, col_f2 = st.columns([2, 2])
     with col_f1:
         opcion_fecha = st.selectbox(
@@ -956,8 +1108,9 @@ if "graficar_pozo" in params:
         )
 
     hoy_dt = datetime.now()
+# Definimos medianoche como base para todas las comparaciones
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    f_fin = hoy_dt
+    f_fin = hoy_dt # Por defecto hasta el momento actual
 
     if opcion_fecha == "Hoy":
         f_ini = medianoche
@@ -1033,9 +1186,13 @@ if "graficar_pozo" in params:
             df['FECHA'] = pd.to_datetime(df['FECHA'])
             df = df.sort_values('FECHA', ascending=True)
 
+            # --- CORRECCIÓN LÓGICA AQUÍ ---
             if df.empty:
+                # Si está vacío, mostramos el aviso y salimos de esta parte
                 st.warning(f"⚠️ No hay registros disponibles para el rango seleccionado.")
+                
             else:
+                # --- LÓGICA DE INDICADORES (Solo se ejecuta si hay datos) ---
                 val_vol, val_cau_prom, val_pre_prom = "0.00", "0.00", "0.00"
                 val_v_prom, val_a_prom = "0.00", "0.00"
                 val_nd_prom, val_sum_prom, val_nt_prom = "0.00", "0.00", "0.00"
@@ -1047,6 +1204,7 @@ if "graficar_pozo" in params:
                         consumo_neta = float(df_tot['VALUE'].iloc[-1]) - float(df_tot['VALUE'].iloc[0])
                         val_vol = f"{consumo_neta:,.2f}"
                     
+                
                 if tag_caudal_real in df['TagName'].values:
                     val_cau_prom = f"{df[df['TagName'] == tag_caudal_real]['VALUE'].mean():,.2f}"
                 if tag_nivel_tanque in df['TagName'].values:
@@ -1063,6 +1221,7 @@ if "graficar_pozo" in params:
                 if tags_amperaje:
                     val_a_prom = f"{df[df['TagName'].isin(tags_amperaje)]['VALUE'].mean():,.1f}"
 
+# ----------------------- RENDER CABECERA INDICADORES EN TARGETAS DEL POZO ---------------------------------------------------------------------------------------------
             cabecera_placeholder.markdown(f"""
 <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px;">
     <h1 style="margin: 0; font-size: 32px; color: white; white-space: nowrap;">Sitio: <span style="color:#00d4ff;">{nombre_pozo}</span></h1>
@@ -1103,6 +1262,7 @@ if "graficar_pozo" in params:
 </div>
 """, unsafe_allow_html=True)
 
+# ------------------------------------------------------- PESTAÑA DE VOLÚMENES Y GRAFICO DE BARRAS DE VOLUMEN TOTALIZADO ------------------------------------------------------------------------------
             with st.expander("📅 Análisis de volumen real", expanded=False):
                 if tag_totalizado and tag_totalizado != 'N/A':
                     curr_year = datetime.now().year
@@ -1119,12 +1279,17 @@ if "graficar_pozo" in params:
                     if not df_h.empty:
                         res_meses = df_h.groupby(['anio', 'mes'])['VALUE'].first().reset_index()
                         res_meses = res_meses.sort_values(['anio', 'mes'])
+                        
+                        # Calculamos la diferencia entre el valor del mes actual y el mes siguiente
                         res_meses['produccion_neta'] = res_meses['VALUE'].shift(-1) - res_meses['VALUE']
+                        
                         nombres_meses = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Sep', 10:'Oct', 11:'Nov', 12:'Dic'}
                         res_meses['Mes_Txt'] = res_meses['mes'].map(nombres_meses)
 
                         curr_year = datetime.now().year
                         res_meses = res_meses[res_meses['anio'].isin([curr_year, curr_year - 1])]
+                        
+                        # Eliminamos el último registro (el mes actual) que no tiene producción cerrada
                         res_meses = res_meses.dropna(subset=['produccion_neta'])
 
                         col_g, col_t = st.columns([2, 1])
@@ -1155,8 +1320,10 @@ if "graficar_pozo" in params:
                             st.dataframe(pivot.style.format("{:,.0f}"), use_container_width=True)
                     else: st.info("Sin datos.")
 
+            # ------------------------ PROCESAMIENTO GRAFICO DE VARIABLES DEL POZO -------------------------------------------------------------------------------------------------------------------
             if not df.empty:
                 df['FECHA'] = pd.to_datetime(df['FECHA'])
+                
                 eje_tiempo_global = sorted(df['FECHA'].unique())
                 df_interactivo = pd.DataFrame({'FECHA_INDEX': eje_tiempo_global})
                 
@@ -1164,6 +1331,7 @@ if "graficar_pozo" in params:
                 
                 for t in tags_grafico:
                     dft_l = df[df['TagName'] == t['tag']].sort_values('FECHA').copy()
+
                     if len(dft_l) <= 3:
                         continue
                     
@@ -1179,6 +1347,7 @@ if "graficar_pozo" in params:
                             LIMIT 1
                         """
                         df_ultimo_reg = pd.read_sql(q_ultimo, engine)
+                        
                         if not df_ultimo_reg.empty:
                             df_ultimo_reg['FECHA'] = pd.to_datetime(df_ultimo_reg['FECHA'])
                             dft_l = df_ultimo_reg
@@ -1189,6 +1358,7 @@ if "graficar_pozo" in params:
                                 'FECHA': pd.to_datetime(f_ini)
                             }])
 
+                    # 1. GEOMETRÍA VISUAL REAL
                     fig_line.add_trace(
                         go.Scatter(
                             x=dft_l['FECHA'], 
@@ -1205,13 +1375,16 @@ if "graficar_pozo" in params:
                     
                     dias_es = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
                     meses_es = {'Jan': 'Ene', 'Feb': 'Feb', 'Mar': 'Mar', 'Apr': 'Abr', 'May': 'May', 'Jun': 'Jun', 
-                                'Jul': 'Jul', 'Aug': 'Ago', 'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dec'}
+                                'Jul': 'Jul', 'Aug': 'Ago', 'Sep': 'Sep', 'Oct': 'Oct', 'Nov': 'Nov', 'Dec': 'Dic'}
 
+                    # 2. PROCESAMIENTO DE FECHA TRADUCIDA
+                    # En lugar de solo strftime, transformamos el formato al vuelo
                     def traducir_fecha(d):
                         dia_nom = dias_es.get(d.strftime('%a'), d.strftime('%a'))
                         mes_nom = meses_es.get(d.strftime('%b'), d.strftime('%b'))
                         return f"{dia_nom} {d.day}-{mes_nom} {d.strftime('%H:%M:%S')}"
 
+                    # Aplicamos la traducción a la columna antes del merge
                     dft_l['HORA_TRADUCIDA'] = dft_l['FECHA'].apply(traducir_fecha)
                     
                     df_tag_maestro = pd.merge_asof(
@@ -1222,8 +1395,10 @@ if "graficar_pozo" in params:
                         direction='backward'
                     )
                     df_tag_maestro['VALUE'] = df_tag_maestro['VALUE'].bfill()
+                    # Usamos la columna traducida
                     df_tag_maestro['HORA_TRADUCIDA'] = df_tag_maestro['HORA_TRADUCIDA'].bfill()
                     
+                    # 3. TRAZA DE HOVER (Aquí no cambias nada más, el customdata ya lleva el texto en español)
                     fig_line.add_trace(
                         go.Scatter(
                             x=df_interactivo['FECHA_INDEX'],
@@ -1233,15 +1408,19 @@ if "graficar_pozo" in params:
                             line=dict(color=t['color'], width=0.01), 
                             yaxis=t['axis'],
                             showlegend=False,
-                            customdata=df_tag_maestro['HORA_TRADUCIDA'].tolist(),
+                            customdata=df_tag_maestro['HORA_TRADUCIDA'].tolist(), # <--- YA VA TRADUCIDO
                             hovertext=df_tag_maestro['VALUE'].tolist(),
                             hovertemplate=f"<span style='color:{t['color']};'>■</span> <b>{t['label']}</b>: %{{hovertext:,.2f}} <span style='color:#888; font-size:11px;'>(%{{customdata}})</span><extra></extra>",
-                            hoverlabel=dict(bordercolor=t['color'])
+                            hoverlabel=dict(
+                                bordercolor=t['color']
+                            )
                         )
                     )
 
+                # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (BLOQUE DE APOYO)
                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                            7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
                 fechas_lineas = pd.date_range(start=f_ini, end=f_fin, freq='D')
                 num_dias = len(fechas_lineas)
@@ -1253,51 +1432,143 @@ if "graficar_pozo" in params:
                     for d in ticks_filtrados
                 ]
 
-                delta = pd.Timedelta(hours=0.15)
+                # 2. DIBUJO DE LÍNEAS CON SOMBRA (VRECT + VLINE)
+                delta = pd.Timedelta(hours=0.15) # Ancho del halo detrás de la línea
                 for d in fechas_lineas:
                     es_lunes = (d.dayofweek == 0)
-                    fig_line.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                    fig_line.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+                    
+                    # Sombra (vrect)
+                    fig_line.add_vrect(
+                        x0=d - delta,
+                        x1=d + delta,
+                        fillcolor="gray",
+                        opacity=0.2,
+                        layer="below",
+                        line_width=0
+                    )
+                    
+                    # Línea punteada principal (vline)
+                    fig_line.add_vline(
+                        x=d, 
+                        line_width=1.5, 
+                        line_dash="dash", 
+                        line_color="#fffb00" if es_lunes else "white",
+                        opacity=0.5,
+                        layer="above"
+                    )
 
+                # 3. CONFIGURACIÓN DEL EJE X
                 fig_line.update_layout(
                     template="plotly_dark", 
                     height=580, 
                     paper_bgcolor='rgba(0,0,0,0)', 
                     plot_bgcolor='rgba(0,0,0,0)', 
+                    
+                    # Mantiene el estado del gráfico al interactuar
                     uirevision='constant', 
                     hovermode="x unified", 
                     legend=dict(orientation="h", y=1.08),
+                    
                     xaxis=dict(
-                        title=dict(text="<b>Tiempo</b>"),
-                        domain=[0.07, 0.91],
-                        tickangle=0,
-                        showline=False,
-                        autorange=True,
-                        showspikes=True,
-                        spikethickness=1,
-                        spikedash="dash",
-                        spikemode="across",
-                        spikecolor="rgba(255, 255, 255, 0.6)",
-                        tickformatstops=[
-                            dict(dtickrange=[None, 86400000], value="%H:%M <br>%A %d-%b-%Y"),
-                            dict(dtickrange=[86400000, 604800000], value="%H:%M <br>%A %d-%b-%Y"),
-                            dict(dtickrange=[604800000, None], value="%H:%M <br>%d-%b-%Y")
-                        ]
+                    title=dict(text="<b>Tiempo</b>"),
+                    domain=[0.07, 0.91],
+                    tickangle=0,
+                    showline=False,
+                    autorange=True,
+                    showspikes=True,
+                    spikethickness=1,
+                    spikedash="dash",
+                    spikemode="across",
+                    spikecolor="rgba(255, 255, 255, 0.6)",
+                    # Configuración para mostrar día y hora automáticamente
+                    tickformatstops=[
+                    dict(dtickrange=[None, 86400000], value="%H:%M <br>%A %d-%b-%Y"),
+                    dict(dtickrange=[86400000, 604800000], value="%H:%M <br>%A %d-%b-%Y"),
+                    dict(dtickrange=[604800000, None], value="%H:%M <br>%d-%b-%Y")
+                ]
+                ),
+                
+                    
+                    # --- CONFIGURACIÓN DE EJES Y (LÍNEAS DIVISORIAS INTERNAS COMPLETAS) ---
+                    yaxis5=dict(
+                        title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), 
+                        tickfont=dict(color="#00ffcc"), 
+                        side="left",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.00,
+                        showline=True,        # Línea activa: Divide Nivel Tanque de Caudal
+                        linecolor='white',
+                        linewidth=1.5
                     ),
-                    yaxis5=dict(title=dict(text="<b>Nivel Tanque (m)</b>", font=dict(color="#00ffcc")), tickfont=dict(color="#00ffcc"), side="left", overlaying="y", anchor="free", position=0.00, showline=True, linecolor='white', linewidth=1.5),
-                    yaxis=dict(title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), tickfont=dict(color="#00d4ff"), side="left", anchor="free", position=0.07, showline=True, linecolor='white', linewidth=1.5),
-                    yaxis2=dict(title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), tickfont=dict(color="#00ff00"), side="right", overlaying="y", anchor="free", position=0.92, showline=True, linecolor='white', linewidth=1.5),
-                    yaxis3=dict(title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), tickfont=dict(color="#ff00b4"), side="right", overlaying="y", anchor="free", position=0.955, showline=True, linecolor='white', linewidth=1.5),
-                    yaxis4=dict(title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), tickfont=dict(color="#ff8000"), side="right", overlaying="y", anchor="free", position=1.00, showline=True, linecolor='white', linewidth=1.5, rangemode="tozero")
+                    yaxis=dict(
+                        title=dict(text="<b>Caudal (Lps)</b>", font=dict(color="#00d4ff")), 
+                        tickfont=dict(color="#00d4ff"),
+                        side="left",
+                        anchor="free",
+                        position=0.07,
+                        showline=True,        # Línea activa: Cierre del área de gráfica izquierda
+                        linecolor='white',
+                        linewidth=1.5
+                    ),
+                    yaxis2=dict(
+                        title=dict(text="<b>Presión (Kg/cm²)</b>", font=dict(color="#00ff00")), 
+                        tickfont=dict(color="#00ff00"), 
+                        side="right",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.92,
+                        showline=True,        # Línea activa: Cierre del área de gráfica derecha
+                        linecolor='white',
+                        linewidth=1.5
+                    ),
+                    yaxis3=dict(
+                        title=dict(text="<b>Niveles Pozo (m)</b>", font=dict(color="#ff00b4")), 
+                        tickfont=dict(color="#ff00b4"), 
+                        side="right",
+                        overlaying="y",
+                        anchor="free",
+                        position=0.955,
+                        showline=True,        # Línea activa: Divide Presión de Niveles Pozo
+                        linecolor='white',
+                        linewidth=1.5
+                    ),
+                    yaxis4=dict(
+                        title=dict(text="<b>Eléctricos (V / A)</b>", font=dict(color="#ff8000")), 
+                        tickfont=dict(color="#ff8000"), 
+                        side="right",
+                        overlaying="y",
+                        anchor="free",
+                        position=1.00,
+                        showline=True,        # Línea activa: Divide Niveles Pozo de Eléctricos
+                        linecolor='white',
+                        linewidth=1.5,
+                        rangemode="tozero"
+                    )
                 )
                 st.plotly_chart(fig_line, use_container_width=True)
 
+                # --- NUEVA SECCIÓN: DESCARGA DE DATOS ---
+                # Usamos el dataframe 'df' que ya contiene toda la información de los tags
                 if not df.empty:
+                    # 1. Identificamos las etiquetas que corresponden a caudal
+                    # Buscamos todas las que contengan 'CAU_INS'
                     mask_caudal = df['TagName'].str.contains('CAU_INS', na=False)
+                    
+                    # 2. Aplicamos filtros SOLO a esas filas
+                    # Ponemos en None los valores fuera de rango solo en las filas de caudal
                     df.loc[mask_caudal & (df['VALUE'] < 0), 'VALUE'] = None
                     df.loc[mask_caudal & (df['VALUE'] > 100), 'VALUE'] = None
+                    
+                    # 3. Pivotamos los datos
                     df_pivot = df.pivot(index='FECHA', columns='TagName', values='VALUE')
+                    
+                    # 4. Aplicamos el rellenado hacia adelante (ffill) a todo el dataframe
+                    # Como ya limpiamos los valores inválidos de caudal, el ffill
+                    # tomará el último valor válido para todas las variables.
                     df_pivot = df_pivot.ffill().reset_index()
+                    
+                    # 5. Convertimos a CSV
                     csv_data = df_pivot.to_csv(index=False).encode('utf-8')
                     
                     st.download_button(
@@ -1309,13 +1580,24 @@ if "graficar_pozo" in params:
                     )
                 else:
                     st.warning("No hay datos disponibles para procesar.")
+
         except Exception as e: 
             st.error(f"Error: {e}")
+            
     st.stop()
 
-# 6. GRAFICO DE MACROMEDIDORES
+# 4.7. SECCION ---------------------------------------------------------------- 4.7. GRAFICAR LOS MACROMEDIDORES ------------------------------------------------------------------------------------
+import streamlit as st
+import pandas as pd
+import datetime as dt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
+
+# --- Configuración de página ---
 if "ver_grafico" in st.query_params:
     st.set_page_config(layout="wide", page_title="Miaa - Macromedidores")
+    
     if not st.session_state.get('autenticado'):
         if st.query_params.get("access") == "granted":
             st.session_state.autenticado = True
@@ -1329,6 +1611,7 @@ if "ver_grafico" in st.query_params:
     hoy_dt = dt.datetime.now()
     medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
+    # Consulta con JOIN para traer el Diámetro desde la otra tabla
     query = f"""
         SELECT 
             m.Nombre, 
@@ -1341,9 +1624,13 @@ if "ver_grafico" in st.query_params:
         AND m.Medidor != '1000' 
         LIMIT 1
     """
+    
     df_info = pd.read_sql(query, engine)
+    
+    # Asignación segura de variables
     info = df_info.iloc[0] if not df_info.empty else {"Nombre": "N/A", "Domicilio": "N/A", "Colonia": "N/A", "Diametro": "N/A"}
 
+    # --- Cabecera y CSS ---
     st.markdown(f"""
         <style>
             @keyframes spin {{ from {{ transform: rotate(0deg); }} to {{ transform: rotate(360deg); }} }}
@@ -1373,13 +1660,16 @@ if "ver_grafico" in st.query_params:
         </div>
     """, unsafe_allow_html=True)
 
+    # --- Selector de fechas ---
     col_sel, col_ind, col_btn = st.columns([2.0, 0.5, 6.0])
+
     with col_sel:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
         opcion_fecha = st.selectbox("rango", 
             ["Hoy", "Ayer", "Últimos 7 días", "Últimos 14 días", "Este Mes", "Último Mes", "Últimos 6 meses", "Personalizado"],
             index=4, label_visibility="collapsed", key="selector_fechas_unico")
 
+    # --- Lógica de fechas (DEBE IR ANTES DE LA CONSULTA SQL) ---
     f_fin = hoy_dt
     if opcion_fecha == "Hoy": f_ini = medianoche
     elif opcion_fecha == "Ayer": f_ini, f_fin = medianoche - dt.timedelta(days=1), medianoche - dt.timedelta(seconds=1)
@@ -1395,8 +1685,13 @@ if "ver_grafico" in st.query_params:
         rango = st.date_input("Periodo:", value=(hoy_dt.date() - dt.timedelta(days=7), hoy_dt.date()))
         f_ini, f_fin = dt.datetime.combine(rango[0], dt.time.min), dt.datetime.combine(rango[1], dt.time.max)
 
+    # --- Consulta de datos ---
     df = pd.read_sql(f"SELECT FECHA, Flujo, Presion, Consumo FROM MACROMEDIDORES WHERE Medidor = '{tag_a_graficar}' AND Medidor != '1000' AND FECHA BETWEEN '{f_ini}' AND '{f_fin}' ORDER BY FECHA ASC", engine)
-    df = df.groupby('FECHA').agg({'Flujo': 'mean', 'Presion': 'mean', 'Consumo': 'sum'}).reset_index()
+    df = df.groupby('FECHA').agg({
+        'Flujo': 'mean',
+        'Presion': 'mean',
+        'Consumo': 'sum'
+    }).reset_index()
     
     df_diario_exp = pd.DataFrame()
     if not df.empty:
@@ -1404,6 +1699,7 @@ if "ver_grafico" in st.query_params:
         df_diario_exp['FECHA'] = pd.to_datetime(df_diario_exp['FECHA']).dt.date
         df_diario_exp = df_diario_exp.groupby('FECHA')['Consumo'].sum().reset_index()
 
+    # --- Botones en col_btn ---
     with col_btn:
         st.markdown('<div style="margin-top: 26px;"></div>', unsafe_allow_html=True)
         c_b1, c_b2 = st.columns(2)
@@ -1416,20 +1712,26 @@ if "ver_grafico" in st.query_params:
             with c_b1: st.button("📥", disabled=True)
             with c_b2: st.button("📊", disabled=True)
 
+   
+    # Creamos el placeholder para indicadores
     placeholder_indicadores = st.empty()
 
     if not df.empty:
+        # 1. Cálculos de indicadores
         avg_caudal = df['Flujo'].mean()
         avg_presion = df['Presion'].mean()
         
+        # Cálculo de consumo total para el indicador
         df_diario_calc = df.copy()
         df_diario_calc['FECHA'] = pd.to_datetime(df_diario_calc['FECHA']).dt.date
         total_consumo = df_diario_calc.groupby('FECHA')['Consumo'].sum().sum()
         
+        # Formato manual para asegurar punto decimal y coma de miles
         entera = int(total_consumo)
         decimal = int(round((total_consumo - entera) * 100))
         consumo_fmt = f"{entera:,d}.{decimal:02d}".replace(",", "X").replace(".", ",").replace("X", ".")
 
+        # 2. Renderizado de los 3 indicadores JUNTOS
         with placeholder_indicadores.container():
             _, col_m1, col_m2, col_m3, _ = st.columns([1, 2, 2, 2, 1])
             estilo_div = "text-align: center; padding: 5px;"
@@ -1443,53 +1745,78 @@ if "ver_grafico" in st.query_params:
             with col_m3:
                 st.markdown(f'<div style="{estilo_div}"><div style="{estilo_titulo}">Consumo total</div><div style="{estilo_valor}">{consumo_fmt} <span style="font-size: 0.8rem; color: #00FFFF;">m³</span></div></div>', unsafe_allow_html=True)
                         
+        # --- Gráfico de Flujo y Presión ---
         fig = make_subplots(specs=[[{"secondary_y": True}]])
+        
         fig.add_trace(go.Scatter(
             x=df['FECHA'], y=df['Flujo'],
             name="Caudal (Lps)",
-            mode='lines+markers',
-            marker=dict(size=5),
+            mode='lines+markers',                # <--- MODO LÍNEAS Y PUNTOS
+            marker=dict(size=5),                 # Tamaño de los puntos
             line=dict(color='#00FFFF', width=2),
             fill='tozeroy',
             fillcolor='rgba(0, 255, 255, 0.2)',
             hovertemplate="%{y:.2f} Lps<extra></extra>"
         ), secondary_y=False)
         
+        # Presión: líneas + puntos
         fig.add_trace(go.Scatter(
             x=df['FECHA'], y=df['Presion'],
             name="Presión (Kg/cm²)",
-            mode='lines+markers',
-            marker=dict(size=5),
+            mode='lines+markers',                # <--- MODO LÍNEAS Y PUNTOS
+            marker=dict(size=5),                 # Tamaño de los puntos
             line=dict(color='#00FF00', width=2),
             hovertemplate="%{y:.2f} Kg/cm²<extra></extra>"
         ), secondary_y=True)
 
+        # 1. GENERACIÓN DE ETIQUETAS Y FECHAS (ESTÁNDAR)
         dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 
+                    7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), end=df['FECHA'].max().ceil('D'), freq='D')
+        fechas_lineas = pd.date_range(start=df['FECHA'].min().floor('D'), 
+                                      end=df['FECHA'].max().ceil('D'), freq='D')
+        
         ticks_filtrados = fechas_lineas
         etiquetas_filtradas = [
             f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
             for d in ticks_filtrados
         ]
 
+        # 2. DIBUJO DE LÍNEAS CON SOMBRA
         delta = pd.Timedelta(hours=1)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
-            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
+            # Sombra gris detrás
+            fig.add_vrect(
+                x0=d - delta,
+                x1=d + delta,
+                fillcolor="gray",
+                opacity=0.2,
+                layer="below",
+                line_width=0)
+
+            # Línea punteada nítida
+            fig.add_vline(
+                x=d, line_width=1.5,
+                line_dash="dash", 
+                line_color="#fffb00" if es_lunes else "white", 
+                opacity=0.5, 
+                layer="above")
+
+        # 3. CONFIGURACIÓN FINAL
         fig.update_layout(
             height=400, 
             template="plotly_dark",
             hovermode="x unified",
             xaxis=dict(
-                rangeslider=dict(visible=True, thickness=0.10),
+                rangeslider=dict(visible=True,
+                thickness=0.10),
                 tickvals=ticks_filtrados,
                 ticktext=etiquetas_filtradas,
-                tickangle=0, showline=False
-            ),
+                tickangle=0, showline=False),
+            
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0),
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
@@ -1500,6 +1827,7 @@ if "ver_grafico" in st.query_params:
         fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
         st.plotly_chart(fig, use_container_width=True)
         
+        # 4. Gráfico de Barras (Consumo) --------------------------------------------------------------------------------------------------------------------
         df_diario = df.copy()
         df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
         df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
@@ -1522,9 +1850,61 @@ if "ver_grafico" in st.query_params:
             hovertemplate="<b>Día:</b> %{x}<br><b>Consumo:</b> %{y:.2f} m³<extra></extra>"
         )
         st.plotly_chart(fig_bar, use_container_width=True)
+
     else:
-        placeholder_indicadores.empty()
+        placeholder_indicadores.empty() # Limpia si no hay datos
         st.warning("No hay datos registrados en este rango.")
+
+        # --- Gráfico de Flujo y Presión ---
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+        
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Flujo'], name="Caudal (Lps)", line=dict(color='#00FFFF', width=2), fill='tozeroy', fillcolor='rgba(0, 255, 255, 0.2)'), secondary_y=False)
+        fig.add_trace(go.Scatter(x=df['FECHA'], y=df['Presion'], name="Presión (Kg/cm²)", line=dict(color='#00FF00', width=2)), secondary_y=True)
+                
+        fig.update_yaxes(title_text="Caudal (Lps)", secondary_y=False)
+        fig.update_yaxes(title_text="Presión (Kg/cm²)", secondary_y=True)
+        st.plotly_chart(fig, use_container_width=True)
+
+        df_diario = df.copy()
+        df_diario['FECHA'] = pd.to_datetime(df_diario['FECHA']).dt.date
+        df_diario = df_diario.groupby('FECHA')['Consumo'].sum().reset_index()
+        
+        rango_completo = pd.date_range(start=df_diario['FECHA'].min(), end=df_diario['FECHA'].max())
+        df_diario = df_diario.set_index('FECHA').reindex(rango_completo, fill_value=0).reset_index()
+        df_diario.columns = ['FECHA', 'Consumo']
+        df_diario['FECHA'] = df_diario['FECHA'].dt.strftime('%b %d')
+
+        fig_bar = px.bar(
+            df_diario, 
+            x='FECHA', 
+            y='Consumo', 
+            text='Consumo', 
+            color_discrete_sequence=['#00FFFF'],
+            
+        )      
+        fig_bar.update_traces(name="Consumo (m³)", showlegend=True)
+        fig_bar.update_layout(
+            height=300, 
+            template="plotly_dark", 
+            plot_bgcolor='rgba(0,0,0,0)', 
+            paper_bgcolor='rgba(0,0,0,0)', 
+            xaxis=dict(tickmode='linear', title=None), # Quitamos título eje X para ahorrar espacio  
+            yaxis=dict(title="Consumo (m3)"),
+            margin=dict(t=40, b=20, l=20, r=20),
+            showlegend=True,                           # Esto activa la leyenda
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.1,                                 # Ajustado para que se vea bien
+                xanchor="left",
+                x=0
+            )
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+
     st.stop()
 
 # 5. ESTILO CSS GENERAL
