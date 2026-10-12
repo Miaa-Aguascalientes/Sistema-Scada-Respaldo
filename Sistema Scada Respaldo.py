@@ -3305,7 +3305,148 @@ with st.sidebar:
         st.warning("No hay macromedidores disponibles.")
 
 # Declaración global de incidencias para que esté disponible para pozos y colonias siempre
-dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}             
+dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}     
+
+# =============================================================================
+# SECCIÓN 8.11: NUEVA PESTAÑA DE INCIDENCIAS FUERA DE SERVICIO
+# =============================================================================
+st.markdown("---")
+st.subheader("🚨 Incidencias Fuera de Servicio")
+
+# Creamos la pestaña
+tab_incidencias, = st.tabs(["📍 Mapa y Listado de Afectaciones"])
+
+with tab_incidencias:
+    # 1. Obtener datos de incidencias activas
+    df_inc = get_data()  # Esta función ya existe en tu código
+    
+    if isinstance(df_inc, pd.DataFrame) and not df_inc.empty:
+        # Filtrar solo las que NO están cerradas (activas)
+        df_inc_activas = df_inc[df_inc['ESTATUS'].str.upper() != 'CERRADA'].copy()
+        
+        if not df_inc_activas.empty:
+            # --- MAPA DE SECTORES AFECTADOS ---
+            st.markdown("### 🗺️ Mapa de Sectores Afectados")
+            
+            # Cargar polígonos de sectores
+            gdf_sectores = get_todos_los_sectores_geo()
+            
+            if gdf_sectores is not None and not gdf_sectores.empty:
+                # Crear mapa base centrado en Aguascalientes
+                m_inc = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles="CartoDB dark_matter")
+                
+                # Diccionario de incidencias para búsqueda rápida
+                dic_inc = {}
+                for _, row in df_inc_activas.iterrows():
+                    id_p = normalizar_id(row['NUM_POZO'])
+                    if id_p:
+                        dic_inc[id_p] = {
+                            'diagnostico': row.get('DIAGNOSTICO_FALLA', 'N/A'),
+                            'estatus': row.get('ESTATUS', 'N/A'),
+                            'inicio': row.get('FECHA_HORA_INICIO'),
+                            'fin': row.get('FECHA_HORA_FIN')
+                        }
+                
+                # Colorear sectores según incidencias
+                for _, row in gdf_sectores.iterrows():
+                    props = row.drop('geometry').to_dict()
+                    color, afectacion = calcular_color_sector(props, dic_inc)
+                    
+                    # Solo dibujar sectores con afectación > 0
+                    if afectacion > 0:
+                        folium.GeoJson(
+                            row['geometry'].__geo_interface__,
+                            style_function=lambda x, c=color: {
+                                'fillColor': c,
+                                'color': 'white',
+                                'weight': 2,
+                                'fillOpacity': 0.5
+                            },
+                            tooltip=f"Sector: {props.get('Sector', 'N/A')} - Afectación: {afectacion}%"
+                        ).add_to(m_inc)
+                
+                # Añadir marcadores de pozos afectados
+                for id_p, info in dic_inc.items():
+                    if id_p in mapa_pozos_dict:
+                        coord = mapa_pozos_dict[id_p]['coord']
+                        folium.Marker(
+                            location=coord,
+                            popup=f"Pozo: {id_p}<br>Falla: {info['diagnostico']}<br>Estatus: {info['estatus']}",
+                            icon=folium.Icon(color='red', icon='exclamation-sign')
+                        ).add_to(m_inc)
+                
+                folium.LayerControl().add_to(m_inc)
+                folium_static(m_inc, width=None, height=500)
+            else:
+                st.warning("No se pudieron cargar los polígonos de sectores.")
+            
+            st.markdown("---")
+            
+            # --- LISTADO DE COLONIAS FUERA DE OPERACIÓN ---
+            st.markdown("### 🏘️ Colonias Fuera de Operación")
+            
+            # Cargar todas las colonias
+            gdf_colonias = get_todas_las_colonias()
+            
+            if gdf_colonias is not None and not gdf_colonias.empty:
+                # Lista para almacenar colonias afectadas
+                colonias_afectadas = []
+                
+                for _, row in gdf_colonias.iterrows():
+                    # Buscar si algún pozo de esta colonia está en la lista de incidencias
+                    pozos_colonia = str(row.get('Pozos', '')).split(',')
+                    pozos_colonia = [p.strip().upper() for p in pozos_colonia if p.strip()]
+                    
+                    for pozo in pozos_colonia:
+                        if pozo in dic_inc:
+                            colonias_afectadas.append({
+                                'Colonia': row.get('Col_atl', 'N/A'),
+                                'Sector': row.get('Sector', 'N/A'),
+                                'Pozo': pozo,
+                                'Diagnostico': dic_inc[pozo]['diagnostico'],
+                                'Estatus': dic_inc[pozo]['estatus'],
+                                'Inicio': dic_inc[pozo]['inicio']
+                            })
+                            break  # Solo una vez por colonia
+                
+                if colonias_afectadas:
+                    # Mostrar como tarjetas
+                    for col in colonias_afectadas:
+                        with st.expander(f"🏠 {col['Colonia']} - Sector {col['Sector']}"):
+                            st.markdown(f"""
+                            - **Pozo:** {col['Pozo']}
+                            - **Diagnóstico:** {col['Diagnostico']}
+                            - **Estatus:** {col['Estatus']}
+                            - **Inicio:** {col['Inicio']}
+                            """)
+                else:
+                    st.success("✅ No hay colonias afectadas por incidencias activas.")
+            else:
+                st.warning("No se pudieron cargar los datos de colonias.")
+            
+            st.markdown("---")
+            
+            # --- LISTADO DE POZOS FUERA DE SERVICIO ---
+            st.markdown("### 💧 Pozos Fuera de Servicio")
+            
+            if not df_inc_activas.empty:
+                for _, row in df_inc_activas.iterrows():
+                    st.markdown(f"""
+                    <div style="background:#111; border-left: 4px solid #ff4d4d; padding: 10px; margin-bottom: 8px; border-radius: 4px;">
+                        <b style="color:#00d4ff;">Pozo: {row['NUM_POZO']}</b><br>
+                        <span style="color:#ccc; font-size:12px;">Falla: {row['DIAGNOSTICO_FALLA']}</span><br>
+                        <span style="color:#888; font-size:11px;">Estatus: {row['ESTATUS']} | Inicio: {row['FECHA_HORA_INICIO']}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.success("✅ No hay pozos fuera de servicio.")
+        else:
+            st.success("✅ No hay incidencias activas en este momento.")
+    else:
+        st.info("No se pudieron cargar los datos de incidencias.")
+# =============================================================================
+# FIN DE LA NUEVA PESTAÑA
+# =============================================================================
                 
 # 9.  SECCION--------------------------------------------------------------------------------- 9. MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------
 st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
