@@ -4076,12 +4076,7 @@ if ver_pozos:
         )
 
     
-tab_incidencias, tab_tanques, tab_rebombeos, tab_macromedidores = st.tabs([
-    "🚨 Incidencias Fuera de Servicio", 
-    "🛢️ Tanques y Mapa", 
-    "🧊 Rebombeos y Mapa", 
-    "🌀 Macromedidores"
-])
+
     # ---------------------------------------------------------------------------- FINAL DEL MAPA -------------------------------------------------------------------------------------------
 with tab_incidencias:
 
