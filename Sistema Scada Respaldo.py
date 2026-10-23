@@ -3843,7 +3843,7 @@ with pestaña_incidencias:
 
 
 # ==============================================================================
-# PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y OPTIMIZADA)
+# PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
 with pestaña_tanques:
     import numpy as np
@@ -3852,13 +3852,13 @@ with pestaña_tanques:
     from html import escape
 
     TIMEZONE = "America/Mexico_City"
-    DEFAULT_LOAD_DAYS = 7  # Optimizado a 7 días iniciales para carga ultra rápida
+    DEFAULT_LOAD_DAYS = 7  # Optimizado para carga rápida
     MAX_AGE_MINUTES = 120
     EXPECTED_INTERVAL_MINUTES = 5
     MIN_COMMUNICATION_PCT = 5
     CATEGORY_COLUMN = "Distrito"
 
-    # Estilos CSS específicos del tablero de tanques adaptados a tu HUD
+    # Estilos CSS específicos del tablero de tanques
     st.markdown(
         """
         <style>
@@ -3877,7 +3877,255 @@ with pestaña_tanques:
 
     st.markdown("<h3 style='color: #00d4ff; margin-bottom: 15px;'>// MONITOREO DE TANQUES DE REGULACIÓN - MIAA</h3>", unsafe_allow_html=True)
 
-    # 1. Capa de datos optimizada utilizando tus motores existentes de Telemetría y SCADA
+    # 1. Funciones auxiliares internas de soporte
+    def _number(value: float, unit: str = "", decimals: int = 0) -> str:
+        if pd.isna(value):
+            return "—"
+        return f"{value:,.{decimals}f}{unit}"
+
+    def _render_filters(data, key, catalog, available_start=None, available_end=None):
+        first = available_start if available_start is not None else data["timestamp"].min()
+        last = available_end if available_end is not None else data["timestamp"].max()
+
+        if pd.isna(first) or pd.isna(last):
+            first = pd.Timestamp.now() - pd.Timedelta(days=7)
+            last = pd.Timestamp.now()
+
+        quick_key = f"{key}_quick"
+        dates_key = f"{key}_dates"
+        periods = {"24 h": 1, "7 días": 7, "30 días": 30}
+
+        state = st.session_state
+        state.setdefault(quick_key, "7 días")
+
+        def use_custom_dates():
+            state[quick_key] = None
+
+        quick = state[quick_key]
+        if quick in periods:
+            start = max(first, last - pd.Timedelta(days=periods[quick]))
+            state[dates_key] = (start.date(), last.date())
+        elif dates_key not in state:
+            state[dates_key] = (first.date(), last.date())
+
+        categories = sorted(catalog[CATEGORY_COLUMN].dropna().unique().tolist())
+        if not categories:
+            categories = ["GENERAL"]
+            catalog[CATEGORY_COLUMN] = "GENERAL"
+
+        category_key = f"{key}_category"
+        if state.get(category_key) not in categories:
+            state[category_key] = categories[0]
+
+        with st.container(border=True):
+            date_column, quick_column, category_column = st.columns(
+                [2, 2, 4], gap="medium", vertical_alignment="bottom"
+            )
+            with date_column:
+                st.date_input(
+                    "Periodo",
+                    min_value=first.date(),
+                    max_value=last.date(),
+                    format="DD/MM/YYYY",
+                    key=dates_key,
+                    on_change=use_custom_dates,
+                )
+            with quick_column:
+                st.segmented_control(
+                    "Acceso rápido",
+                    options=list(periods),
+                    key=quick_key,
+                    width="stretch",
+                )
+            with category_column:
+                st.segmented_control(
+                    "Distrito",
+                    options=categories,
+                    selection_mode="single",
+                    required=True,
+                    key=category_key,
+                    width="stretch",
+                )
+
+        dates = state[dates_key]
+        if len(dates) != 2:
+            return None
+
+        start = pd.Timestamp(dates[0])
+        end = min(
+            pd.Timestamp(dates[1]) + pd.Timedelta(days=1) - pd.Timedelta(nanoseconds=1),
+            last,
+        )
+        return start, end, state[category_key]
+
+    def _summarize(data, catalog, start, end, max_age_minutes, expected_interval_minutes=5, min_communication_pct=80):
+        interval = pd.Timedelta(minutes=expected_interval_minutes)
+        expected_readings = int((end - start) // interval)
+        if expected_readings < 1:
+            expected_readings = 1
+
+        valid = data.loc[data["level_m"].ge(0)]
+        latest = valid.groupby("tank_id", sort=False).tail(1).set_index("tank_id")
+        statistics = data.groupby("tank_id")["level_m"].agg(min_period="min", max_period="max")
+
+        summary = catalog.join(latest[["timestamp", "level_m"]]).join(statistics)
+        usable_geometry = summary["capacity_m3"].gt(0) & summary["max_level_m"].gt(0)
+
+        capacity = summary["capacity_m3"].where(usable_geometry)
+        max_level = summary["max_level_m"].where(usable_geometry)
+        area_m2 = capacity / max_level
+
+        summary["volume_m3"] = area_m2 * summary["level_m"]
+        age = end - summary["timestamp"]
+        recent = age.between(pd.Timedelta(0), pd.Timedelta(minutes=max_age_minutes))
+
+        summary["volume_m3"] = summary["volume_m3"].where(recent)
+        summary["storage_pct"] = 100 * summary["volume_m3"] / capacity
+
+        coverage_end = start + expected_readings * interval
+        received = data.loc[
+            data["timestamp"].ge(start) & data["timestamp"].lt(coverage_end) & data["level_m"].notna(),
+            ["tank_id", "timestamp"],
+        ].copy()
+
+        if not received.empty:
+            received["interval_id"] = (received["timestamp"] - start) // interval
+            received_counts = received.groupby("tank_id")["interval_id"].nunique()
+        else:
+            received_counts = pd.Series(dtype=int)
+
+        summary["expected_readings"] = expected_readings
+        summary["received_readings"] = received_counts.reindex(summary.index, fill_value=0).astype(int)
+        summary["communication_pct"] = 100 * summary["received_readings"] / summary["expected_readings"]
+        summary["communication_ok"] = summary["communication_pct"].ge(min_communication_pct)
+
+        return summary
+
+    def _render_summary(summary, end):
+        available = summary.loc[summary["volume_m3"].notna() & summary["capacity_m3"].gt(0)]
+        capacity = available["capacity_m3"].sum(min_count=1)
+        volume = available["volume_m3"].sum(min_count=1)
+        percent = 100 * volume / capacity if capacity > 0 else np.nan
+
+        insufficient_count = int((~summary["communication_ok"]).sum())
+        communicating = summary.loc[summary["communication_ok"]]
+        expected_total = communicating["expected_readings"].sum()
+        communication_pct = (
+            100 * communicating["received_readings"].sum() / expected_total
+            if expected_total > 0
+            else np.nan
+        )
+
+        kpis = [
+            ("TANQUES TOTALES", str(len(summary)), "Registrados", "tq_kpi_1"),
+            ("COMUNICACIÓN <5%", str(insufficient_count), "Sin reporte activo", "tq_kpi_2"),
+            ("% COMUNICACIÓN", _number(communication_pct, " %", 1), "Promedio global", "tq_kpi_3"),
+            ("CAPACIDAD REGULACIÓN", _number(capacity, " m³"), "Capacidad instalada", "tq_kpi_4"),
+            ("VOLUMEN REGULACIÓN", _number(volume, " m³"), "Volumen actual", "tq_kpi_5"),
+            ("% ALMACENAMIENTO", _number(percent, " %", 1), "Nivel de reserva", "tq_kpi_6"),
+        ]
+
+        cols = st.columns(6)
+        for col, (title, value, caption, key_name) in zip(cols, kpis):
+            with col:
+                with st.container(border=True, key=key_name):
+                    st.html(f'<div class="tq-eyebrow">{escape(title)}</div>')
+                    st.html(f'<div class="tq-kpi-value">{escape(value)}</div>')
+                    st.caption(caption)
+
+        st.caption(f"Corte de información: {end:%d/%m/%Y %H:%M}")
+
+    def _build_level_chart(level_data, tank_info, start, end, gap_minutes=60):
+        level_data = level_data.sort_values("timestamp").copy()
+        fig = go.Figure()
+
+        breaks = (
+            level_data["timestamp"].diff().gt(pd.Timedelta(minutes=gap_minutes))
+            | level_data["level_m"].isna()
+            | level_data["level_m"].shift().isna()
+        )
+        level_data["_segment"] = breaks.cumsum()
+        valid = level_data.dropna(subset=["level_m"])
+
+        for _, block in valid.groupby("_segment"):
+            multiple_points = len(block) > 1
+            fig.add_trace(
+                go.Scatter(
+                    x=block["timestamp"],
+                    y=block["level_m"],
+                    mode="lines+markers" if multiple_points else "markers",
+                    line={"color": "#63b9df", "width": 1.6},
+                    marker={"color": "#63b9df", "size": 4, "symbol": "circle", "opacity": 0.8},
+                    fill="tozeroy" if multiple_points else None,
+                    fillcolor="rgba(99, 185, 223, 0.2)",
+                    name="Nivel",
+                    hovertemplate="<b>%{y:.2f} m</b><br>%{x|%d/%m/%Y %H:%M}<extra></extra>",
+                )
+            )
+
+        fig.add_hline(
+            y=float(tank_info["max_level_m"]),
+            line_color="#ffd18a",
+            line_dash="dash",
+            line_width=1.2,
+        )
+
+        fig.update_layout(
+            yaxis_title="m",
+            template="plotly_dark",
+            height=220,
+            margin={"l": 30, "r": 10, "t": 8, "b": 25},
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font={"color": "#e4edf7", "size": 11},
+            showlegend=False,
+            hovermode="closest",
+        )
+        fig.update_xaxes(range=[start, end], gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
+        fig.update_yaxes(gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
+        return fig
+
+    def _render_tank(data, tank, start, end, gap_minutes, key):
+        display_name = str(tank["name"]).strip()
+        tank_id = str(tank.name)
+
+        if display_name.startswith(tank_id):
+            display_name = display_name[len(tank_id) :].lstrip(" -")
+
+        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
+
+        metrics_html = f"""
+        <div class="tm-card-metrics">
+            <div class="tm-metric"><span>Máx. per.</span><strong>{escape(_number(tank['max_period'], ' m', 2))}</strong></div>
+            <div class="tm-metric"><span>Mín. per.</span><strong>{escape(_number(tank['min_period'], ' m', 2))}</strong></div>
+            <div class="tm-metric"><span>% Com.</span><strong>{escape(_number(tank['communication_pct'], ' %', 1))}</strong></div>
+            <div class="tm-metric"><span>% Alm.</span><strong>{escape(_number(tank['storage_pct'], ' %', 0))}</strong></div>
+        </div>
+        """
+        st.html(metrics_html)
+
+        if data["level_m"].notna().any():
+            figure = _build_level_chart(data, tank, start, end, gap_minutes)
+            st.plotly_chart(figure, use_container_width=True, theme=None, key=key, config={"displaylogo": False, "displayModeBar": "hover"})
+        else:
+            st.info("Sin niveles disponibles.")
+
+        timestamp = tank["timestamp"]
+        if pd.notna(timestamp):
+            elapsed_minutes = max(0, int((end - timestamp).total_seconds() / 60 + 0.5))
+            days, rem = divmod(elapsed_minutes, 1440)
+            hours, minutes = divmod(rem, 60)
+            parts = []
+            if days: parts.append(f"{days}d")
+            if hours: parts.append(f"{hours}h")
+            if minutes or not parts: parts.append(f"{minutes}m")
+            elapsed_text = " ".join(parts)
+        else:
+            elapsed_text = "Sin datos"
+
+        st.caption(f"Antigüedad de lectura: {elapsed_text}")
+
+    # 2. Capa de datos optimizada utilizando tus motores existentes
     @st.cache_data(ttl=300, show_spinner=False)
     def _cargar_datos_tanques_nativo(start_ts_ms, end_ts_ms):
         engine_telemetria = get_mysql_telemetria_engine()
@@ -3894,10 +4142,7 @@ with pestaña_tanques:
             df_full_tanks = pd.read_sql("SELECT ID_tanque, Sector, Distrito, Tipo, Vol_util FROM TANQUES", engine_telemetria)
 
             tanks = df_selected[["TQ", "Nombre_tq", "Nivel_max"]].merge(
-                df_full_tanks,
-                left_on="TQ",
-                right_on="ID_tanque",
-                how="left"
+                df_full_tanks, left_on="TQ", right_on="ID_tanque", how="left"
             ).rename(columns={
                 "TQ": "tank_id",
                 "Nombre_tq": "name",
@@ -3918,10 +4163,7 @@ with pestaña_tanques:
             tag_to_tank = {v: k for k, v in tank_tags.items()}
 
             query_hist = f"""
-                SELECT 
-                    h.TIME AS raw_time,
-                    t.NAME AS tag_name,
-                    h.VALUE AS level_m
+                SELECT h.TIME AS raw_time, t.NAME AS tag_name, h.VALUE AS level_m
                 FROM vfitagnumhistory h
                 JOIN VfiTagRef t ON h.GATEID = t.GATEID
                 WHERE t.NAME IN ('{tags_string}')
@@ -3942,7 +4184,7 @@ with pestaña_tanques:
             st.error(f"Error al consultar la base de datos de tanques: {e}")
             return pd.DataFrame(), pd.DataFrame()
 
-    # 2. Fragmento aislado para renderizado inmediato
+    # 3. Fragmento principal aislado para renderizado fluido
     @st.fragment
     def renderizar_pestana_tanques():
         now = pd.Timestamp.now(tz=TIMEZONE).tz_localize(None)
@@ -3959,7 +4201,6 @@ with pestaña_tanques:
             st.warning("No se encontró información en el catálogo de tanques.")
             return
 
-        # Procesamiento interno adaptado de tu script original
         data = readings.copy()
         catalog = tanks.copy()
         catalog["tank_id"] = catalog["tank_id"].astype(str).str.strip()
@@ -3976,7 +4217,6 @@ with pestaña_tanques:
         if CATEGORY_COLUMN not in catalog.columns:
             catalog[CATEGORY_COLUMN] = "GENERAL"
 
-        # Renderizado de filtros internos
         period_filters = _render_filters(data, "tq_internal_tab", catalog.reset_index(), window_start, cutoff)
         if period_filters is None:
             return
@@ -4019,7 +4259,6 @@ with pestaña_tanques:
                     except Exception:
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
-    # Ejecución del módulo nativo
     renderizar_pestana_tanques()
 
   
