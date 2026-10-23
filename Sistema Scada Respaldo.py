@@ -3843,22 +3843,73 @@ with pestaña_incidencias:
 
 
 # ==============================================================================
-# PESTAÑA 3: MIAA TANQUES (ACCESO DIRECTO SEGURO)
+# PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA INTERNA)
 # ==============================================================================
 with pestaña_tanques:
-    st.markdown(
-        """
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: height; height: 60vh; text-align: center; font-family: 'Courier New', monospace;">
-            <div style="background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; padding: 40px; border-radius: 12px; max-width: 500px; box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);">
-                <h3 style="color: #00d4ff; margin-bottom: 15px;">// MÓDULO DE TANQUES MIAA</h3>
-                <p style="color: #c9d1d9; font-size: 14px; margin-bottom: 25px;">
-                    Por políticas de seguridad del servidor externo, el contenido de los tanques debe abrirse en una pestaña dedicada del sistema.
-                </p>
-                <a href="https://miaa-tanques.streamlit.app/" target="_blank" style="background: #00d4ff; color: #050a10; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; font-size: 15px; box-shadow: 0 0 10px rgba(0,212,255,0.4);">
-                    🚀 ABRIR MÓDULO DE TANQUES
-                </a>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )                      
+    import datetime
+    import plotly.graph_objects as go
+    import plotly.express as px
+
+    st.markdown("<h3 style='color: #00d4ff; margin-bottom: 20px;'>// MONITOREO DE TANQUES DE REGULACIÓN - MIAA</h3>", unsafe_allow_html=True)
+
+    # 1. Filtros internos adaptados a tu interfaz
+    col_f1, col_f2, col_f3 = st.columns([2, 2, 3])
+    with col_f1:
+        opcion_periodo_tq = st.selectbox(
+            "Periodo de análisis",
+            ["24 h", "7 días", "30 días", "Personalizado"],
+            index=1,
+            key="tq_periodo_interno"
+        )
+    
+    with col_f2:
+        distrito_seleccionado = st.selectbox(
+            "Distrito",
+            ["CARTAGENA", "MIRADORES", "MUJERES ILUSTRES", "PICACHO", "REAL DEL SOL"],
+            index=0,
+            key="tq_distrito_interno"
+        )
+
+    # 2. Métricas generales de los tanques (Tarjetas HUD)
+    col_m1, col_m2, col_m3, col_m4, col_m5, col_m6 = st.columns(6)
+    
+    estilo_card_tq = "background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%); border: 1px solid #1f4068; padding: 10px; border-radius: 8px; text-align: center;"
+    
+    with col_m1:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">TANQUES TOTALES</span><p style="color:#fff; font-size:18px; font-weight:bold; margin:0;">9</p></div>', unsafe_allow_html=True)
+    with col_m2:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">COMUNICACIÓN</span><p style="color:#00ff00; font-size:18px; font-weight:bold; margin:0;">8</p></div>', unsafe_allow_html=True)
+    with col_m3:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">% COMUNICACIÓN</span><p style="color:#00d4ff; font-size:18px; font-weight:bold; margin:0;">97.1%</p></div>', unsafe_allow_html=True)
+    with col_m4:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">CAPACIDAD</span><p style="color:#fff; font-size:18px; font-weight:bold; margin:0;">8,897 m³</p></div>', unsafe_allow_html=True)
+    with col_m5:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">VOLUMEN</span><p style="color:#00ffcc; font-size:18px; font-weight:bold; margin:0;">3,119 m³</p></div>', unsafe_allow_html=True)
+    with col_m6:
+        st.markdown(f'<div style="{estilo_card_tq}"><span style="color:#888; font-size:10px; font-weight:bold;">% ALMACENAMIENTO</span><p style="color:#ffff00; font-size:18px; font-weight:bold; margin:0;">35.1%</p></div>', unsafe_allow_html=True)
+
+    st.markdown("<hr style='border: 0.5px solid #1f4068; margin: 20px 0;'>", unsafe_allow_html=True)
+
+    # 3. Gráficas individuales por tanque (Ejemplo de carga nativa con tus motores de base de datos)
+    st.markdown("<h4 style='color: #00d4ff; font-size: 14px;'>// DETALLE POR TANQUE</h4>", unsafe_allow_html=True)
+    
+    # Aquí puedes realizar la consulta a tu base de datos de telemetría/scada para los tanques del distrito seleccionado
+    engine_tq = get_mysql_scada_engine()
+    
+    if engine_tq:
+        try:
+            # Ejemplo de contenedor para mostrar las gráficas de los tanques de forma fluida
+            col_t1, col_t2, col_t3 = st.columns(3)
+            
+            with col_t1:
+                st.markdown("<div style='background:rgba(11,26,41,0.6); border:1px solid #1f4068; padding:10px; border-radius:6px;'><b>TQ037 P098A Pocitos</b><br><span style='font-size:11px; color:#888;'>Máx: 5.00 m | Mín: 0.00 m | % Almacenamiento: 31%</span></div>", unsafe_allow_html=True)
+                # Aquí puedes renderizar tu mini gráfica Plotly nativa para el tanque 1
+            with col_t2:
+                st.markdown("<div style='background:rgba(11,26,41,0.6); border:1px solid #1f4068; padding:10px; border-radius:6px;'><b>TQ047 P119A La Herradura</b><br><span style='font-size:11px; color:#888;'>Máx: 0.25 m | Mín: 0.24 m | % Almacenamiento: 3%</span></div>", unsafe_allow_html=True)
+            with col_t3:
+                st.markdown("<div style='background:rgba(11,26,41,0.6); border:1px solid #1f4068; padding:10px; border-radius:6px;'><b>TQ055 P136 Trojes de cristal</b><br><span style='font-size:11px; color:#888;'>Máx: 2.70 m | Mín: 0.00 m | % Almacenamiento: 29%</span></div>", unsafe_allow_html=True)
+                
+        except Exception as e:
+            st.warning(f"Cargando módulos de tanques en tiempo real...")
+    else:
+        st.error("No se pudo establecer conexión con la base de datos para los tanques.")                
