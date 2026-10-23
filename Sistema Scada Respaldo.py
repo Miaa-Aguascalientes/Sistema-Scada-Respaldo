@@ -2726,9 +2726,11 @@ with st.sidebar:
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}             
 
 # ==============================================================================
-# 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS)
+# 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
-pestaña_mapa, pestaña_incidencias = st.tabs(["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día"])
+pestaña_mapa, pestaña_incidencias, pestaña_tanques = st.tabs(
+    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques"]
+)
 
 with pestaña_mapa:
     st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
@@ -3838,3 +3840,40 @@ with pestaña_incidencias:
                     
                     with st.expander(titulo_hist):
                         renderizar_bloque_incidencia(row, index, "hist")
+
+
+# ==============================================================================
+# PESTAÑA 3: MIAA TANQUES (INTERNO)
+# ==============================================================================
+with pestaña_tanques:
+    st.markdown(
+        """
+        <style>
+            .container-iframe {
+                position: relative;
+                width: 100%;
+                height: 85vh;
+                overflow: hidden;
+            }
+            .responsive-iframe {
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+                width: 100%;
+                height: 100%;
+                border: 1px solid #1f4068;
+                border-radius: 8px;
+            }
+        </style>
+        <div class="container-iframe">
+            <iframe 
+                class="responsive-iframe" 
+                src="https://miaa-tanques.streamlit.app/?embed=true" 
+                allowfullscreen>
+            </iframe>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )                        
