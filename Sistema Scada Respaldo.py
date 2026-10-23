@@ -3843,37 +3843,24 @@ with pestaña_incidencias:
 
 
 # ==============================================================================
-# PESTAÑA 3: MIAA TANQUES (INTERNO)
+# PESTAÑA 3: MIAA TANQUES (ACCESO DIRECTO SEGURO)
 # ==============================================================================
 with pestaña_tanques:
     st.markdown(
         """
-        <style>
-            .container-iframe {
-                position: relative;
-                width: 100%;
-                height: 85vh;
-                overflow: hidden;
-            }
-            .responsive-iframe {
-                position: absolute;
-                top: 0;
-                left: 0;
-                bottom: 0;
-                right: 0;
-                width: 100%;
-                height: 100%;
-                border: 1px solid #1f4068;
-                border-radius: 8px;
-            }
-        </style>
-        <div class="container-iframe">
-            <iframe 
-                class="responsive-iframe" 
-                src="https://miaa-tanques.streamlit.app/?embed=true" 
-                allowfullscreen>
-            </iframe>
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: height; height: 60vh; text-align: center; font-family: 'Courier New', monospace;">
+            <div style="background: rgba(0, 212, 255, 0.05); border: 2px solid #00d4ff; padding: 40px; border-radius: 12px; max-width: 500px; box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);">
+                <h3 style="color: #00d4ff; margin-bottom: 15px;">// MÓDULO DE TANQUES MIAA</h3>
+                <p style="color: #c9d1d9; font-size: 14px; margin-bottom: 25px;">
+                    Por políticas de seguridad del servidor externo, el contenido de los tanques debe abrirse en una pestaña dedicada del sistema.
+                </p>
+                <a href="https://miaa-tanques.streamlit.app/" target="_blank" style="background: #00d4ff; color: #050a10; padding: 12px 25px; text-decoration: none; font-weight: bold; border-radius: 4px; display: inline-block; font-size: 15px; box-shadow: 0 0 10px rgba(0,212,255,0.4);">
+                    🚀 ABRIR MÓDULO DE TANQUES
+                </a>
+            </div>
         </div>
         """,
+        unsafe_allow_html=True
+    )
         unsafe_allow_html=True
     )                        
