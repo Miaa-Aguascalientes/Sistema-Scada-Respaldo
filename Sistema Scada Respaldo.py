@@ -3879,6 +3879,4 @@ with pestaña_tanques:
         </div>
         """,
         unsafe_allow_html=True,
-    )
-    else:
-        st.error("No se pudo establecer conexión con la base de datos para los tanques.")                
+    )            
