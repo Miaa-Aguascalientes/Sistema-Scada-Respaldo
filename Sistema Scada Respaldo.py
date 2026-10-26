@@ -2726,22 +2726,22 @@ with st.sidebar:
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}             
 
 # ==============================================================================
-# ENCABEZADO GLOBAL (SOLO TÍTULO SISTEMA - AGUASCALIENTES)
+# ENCABEZADO ÚNICO: SISTEMA - AGUASCALIENTES
 # ==============================================================================
 st.markdown("""
     <style>
-        .header-container-minimal {
+        .header-unico {
             display: flex;
             justify-content: center;
             align-items: center;
             background-color: #000000;
-            padding: 15px 0;
-            margin-top: -65px;
-            margin-bottom: 20px;
+            padding: 10px 0;
+            margin-top: -70px;
+            margin-bottom: 15px;
         }
-        .header-title-neon {
+        .titulo-neon-unico {
             color: #00E5FF;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 3px;
@@ -2751,17 +2751,12 @@ st.markdown("""
             text-align: center;
         }
     </style>
-    <div class="header-container-minimal">
-        <h1 class="header-title-neon">SISTEMA - AGUASCALIENTES</h1>
+    <div class="header-unico">
+        <h1 class="titulo-neon-unico">SISTEMA - AGUASCALIENTES</h1>
     </div>
 """, unsafe_allow_html=True)
 
-# ==============================================================================
-# DEFINICIÓN DE PESTAÑAS PRINCIPALES
-# ==============================================================================
-pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
-    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
-)
+
 
 # ==============================================================================
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
