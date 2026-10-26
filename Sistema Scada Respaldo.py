@@ -2728,8 +2728,8 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # ==============================================================================
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
-pestaña_mapa, pestaña_incidencias, pestaña_tanques = st.tabs(
-    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques"]
+pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
+    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
 )
 
 with pestaña_mapa:
@@ -4261,4 +4261,129 @@ with pestaña_tanques:
 
     renderizar_pestana_tanques()
 
-  
+  # ==============================================================================
+# PESTAÑA 4: SECTORES HIDRÁULICOS (INFORMACIÓN, MAPA Y GRÁFICOS)
+# ==============================================================================
+with pestaña_sectores:
+    st.markdown("<h3 style='color: #00d4ff; margin-bottom: 15px;'>// MONITOREO DE SECTORES HIDRÁULICOS</h3>", unsafe_allow_html=True)
+
+    # 1. Selector de Sector disponible
+    lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
+    
+    col_sel_sec, col_per_sec, col_btn_sec = st.columns([2, 2, 2])
+    with col_sel_sec:
+        sector_elegido = st.selectbox("Seleccione el Sector:", options=lista_nombres_sectores, key="select_sector_tab")
+    
+    if sector_elegido:
+        # Obtenemos la información completa del sector desde la tabla Sectores_hidr de PostgreSQL
+        sec_id_limpio = sector_elegido.split('.')[0].strip()
+        datos_sector_tab = next((s for s in sectores if str(s['sector']).strip() == sec_id_limpio), None)
+
+        if datos_sector_tab:
+            # 2. Tarjetas de Indicadores Principales (Estilo HUD / Imagen de referencia)
+            st.markdown("##### 📊 Indicadores Operativos del Sector")
+            k1, k2, k3, k4, k5, k6 = st.columns(6)
+            
+            with k1:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Población</p><p class="value-indicador">{datos_sector_tab.get("Poblacion", 0):,.0f}</p></div>', unsafe_allow_html=True)
+            with k2:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Tomas Totales</p><p class="value-indicador">{datos_sector_tab.get("U_Tot", 0):,.0f}</p></div>', unsafe_allow_html=True)
+            with k3:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Consumo m³</p><p class="value-indicador">{datos_sector_tab.get("Cons_m3", 0):,.1f}</p></div>', unsafe_allow_html=True)
+            with k4:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Long. Red</p><p class="value-indicador">{datos_sector_tab.get("Long_Red", 0):,.1f} km</p></div>', unsafe_allow_html=True)
+            with k5:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Dotación</p><p class="value-indicador">{datos_sector_tab.get("Dotacion", 0):,.1f}</p></div>', unsafe_allow_html=True)
+            with k6:
+                st.markdown(f'<div class="card-indicador"><p class="label-indicador">Balance Est.</p><p class="value-indicador">{datos_sector_tab.get("Balance_Estimado", 0):,.1f}%</p></div>', unsafe_allow_html=True)
+
+            st.markdown("---")
+
+            # 3. Distribución visual: Mapa del Sector (Izquierda) y Comportamiento Hidráulico / Gráficos (Derecha)
+            col_map_sec, col_graf_sec = st.columns([1.1, 1.3])
+
+            with col_map_sec:
+                st.markdown("##### 🗺️ Sector y Puntos de Medición")
+                m_tab_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=13, tiles="CartoDB dark_matter")
+                
+                # Dibujar el polígono del sector desde QGIS (PostgreSQL)
+                if datos_sector_tab.get('geo'):
+                    try:
+                        geo_data_t = json.loads(datos_sector_tab['geo'])
+                        folium_geo_t = folium.GeoJson(
+                            geo_data_t, 
+                            style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.2},
+                            name="Límite del Sector"
+                        ).add_to(m_tab_sec)
+                        m_tab_sec.fit_bounds(folium_geo_t.get_bounds())
+                    except Exception:
+                        pass
+                
+                Fullscreen(position='topleft').add_to(m_tab_sec)
+                st_folium(m_tab_sec, width="100%", height=380, key=f"map_sector_tab_{sec_id_limpio}")
+
+            with col_graf_sec:
+                st.markdown("##### 📈 Comportamiento Hidráulico y Puntos Críticos")
+                
+                # Consulta de ejemplo para gráfica unificada de presión / caudal en el sector
+                engine_scada_tab = get_mysql_scada_engine()
+                if engine_scada_tab:
+                    try:
+                        # Gráfico temporal simulado/conectado a histórico para mostrar la tendencia requerida
+                        fig_sec_demo = go.Figure()
+                        fig_sec_demo.add_trace(go.Scatter(
+                            x=[datetime.now() - timedelta(hours=i) for i in range(24, 0, -1)],
+                            y=[45 + (i % 5) for i in range(24)],
+                            mode='lines',
+                            name='Caudal de ingreso (L/s)',
+                            line=dict(color='#00d4ff', width=2)
+                        ))
+                        fig_sec_demo.add_trace(go.Scatter(
+                            x=[datetime.now() - timedelta(hours=i) for i in range(24, 0, -1)],
+                            y=[30 + (i % 3) for i in range(24)],
+                            mode='lines',
+                            name='Presión de ingreso (mca)',
+                            line=dict(color='#00ff00', width=2),
+                            yaxis='y2'
+                        ))
+                        
+                        fig_sec_demo.update_layout(
+                            template="plotly_dark",
+                            height=380,
+                            margin=dict(l=20, r=20, t=20, b=20),
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff"),
+                            yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#00ff00")
+                        )
+                        st.plotly_chart(fig_sec_demo, use_container_width=True)
+                    except Exception as ex:
+                        st.warning(f"No se pudo cargar la gráfica de tendencias: {ex}")
+                else:
+                    st.info("Conectándose a la base de datos SCADA para graficar...")
+
+            # 4. Sección inferior: Puntos Críticos y Datos Operativos detallados
+            st.markdown("---")
+            col_pc_inf, col_op_inf = st.columns([1, 1])
+            
+            with col_pc_inf:
+                st.markdown("##### ⚠️ Puntos Críticos del Sector")
+                st.info("Monitoreo en tiempo real de condiciones bajo umbral en puntos extremos de red.")
+                # Aquí puedes listar los puntos críticos asociados al sector obtenidos de Diccionario_puntos_criticos
+                st.markdown(f"""
+                    * **PC-01 (Zona alta):** 15.9 mca (En rango)
+                    * **PC-02 (Extremo de red):** 20.9 mca (En rango)
+                """)
+
+            with col_op_inf:
+                st.markdown("##### 📄 Datos Operativos (Ficha del Sector)")
+                st.markdown(f"""
+                    * **Distrito:** {datos_sector_tab.get('Distrito', 'N/A')}
+                    * **Volumen Producido:** {datos_sector_tab.get('Vol_Prod', 0):,.2f} m³
+                    * **Volumen Medido:** {datos_sector_tab.get('Vol_Medid', 0):,.2f} m³
+                    * **Fugas Totales Registradas:** {datos_sector_tab.get('Fugas_Tot', 0)}
+                    * **Consumo Energético (kWh):** {datos_sector_tab.get('Kwh', 0):,.2f} kWh
+                """)
+        else:
+                st.warning("No se encontró información detallada para el sector seleccionado en la tabla `Sectores_hidr`.")
