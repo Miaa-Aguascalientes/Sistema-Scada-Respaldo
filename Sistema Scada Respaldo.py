@@ -4262,17 +4262,30 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ANÁLISIS INTEGRAL CON VISTA NOCTURNA Y 48H POR DEFECTO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DS08B POR DEFECTO Y CARGA OPTIMIZADA)
 # ==============================================================================
 with pestaña_sectores:
     st.markdown("<h3 style='color: #00d4ff; margin-bottom: 5px; text-align: center;'>// MONITOREO Y ANÁLISIS DE SECTORES HIDRÁULICOS</h3>", unsafe_allow_html=True)
 
-    # 1. Selector de Sector y Periodo
+    # 1. Obtener la lista de sectores disponibles
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
     
+    # Buscar si "DS08B" existe en la lista para dejarlo por defecto de manera dinámica
+    indice_por_defecto = 0
+    for idx, nombre_sec in enumerate(lista_nombres_sectores):
+        if "DS08B" in str(nombre_sec).upper():
+            indice_por_defecto = idx + 1  # +1 porque agregamos la opción vacía "" al inicio si se desea, o directo
+            break
+
     col_sel_sec, col_per_sec = st.columns([2, 2])
     with col_sel_sec:
-        sector_elegido = st.selectbox("Seleccione el Sector:", options=[""] + lista_nombres_sectores, key="select_sector_tab_principal")
+        # Dejamos DS08B seleccionado por defecto usando el índice encontrado
+        sector_elegido = st.selectbox(
+            "Seleccione el Sector:", 
+            options=[""] + lista_nombres_sectores, 
+            index=indice_por_defecto if indice_por_defecto > 0 else (1 if lista_nombres_sectores else 0), 
+            key="select_sector_tab_principal"
+        )
     
     with col_per_sec:
         opcion_periodo_tab = st.selectbox(
@@ -4301,7 +4314,7 @@ with pestaña_sectores:
                 f_ini_h = ahora_mx - timedelta(hours=48)
                 f_fin_h = ahora_mx
 
-            # 2. Tarjetas de Indicadores / Métricas del Sector
+            # 2. Tarjetas de Indicadores / Métricas del Sector seleccionado
             st.markdown('<div class="metrics-row">', unsafe_allow_html=True)
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1: st.markdown(f'<div class="card-indicador"><p class="label-indicador">Población</p><p class="value-indicador">{datos_s.get("Poblacion", 0):,.0f}</p></div>', unsafe_allow_html=True)
@@ -4313,7 +4326,7 @@ with pestaña_sectores:
             st.markdown('</div>', unsafe_allow_html=True)
             st.divider()
 
-            # Carga de diccionarios específicos para el sector
+            # CARGA AISLADA: Solo traemos de la BD los elementos que pertenecen estrictamente a este sector
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
@@ -4387,6 +4400,7 @@ with pestaña_sectores:
                         for k in ['tag_p1', 'tag_p2', 'tag_q']:
                             if v.get(k): tags_para_scada.append(v.get(k))
 
+                    # Consulta SCADA exclusivamente para las etiquetas de este sector
                     scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
                     # Marcadores de Puntos de Control
@@ -4424,7 +4438,7 @@ with pestaña_sectores:
                     Fullscreen(position='topleft').add_to(m_sec)
                     folium.LayerControl(position='topright', collapsed=True).add_to(m_sec)
                     
-                    # MAPA ESTÁTICO (Sin retornar objetos para evitar recargas al hacer zoom)
+                    # Mapa estático sin retorno de objetos para evitar recargas en zoom/paneo
                     st_folium(m_sec, width="100%", height=350, key=f"map_card_sector_{sec_id}")
                     
                     st.markdown("""
@@ -4440,12 +4454,12 @@ with pestaña_sectores:
                 tags_visualizar = []
                 mapeo_config = {}
 
-                for s_id in list(dict_reg.keys()):
-                    r_info = dict_reg[s_id]
+                for s_id_reg in list(dict_reg.keys()):
+                    r_info = dict_reg[s_id_reg]
                     conf_pc = [
-                        ('tag_q', f"S:{s_id} - Q", '#00d4ff', False),
-                        ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
-                        ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
+                        ('tag_q', f"S:{s_id_reg} - Q", '#00d4ff', False),
+                        ('tag_p1', f"S:{s_id_reg} - P1", '#00ff00', True),
+                        ('tag_p2', f"S:{s_id_reg} - P2", '#ffff00', True)
                     ]
                     for key_t, lb, clr, sec in conf_pc:
                         tag_v = r_info.get(key_t)
