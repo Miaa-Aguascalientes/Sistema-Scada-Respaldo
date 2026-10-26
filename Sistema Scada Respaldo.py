@@ -4262,7 +4262,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ANÁLISIS INTEGRAL CON VISTA NOCTURNA Y MAPA ESTÁTICO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (ANÁLISIS INTEGRAL CON VISTA NOCTURNA Y 48H POR DEFECTO)
 # ==============================================================================
 with pestaña_sectores:
     st.markdown("<h3 style='color: #00d4ff; margin-bottom: 5px; text-align: center;'>// MONITOREO Y ANÁLISIS DE SECTORES HIDRÁULICOS</h3>", unsafe_allow_html=True)
@@ -4278,7 +4278,7 @@ with pestaña_sectores:
         opcion_periodo_tab = st.selectbox(
             "Periodo:",
             ["Hoy", "Últimas 24 horas", "Últimas 48 horas"],
-            index=0,
+            index=2,  # Configurado por defecto en "Últimas 48 horas"
             key="f_sector_periodo_tab"
         )
     
@@ -4389,7 +4389,7 @@ with pestaña_sectores:
 
                     scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-                    # Marcadores de Puntos de Control 
+                    # Marcadores de Puntos de Control
                     for r in dict_reg.values():
                         def get_rv(tk):
                             v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -4424,7 +4424,7 @@ with pestaña_sectores:
                     Fullscreen(position='topleft').add_to(m_sec)
                     folium.LayerControl(position='topright', collapsed=True).add_to(m_sec)
                     
-                    # MAPA ESTÁTICO (Sin retornar objetos para evitar re-renderizaciones al hacer zoom/desplazamiento)
+                    # MAPA ESTÁTICO (Sin retornar objetos para evitar recargas al hacer zoom)
                     st_folium(m_sec, width="100%", height=350, key=f"map_card_sector_{sec_id}")
                     
                     st.markdown("""
