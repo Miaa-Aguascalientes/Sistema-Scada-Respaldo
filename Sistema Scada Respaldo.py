@@ -2726,43 +2726,42 @@ with st.sidebar:
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}             
 
 # ==============================================================================
-# ENCABEZADO GLOBAL (VISIBLE EN TODAS LAS PESTAÑAS)
+# ENCABEZADO GLOBAL (SOLO TÍTULO SISTEMA - AGUASCALIENTES)
 # ==============================================================================
 st.markdown("""
     <style>
-        .header-container {
+        .header-container-minimal {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-            background-color: #050a10;
-            border-bottom: 2px solid #1f4068;
-            padding: 10px 20px;
+            background-color: #000000;
+            padding: 15px 0;
             margin-top: -65px;
-            margin-bottom: 15px;
-            border-radius: 4px;
+            margin-bottom: 20px;
         }
-        .header-title {
+        .header-title-neon {
             color: #00E5FF;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0px 0px 10px rgba(0, 229, 255, 0.6);
+            letter-spacing: 3px;
+            text-shadow: 0px 0px 12px rgba(0, 229, 255, 0.7);
             margin: 0;
             font-family: sans-serif;
+            text-align: center;
         }
     </style>
-    <div class="header-container">
-        <div style="display: flex; align-items: center;">
-            <!-- Si manejas imagen de logo puedes incrustarla aquí, o el texto estilizado de MIAA -->
-            <h2 style="color: #00d4ff; margin: 0; font-weight: bold; font-size: 1.6rem;">miaa</h2>
-            <span style="color: #888; font-size: 0.7rem; margin-left: 10px; align-self: flex-end;">Modelo Integral de Aguas de Aguascalientes</span>
-        </div>
-        <div>
-            <h1 class="header-title">SISTEMA - AGUASCALIENTES</h1>
-        </div>
+    <div class="header-container-minimal">
+        <h1 class="header-title-neon">SISTEMA - AGUASCALIENTES</h1>
     </div>
 """, unsafe_allow_html=True)
+
+# ==============================================================================
+# DEFINICIÓN DE PESTAÑAS PRINCIPALES
+# ==============================================================================
+pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
+    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
+)
 
 # ==============================================================================
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
