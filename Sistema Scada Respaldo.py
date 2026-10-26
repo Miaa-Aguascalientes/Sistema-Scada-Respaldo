@@ -4271,7 +4271,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ESTABILIZADO SIN RECARGAS GLOBALES)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y OPTIMIZADO)
 # ==============================================================================
 with pestaña_sectores:
     st.markdown('<div class="titulo-superior">MONITOREO Y ANALISIS DE SECTORES HIDRAULICOS</div>', unsafe_allow_html=True)
@@ -4297,8 +4297,18 @@ with pestaña_sectores:
     with col_per_sec:
         opcion_periodo_tab = st.selectbox(
             "Periodo:",
-            ["Hoy", "Últimas 24 horas", "Últimas 48 horas"],
-            index=2,
+            [
+                "Hoy", 
+                "Ayer", 
+                "Últimos 7 días", 
+                "Últimos 14 días", 
+                "Este Mes", 
+                "Último Mes", 
+                "Últimos 3 meses", 
+                "Últimos 6 meses", 
+                "Personalizado"
+            ],
+            index=2,  # Por defecto en "Últimos 7 días"
             key="f_sector_periodo_tab"
         )
     
@@ -4307,18 +4317,37 @@ with pestaña_sectores:
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
-            ahora_mx = datetime.now(pytz.timezone('America/Mexico_City')).replace(tzinfo=None)
-            medianoche_mx = ahora_mx.replace(hour=0, minute=0, second=0, microsecond=0)
+            # LÓGICA DE FECHAS AMPLIADA
+            hoy_dt = datetime.now()
+            medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            f_fin_h = hoy_dt
 
             if opcion_periodo_tab == "Hoy":
-                f_ini_h = medianoche_mx
-                f_fin_h = ahora_mx
-            elif opcion_periodo_tab == "Últimas 24 horas":
-                f_ini_h = ahora_mx - timedelta(hours=24)
-                f_fin_h = ahora_mx
-            else:
-                f_ini_h = ahora_mx - timedelta(hours=48)
-                f_fin_h = ahora_mx
+                f_ini_h = medianoche
+            elif opcion_periodo_tab == "Ayer":
+                f_ini_h = medianoche - timedelta(days=1)
+                f_fin_h = medianoche - timedelta(seconds=1)
+            elif opcion_periodo_tab == "Últimos 7 días":
+                f_ini_h = medianoche - timedelta(days=7)
+            elif opcion_periodo_tab == "Últimos 14 días":
+                f_ini_h = medianoche - timedelta(days=14)
+            elif opcion_periodo_tab == "Este Mes":
+                f_ini_h = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif opcion_periodo_tab == "Último Mes":
+                primer_dia_mes_actual = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                f_fin_h = primer_dia_mes_actual - timedelta(seconds=1)
+                f_ini_h = (primer_dia_mes_actual - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif opcion_periodo_tab == "Últimos 3 meses":
+                f_ini_h = medianoche - timedelta(days=90)
+            elif opcion_periodo_tab == "Últimos 6 meses":
+                f_ini_h = medianoche - timedelta(days=180)
+            else:  # Personalizado
+                rango_p = st.date_input("Selecciona el periodo:", value=(hoy_dt.date() - timedelta(days=7), hoy_dt.date()), max_value=hoy_dt.date(), key="custom_sector_date")
+                if isinstance(rango_p, tuple) and len(rango_p) == 2:
+                    f_ini_h = datetime.combine(rango_p[0], datetime.min.time())
+                    f_fin_h = datetime.combine(rango_p[1], datetime.max.time())
+                else:
+                    f_ini_h = medianoche - timedelta(days=7)
 
             # 2. Tarjetas de Indicadores / Métricas del Sector seleccionado
             st.markdown('<div class="metrics-row">', unsafe_allow_html=True)
@@ -4342,8 +4371,21 @@ with pestaña_sectores:
             mapa_pc_all = cargar_puntos_criticos_desde_db()
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
+            # Recopilación de tags para SCADA
+            tags_para_scada = []
+            for r in dict_reg.values():
+                for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
+                    if r.get(k): tags_para_scada.append(r.get(k))
+            for pc in dict_pc_sec.values():
+                if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
+            for v in dict_vrp_sec.values():
+                for k in ['tag_p1', 'tag_p2', 'tag_q']:
+                    if v.get(k): tags_para_scada.append(v.get(k))
+
+            scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
+
             # ==============================================================================
-            # FILA SUPERIOR: MAPA AISLADO (IZQUIERDA) Y PUNTOS DE CONTROL (DERECHA)
+            # FILA SUPERIOR: MAPA AISLADO ESTÁTICO (IZQUIERDA) Y PUNTOS DE CONTROL (DERECHA)
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4373,7 +4415,6 @@ with pestaña_sectores:
                             </div>
                     """, unsafe_allow_html=True)
 
-                    # Guardamos o reutilizamos el mapa en session_state para que no se redibuje al moverlo
                     map_cache_key = f"map_obj_{sec_id}"
                     if map_cache_key not in st.session_state:
                         m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=13, tiles=None, height=350)
@@ -4398,18 +4439,6 @@ with pestaña_sectores:
                                 ).add_to(m_sec)
                                 m_sec.fit_bounds(folium_geo.get_bounds())
                             except: pass
-
-                        tags_para_scada = []
-                        for r in dict_reg.values():
-                            for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
-                                if r.get(k): tags_para_scada.append(r.get(k))
-                        for pc in dict_pc_sec.values():
-                            if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
-                        for v in dict_vrp_sec.values():
-                            for k in ['tag_p1', 'tag_p2', 'tag_q']:
-                                if v.get(k): tags_para_scada.append(v.get(k))
-
-                        scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
                         for r in dict_reg.values():
                             def get_rv(tk):
@@ -4444,7 +4473,6 @@ with pestaña_sectores:
                         folium.LayerControl(position='topright', collapsed=True).add_to(m_sec)
                         st.session_state[map_cache_key] = m_sec
 
-                    # Renderizado estático sin devolver objetos interactivos
                     st_folium(st.session_state[map_cache_key], width="100%", height=350, key=f"map_static_display_{sec_id}")
                     
                     st.markdown("""
