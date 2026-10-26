@@ -3376,11 +3376,11 @@ with pestaña_mapa:
     with col_l4: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
-    
+# =============================================================================    
 # PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TRASLADADA AL TOPE DE LAS PESTAÑAS)
 # ==============================================================================
 with pestaña_incidencias:
-    st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
+    st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
     
     tz_mx = pytz.timezone('America/Mexico_City')
     ahora_mx = datetime.now(tz_mx)
@@ -3850,6 +3850,7 @@ with pestaña_incidencias:
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
 with pestaña_tanques:
+    st.markdown('<div class="titulo-superior">SEGUIMIENTO Y MONITOREO A TANQUES PRINCIPALES </div>', unsafe_allow_html=True)
     import numpy as np
     import pandas as pd
     import plotly.graph_objects as go
@@ -4269,7 +4270,7 @@ with pestaña_tanques:
 # PESTAÑA 4: SECTORES HIDRÁULICOS (ESTABILIZADO SIN RECARGAS GLOBALES)
 # ==============================================================================
 with pestaña_sectores:
-    st.markdown("<h3 style='color: #00d4ff; margin-bottom: 5px; text-align: center;'>// MONITOREO Y ANÁLISIS DE SECTORES HIDRÁULICOS</h3>", unsafe_allow_html=True)
+    st.markdown('<div class="titulo-superior">MONITOREO Y ANALISIS DE SECTORES HIDRAULICOS</div>', unsafe_allow_html=True)
 
     # 1. Obtener la lista de sectores disponibles
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
