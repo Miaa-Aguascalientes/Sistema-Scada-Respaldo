@@ -2734,6 +2734,10 @@ pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.ta
     ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
 )
 
+
+# ==============================================================================
+# PESTAÑA 1 MAPA DE POZOS, TANQUES Y REBOMBEOS
+# ==============================================================================
 with pestaña_mapa:
     st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
