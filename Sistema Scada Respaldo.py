@@ -2725,37 +2725,6 @@ with st.sidebar:
 
 dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_con_incidencias_hoy' in globals() else {}             
 
-# ==============================================================================
-# ENCABEZADO ÚNICO: SISTEMA - AGUASCALIENTES
-# ==============================================================================
-st.markdown("""
-    <style>
-        .header-unico {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #000000;
-            padding: 10px 0;
-            margin-top: -70px;
-            margin-bottom: 15px;
-        }
-        .titulo-neon-unico {
-            color: #00E5FF;
-            font-size: 1.6rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            text-shadow: 0px 0px 12px rgba(0, 229, 255, 0.7);
-            margin: 0;
-            font-family: sans-serif;
-            text-align: center;
-        }
-    </style>
-    <div class="header-unico">
-        <h1 class="titulo-neon-unico">SISTEMA - AGUASCALIENTES</h1>
-    </div>
-""", unsafe_allow_html=True)
-
 
 
 # ==============================================================================
@@ -3411,6 +3380,8 @@ with pestaña_mapa:
 # PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TRASLADADA AL TOPE DE LAS PESTAÑAS)
 # ==============================================================================
 with pestaña_incidencias:
+    st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
+    
     tz_mx = pytz.timezone('America/Mexico_City')
     ahora_mx = datetime.now(tz_mx)
 
