@@ -4271,9 +4271,64 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y OPTIMIZADO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON CSS Y FILTROS RESTAURADOS)
 # ==============================================================================
 with pestaña_sectores:
+    # Inyección de tu estilo CSS corporativo
+    st.markdown("""
+        <style>
+            :root { color-scheme: dark; }
+            .stApp { background: #081421; color: #e4edf7; }
+            header[data-testid="stHeader"] { background: #081421; }
+            [data-testid="stSidebar"] { background: #0c1c2c; border-right: 1px solid #203348; }
+            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
+            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
+            h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
+            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; }
+            [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
+            .dma-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; }
+            .dma-tab { color: #63b9df; border-bottom: 2px solid #4caacd; width: 95px; padding: 0 0 .5rem .15rem; font-size: .88rem; margin-bottom: .4rem; }
+            [class*="st-key-dma_kpi_"] {
+                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
+                border: 1px solid #27445e !important;
+                border-top: 2px solid #47afd0 !important;
+                border-radius: 10px;
+                gap: .3rem;
+                min-height: 132px;
+            }
+            [class*="st-key-dma_kpi_"] [data-testid="stMarkdownContainer"] p { font-size: .85rem; color: #c4d8e9; }
+            [class*="st-key-dma_kpi_"] [data-testid="stCaptionContainer"] p { font-size: .69rem; color: #91a8bf; }
+            .dma-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
+            .dma-kpi-value span, .dma-critical-value span { color: #9eb7cd; font-size: .75rem; font-weight: 400; }
+            .dma-muted { color: #9ab0c7; font-size: .69rem; line-height: 1.55; }
+            .dma-critical {
+                border: 1px solid #244356;
+                border-left: 3px solid var(--signal-color);
+                background: linear-gradient(120deg, #102b3d, #0c1c2d);
+                border-radius: 8px;
+                padding: 12px 14px;
+                font-size: .8rem;
+            }
+            .dma-critical-title { color: #d6e6f4; font-weight: 600; display: flex; gap: 8px; align-items: center; }
+            .dma-signal-dot { background: var(--signal-color); width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+            .dma-critical-value { font-size: 1.8rem; margin: 4px 0; font-weight: 650; color: var(--signal-color); font-variant-numeric: tabular-nums; }
+            .dma-condition { display: inline-block; padding: 3px 8px; margin-bottom: 7px; border-radius: 5px; font-size: .7rem; }
+            .condition-ok { color: #73e3c0; background: #143d36; }
+            .condition-warn { color: #ffd18a; background: #493923; }
+            .condition-neutral { color: #b1c3d7; background: #203244; }
+            .st-key-dma_operational table { width: 100%; }
+            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .35rem; vertical-align: middle; font-size: .8rem; }
+            .st-key-dma_operational td:first-child { width: 62%; color: #c1d3e5; }
+            .st-key-dma_operational td:last-child { color: #eef6ff; font-variant-numeric: tabular-nums; }
+            .st-key-dma_operational td p { font-size: .8rem; }
+            iframe { border-radius: 8px; }
+            @media (max-width: 900px) {
+              .block-container { padding-left: 1rem; padding-right: 1rem; }
+              [class*="st-key-dma_kpi_"] { min-height: 112px; }
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
     st.markdown('<div class="titulo-superior">MONITOREO Y ANALISIS DE SECTORES HIDRAULICOS</div>', unsafe_allow_html=True)
 
     # 1. Obtener la lista de sectores disponibles
@@ -4300,6 +4355,8 @@ with pestaña_sectores:
             [
                 "Hoy", 
                 "Ayer", 
+                "Últimas 24 horas", 
+                "Últimas 48 horas", 
                 "Últimos 7 días", 
                 "Últimos 14 días", 
                 "Este Mes", 
@@ -4308,7 +4365,7 @@ with pestaña_sectores:
                 "Últimos 6 meses", 
                 "Personalizado"
             ],
-            index=2,  # Por defecto en "Últimos 7 días"
+            index=3,  # Por defecto en "Últimas 48 horas"
             key="f_sector_periodo_tab"
         )
     
@@ -4317,7 +4374,7 @@ with pestaña_sectores:
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
-            # LÓGICA DE FECHAS AMPLIADA
+            # LÓGICA DE FECHAS RESTAURADA Y AMPLIADA
             hoy_dt = datetime.now()
             medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             f_fin_h = hoy_dt
@@ -4327,6 +4384,10 @@ with pestaña_sectores:
             elif opcion_periodo_tab == "Ayer":
                 f_ini_h = medianoche - timedelta(days=1)
                 f_fin_h = medianoche - timedelta(seconds=1)
+            elif opcion_periodo_tab == "Últimas 24 horas":
+                f_ini_h = hoy_dt - timedelta(hours=24)
+            elif opcion_periodo_tab == "Últimas 48 horas":
+                f_ini_h = hoy_dt - timedelta(hours=48)
             elif opcion_periodo_tab == "Últimos 7 días":
                 f_ini_h = medianoche - timedelta(days=7)
             elif opcion_periodo_tab == "Últimos 14 días":
