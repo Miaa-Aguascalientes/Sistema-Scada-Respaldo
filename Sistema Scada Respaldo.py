@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (MONITOREO INTEGRAL, TQ Y POZOS EN MAPA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CON ZOOM 5)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4491,7 +4491,7 @@ with pestaña_sectores:
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA (ZOOM 12) Y COMPORTAMIENTO HIDRÁULICO (KG/CM²)
+            # FILA SUPERIOR: MAPA (ZOOM 5) Y COMPORTAMIENTO HIDRÁULICO (KG/CM²)
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4503,7 +4503,7 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
+                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=5, tiles=None, height=360)
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
