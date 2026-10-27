@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CON CONTROL DE CAPAS EN MAPA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CON ZOOM FIJO Y CONTROL DE CAPAS)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4491,7 +4491,7 @@ with pestaña_sectores:
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA (CON GRUPOS DE CAPAS Y CONTROL) Y COMPORTAMIENTO
+            # FILA SUPERIOR: MAPA (CON ZOOM ADECUADO Y CONTROL DE CAPAS) Y COMPORTAMIENTO
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4503,7 +4503,8 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=5, tiles=None, height=360)
+                # Usamos zoom_start=12 (o 11) para que se vea a nivel de sector/zona urbana sin estar pegado al piso
+                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
                 # Capas base
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
@@ -4523,16 +4524,15 @@ with pestaña_sectores:
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
-                # 1. Polígono del sector
+                # 1. Polígono del sector (Sin fit_bounds para que respete el zoom configurado)
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
-                        folium_geo = folium.GeoJson(
+                        folium.GeoJson(
                             geo_data, 
                             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
                             name="Límite del sector"
                         ).add_to(capa_sector)
-                        m_sec.fit_bounds(folium_geo.get_bounds(), padding=(30, 30))
                     except: 
                         pass
 
@@ -4585,8 +4585,8 @@ with pestaña_sectores:
                             folium.Marker(location=coord_pz, icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz), popup=folium.Popup(html_popup_pz, max_width=250)).add_to(capa_pozos)
                             folium.Marker(location=coord_pz, icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 15), html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid {color_pz};">P{id_p}</div>')).add_to(capa_pozos)
 
-                # Activador de capas interactivo en el mapa (desplegado)
-                folium.LayerControl(collapsed=False).add_to(m_sec)
+                # Control de capas colapsado (tipo botón)
+                folium.LayerControl(collapsed=True).add_to(m_sec)
                 Fullscreen(position='topleft').add_to(m_sec)
                 
                 folium_static(m_sec, width=None, height=360)
