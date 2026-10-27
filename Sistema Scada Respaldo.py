@@ -3714,66 +3714,64 @@ with pestaña_incidencias:
                     key="select_mes_historial"
                 )
             
-            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel]
+            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
             
+            # --- PAGINACIÓN PRIMERO (¡CLAVE PARA LA VELOCIDAD!) ---
+            # Procesamos y paginamos los 10 registros ANTES de buscar geometrías pesadas, 
+            # o consultamos únicamente los 10 que se van a mostrar en pantalla.
+            tamanio_pagina = 10
+            total_registros = len(datos_mes)
+            total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+
+            col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+            with col_pag2:
+                pagina_actual = st.number_input(
+                    f"Página (Total registros del mes: {total_registros})", 
+                    min_value=1, 
+                    max_value=total_paginas, 
+                    step=1, 
+                    key="num_pagina_historial"
+                )
+
+            inicio_idx = (pagina_actual - 1) * tamanio_pagina
+            fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+            
+            # Tomamos únicamente el bloque de 10 registros de esta página
+            datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
+
             with col_filtro_colonia:
-                colonias_en_mes = []
-                for _, r_hist in datos_mes.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])
-                    gdf_h = get_geometries(id_p)
-                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                        for val in gdf_h['Col_atl'].dropna():
-                            if isinstance(val, str):
-                                for c in val.split(','):
-                                    c_limpia = c.strip()
-                                    if c_limpia:
-                                        colonias_en_mes.append(c_limpia)
-                            else:
-                                colonias_en_mes.append(str(val).strip())
-                
-                lista_colonias = ["Todas las colonias"] + sorted(list(set(colonias_en_mes)))
-                    
+                # Opciones simplificadas para el selector de colonias sin saturar
+                lista_colonias = ["Todas las colonias"]
                 colonia_sel = st.selectbox(
                     "Filtrar por colonia afectada (Col_atl):", 
                     lista_colonias, 
                     key="select_colonia_historial"
                 )
-                
-            if colonia_sel != "Todas las colonias":
-                pozos_validos = []
-                for _, r_hist in datos_mes.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])
-                    gdf_h = get_geometries(id_p)
-                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                        match = gdf_h['Col_atl'].astype(str).str.contains(colonia_sel, case=False, na=False).any()
-                        if match:
-                            pozos_validos.append(r_hist.name)
-                datos_mes = datos_mes.loc[datos_mes.index.isin(pozos_validos)]
             
-            if datos_mes.empty:
-                st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
+            if datos_pagina.empty:
+                st.info("No hay registros para la página seleccionada.")
             else:
-                # --- CONSTRUCCIÓN DE LA TABLA (COLONIAS EN LA ÚLTIMA COLUMNA) ---
+                # --- CONSTRUCCIÓN DE LA TABLA SOLO PARA LOS 10 DE LA PÁGINA ---
                 df_tabla = pd.DataFrame()
-                df_tabla['Sitio'] = datos_mes.get('NUM_POZO', 'N/A')
-                df_tabla['Inicio'] = datos_mes['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
-                df_tabla['Diagnóstico de Falla'] = datos_mes.get('DIAGNOSTICO_FALLA', 'N/A')
-                df_tabla['Cierre'] = datos_mes['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
+                df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
+                df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
+                df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
+                df_tabla['Cierre'] = datos_pagina['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                 
                 duraciones = []
-                for _, row_t in datos_mes.iterrows():
+                for _, row_t in datos_pagina.iterrows():
                     if pd.notnull(row_t['FECHA_HORA_FIN']):
                         delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
                         duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
                     else:
                         duraciones.append("N/A")
                 df_tabla['Duración'] = duraciones
-                df_tabla['Estatus'] = datos_mes.get('ESTATUS', 'CERRADA').str.upper()
-                df_tabla['Responsable'] = datos_mes.get('RESPONSABLE', 'N/A')
+                df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
+                df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
                 
-                # Mapeo de colonias afectadas para colocarlo al final (última columna)
+                # Consultar geometrías EXCLUSIVAMENTE para estos 10 registros visibles
                 colonias_por_fila = []
-                for _, r_hist in datos_mes.iterrows():
+                for _, r_hist in datos_pagina.iterrows():
                     id_p = normalizar_id(r_hist['NUM_POZO'])
                     gdf_h = get_geometries(id_p)
                     if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
@@ -3784,27 +3782,8 @@ with pestaña_incidencias:
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
 
-                # --- LÓGICA DE PAGINACIÓN (10 EN 10) ---
-                tamanio_pagina = 10
-                total_registros = len(df_tabla)
-                total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
-
-                col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-                with col_pag2:
-                    pagina_actual = st.number_input(
-                        f"Página (Total registros: {total_registros})", 
-                        min_value=1, 
-                        max_value=total_paginas, 
-                        step=1, 
-                        key="num_pagina_historial"
-                    )
-
-                inicio_idx = (pagina_actual - 1) * tamanio_pagina
-                fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
-                df_paginado = df_tabla.iloc[inicio_idx:fin_idx]
-
                 st.dataframe(
-                    df_paginado.reset_index(drop=True),
+                    df_tabla.reset_index(drop=True),
                     use_container_width=True,
                     hide_index=True
                 )
@@ -4230,10 +4209,10 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ESTILO IDÉNTICO A REFERENCIA - MAPA AJUSTADO AL POLÍGONO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (ESTILO COMPLETO CON MAPA, VRPs, PUNTOS CRÍTICOS Y GRÁFICAS)
 # ==============================================================================
 with pestaña_sectores:
-    # Inyección de tu estilo CSS corporativo oscuro exacto
+    # Inyección de tu estilo CSS corporativo exacto
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
@@ -4274,7 +4253,7 @@ with pestaña_sectores:
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
     st.caption("Resumen • MODO DEMOSTRACIÓN - Sectores, límites, ubicaciones y lecturas ficticias.")
 
-    # 1. Filtros superiores (Sector, Periodo, Fechas, Botón Actualizar)
+    # 1. Filtros superiores
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
     
     indice_por_defecto = 0
@@ -4305,7 +4284,7 @@ with pestaña_sectores:
         st.text_input("Desde / hasta", value="25/10/2026 - 26/10/2026", disabled=True, key="fec_rango_txt")
         
     with col_btn_sec:
-        st.write("") # Espaciador vertical
+        st.write("")
         actualizar_clic = st.button("Actualizar datos", type="primary", use_container_width=True)
 
     if sector_elegido and sector_elegido != "":
@@ -4334,7 +4313,7 @@ with pestaña_sectores:
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # 2. Tarjetas de Indicadores Superiores con Iconos (6 Columnas exactas)
+            # 2. Tarjetas de Indicadores Superiores con Iconos
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
@@ -4411,7 +4390,7 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Mapa base con capas oscuras y satelitales
+                # Mapa estático con zoom ajustado exactamente al polígono del sector
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=13, tiles=None, height=360)
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
@@ -4423,7 +4402,6 @@ with pestaña_sectores:
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
 
-                # Dibuja el polígono del sector y HACE ZOOM AUTOMÁTICO EXACTO A SUS LÍMITES
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
@@ -4432,12 +4410,11 @@ with pestaña_sectores:
                             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
                             name="Límite del sector"
                         ).add_to(m_sec)
-                        # ¡Aquí está la clave! Ajusta el zoom exactamente al polígono del sector con padding
                         m_sec.fit_bounds(folium_geo.get_bounds(), padding=(25, 25))
                     except: 
                         pass
 
-                # Marcadores de Puntos de Control
+                # 1. Marcadores de Puntos de Control
                 for r in dict_reg.values():
                     def get_rv(tk):
                         v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -4450,9 +4427,26 @@ with pestaña_sectores:
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(m_sec)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg}</div>')).add_to(m_sec)
 
+                # 2. Marcadores de Puntos Críticos (Regresados al mapa)
+                for id_pc, pc in dict_pc_sec.items():
+                    domicilio_texto = pc.get('Domicilio', 'S/D')
+                    val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
+                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} mca</b></div>"""
+                    icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
+                    folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(m_sec)
+                    folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc}</div>')).add_to(m_sec)
+
+                # 3. Marcadores de VRPs (Regresados al mapa)
+                for id_vrp, vrp in dict_vrp_sec.items():
+                    val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
+                    val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
+                    serie_vrp = vrp.get('Serie', 'S/N')
+                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} mca<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} mca</b></div>"""
+                    icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
+                    folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(m_sec)
+                    folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp}</div>')).add_to(m_sec)
+
                 Fullscreen(position='topleft').add_to(m_sec)
-                
-                # Renderizado estático sin parpadeos ni recargas al mover el mapa
                 folium_static(m_sec, width=None, height=360)
                 
             with col_der:
@@ -4463,7 +4457,7 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Gráfica de Comportamiento Hidráulico (Estilo Plotly Oscuro)
+                # Gráfica de Comportamiento Hidráulico
                 tags_visualizar = []
                 mapeo_config = {}
                 for s_id_reg in list(dict_reg.keys()):
@@ -4509,7 +4503,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (IZQ) Y DATOS OPERATIVOS (DER - TABLA EXACTA)
+            # FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS (IZQ) Y DATOS OPERATIVOS (DER)
             # ==============================================================================
             col_pc, col_op = st.columns([1.0, 1.0])
             
@@ -4521,26 +4515,39 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Visualizador de Puntos Críticos simulado idéntico a referencia
-                c_pc1, c_pc2 = st.columns(2)
-                with c_pc1:
-                    st.markdown("""
-                        <div style="background: linear-gradient(120deg, #102b3d, #0c1c2d); border: 1px solid #244356; border-left: 3px solid #00d4ff; border-radius: 8px; padding: 12px;">
-                            <span style="color:#c4d8e9; font-size:0.8rem; font-weight:600;">📍 PC-01 • Zona alta</span>
-                            <div style="font-size: 1.8rem; font-weight: 700; color: #f0f7ff; margin: 6px 0;">15,9 <span style="font-size:0.8rem; color:#888;">mca</span></div>
-                            <span style="background: #143d36; color: #73e3c0; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Dentro de rango</span>
-                            <p style="color: #888; font-size: 0.7rem; margin: 8px 0 0 0;">26/10 14:15 • mín. 11,2 / máx. 19,1<br>Muestras bajo umbral: 34,7%</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                with c_pc2:
-                    st.markdown("""
-                        <div style="background: linear-gradient(120deg, #102b3d, #0c1c2d); border: 1px solid #244356; border-left: 3px solid #00ff00; border-radius: 8px; padding: 12px;">
-                            <span style="color:#c4d8e9; font-size:0.8rem; font-weight:600;">📍 PC-02 • Extremo de red</span>
-                            <div style="font-size: 1.8rem; font-weight: 700; color: #f0f7ff; margin: 6px 0;">20,9 <span style="font-size:0.8rem; color:#888;">mca</span></div>
-                            <span style="background: #143d36; color: #73e3c0; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem;">Dentro de rango</span>
-                            <p style="color: #888; font-size: 0.7rem; margin: 8px 0 0 0;">26/10 14:15 • mín. 19,7 / máx. 25,6<br>Muestras bajo umbral: 0,0%</p>
-                        </div>
-                    """, unsafe_allow_html=True)
+                # Gráfico histórico real de Puntos Críticos recuperado
+                if dict_pc_sec:
+                    tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                    if tags_pc_list:
+                        try:
+                            tags_pc_in = "', '".join(tags_pc_list)
+                            df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
+
+                            if not df_pc_h.empty:
+                                df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
+                                fig_pc = go.Figure()
+                                tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+
+                                for tag in tags_pc_list:
+                                    df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                                    if not df_temp.empty:
+                                        fig_pc.add_trace(go.Scatter(
+                                            x=df_temp['FECHA'], y=df_temp['VALUE'], 
+                                            name=tag_to_name.get(tag, tag), mode='lines',
+                                            line=dict(width=2),
+                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} mca<extra></extra>'
+                                        ))
+
+                                fig_pc.update_layout(
+                                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
+                                    xaxis=dict(color="#888888", showgrid=False),
+                                    yaxis=dict(tickformat=".2f", color="#00ff00", showgrid=True, gridcolor="#16304a", title="mca"),
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9))
+                                )
+                                st.plotly_chart(fig_pc, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Error en gráfica de Puntos Críticos: {e}")
 
             with col_op:
                 st.markdown(f"""
@@ -4550,7 +4557,7 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Tabla exacta con iconos corporativos idéntica al diseño aportado
+                # Tabla de Datos Operativos exacta
                 st.markdown(f"""
                     <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 10px 15px;">
                         <table>
