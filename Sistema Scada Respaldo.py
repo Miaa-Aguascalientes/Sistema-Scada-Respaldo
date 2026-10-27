@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON GRÁFICO VRP Y DATOS OPERATIVOS ABAJO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4244,7 +4244,7 @@ with pestaña_sectores:
             /* Tablas de Datos Operativos */
             .st-key-dma_operational table { width: 100%; }
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .35rem; vertical-align: middle; font-size: .8rem; }
-            .st-key-dma_operational td:first-child { width: 62%; color: #c1d3e5; }
+            .st-key-dma_operational td:first-child { width: 45%; color: #c1d3e5; }
             .st-key-dma_operational td:last-child { color: #eef6ff; font-variant-numeric: tabular-nums; text-align: right; }
             iframe { border-radius: 8px; }
         </style>
@@ -4430,7 +4430,6 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Mapa configurado con zoom inicial en 12
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
@@ -4602,9 +4601,9 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (KG/CM²) Y DATOS OPERATIVOS
+            # FILA INFERIOR: PUNTOS CRÍTICOS (IZQ) Y VRPs (DER)
             # ==============================================================================
-            col_pc, col_op = st.columns([1.0, 1.0])
+            col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
             with col_pc:
                 st.markdown(f"""
@@ -4647,27 +4646,84 @@ with pestaña_sectores:
                         except Exception as e:
                             st.error(f"Error en gráfica de Puntos Críticos: {e}")
 
-            with col_op:
+            with col_vrp_g:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Válvulas reductoras de presión (VRP)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión de entrada y salida de las VRPs del sector</p>
                     </div>
                 """, unsafe_allow_html=True)
 
-                st.markdown(f"""
-                    <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 10px 15px;">
-                        <table>
-                            <tr><td>🏢 Distrito</td><td>Distrito {datos_s.get('Distrito', 'Oriente')}</td></tr>
-                            <tr><td>🚰 Tomas activas</td><td>{datos_s.get('U_Tot', 7920):,.0f}</td></tr>
-                            <tr><td>📏 Longitud de red</td><td>42,6 km</td></tr>
-                            <tr><td>📈 Demanda estimada · catálogo</td><td>{demanda_fmt} L/s</td></tr>
-                            <tr><td>📉 Presión mínima de referencia</td><td>1.50 Kg/cm²</td></tr>
-                            <tr><td>⚙️ Consigna VRP · catálogo</td><td>3.00 Kg/cm²</td></tr>
-                            <tr><td>🔵 Tanque TQ-055 · último</td><td>4,13 m</td></tr>
-                            <tr><td>🕒 Fecha del nivel / condición</td><td>26/10 14:15 • Sin luz</td></tr>
-                        </table>
-                    </div>
-                """, unsafe_allow_html=True)
+                if dict_vrp_sec:
+                    tags_vrp_list = []
+                    vrp_mapeo_config = {}
+                    for v_id, v_info in dict_vrp_sec.items():
+                        v_nombre = v_info.get('nombre', f'VRP {v_id}')
+                        for k_t, label_s in [('tag_p1', f"{v_nombre} - P. Entrada"), ('tag_p2', f"{v_nombre} - P. Salida")]:
+                            t_val = v_info.get(k_t)
+                            if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                                tags_vrp_list.append(t_val)
+                                vrp_mapeo_config[t_val] = label_s
+
+                    if tags_vrp_list:
+                        try:
+                            tags_vrp_in = "', '".join(list(set(tags_vrp_list)))
+                            df_vrp_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_vrp_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
+
+                            if not df_vrp_h.empty:
+                                df_vrp_h['FECHA'] = pd.to_datetime(df_vrp_h['FECHA'])
+                                fig_vrp = go.Figure()
+
+                                for tag in tags_vrp_list:
+                                    df_temp = df_vrp_h[df_vrp_h['TAG'] == tag]
+                                    if not df_temp.empty:
+                                        fig_vrp.add_trace(go.Scatter(
+                                            x=df_temp['FECHA'], y=df_temp['VALUE'], 
+                                            name=vrp_mapeo_config.get(tag, tag), mode='lines',
+                                            line=dict(width=2),
+                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
+                                        ))
+
+                                fig_vrp.update_layout(
+                                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
+                                    xaxis=dict(color="#888888", showgrid=False),
+                                    yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Kg/cm²"),
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9))
+                                )
+                                st.plotly_chart(fig_vrp, use_container_width=True)
+                        except Exception as e:
+                            st.error(f"Error en gráfica de VRPs: {e}")
+
+            # ==============================================================================
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS A ANCHO COMPLETO
+            # ==============================================================================
+            st.write("")
+            st.markdown(f"""
+                <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
+                </div>
+                <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px;">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
+                            <td>📉 <b>Presión mínima de referencia:</b> 1.50 Kg/cm²</td>
+                        </tr>
+                        <tr>
+                            <td>🚰 <b>Tomas activas:</b> {datos_s.get('U_Tot', 7920):,.0f}</td>
+                            <td>⚙️ <b>Consigna VRP · catálogo:</b> 3.00 Kg/cm²</td>
+                        </tr>
+                        <tr>
+                            <td>📏 <b>Longitud de red:</b> 42,6 km</td>
+                            <td>🔵 <b>Tanque TQ-055 · último:</b> 4,13 m</td>
+                        </tr>
+                        <tr>
+                            <td>📈 <b>Demanda estimada · catálogo:</b> {demanda_fmt} L/s</td>
+                            <td>🕒 <b>Fecha del nivel / condición:</b> 26/10 14:15 • Sin luz</td>
+                        </tr>
+                    </table>
+                </div>
+            """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
