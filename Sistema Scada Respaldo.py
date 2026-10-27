@@ -3381,7 +3381,7 @@ with pestaña_mapa:
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON HISTORIAL EN TABLA)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL EN TABLA CON COLONIAS)
 # ==============================================================================
 with pestaña_incidencias:
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3753,14 +3753,26 @@ with pestaña_incidencias:
             if datos_mes.empty:
                 st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
             else:
-                # --- CAMBIO A TABLA DE DATOS PARA EL HISTORIAL ---
+                # --- CONSTRUCCIÓN DE LA TABLA CON COLONIAS AFECTADAS ---
                 df_tabla = pd.DataFrame()
                 df_tabla['Sitio'] = datos_mes.get('NUM_POZO', 'N/A')
+                
+                # Buscamos y mapeamos las colonias afectadas (Col_atl) por cada pozo
+                colonias_por_fila = []
+                for _, r_hist in datos_mes.iterrows():
+                    id_p = normalizar_id(r_hist['NUM_POZO'])
+                    gdf_h = get_geometries(id_p)
+                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
+                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                    else:
+                        colonias_por_fila.append("N/A")
+                
+                df_tabla['Colonias Afectadas'] = colonias_por_fila
                 df_tabla['Inicio'] = datos_mes['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
                 df_tabla['Diagnóstico de Falla'] = datos_mes.get('DIAGNOSTICO_FALLA', 'N/A')
                 df_tabla['Cierre'] = datos_mes['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                 
-                # Cálculo de duración para la tabla
                 duraciones = []
                 for _, row_t in datos_mes.iterrows():
                     if pd.notnull(row_t['FECHA_HORA_FIN']):
@@ -3777,7 +3789,6 @@ with pestaña_incidencias:
                     use_container_width=True,
                     hide_index=True
                 )
-
 
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
