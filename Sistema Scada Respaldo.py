@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CENTRADO EN EL SECTOR Y ZOOM 12)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON FIT_BOUNDS AUTOMÁTICO AL SECTOR)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4491,7 +4491,7 @@ with pestaña_sectores:
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA (CENTRADO INTELIGENTE Y ZOOM 12) Y COMPORTAMIENTO
+            # FILA SUPERIOR: MAPA (CON FIT_BOUNDS EXACTO AL SECTOR) Y COMPORTAMIENTO
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4503,22 +4503,8 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Coordenadas por defecto (centro de Aguascalientes)
-                lat_mapa, lon_mapa = 21.8820, -102.2800
-
-                # Intentamos calcular el centro exacto (centroide) del polígono del sector
-                if datos_s and datos_s.get('geo'):
-                    try:
-                        import shapely.geometry
-                        geo_data = json.loads(datos_s['geo'])
-                        geom = shapely.geometry.shape(geo_data)
-                        centroid = geom.centroid
-                        lat_mapa, lon_mapa = centroid.y, centroid.x
-                    except Exception:
-                        pass
-
-                # Creamos el mapa centrado exactamente en el sector con zoom 12
-                m_sec = folium.Map(location=[lat_mapa, lon_mapa], zoom_start=12, tiles=None, height=360)
+                # Mapa base general
+                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
                 # Capas base
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
@@ -4538,14 +4524,17 @@ with pestaña_sectores:
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
-                # 1. Polígono del sector
+                # 1. Polígono del sector y ajuste automático de zoom (fit_bounds)
                 if datos_s and datos_s.get('geo'):
                     try:
-                        folium.GeoJson(
+                        geo_data = json.loads(datos_s['geo'])
+                        folium_geo = folium.GeoJson(
                             geo_data, 
                             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
                             name="Límite del sector"
                         ).add_to(capa_sector)
+                        # AQUÍ ESTÁ EL ACERCAMIENTO EXACTO AL SECTOR QUE PEDISTE
+                        m_sec.fit_bounds(folium_geo.get_bounds(), padding=(30, 30), max_zoom=15)
                     except: 
                         pass
 
