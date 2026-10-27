@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICOS ADAPTABLES AL ANCHO DEL PERIODO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CORRECCIÓN DE .floor() EN DATETIME)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4580,7 +4580,9 @@ with pestaña_sectores:
                             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                             meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                            fechas_lineas = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
+                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                            fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
                             num_dias = len(fechas_lineas)
                             paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
                             ticks_filtrados = fechas_lineas[::paso]
@@ -4643,7 +4645,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (ADAPTADOS AL RANGO DE FECHAS)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CORREGIDOS)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4667,7 +4669,9 @@ with pestaña_sectores:
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                                fechas_lineas_pc = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
+                                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                                fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
                                 ticks_pc = fechas_lineas_pc[::1]
                                 etiquetas_pc = [
                                     f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
@@ -4745,7 +4749,9 @@ with pestaña_sectores:
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                                fechas_lineas_vrp = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
+                                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                                fechas_lineas_vrp = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
                                 ticks_vrp = fechas_lineas_vrp[::1]
                                 etiquetas_vrp = [
                                     f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
