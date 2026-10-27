@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS COMPLETOS DESDE Sectores_hidr)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS SIN DUPLICADOS)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4806,7 +4806,7 @@ with pestaña_sectores:
                             st.error(f"Error en gráfica de VRPs: {e}")
 
             # ==============================================================================
-            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS COMPLETA (TODOS LOS CAMPOS)
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS (SIN DUPLICADOS)
             # ==============================================================================
             st.write("")
             st.markdown(f"""
@@ -4827,14 +4827,9 @@ with pestaña_sectores:
                             <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
                         </tr>
                         <tr>
-                            <td>👥 <b>Población estimada:</b> {datos_s.get('Poblacion', 28450):,.0f} hab</td>
                             <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
-                            <td>📊 <b>Volumen medido:</b> {volumen_medido_val:,.0f} m³</td>
-                        </tr>
-                        <tr>
                             <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
                             <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
-                            <td>📈 <b>Demanda estimada:</b> {demanda_fmt} L/s</td>
                         </tr>
                         <tr>
                             <td>📉 <b>Presión mínima de referencia:</b> 1.50 Kg/cm²</td>
