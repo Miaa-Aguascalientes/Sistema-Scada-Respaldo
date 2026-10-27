@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICO COPIADO DE LA SECCIÓN 7)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4352,7 +4352,7 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de ingreso de los pozos/puntos de control
+            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de ingreso
             caudal_promedio_total = 0.0
             if tags_caudal_sector:
                 try:
@@ -4411,14 +4411,14 @@ with pestaña_sectores:
             with c6:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">📊 Presión de ingreso</p>
-                    <p class="value-indicador">30,5 <span style="font-size:1rem; font-weight:normal;">mca</span></p>
+                    <p class="value-indicador">2.35 <span style="font-size:1rem; font-weight:normal;">Kg/cm²</span></p>
                     <p class="sub-indicador">Promedio ponderado del periodo</p>
                 </div>''', unsafe_allow_html=True)
 
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA ACERCADO AL POLÍGONO (IZQ) Y COMPORTAMIENTO HIDRÁULICO (DER)
+            # FILA SUPERIOR: MAPA (ZOOM 12) Y COMPORTAMIENTO HIDRÁULICO (KG/CM²)
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4430,7 +4430,8 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=13, tiles=None, height=360)
+                # Mapa configurado con zoom inicial en 12
+                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
@@ -4449,7 +4450,7 @@ with pestaña_sectores:
                             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
                             name="Límite del sector"
                         ).add_to(m_sec)
-                        m_sec.fit_bounds(folium_geo.get_bounds(), padding=(25, 25))
+                        m_sec.fit_bounds(folium_geo.get_bounds(), padding=(30, 30))
                     except: 
                         pass
 
@@ -4461,7 +4462,7 @@ with pestaña_sectores:
                         except: return 0.0, f
                     rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q')
                     id_reg = r.get('Serie', 'S/N') 
-                    html_popup_reg = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:220px;"><b style="color:#00FFFF;">{r['nombre']}</b><br>Caudal: {rcau:.2f} L/s<br>Presión: {rp1:.2f} mca</div>"""
+                    html_popup_reg = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:220px;"><b style="color:#00FFFF;">{r['nombre']}</b><br>Caudal: {rcau:.2f} L/s<br>Presión: {rp1:.2f} Kg/cm²</div>"""
                     icon_html = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(m_sec)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg}</div>')).add_to(m_sec)
@@ -4470,7 +4471,7 @@ with pestaña_sectores:
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
-                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} mca</b></div>"""
+                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} Kg/cm²</b></div>"""
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(m_sec)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc}</div>')).add_to(m_sec)
@@ -4480,7 +4481,7 @@ with pestaña_sectores:
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
                     serie_vrp = vrp.get('Serie', 'S/N')
-                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} mca<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} mca</b></div>"""
+                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} Kg/cm²<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} Kg/cm²</b></div>"""
                     icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(m_sec)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp}</div>')).add_to(m_sec)
@@ -4496,7 +4497,6 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Gráfica idéntica a la Sección 7 (Extracción completa de tags de control y pozos del sector)
                 tags_visualizar = []
                 mapeo_config = {}
 
@@ -4560,9 +4560,9 @@ with pestaña_sectores:
                                     es_caudal = not cfg['sec']
                                     label_u = cfg['label'].upper()
 
-                                    if es_caudal: unidad_pc = "Lps"
-                                    elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "Mts"
-                                    else: unidad_pc = "kg/cm²"
+                                    if es_caudal: unidad_pc = "L/s"
+                                    elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                    else: unidad_pc = "Kg/cm²"
                                     
                                     if es_caudal:
                                         brillo = max(75 - (idx_q * 15), 35) 
@@ -4595,14 +4595,14 @@ with pestaña_sectores:
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
                                 xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
                                 yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                                yaxis2=dict(title="mca", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
                             )
                             st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS (IZQ) Y DATOS OPERATIVOS (DER)
+            # FILA INFERIOR: PUNTOS CRÍTICOS (KG/CM²) Y DATOS OPERATIVOS
             # ==============================================================================
             col_pc, col_op = st.columns([1.0, 1.0])
             
@@ -4633,14 +4633,14 @@ with pestaña_sectores:
                                             x=df_temp['FECHA'], y=df_temp['VALUE'], 
                                             name=tag_to_name.get(tag, tag), mode='lines',
                                             line=dict(width=2),
-                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} mca<extra></extra>'
+                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                         ))
 
                                 fig_pc.update_layout(
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     xaxis=dict(color="#888888", showgrid=False),
-                                    yaxis=dict(tickformat=".2f", color="#00ff00", showgrid=True, gridcolor="#16304a", title="mca"),
+                                    yaxis=dict(tickformat=".2f", color="#00ff00", showgrid=True, gridcolor="#16304a", title="Kg/cm²"),
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9))
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
@@ -4662,8 +4662,8 @@ with pestaña_sectores:
                             <tr><td>🚰 Tomas activas</td><td>{datos_s.get('U_Tot', 7920):,.0f}</td></tr>
                             <tr><td>📏 Longitud de red</td><td>42,6 km</td></tr>
                             <tr><td>📈 Demanda estimada · catálogo</td><td>{demanda_fmt} L/s</td></tr>
-                            <tr><td>📉 Presión mínima de referencia</td><td>15,0 mca</td></tr>
-                            <tr><td>⚙️ Consigna VRP · catálogo</td><td>30,0 mca</td></tr>
+                            <tr><td>📉 Presión mínima de referencia</td><td>1.50 Kg/cm²</td></tr>
+                            <tr><td>⚙️ Consigna VRP · catálogo</td><td>3.00 Kg/cm²</td></tr>
                             <tr><td>🔵 Tanque TQ-055 · último</td><td>4,13 m</td></tr>
                             <tr><td>🕒 Fecha del nivel / condición</td><td>26/10 14:15 • Sin luz</td></tr>
                         </table>
