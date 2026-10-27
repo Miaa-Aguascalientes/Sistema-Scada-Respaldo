@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CON FIT_BOUNDS Y GRÁFICAS CON RECUADRO Y AZUL OSCURO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON FIT_BOUNDS AUTOMÁTICO AL SECTOR)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4533,6 +4533,7 @@ with pestaña_sectores:
                             style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
                             name="Límite del sector"
                         ).add_to(capa_sector)
+                        # AQUÍ ESTÁ EL ACERCAMIENTO EXACTO AL SECTOR QUE PEDISTE
                         m_sec.fit_bounds(folium_geo.get_bounds(), padding=(30, 30), max_zoom=15)
                     except: 
                         pass
@@ -4707,14 +4708,13 @@ with pestaña_sectores:
                                 fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                                 fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-                            # AQUÍ SE APLICÓ EL FONDO AZUL OSCURO (#081421) Y EL RECUADRO/MARCO (showline=True, mirror=True)
                             fig.update_layout(
-                                paper_bgcolor='rgba(8,20,33,1)', plot_bgcolor='rgba(8,20,33,1)', height=360, 
+                                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
                                 margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, showline=True, linewidth=1, linecolor="#1f4068", mirror=True),
-                                yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a", showline=True, linewidth=1, linecolor="#1f4068", mirror=True),
-                                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False, showline=True, linewidth=1, linecolor="#1f4068", mirror=True)
+                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                                yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
                             )
                             st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
@@ -4780,11 +4780,11 @@ with pestaña_sectores:
                                     fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                                 fig_pc.update_layout(
-                                    paper_bgcolor='rgba(8,20,33,1)', plot_bgcolor='rgba(8,20,33,1)', height=290, 
+                                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0, showline=True, linewidth=1, linecolor="#1f4068", mirror=True),
-                                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²", showline=True, linewidth=1, linecolor="#1f4068", mirror=True)
+                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
+                                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                         except Exception as e:
@@ -4869,12 +4869,12 @@ with pestaña_sectores:
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                                 fig_vrp.update_layout(
-                                    paper_bgcolor='rgba(8,20,33,1)', plot_bgcolor='rgba(8,20,33,1)', height=290, 
+                                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0, showline=True, linewidth=1, linecolor="#1f4068", mirror=True),
-                                    yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f", showline=True, linewidth=1, linecolor="#1f4068", mirror=True),
-                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f", showline=True, linewidth=1, linecolor="#1f4068", mirror=True)
+                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
+                                    yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
+                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
                                 )
                                 st.plotly_chart(fig_vrp, use_container_width=True)
                         except Exception as e:
