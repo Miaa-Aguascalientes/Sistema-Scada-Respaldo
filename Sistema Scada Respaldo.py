@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ETIQUETAS A LA IZQUIERDA DE LOS SELECTORES)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (ETIQUETAS Y SELECTORES AJUSTADOS)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4225,15 +4225,17 @@ with pestaña_sectores:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
             
-            /* Alineación y estilo para etiquetas a la izquierda */
+            /* Estilo para etiquetas pegadas al selector */
             .label-inline {
                 font-size: 0.95rem;
                 font-weight: 600;
                 color: #c1d3e5;
                 display: flex;
                 align-items: center;
+                justify-content: flex-end;
                 height: 100%;
                 padding-top: 0.5rem;
+                padding-right: 8px;
             }
 
             /* Tarjetas de Indicadores Superiores */
@@ -4263,7 +4265,7 @@ with pestaña_sectores:
 
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
 
-    # 1. Filtros superiores con etiquetas a la izquierda
+    # 1. Filtros superiores con etiquetas ajustadas a la izquierda del selector
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
     
     indice_por_defecto = 0
@@ -4272,11 +4274,10 @@ with pestaña_sectores:
             indice_por_defecto = idx + 1
             break
 
-    # Distribución en 2 columnas principales (Sector a la izq, Periodo a la der)
     col_bloque_sec, col_bloque_per = st.columns([1, 1], gap="large")
     
     with col_bloque_sec:
-        sub_c1, sub_c2 = st.columns([0.18, 0.82])
+        sub_c1, sub_c2 = st.columns([0.12, 0.88], gap="small")
         with sub_c1:
             st.markdown('<div class="label-inline">Sector</div>', unsafe_allow_html=True)
         with sub_c2:
@@ -4289,7 +4290,7 @@ with pestaña_sectores:
             )
             
     with col_bloque_per:
-        sub_c3, sub_c4 = st.columns([0.18, 0.82])
+        sub_c3, sub_c4 = st.columns([0.12, 0.88], gap="small")
         with sub_c3:
             st.markdown('<div class="label-inline">Periodo</div>', unsafe_allow_html=True)
         with sub_c4:
