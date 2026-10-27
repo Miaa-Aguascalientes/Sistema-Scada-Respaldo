@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICO COMPORTAMIENTO HIDRÁULICO Y DICCIONARIO DE POZOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICO COPIADO DE LA SECCIÓN 7)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4313,7 +4313,7 @@ with pestaña_sectores:
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # Carga de datos usando el Diccionario de puntos de control, VRPs y puntos críticos
+            # Carga de datos de control, VRPs y puntos críticos del sector
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
@@ -4323,21 +4323,26 @@ with pestaña_sectores:
             mapa_pc_all = cargar_puntos_criticos_desde_db()
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
+            # Recopilación de pozos asociados al sector
+            ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
+
             # Recopilación de tags para SCADA
             tags_para_scada = []
             tags_caudal_sector = []
-            tags_presion_sector = []
             for r in dict_reg.values():
                 t_q = r.get('tag_q')
-                t_p1 = r.get('tag_p1')
                 if t_q:
                     tags_para_scada.append(t_q)
                     tags_caudal_sector.append(t_q)
-                if t_p1:
-                    tags_para_scada.append(t_p1)
-                    tags_presion_sector.append(t_p1)
-                for k in ['tag_p2', 'tag_vbat']:
+                for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
                     if r.get(k): tags_para_scada.append(r.get(k))
+
+            for id_p in ids_p:
+                if id_p in mapa_pozos_dict:
+                    p_info = mapa_pozos_dict[id_p]
+                    for kt in ['caudal', 'presion', 'nivel_tanque']:
+                        if p_info.get(kt):
+                            tags_para_scada.append(p_info.get(kt))
 
             for pc in dict_pc_sec.values():
                 if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
@@ -4347,7 +4352,7 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de ingreso de los pozos
+            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de ingreso de los pozos/puntos de control
             caudal_promedio_total = 0.0
             if tags_caudal_sector:
                 try:
@@ -4448,7 +4453,7 @@ with pestaña_sectores:
                     except: 
                         pass
 
-                # Marcadores de Puntos de Control (Diccionario de puntos de control)
+                # Marcadores de Puntos de Control
                 for r in dict_reg.values():
                     def get_rv(tk):
                         v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -4491,16 +4496,36 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Gráfica de Comportamiento Hidráulico con datos del Diccionario de puntos de control
+                # Gráfica idéntica a la Sección 7 (Extracción completa de tags de control y pozos del sector)
                 tags_visualizar = []
                 mapeo_config = {}
+
                 for s_id_reg in list(dict_reg.keys()):
                     r_info = dict_reg[s_id_reg]
-                    for key_t, lb, clr, sec in [('tag_q', "Caudal de ingreso", '#00d4ff', False), ('tag_p1', "Presión de ingreso", '#00ff00', True)]:
+                    conf_pc = [
+                        ('tag_q', f"S:{s_id_reg} - Q", False),
+                        ('tag_p1', f"S:{s_id_reg} - P1", True),
+                        ('tag_p2', f"S:{s_id_reg} - P2", True)
+                    ]
+                    for key_t, lb, sec in conf_pc:
                         tag_v = r_info.get(key_t)
                         if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                             tags_visualizar.append(tag_v)
-                            mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+                            mapeo_config[tag_v] = {'label': lb, 'sec': sec}
+
+                for id_p in ids_p:
+                    if id_p in mapa_pozos_dict:
+                        p_info = mapa_pozos_dict[id_p]
+                        conf_pz = [
+                            ('caudal', f"Pozo {id_p} - Q", False),
+                            ('presion', f"Pozo {id_p} - P", True),
+                            ('nivel_tanque', f"Pozo {id_p} - Nivel", True)
+                        ]
+                        for key_t, lb, sec in conf_pz:
+                            tag_v = p_info.get(key_t)
+                            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a']:
+                                tags_visualizar.append(tag_v)
+                                mapeo_config[tag_v] = {'label': lb, 'sec': sec}
 
                 if tags_visualizar:
                     try:
@@ -4511,37 +4536,64 @@ with pestaña_sectores:
                         
                         if not df_h.empty:
                             df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-                            fig = go.Figure()
-                            
-                            # Agregar franja nocturna (02:00 - 04:00) como sombreado de fondo
-                            f_min_dt = df_h['FECHA'].min()
-                            f_max_dt = df_h['FECHA'].max()
-                            dia_ref = f_min_dt.date()
-                            inicio_franja = datetime.combine(dia_ref, datetime.strptime("02:00", "%H:%M").time())
-                            fin_franja = datetime.combine(dia_ref, datetime.strptime("04:00", "%H:%M").time())
-                            
-                            fig.add_vrect(
-                                x0=inicio_franja, x1=fin_franja,
-                                fillcolor="rgba(0, 150, 255, 0.12)", layer="below", line_width=0
-                            )
+                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                            for tag_name in list(set(tags_visualizar)):
+                            fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), end=df_h['FECHA'].max().ceil('D'), freq='D')
+                            num_dias = len(fechas_lineas)
+                            paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                            ticks_filtrados = fechas_lineas[::paso]
+
+                            etiquetas_filtradas = [
+                                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                for d in ticks_filtrados
+                            ]
+
+                            fig = go.Figure()
+                            idx_q = 0
+                            idx_p = 0
+
+                            for tag_name in tags_visualizar:
                                 df_tag = df_h[df_h['TAG'] == tag_name]
                                 if not df_tag.empty:
                                     cfg = mapeo_config[tag_name]
+                                    es_caudal = not cfg['sec']
+                                    label_u = cfg['label'].upper()
+
+                                    if es_caudal: unidad_pc = "Lps"
+                                    elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "Mts"
+                                    else: unidad_pc = "kg/cm²"
+                                    
+                                    if es_caudal:
+                                        brillo = max(75 - (idx_q * 15), 35) 
+                                        color_base = f"hsl(200, 100%, {brillo}%)" 
+                                        idx_q += 1
+                                    else:
+                                        brillo = max(80 - (idx_p * 20), 30)
+                                        color_base = f"hsl(145, 100%, {brillo}%)"
+                                        idx_p += 1
+
                                     fig.add_trace(go.Scatter(
                                         x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
-                                        yaxis="y2" if cfg['sec'] else "y1", mode='lines',
-                                        line=dict(width=2, color=cfg['color']),
-                                        fill='tozeroy' if not cfg['sec'] else None,
-                                        fillcolor="rgba(0, 212, 255, 0.1)"
+                                        yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                        line=dict(width=2, color=color_base),
+                                        marker=dict(size=3, symbol='circle'),
+                                        fill='tozeroy' if es_caudal else None,
+                                        fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
+                                        hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                     ))
+
+                            delta = pd.Timedelta(hours=1)
+                            for d in fechas_lineas:
+                                es_lunes = (d.dayofweek == 0)
+                                fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                                fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
                             fig.update_layout(
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
                                 margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                                xaxis=dict(color="#888888", showgrid=False),
+                                xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
                                 yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
                                 yaxis2=dict(title="mca", side="right", overlaying="y", color="#00ff00", showgrid=False)
                             )
