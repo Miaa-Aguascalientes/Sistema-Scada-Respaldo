@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CON ZOOM FIJO Y CONTROL DE CAPAS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (MAPA CON ZOOM 12 Y CONTROL DE CAPAS)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4491,7 +4491,7 @@ with pestaña_sectores:
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA (CON ZOOM ADECUADO Y CONTROL DE CAPAS) Y COMPORTAMIENTO
+            # FILA SUPERIOR: MAPA (CON ZOOM 12 Y CONTROL DE CAPAS) Y COMPORTAMIENTO
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4503,7 +4503,7 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Usamos zoom_start=12 (o 11) para que se vea a nivel de sector/zona urbana sin estar pegado al piso
+                # Mapa inicializado con zoom_start=12 exacto
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
                 # Capas base
@@ -4517,14 +4517,14 @@ with pestaña_sectores:
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
 
-                # Definición de grupos de capas independientes (FeatureGroups)
+                # Grupos de capas independientes (FeatureGroups)
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
                 capa_criticos = folium.FeatureGroup(name="Puntos críticos", overlay=True, control=True).add_to(m_sec)
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
-                # 1. Polígono del sector (Sin fit_bounds para que respete el zoom configurado)
+                # 1. Polígono del sector
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
