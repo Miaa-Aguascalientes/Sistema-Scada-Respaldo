@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (MONITOREO INTEGRAL Y TQ)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (MONITOREO INTEGRAL Y TQ LIMPIO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4355,33 +4355,53 @@ with pestaña_sectores:
             # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilación de tags para SCADA y pozos
+            # Recopilación de tags para SCADA y pozos evitando duplicados
             tags_para_scada = []
             tags_caudal_pozos = []
+            tags_agregados_set = set()
             
             for r in dict_reg.values():
                 t_q = r.get('tag_q')
                 if t_q and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                    tags_para_scada.append(t_q)
+                    if t_q not in tags_agregados_set:
+                        tags_para_scada.append(t_q)
+                        tags_agregados_set.add(t_q)
                 for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
-                    if r.get(k): tags_para_scada.append(r.get(k))
+                    t_val = r.get(k)
+                    if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                        if t_val not in tags_agregados_set:
+                            tags_para_scada.append(t_val)
+                            tags_agregados_set.add(t_val)
 
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
                     t_pz_q = p_info.get('caudal')
                     if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        tags_para_scada.append(t_pz_q)
+                        if t_pz_q not in tags_agregados_set:
+                            tags_para_scada.append(t_pz_q)
+                            tags_agregados_set.add(t_pz_q)
                         tags_caudal_pozos.append(t_pz_q)
                     for kt in ['presion', 'nivel_tanque']:
-                        if p_info.get(kt):
-                            tags_para_scada.append(p_info.get(kt))
+                        t_val = p_info.get(kt)
+                        if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                            if t_val not in tags_agregados_set:
+                                tags_para_scada.append(t_val)
+                                tags_agregados_set.add(t_val)
 
             for pc in dict_pc_sec.values():
-                if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
+                t_pc = pc.get('tag_p1')
+                if t_pc and t_pc not in tags_agregados_set:
+                    tags_para_scada.append(t_pc)
+                    tags_agregados_set.add(t_pc)
+                    
             for v in dict_vrp_sec.values():
                 for k in ['tag_p1', 'tag_p2', 'tag_q']:
-                    if v.get(k): tags_para_scada.append(v.get(k))
+                    t_vrp = v.get(k)
+                    if t_vrp and str(t_vrp).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                        if t_vrp not in tags_agregados_set:
+                            tags_para_scada.append(t_vrp)
+                            tags_agregados_set.add(t_vrp)
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
@@ -4417,7 +4437,7 @@ with pestaña_sectores:
 
             demanda_fmt = fmt_miles(demanda_estimada_val)
 
-            # Extracción del Nivel TQ desde los pozos del sector para la tabla inferior
+            # Extracción del Nivel TQ único para la tabla inferior
             texto_nivel_tq = "Sin registro de nivel TQ"
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
@@ -4426,7 +4446,7 @@ with pestaña_sectores:
                     if t_niv and str(t_niv).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                         val_niv, fec_niv = scada_res_reg.get(t_niv, (0.0, "N/A"))
                         fec_str = fec_niv.strftime('%d/%m %H:%M') if hasattr(fec_niv, 'strftime') else str(fec_niv)
-                        texto_nivel_tq = f"Pozo {id_p} - Nivel TQ • {val_niv:,.2f} m ({fec_str})"
+                        texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
                         break
 
             # Tarjetas de Indicadores Superiores
@@ -4551,6 +4571,7 @@ with pestaña_sectores:
 
                 tags_visualizar = []
                 mapeo_config = {}
+                tags_grafico_set = set()
 
                 for s_id_reg in list(dict_reg.keys()):
                     r_info = dict_reg[s_id_reg]
@@ -4562,8 +4583,10 @@ with pestaña_sectores:
                     for key_t, lb, sec in conf_pc:
                         tag_v = r_info.get(key_t)
                         if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                            tags_visualizar.append(tag_v)
-                            mapeo_config[tag_v] = {'label': lb, 'sec': sec}
+                            if tag_v not in tags_grafico_set:
+                                tags_visualizar.append(tag_v)
+                                mapeo_config[tag_v] = {'label': lb, 'sec': sec}
+                                tags_grafico_set.add(tag_v)
 
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
@@ -4571,13 +4594,21 @@ with pestaña_sectores:
                         conf_pz = [
                             ('caudal', f"Pozo {id_p} - Q", False),
                             ('presion', f"Pozo {id_p} - P", True),
-                            ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", True)
+                            ('nivel_tanque', "Nivel TQ", True)  # Etiqueta única sin nombre de pozo
                         ]
                         for key_t, lb, sec in conf_pz:
                             tag_v = p_info.get(key_t)
-                            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a']:
-                                tags_visualizar.append(tag_v)
-                                mapeo_config[tag_v] = {'label': lb, 'sec': sec}
+                            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                                if key_t == 'nivel_tanque':
+                                    if tag_v not in tags_grafico_set:
+                                        tags_visualizar.append(tag_v)
+                                        mapeo_config[tag_v] = {'label': "Nivel TQ", 'sec': sec}
+                                        tags_grafico_set.add(tag_v)
+                                else:
+                                    if tag_v not in tags_grafico_set:
+                                        tags_visualizar.append(tag_v)
+                                        mapeo_config[tag_v] = {'label': lb, 'sec': sec}
+                                        tags_grafico_set.add(tag_v)
 
                 if tags_visualizar:
                     try:
