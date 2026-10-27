@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CAUDAL EXCLUSIVO DE POZOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (SIN SUBTÍTULO DE MODO DEMOSTRACIÓN)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4251,7 +4251,6 @@ with pestaña_sectores:
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
-    st.caption("Resumen • MODO DEMOSTRACIÓN - Sectores, límites, ubicaciones y lecturas.")
 
     # 1. Filtros superiores (Solo Sector y Periodo)
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
@@ -4332,7 +4331,7 @@ with pestaña_sectores:
             # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilación de tags para SCADA (general) y exclusivo para pozos (indicador superior)
+            # Recopilación de tags para SCADA y pozos
             tags_para_scada = []
             tags_caudal_pozos = []
             
@@ -4349,7 +4348,7 @@ with pestaña_sectores:
                     t_pz_q = p_info.get('caudal')
                     if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                         tags_para_scada.append(t_pz_q)
-                        tags_caudal_pozos.append(t_pz_q) # <-- SOLO POZOS PARA EL INDICADOR
+                        tags_caudal_pozos.append(t_pz_q)
                     for kt in ['presion', 'nivel_tanque']:
                         if p_info.get(kt):
                             tags_para_scada.append(p_info.get(kt))
