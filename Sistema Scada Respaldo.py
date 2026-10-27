@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (NIVEL EN MORADO Y LEYENDA TQ)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS COMPLETOS DESDE Sectores_hidr)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4256,9 +4256,8 @@ with pestaña_sectores:
 
             /* Tablas de Datos Operativos */
             .st-key-dma_operational table { width: 100%; }
-            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .35rem; vertical-align: middle; font-size: .8rem; }
-            .st-key-dma_operational td:first-child { width: 45%; color: #c1d3e5; }
-            .st-key-dma_operational td:last-child { color: #eef6ff; font-variant-numeric: tabular-nums; text-align: right; }
+            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; }
+            .st-key-dma_operational td { width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
         </style>
     """, unsafe_allow_html=True)
@@ -4560,7 +4559,7 @@ with pestaña_sectores:
                         conf_pz = [
                             ('caudal', f"Pozo {id_p} - Q", False),
                             ('presion', f"Pozo {id_p} - P", True),
-                            ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", True) # <-- LEYENDA TQ ACTUALIZADA
+                            ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", True)
                         ]
                         for key_t, lb, sec in conf_pz:
                             tag_v = p_info.get(key_t)
@@ -4607,7 +4606,6 @@ with pestaña_sectores:
                                     elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
                                     else: unidad_pc = "Kg/cm²"
                                     
-                                    # Color morado específico para el Nivel / Tanque
                                     if "NIVEL" in label_u or "TANQUE" in label_u:
                                         color_base = "#d400ff"
                                     elif es_caudal:
@@ -4808,31 +4806,40 @@ with pestaña_sectores:
                             st.error(f"Error en gráfica de VRPs: {e}")
 
             # ==============================================================================
-            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS A ANCHO COMPLETO
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS COMPLETA (TODOS LOS CAMPOS)
             # ==============================================================================
             st.write("")
             st.markdown(f"""
                 <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                     <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
-                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
                 </div>
                 <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px;">
                     <table style="width: 100%;">
                         <tr>
                             <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
+                            <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
+                            <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
+                        </tr>
+                        <tr>
+                            <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
+                            <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
+                            <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
+                        </tr>
+                        <tr>
+                            <td>👥 <b>Población estimada:</b> {datos_s.get('Poblacion', 28450):,.0f} hab</td>
+                            <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
+                            <td>📊 <b>Volumen medido:</b> {volumen_medido_val:,.0f} m³</td>
+                        </tr>
+                        <tr>
+                            <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
+                            <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
+                            <td>📈 <b>Demanda estimada:</b> {demanda_fmt} L/s</td>
+                        </tr>
+                        <tr>
                             <td>📉 <b>Presión mínima de referencia:</b> 1.50 Kg/cm²</td>
-                        </tr>
-                        <tr>
-                            <td>🚰 <b>Tomas activas:</b> {datos_s.get('U_Tot', 7920):,.0f}</td>
                             <td>⚙️ <b>Consigna VRP · catálogo:</b> 3.00 Kg/cm²</td>
-                        </tr>
-                        <tr>
-                            <td>📏 <b>Longitud de red:</b> 42,6 km</td>
-                            <td>🔵 <b>Tanque TQ-055 · último:</b> 4,13 m</td>
-                        </tr>
-                        <tr>
-                            <td>📈 <b>Demanda estimada · catálogo:</b> {demanda_fmt} L/s</td>
-                            <td>🕒 <b>Fecha del nivel / condición:</b> 26/10 14:15 • Sin luz</td>
+                            <td>🔵 <b>Tanque TQ-055 · último:</b> 4,13 m (26/10 14:15)</td>
                         </tr>
                     </table>
                 </div>
