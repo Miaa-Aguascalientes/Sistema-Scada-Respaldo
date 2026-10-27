@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÁLCULOS DINÁMICOS DESDE DB Y SECTORES_HIDR)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÁLCULOS DINÁMICOS DESDE DB Y CONS_M3)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4336,7 +4336,8 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DINÁMICO: Suma del último caudal (tag_q) de todos los pozos/puntos de control del sector
+            # CÁLCULOS DINÁMICOS PARA LAS TARJETAS
+            # 1. Caudal de ingreso: Suma del último caudal (tag_q) de todos los puntos de control del sector
             caudal_ingreso_total = 0.0
             for r in dict_reg.values():
                 tag_q = r.get('tag_q')
@@ -4347,10 +4348,13 @@ with pestaña_sectores:
                     except:
                         pass
 
-            # OBTENCIÓN DE VOLUMEN MEDIDO DESDE LA TABLA SECTORES_HIDR (Vol_Medid)
-            volumen_medido_val = datos_s.get('Vol_Medid', datos_s.get('Cons_m3', 0.0))
+            # 2. Volumen medido: Obtenido del campo Vol_Medid de la tabla Sectores_hidr
+            volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
 
-            # 2. Tarjetas de Indicadores Superiores con valores reales y dinámicos
+            # 3. Demanda estimada: Obtenido del campo Cons_m3 de la tabla Sectores_hidr
+            demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
+
+            # Tarjetas de Indicadores Superiores con valores exactos y dinámicos
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
@@ -4361,14 +4365,14 @@ with pestaña_sectores:
             with c2:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">📦 Volumen medido</p>
-                    <p class="value-indicador">{volumen_medido_val:,.0f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
+                    <p class="value-indicador">{volumen_medido_val:,.3f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
                     <p class="sub-indicador">Tabla Sectores_hidr (Vol_Medid)</p>
                 </div>''', unsafe_allow_html=True)
             with c3:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">📈 Demanda estimada</p>
-                    <p class="value-indicador">74,2 <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador">Referencia del catálogo</p>
+                    <p class="value-indicador">{demanda_estimada_val:,.3f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Tabla Sectores_hidr (Cons_m3)</p>
                 </div>''', unsafe_allow_html=True)
             with c4:
                 st.markdown(f'''<div class="card-indicador">
@@ -4576,7 +4580,7 @@ with pestaña_sectores:
                             <tr><td>🏢 Distrito</td><td>Distrito {datos_s.get('Distrito', 'Oriente')}</td></tr>
                             <tr><td>🚰 Tomas activas</td><td>{datos_s.get('U_Tot', 7920):,.0f}</td></tr>
                             <tr><td>📏 Longitud de red</td><td>42,6 km</td></tr>
-                            <tr><td>📈 Demanda estimada · catálogo</td><td>{datos_s.get('Cons_m3', 74.2):,.1f} L/s</td></tr>
+                            <tr><td>📈 Demanda estimada · catálogo</td><td>{demanda_estimada_val:,.3f} L/s</td></tr>
                             <tr><td>📉 Presión mínima de referencia</td><td>15,0 mca</td></tr>
                             <tr><td>⚙️ Consigna VRP · catálogo</td><td>30,0 mca</td></tr>
                             <tr><td>🔵 Tanque TQ-055 · último</td><td>4,13 m</td></tr>
