@@ -4212,56 +4212,110 @@ with pestaña_tanques:
 # PESTAÑA 4: SECTORES HIDRÁULICOS (CON FIT_BOUNDS AUTOMÁTICO AL SECTOR)
 # ==============================================================================
 with pestaña_sectores:
-    # Inyección de tu estilo CSS corporativo exacto
-    st.markdown("""
-        <style>
-            :root { color-scheme: dark; }
-            .stApp { background: #081421; color: #e4edf7; }
-            header[data-testid="stHeader"] { background: #081421; }
-            [data-testid="stSidebar"] { background: #0c1c2c; border-right: 1px solid #203348; }
-            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
-            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
-            h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
-            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
-            [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
-            
-            /* Estilo para etiquetas pegadas al selector */
-            .label-inline {
-                font-size: 0.95rem;
-                font-weight: 600;
-                color: #c1d3e5;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                height: 100%;
-                padding-top: 0.5rem;
-                padding-right: 8px;
-            }
+    # Estilos CSS con animaciones integradas para los indicadores
+            st.markdown(
+                """
+                <style>
+                    @keyframes pulse-glow {
+                        0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
+                        50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
+                        100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
+                    }
+                    @keyframes radar-spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                    }
+                    @keyframes water-flow {
+                        0% { stroke-dashoffset: 24; }
+                        100% { stroke-dashoffset: 0; }
+                    }
+                    @keyframes float-up {
+                        0%, 100% { transform: translateY(0); }
+                        50% { transform: translateY(-3px); }
+                    }
+                    .anim-pulse { animation: pulse-glow 2.5s infinite ease-in-out; transform-origin: center; }
+                    .anim-spin { animation: radar-spin 8s infinite linear; transform-origin: center; }
+                    .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
+                    .anim-float { animation: float-up 3s infinite ease-in-out; }
+                </style>
+            """,
+                unsafe_allow_html=True,
+            )
 
-            /* Tarjetas de Indicadores Superiores */
-            .card-indicador {
-                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
-                border: 1px solid #27445e;
-                border-top: 2px solid #47afd0;
-                border-radius: 10px;
-                padding: 14px 16px;
-                min-height: 115px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-            }
-            .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
-            .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
-            .sub-indicador { font-size: 0.72rem; color: #73b3d8; margin: 0; }
-
-            /* Tablas de Datos Operativos */
-            .st-key-dma_operational table { width: 100%; }
-            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; }
-            .st-key-dma_operational td { width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
-            iframe { border-radius: 8px; }
-        </style>
-    """, unsafe_allow_html=True)
-
+            # Tarjetas de Indicadores Superiores con Iconos Animados
+            c1, c2, c3, c4, c5, c6 = st.columns(6)
+            with c1:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">💧 Caudal de ingreso</p>
+                        <svg class="anim-flow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
+                    </div>
+                    <p class="value-indicador">{caudal_promedio_pozos:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Promedio del periodo (Pozos)</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
+            with c2:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">📦 Volumen medido</p>
+                        <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    </div>
+                    <p class="value-indicador">{volumen_medido_val:,.0f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
+                    <p class="sub-indicador">Tabla Sectores_hidr (Vol_Medid)</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
+            with c3:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">📈 Demanda estimada</p>
+                        <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                    </div>
+                    <p class="value-indicador">{demanda_fmt} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Tabla Sectores_hidr (Cons_m3)</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
+            with c4:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">👥 Población estimada</p>
+                        <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                    </div>
+                    <p class="value-indicador">{datos_s.get("Poblacion", 28450):,.0f}</p>
+                    <p class="sub-indicador">Referencia del catálogo</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
+            with c5:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">🌙 Mínimo nocturno</p>
+                        <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    </div>
+                    <p class="value-indicador">32,5 <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Mín. observado • 02:00 - 04:00</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
+            with c6:
+              st.markdown(
+                  f"""<div class="card-indicador">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="label-indicador">📊 Presión de ingreso</p>
+                        <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                    </div>
+                    <p class="value-indicador">2.35 <span style="font-size:1rem; font-weight:normal;">Kg/cm²</span></p>
+                    <p class="sub-indicador">Promedio ponderado del periodo</p>
+                </div>""",
+                  unsafe_allow_html=True,
+              )
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
 
     # 1. Filtros superiores con etiquetas ajustadas a la izquierda del selector
