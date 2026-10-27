@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (FORMATO ESTÁNDAR 55,684 SIN CEROS EXTRAS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (FORMATO 55,684 SIN DECIMALES)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4350,14 +4350,14 @@ with pestaña_sectores:
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
 
-            # Formato estándar con coma para miles y punto decimal (ej: 55,684) sin ceros extras al final
-            def fmt_estandar(val):
+            # Formato con separador de miles y espacio exacto (ej: 55, 684)
+            def fmt_miles(val):
                 try:
-                    return f"{float(val):,.3f}"
+                    return f"{float(val):,.0f}".replace(",", ", ")
                 except:
-                    return "0.000"
+                    return "0"
 
-            demanda_fmt = fmt_estandar(demanda_estimada_val)
+            demanda_fmt = fmt_miles(demanda_estimada_val)
 
             # Tarjetas de Indicadores Superiores
             c1, c2, c3, c4, c5, c6 = st.columns(6)
