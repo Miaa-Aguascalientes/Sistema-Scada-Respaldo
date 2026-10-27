@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (PUNTOS CRÍTICOS Y VRPs CON FORMATO IDÉNTICO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CAUDAL EXCLUSIVO DE POZOS)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4332,15 +4332,14 @@ with pestaña_sectores:
             # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilación de tags para SCADA y Caudal de Ingreso
+            # Recopilación de tags para SCADA (general) y exclusivo para pozos (indicador superior)
             tags_para_scada = []
-            tags_caudal_sector = []
+            tags_caudal_pozos = []
             
             for r in dict_reg.values():
                 t_q = r.get('tag_q')
                 if t_q and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                     tags_para_scada.append(t_q)
-                    tags_caudal_sector.append(t_q)
                 for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
                     if r.get(k): tags_para_scada.append(r.get(k))
 
@@ -4350,7 +4349,7 @@ with pestaña_sectores:
                     t_pz_q = p_info.get('caudal')
                     if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                         tags_para_scada.append(t_pz_q)
-                        tags_caudal_sector.append(t_pz_q)
+                        tags_caudal_pozos.append(t_pz_q) # <-- SOLO POZOS PARA EL INDICADOR
                     for kt in ['presion', 'nivel_tanque']:
                         if p_info.get(kt):
                             tags_para_scada.append(p_info.get(kt))
@@ -4363,26 +4362,26 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DEL CAUDAL DE INGRESO
-            caudal_promedio_total = 0.0
-            if tags_caudal_sector:
+            # CÁLCULO EXCLUSIVO DEL CAUDAL DE POZOS PARA EL INDICADOR SUPERIOR
+            caudal_promedio_pozos = 0.0
+            if tags_caudal_pozos:
                 try:
                     engine_h = get_mysql_scada_engine()
-                    tags_q_in = "', '".join(list(set(tags_caudal_sector)))
-                    q_prom_query = f"""
+                    tags_q_pozos_in = "', '".join(list(set(tags_caudal_pozos)))
+                    q_prom_pozos_query = f"""
                         SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
                             SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
                             FROM vfitagnumhistory h 
                             JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME IN ('{tags_q_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                            WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             GROUP BY h.FECHA
                         ) t
                     """
-                    df_prom = pd.read_sql(q_prom_query, engine_h)
-                    if not df_prom.empty and df_prom['PROMEDIO_TOTAL'].iloc[0] is not None:
-                        caudal_promedio_total = float(df_prom['PROMEDIO_TOTAL'].iloc[0])
+                    df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
+                    if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
+                        caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
                 except Exception:
-                    caudal_promedio_total = 20.5
+                    caudal_promedio_pozos = 20.5
 
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
@@ -4400,8 +4399,8 @@ with pestaña_sectores:
             with c1:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">💧 Caudal de ingreso</p>
-                    <p class="value-indicador">{caudal_promedio_total:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador">Promedio del periodo (Pozos/Puntos)</p>
+                    <p class="value-indicador">{caudal_promedio_pozos:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Promedio del periodo (Pozos)</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
@@ -4620,7 +4619,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CON EL FORMATO EXACTO SOLICITADO)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4653,8 +4652,6 @@ with pestaña_sectores:
 
                                 fig_pc = go.Figure()
                                 tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
-                                
-                                # Tonos azules degradados idénticos al ejemplo de la imagen
                                 colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
@@ -4672,7 +4669,6 @@ with pestaña_sectores:
                                             hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                         ))
 
-                                # Franja nocturna y líneas divisorias
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_pc:
                                     es_lunes = (d.dayofweek == 0)
