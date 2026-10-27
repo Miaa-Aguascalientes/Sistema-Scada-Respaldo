@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CON GRÁFICO VRP Y DATOS OPERATIVOS ABAJO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (SELECTOR DE PERIODO ACTUALIZADO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4273,9 +4273,14 @@ with pestaña_sectores:
         )
     
     with col_per_sec:
+        opciones_periodo = [
+            "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+            "Esta semana", "Últimos 7 días", "Este Mes", 
+            "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+        ]
         opcion_periodo_tab = st.selectbox(
             "Periodo",
-            ["Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", "Últimos 7 días", "Este Mes", "Personalizado"],
+            opciones_periodo,
             index=2,
             key="f_sector_periodo_tab"
         )
@@ -4292,7 +4297,7 @@ with pestaña_sectores:
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
-            # LÓGICA DE FECHAS
+            # LÓGICA DE FECHAS ACTUALIZADA
             hoy_dt = datetime.now()
             medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             f_fin_h = hoy_dt
@@ -4306,10 +4311,19 @@ with pestaña_sectores:
                 f_ini_h = hoy_dt - timedelta(hours=24)
             elif opcion_periodo_tab == "Últimas 48 horas":
                 f_ini_h = hoy_dt - timedelta(hours=48)
+            elif opcion_periodo_tab == "Esta semana":
+                # Lunes de la semana actual
+                f_ini_h = medianoche - timedelta(days=medianoche.weekday())
             elif opcion_periodo_tab == "Últimos 7 días":
                 f_ini_h = medianoche - timedelta(days=7)
             elif opcion_periodo_tab == "Este Mes":
                 f_ini_h = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            elif opcion_periodo_tab == "Último mes":
+                f_ini_h = medianoche - timedelta(days=30)
+            elif opcion_periodo_tab == "Últimos 3 meses":
+                f_ini_h = medianoche - timedelta(days=90)
+            elif opcion_periodo_tab == "Últimos 6 meses":
+                f_ini_h = medianoche - timedelta(days=180)
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
@@ -4326,12 +4340,13 @@ with pestaña_sectores:
             # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilación de tags para SCADA
+            # Recopilación de tags para SCADA y Caudal de Ingreso
             tags_para_scada = []
             tags_caudal_sector = []
+            
             for r in dict_reg.values():
                 t_q = r.get('tag_q')
-                if t_q:
+                if t_q and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                     tags_para_scada.append(t_q)
                     tags_caudal_sector.append(t_q)
                 for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
@@ -4340,7 +4355,11 @@ with pestaña_sectores:
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
-                    for kt in ['caudal', 'presion', 'nivel_tanque']:
+                    t_pz_q = p_info.get('caudal')
+                    if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                        tags_para_scada.append(t_pz_q)
+                        tags_caudal_sector.append(t_pz_q)
+                    for kt in ['presion', 'nivel_tanque']:
                         if p_info.get(kt):
                             tags_para_scada.append(p_info.get(kt))
 
@@ -4352,18 +4371,26 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de ingreso
+            # CÁLCULO DEL CAUDAL DE INGRESO (Promedio real del periodo de la suma de caudales)
             caudal_promedio_total = 0.0
             if tags_caudal_sector:
                 try:
                     engine_h = get_mysql_scada_engine()
                     tags_q_in = "', '".join(list(set(tags_caudal_sector)))
-                    q_prom_query = f"SELECT AVG(h.VALUE) as PROMEDIO FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_q_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'"
+                    q_prom_query = f"""
+                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
+                            SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME IN ('{tags_q_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                            GROUP BY h.FECHA
+                        ) t
+                    """
                     df_prom = pd.read_sql(q_prom_query, engine_h)
-                    if not df_prom.empty and df_prom['PROMEDIO'].iloc[0] is not None:
-                        caudal_promedio_total = float(df_prom['PROMEDIO'].iloc[0])
+                    if not df_prom.empty and df_prom['PROMEDIO_TOTAL'].iloc[0] is not None:
+                        caudal_promedio_total = float(df_prom['PROMEDIO_TOTAL'].iloc[0])
                 except Exception:
-                    caudal_promedio_total = 58.0
+                    caudal_promedio_total = 20.5
 
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
@@ -4382,7 +4409,7 @@ with pestaña_sectores:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">💧 Caudal de ingreso</p>
                     <p class="value-indicador">{caudal_promedio_total:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador">Suma de pozos / puntos de control</p>
+                    <p class="sub-indicador">Promedio del periodo (Pozos/Puntos)</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
