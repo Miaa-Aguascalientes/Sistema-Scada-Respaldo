@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICO VRP EXACTO A LA IMAGEN)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (PUNTOS CRÍTICOS Y VRPs CON FORMATO IDÉNTICO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4363,7 +4363,7 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DEL CAUDAL DE INGRESO (Promedio real del periodo de la suma de caudales)
+            # CÁLCULO DEL CAUDAL DE INGRESO
             caudal_promedio_total = 0.0
             if tags_caudal_sector:
                 try:
@@ -4620,7 +4620,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (IZQ) Y VRPs (DER - RÉPLICA DE TU IMAGEN)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CON EL FORMATO EXACTO SOLICITADO)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4628,7 +4628,7 @@ with pestaña_sectores:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Una sola escala • Condición de la última lectura disponible en el periodo</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión en los puntos críticos del sector</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -4641,25 +4641,50 @@ with pestaña_sectores:
 
                             if not df_pc_h.empty:
                                 df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
+                                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                                fechas_lineas_pc = pd.date_range(start=df_pc_h['FECHA'].min().floor('D'), end=df_pc_h['FECHA'].max().ceil('D'), freq='D')
+                                ticks_pc = fechas_lineas_pc[::1]
+                                etiquetas_pc = [
+                                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                    for d in ticks_pc
+                                ]
+
                                 fig_pc = go.Figure()
                                 tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+                                
+                                # Tonos azules degradados idénticos al ejemplo de la imagen
+                                colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                                idx_pc_c = 0
 
                                 for tag in tags_pc_list:
                                     df_temp = df_pc_h[df_pc_h['TAG'] == tag]
                                     if not df_temp.empty:
+                                        color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                        idx_pc_c += 1
+
                                         fig_pc.add_trace(go.Scatter(
                                             x=df_temp['FECHA'], y=df_temp['VALUE'], 
-                                            name=tag_to_name.get(tag, tag), mode='lines',
-                                            line=dict(width=2),
+                                            name=tag_to_name.get(tag, tag), mode='lines+markers',
+                                            line=dict(width=2, color=color_trace_pc),
+                                            marker=dict(size=3.5, symbol='circle'),
                                             hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                         ))
+
+                                # Franja nocturna y líneas divisorias
+                                delta_h = pd.Timedelta(hours=1)
+                                for d in fechas_lineas_pc:
+                                    es_lunes = (d.dayofweek == 0)
+                                    fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                    fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                                 fig_pc.update_layout(
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
-                                    xaxis=dict(color="#888888", showgrid=False),
-                                    yaxis=dict(tickformat=".2f", color="#00ff00", showgrid=True, gridcolor="#16304a", title="Kg/cm²"),
-                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9))
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                                    xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
+                                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                         except Exception as e:
@@ -4708,10 +4733,7 @@ with pestaña_sectores:
                                 ]
 
                                 fig_vrp = go.Figure()
-                                idx_q_v = 0
                                 idx_p_v = 0
-
-                                # Colores idénticos a la interfaz (Celeste para caudal, verdes menta para presión)
                                 colores_presion = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99", "#a1ffce"]
 
                                 for tag in tags_vrp_list:
@@ -4721,7 +4743,7 @@ with pestaña_sectores:
                                         es_p = cfg_v['es_presion']
                                         
                                         if not es_p:
-                                            color_trace = "#8acbf5" # Celeste igual a la imagen
+                                            color_trace = "#8acbf5"
                                         else:
                                             color_trace = colores_presion[idx_p_v % len(colores_presion)]
                                             idx_p_v += 1
@@ -4738,7 +4760,6 @@ with pestaña_sectores:
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
                                         ))
 
-                                # Franja nocturna 02:00 - 04:00 y líneas divisorias exactas
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_vrp:
                                     es_lunes = (d.dayofweek == 0)
