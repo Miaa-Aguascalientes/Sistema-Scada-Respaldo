@@ -4525,7 +4525,7 @@ with pestaña_sectores:
                         <p class="label-indicador" style="margin:0;">Presión de ingreso</p>
                     </div>
                     <p class="value-indicador">2.35 <span style="font-size:1rem; font-weight:normal;">Kg/cm²</span></p>
-                    <p class="sub-indicador">Promedio ponderado del periodo</p>
+                    <p class="sub-indicador">Promedio del periodo</p>
                 </div>''', unsafe_allow_html=True)
 
             st.write("")
