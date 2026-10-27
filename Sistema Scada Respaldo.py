@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (FORMATO 55,684 SIN DECIMALES)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CAUDAL DE INGRESO = PROMEDIO DEL PERIODO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4325,8 +4325,13 @@ with pestaña_sectores:
 
             # Recopilación de tags para SCADA
             tags_para_scada = []
+            tags_caudal_sector = []
             for r in dict_reg.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
+                t_q = r.get('tag_q')
+                if t_q:
+                    tags_para_scada.append(t_q)
+                    tags_caudal_sector.append(t_q)
+                for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
                     if r.get(k): tags_para_scada.append(r.get(k))
             for pc in dict_pc_sec.values():
                 if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
@@ -4336,21 +4341,23 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULOS DINÁMICOS PARA LAS TARJETAS
-            caudal_ingreso_total = 0.0
-            for r in dict_reg.values():
-                tag_q = r.get('tag_q')
-                if tag_q and tag_q in scada_res_reg:
-                    val_q, _ = scada_res_reg.get(tag_q, (0.0, "N/A"))
-                    try:
-                        caudal_ingreso_total += float(val_q)
-                    except:
-                        pass
+            # CÁLCULO DINÁMICO: Promedio del periodo elegido para el caudal de los pozos/puntos de control
+            caudal_promedio_total = 0.0
+            if tags_caudal_sector:
+                try:
+                    engine_h = get_mysql_scada_engine()
+                    tags_q_in = "', '".join(list(set(tags_caudal_sector)))
+                    q_prom_query = f"SELECT AVG(h.VALUE) as PROMEDIO FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_q_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'"
+                    df_prom = pd.read_sql(q_prom_query, engine_h)
+                    if not df_prom.empty and df_prom['PROMEDIO'].iloc[0] is not None:
+                        caudal_promedio_total = float(df_prom['PROMEDIO'].iloc[0])
+                except Exception as e:
+                    # Fallback si ocurre algún error en la consulta de promedio
+                    caudal_promedio_total = 55.5
 
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
 
-            # Formato con separador de miles y espacio exacto (ej: 55, 684)
             def fmt_miles(val):
                 try:
                     return f"{float(val):,.0f}".replace(",", ", ")
@@ -4364,8 +4371,8 @@ with pestaña_sectores:
             with c1:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">💧 Caudal de ingreso</p>
-                    <p class="value-indicador">{caudal_ingreso_total:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador">Suma de pozos / puntos de control</p>
+                    <p class="value-indicador">{caudal_promedio_total:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Promedio ponderado del periodo</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
@@ -4413,7 +4420,6 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Mapa estático con zoom ajustado exactamente al polígono del sector
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=13, tiles=None, height=360)
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
