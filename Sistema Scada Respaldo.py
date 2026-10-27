@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (SELECTOR DE PERIODO ACTUALIZADO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (SIN FILTRO DE FECHA NI BOTÓN)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4253,7 +4253,7 @@ with pestaña_sectores:
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
     st.caption("Resumen • MODO DEMOSTRACIÓN - Sectores, límites, ubicaciones y lecturas.")
 
-    # 1. Filtros superiores
+    # 1. Filtros superiores (Solo Sector y Periodo)
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
     
     indice_por_defecto = 0
@@ -4262,7 +4262,7 @@ with pestaña_sectores:
             indice_por_defecto = idx + 1
             break
 
-    col_sel_sec, col_per_sec, col_fec_sec, col_btn_sec = st.columns([2, 2, 2, 1])
+    col_sel_sec, col_per_sec = st.columns([1, 1])
     
     with col_sel_sec:
         sector_elegido = st.selectbox(
@@ -4284,20 +4284,13 @@ with pestaña_sectores:
             index=2,
             key="f_sector_periodo_tab"
         )
-        
-    with col_fec_sec:
-        st.text_input("Desde / hasta", value="25/10/2026 - 26/10/2026", disabled=True, key="fec_rango_txt")
-        
-    with col_btn_sec:
-        st.write("")
-        actualizar_clic = st.button("Actualizar datos", type="primary", use_container_width=True)
 
     if sector_elegido and sector_elegido != "":
         sec_id = str(sector_elegido).split('.')[0].strip()
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
-            # LÓGICA DE FECHAS ACTUALIZADA
+            # LÓGICA DE FECHAS
             hoy_dt = datetime.now()
             medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             f_fin_h = hoy_dt
@@ -4312,7 +4305,6 @@ with pestaña_sectores:
             elif opcion_periodo_tab == "Últimas 48 horas":
                 f_ini_h = hoy_dt - timedelta(hours=48)
             elif opcion_periodo_tab == "Esta semana":
-                # Lunes de la semana actual
                 f_ini_h = medianoche - timedelta(days=medianoche.weekday())
             elif opcion_periodo_tab == "Últimos 7 días":
                 f_ini_h = medianoche - timedelta(days=7)
