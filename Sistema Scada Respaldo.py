@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CORRECCIÓN DE .floor() EN DATETIME)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (NIVEL EN MORADO Y LEYENDA TQ)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4560,7 +4560,7 @@ with pestaña_sectores:
                         conf_pz = [
                             ('caudal', f"Pozo {id_p} - Q", False),
                             ('presion', f"Pozo {id_p} - P", True),
-                            ('nivel_tanque', f"Pozo {id_p} - Nivel", True)
+                            ('nivel_tanque', f"Pozo {id_p} - Nivel TQ", True) # <-- LEYENDA TQ ACTUALIZADA
                         ]
                         for key_t, lb, sec in conf_pz:
                             tag_v = p_info.get(key_t)
@@ -4607,7 +4607,10 @@ with pestaña_sectores:
                                     elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
                                     else: unidad_pc = "Kg/cm²"
                                     
-                                    if es_caudal:
+                                    # Color morado específico para el Nivel / Tanque
+                                    if "NIVEL" in label_u or "TANQUE" in label_u:
+                                        color_base = "#d400ff"
+                                    elif es_caudal:
                                         brillo = max(75 - (idx_q * 15), 35) 
                                         color_base = f"hsl(200, 100%, {brillo}%)" 
                                         idx_q += 1
@@ -4622,7 +4625,7 @@ with pestaña_sectores:
                                         line=dict(width=2, color=color_base),
                                         marker=dict(size=3, symbol='circle'),
                                         fill='tozeroy' if es_caudal else None,
-                                        fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
+                                        fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)") if not ("NIVEL" in label_u or "TANQUE" in label_u) else None,
                                         hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                     ))
 
@@ -4645,7 +4648,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CORREGIDOS)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
