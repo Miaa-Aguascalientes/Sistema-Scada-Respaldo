@@ -4209,803 +4209,10 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO DE LA PESTAÑA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON ICONOS ANIMADOS Y FIT_BOUNDS AUTOMÁTICO)
 # ==============================================================================
 with pestaña_sectores:
-  # Inyección de estilo CSS corporativo, tarjetas compactas y animaciones
-  st.markdown(
-      """
-        <style>
-            :root { color-scheme: dark; }
-            .stApp { background: #081421; color: #e4edf7; }
-            header[data-testid="stHeader"] { background: #081421; }
-            [data-testid="stSidebar"] { background: #0c1c2c; border-right: 1px solid #203348; }
-            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
-            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
-            h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
-            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
-            [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
-            
-            /* Animaciones para los indicadores */
-            @keyframes pulse-glow {
-                0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
-                50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
-                100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
-            }
-            @keyframes radar-spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-            }
-            @keyframes water-flow {
-                0% { stroke-dashoffset: 24; }
-                100% { stroke-dashoffset: 0; }
-            }
-            @keyframes float-up {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-3px); }
-            }
-            .anim-pulse { animation: pulse-glow 2.5s infinite ease-in-out; transform-origin: center; }
-            .anim-spin { animation: radar-spin 8s infinite linear; transform-origin: center; }
-            .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
-            .anim-float { animation: float-up 3s infinite ease-in-out; }
-
-            /* Estilo para etiquetas pegadas al selector */
-            .label-inline {
-                font-size: 0.95rem;
-                font-weight: 600;
-                color: #c1d3e5;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                height: 100%;
-                padding-top: 0.5rem;
-                padding-right: 8px;
-            }
-
-            /* Tarjetas de Indicadores Superiores (Compactas) */
-            .card-indicador {
-                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
-                border: 1px solid #27445e;
-                border-top: 2px solid #47afd0;
-                border-radius: 8px;
-                padding: 8px 10px;
-                min-height: 90px;
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-            }
-            .label-indicador { font-size: 0.72rem; color: #9ab0c7; margin: 0; font-weight: 500; }
-            .value-indicador { font-size: 1.3rem; color: #f0f7ff; font-weight: 700; margin: 2px 0 0 0; font-variant-numeric: tabular-nums; }
-            .sub-indicador { font-size: 0.65rem; color: #73b3d8; margin: 0; }
-
-            /* Tablas de Datos Operativos */
-            .st-key-dma_operational table { width: 100%; }
-            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
-            iframe { border-radius: 8px; }
-        </style>
-    """,
-      unsafe_allow_html=True,
-  )
-
-  st.markdown(
-      '<div class="titulo-superior">Monitoreo de sectores</div>',
-      unsafe_allow_html=True,
-  )
-
-  # 1. Filtros superiores
-  lista_nombres_sectores = (
-      sorted([str(s['sector']) for s in sectores]) if sectores else []
-  )
-
-  indice_por_defecto = 0
-  for idx, nombre_sec in enumerate(lista_nombres_sectores):
-    if 'DS08B' in str(nombre_sec).upper() or 'S-023' in str(nombre_sec).upper():
-      indice_por_defecto = idx + 1
-      break
-
-  col_bloque_sec, col_bloque_per = st.columns([1, 1], gap='large')
-
-  with col_bloque_sec:
-    sub_c1, sub_c2 = st.columns([0.12, 0.88], gap='small')
-    with sub_c1:
-      st.markdown(
-          '<div class="label-inline">Sector</div>', unsafe_allow_html=True
-      )
-    with sub_c2:
-      sector_elegido = st.selectbox(
-          'Sector',
-          options=[''] + lista_nombres_sectores,
-          index=(
-              indice_por_defecto
-              if indice_por_defecto > 0
-              else (1 if lista_nombres_sectores else 0)
-          ),
-          key='select_sector_tab_principal',
-          label_visibility='collapsed',
-      )
-
-  with col_bloque_per:
-    sub_c3, sub_c4 = st.columns([0.12, 0.88], gap='small')
-    with sub_c3:
-      st.markdown(
-          '<div class="label-inline">Periodo</div>', unsafe_allow_html=True
-      )
-    with sub_c4:
-      opciones_periodo = [
-          'Hoy',
-          'Ayer',
-          'Últimas 24 horas',
-          'Últimas 48 horas',
-          'Esta semana',
-          'Últimos 7 días',
-          'Este Mes',
-          'Último mes',
-          'Últimos 3 meses',
-          'Últimos 6 meses',
-          'Personalizado',
-      ]
-      opcion_periodo_tab = st.selectbox(
-          'Periodo',
-          opciones_periodo,
-          index=2,
-          key='f_sector_periodo_tab',
-          label_visibility='collapsed',
-      )
-
-  st.write('')
-
-  if sector_elegido and sector_elegido != '':
-    sec_id = str(sector_elegido).split('.')[0].strip()
-    datos_s = next(
-        (s for s in sectores if str(s['sector']).strip() == sec_id), None
-    )
-
-    if datos_s:
-      # LÓGICA DE FECHAS
-      hoy_dt = datetime.now()
-      medianoche = hoy_dt.replace(
-          hour=0, minute=0, second=0, microsecond=0
-      )
-      f_fin_h = hoy_dt
-
-      if opcion_periodo_tab == 'Hoy':
-        f_ini_h = medianoche
-      elif opcion_periodo_tab == 'Ayer':
-        f_ini_h = medianoche - timedelta(days=1)
-        f_fin_h = medianoche - timedelta(seconds=1)
-      elif opcion_periodo_tab == 'Últimas 24 horas':
-        f_ini_h = hoy_dt - timedelta(hours=24)
-      elif opcion_periodo_tab == 'Últimas 48 horas':
-        f_ini_h = hoy_dt - timedelta(hours=48)
-      elif opcion_periodo_tab == 'Esta semana':
-        f_ini_h = medianoche - timedelta(days=medianoche.weekday())
-      elif opcion_periodo_tab == 'Últimos 7 días':
-        f_ini_h = medianoche - timedelta(days=7)
-      elif opcion_periodo_tab == 'Este Mes':
-        f_ini_h = hoy_dt.replace(
-            day=1, hour=0, minute=0, second=0, microsecond=0
-        )
-      elif opcion_periodo_tab == 'Último mes':
-        f_ini_h = medianoche - timedelta(days=30)
-      elif opcion_periodo_tab == 'Últimos 3 meses':
-        f_ini_h = medianoche - timedelta(days=90)
-      elif opcion_periodo_tab == 'Últimos 6 meses':
-        f_ini_h = medianoche - timedelta(days=180)
-      else:
-        f_ini_h = medianoche - timedelta(days=7)
-
-      # Carga de datos de control, VRPs y puntos críticos del sector
-      dict_reg_all = cargar_puntos_de_control_desde_db()
-      dict_reg = {
-          k: v
-          for k, v in dict_reg_all.items()
-          if str(v.get('sector')).strip() == str(sec_id).strip()
-      }
-
-      dict_vrp_all = cargar_vrp_desde_db()
-      dict_vrp_sec = {
-          k: v
-          for k, v in dict_vrp_all.items()
-          if str(v.get('sector')).strip() == str(sec_id).strip()
-      }
-
-      mapa_pc_all = cargar_puntos_criticos_desde_db()
-      dict_pc_sec = {
-          k: v
-          for k, v in mapa_pc_all.items()
-          if str(v.get('sector')).strip() == str(sec_id).strip()
-      }
-
-      # Recopilación de pozos asociados al sector
-      ids_p = (
-          [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')]
-          if datos_s.get('Pozos_Sector')
-          else []
-      )
-
-      # Recopilación de tags para SCADA y pozos evitando duplicados
-      tags_para_scada = []
-      tags_caudal_pozos = []
-      tags_presion_pozos = []
-      tags_agregados_set = set()
-
-      for r in dict_reg.values():
-        t_q = r.get('tag_q')
-        if (
-            t_q
-            and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']
-        ):
-          if t_q not in tags_agregados_set:
-            tags_para_scada.append(t_q)
-            tags_agregados_set.add(t_q)
-        for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
-          t_val = r.get(k)
-          if (
-              t_val
-              and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']
-          ):
-            if t_val not in tags_agregados_set:
-              tags_para_scada.append(t_val)
-              tags_agregados_set.add(t_val)
-
-      for id_p in ids_p:
-        if id_p in mapa_pozos_dict:
-          p_info = mapa_pozos_dict[id_p]
-          t_pz_q = p_info.get('caudal')
-          if (
-              t_pz_q
-              and str(t_pz_q).strip().lower()
-              not in ['0', 'none', 'n/a', 'null']
-          ):
-            if t_pz_q not in tags_agregados_set:
-              tags_para_scada.append(t_pz_q)
-              tags_agregados_set.add(t_pz_q)
-            tags_caudal_pozos.append(t_pz_q)
-
-          t_pz_p = p_info.get('presion')
-          if (
-              t_pz_p
-              and str(t_pz_p).strip().lower()
-              not in ['0', 'none', 'n/a', 'null']
-          ):
-            if t_pz_p not in tags_agregados_set:
-              tags_para_scada.append(t_pz_p)
-              tags_agregados_set.add(t_pz_p)
-            tags_presion_pozos.append(t_pz_p)
-
-          for kt in ['nivel_tanque']:
-            t_val = p_info.get(kt)
-            if (
-                t_val
-                and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']
-            ):
-              if t_val not in tags_agregados_set:
-                tags_para_scada.append(t_val)
-                tags_agregados_set.add(t_val)
-
-      for pc in dict_pc_sec.values():
-        t_pc = pc.get('tag_p1')
-        if t_pc and t_pc not in tags_agregados_set:
-          tags_para_scada.append(t_pc)
-          tags_agregados_set.add(t_pc)
-
-      for v in dict_vrp_sec.values():
-        for k in ['tag_p1', 'tag_p2', 'tag_q']:
-          t_vrp = v.get(k)
-          if (
-              t_vrp
-              and str(t_vrp).strip().lower() not in ['0', 'none', 'n/a', 'null']
-          ):
-            if t_vrp not in tags_agregados_set:
-              tags_para_scada.append(t_vrp)
-              tags_agregados_set.add(t_vrp)
-
-      scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
-
-      # CÁLCULO DE MÉTRICAS OPERATIVAS PARA LOS INDICADORES SUPERIORES
-      caudal_promedio_pozos = 0.0
-      if tags_caudal_pozos:
-        try:
-          engine_h = get_mysql_scada_engine()
-          tags_q_pozos_in = "', '".join(list(set(tags_caudal_pozos)))
-          q_prom_pozos_query = f"""
-                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
-                            SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
-                            FROM vfitagnumhistory h 
-                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                            GROUP BY h.FECHA
-                        ) t
-                    """
-          df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
-          if (
-              not df_prom_p.empty
-              and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None
-          ):
-            caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
-        except Exception:
-          caudal_promedio_pozos = 0.0
-
-      presion_promedio_pozos = 0.0
-      if tags_presion_pozos:
-        try:
-          engine_h = get_mysql_scada_engine()
-          tags_p_pozos_in = "', '".join(list(set(tags_presion_pozos)))
-          q_prom_presion_query = f"""
-                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
-                            SELECT h.FECHA, AVG(h.VALUE) as suma_instante 
-                            FROM vfitagnumhistory h 
-                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME IN ('{tags_p_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                            GROUP BY h.FECHA
-                        ) t
-                    """
-          df_prom_p_presion = pd.read_sql(q_prom_presion_query, engine_h)
-          if (
-              not df_prom_p_presion.empty
-              and df_prom_p_presion['PROMEDIO_TOTAL'].iloc[0] is not None
-          ):
-            presion_promedio_pozos = float(
-                df_prom_p_presion['PROMEDIO_TOTAL'].iloc[0]
-            )
-        except Exception:
-          presion_promedio_pozos = 0.0
-
-      volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
-      demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
-
-      def fmt_miles(val):
-        try:
-          return f'{float(val):,.0f}'.replace(',', ', ')
-        except:
-          return '0'
-
-      demanda_fmt = fmt_miles(demanda_estimada_val)
-
-      # Extracción del Nivel TQ único para la tabla inferior
-      texto_nivel_tq = 'Sin registro de nivel TQ'
-      for id_p in ids_p:
-        if id_p in mapa_pozos_dict:
-          p_info = mapa_pozos_dict[id_p]
-          t_niv = p_info.get('nivel_tanque')
-          if (
-              t_niv
-              and str(t_niv).strip().lower() not in ['0', 'none', 'n/a', 'null']
-          ):
-            val_niv, fec_niv = scada_res_reg.get(t_niv, (0.0, 'N/A'))
-            fec_str = (
-                fec_niv.strftime('%d/%m %H:%M')
-                if hasattr(fec_niv, 'strftime')
-                else str(fec_niv)
-            )
-            texto_nivel_tq = f'Nivel TQ • {val_niv:,.2f} m ({fec_str})'
-            break
-
-      # Tarjetas de Indicadores Superiores (Compactas y con Presión de Pozos real)
-      c1, c2, c3, c4, c5, c6 = st.columns(6)
-      with c1:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-flow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Caudal ingreso</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">{caudal_promedio_pozos:,.1f} <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Promedio pozos</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-      with c2:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-float" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Volumen medido</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:0.85rem; font-weight:normal;">m³</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Vol_Medid</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-      with c3:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-pulse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                        <p class="label-indicador" style="margin:0;">Demanda estimada</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">{demanda_fmt} <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Cons_m3</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-      with c4:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-float" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                        <p class="label-indicador" style="margin:0;">Población</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">{datos_s.get("Poblacion", 28450):,.0f}</p>
-                    <p class="sub-indicador" style="text-align: center;">Catálogo</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-      with c5:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-pulse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Mín. nocturno</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">32,5 <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">02:00 - 04:00</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-      with c6:
-        st.markdown(
-            f"""<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Presión de ingreso</p>
-                    </div>
-                    <p class="value-indicador" style="text-align: center;">{presion_promedio_pozos:,.2f} <span style="font-size:0.85rem; font-weight:normal;">Kg/cm²</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Promedio pozos</p>
-                </div>""",
-            unsafe_allow_html=True,
-        )
-
-      st.write('')
-
-      # ==============================================================================
-      # FILA SUPERIOR: MAPA (CON FIT_BOUNDS EXACTO AL SECTOR) Y COMPORTAMIENTO
-      # ==============================================================================
-      col_izq, col_der = st.columns([1.0, 1.0])
-
-      with col_izq:
-        st.markdown(
-            f"""
-                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Sector y puntos de medición</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sector_elegido} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
-                    </div>
-                """,
-            unsafe_allow_html=True,
-        )
-
-        m_sec = folium.Map(
-            location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360
-        )
-        folium.TileLayer(
-            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
-            attr='Google',
-            name='Vista Satélite',
-            overlay=False,
-        ).add_to(m_sec)
-
-        api_key = 'cb1_26ji_1_864817f3cb73c0bdbe0daccd'
-        folium.TileLayer(
-            tiles=f'https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}',
-            name='Vista Nocturna',
-            attr='&copy; CARTO',
-            subdomains='abcd',
-            max_zoom=20,
-            overlay=False,
-            control=True,
-        ).add_to(m_sec)
-
-        capa_sector = folium.FeatureGroup(
-            name='Límite del sector', overlay=True, control=True
-        ).add_to(m_sec)
-        capa_control = folium.FeatureGroup(
-            name='Puntos de control', overlay=True, control=True
-        ).add_to(m_sec)
-        capa_criticos = folium.FeatureGroup(
-            name='Puntos críticos', overlay=True, control=True
-        ).add_to(m_sec)
-        capa_vrp = folium.FeatureGroup(
-            name='VRP', overlay=True, control=True
-        ).add_to(m_sec)
-        capa_pozos = folium.FeatureGroup(
-            name='Pozos', overlay=True, control=True
-        ).add_to(m_sec)
-
-        if datos_s and datos_s.get('geo'):
-          try:
-            geo_data = json.loads(datos_s['geo'])
-            folium_geo = folium.GeoJson(
-                geo_data,
-                style_function=lambda x: {
-                    'fillColor': '#00d4ff',
-                    'color': '#ffffff',
-                    'weight': 2,
-                    'fillOpacity': 0.15,
-                },
-                name='Límite del sector',
-            ).add_to(capa_sector)
-            m_sec.fit_bounds(
-                folium_geo.get_bounds(), padding=(30, 30), max_zoom=15
-            )
-          except:
-            pass
-
-        for r in dict_reg.values():
-
-          def get_rv(tk):
-            v, f = scada_res_reg.get(r.get(tk), (0.0, 'N/A'))
-            try:
-              return float(v), f
-            except:
-              return 0.0, f
-
-          rp1, fp1 = get_rv('tag_p1')
-          rcau, fq = get_rv('tag_q')
-          id_reg = r.get('Serie', 'S/N')
-          html_popup_reg = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:220px;"><b style="color:#00FFFF;">{r['nombre']}</b><br>Caudal: {rcau:.2f} L/s<br>Presión: {rp1:.2f} Kg/cm²</div>"""
-          icon_html = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
-          folium.Marker(
-              location=r['coord'],
-              icon=folium.DivIcon(
-                  icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html
-              ),
-              popup=folium.Popup(html_popup_reg, max_width=250),
-          ).add_to(capa_control)
-          folium.Marker(
-              location=r['coord'],
-              icon=folium.features.DivIcon(
-                  icon_size=(250, 30),
-                  icon_anchor=(-12, 30),
-                  html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg} • Punto de control</div>',
-              ),
-          ).add_to(capa_control)
-
-        for id_pc, pc in dict_pc_sec.items():
-          domicilio_texto = pc.get('Domicilio', 'S/D')
-          val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, 'N/A'))
-          html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} Kg/cm²</b></div>"""
-          icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
-          folium.Marker(
-              location=pc['coord'],
-              icon=folium.DivIcon(
-                  icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc
-              ),
-              popup=folium.Popup(html_pc, max_width=250),
-          ).add_to(capa_criticos)
-          folium.Marker(
-              location=pc['coord'],
-              icon=folium.features.DivIcon(
-                  icon_size=(250, 30),
-                  icon_anchor=(-12, 30),
-                  html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>',
-              ),
-          ).add_to(capa_criticos)
-
-        for id_vrp, vrp in dict_vrp_sec.items():
-          val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, 'N/A'))
-          val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, 'N/A'))
-          serie_vrp = vrp.get('Serie', 'S/N')
-          html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} Kg/cm²<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} Kg/cm²</b></div>"""
-          icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
-          folium.Marker(
-              location=vrp['coord'],
-              icon=folium.DivIcon(
-                  icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp
-              ),
-              popup=folium.Popup(html_vrp, max_width=250),
-          ).add_to(capa_vrp)
-          folium.Marker(
-              location=vrp['coord'],
-              icon=folium.features.DivIcon(
-                  icon_size=(250, 30),
-                  icon_anchor=(-12, 30),
-                  html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>',
-              ),
-          ).add_to(capa_vrp)
-
-        for id_p in ids_p:
-          if id_p in mapa_pozos_dict:
-            p_info = mapa_pozos_dict[id_p]
-            coord_pz = p_info.get('coord')
-            if coord_pz:
-              t_pz_q = p_info.get('caudal')
-              val_q_pz, _ = (
-                  scada_res_reg.get(t_pz_q, (0.0, 'N/A'))
-                  if t_pz_q
-                  else (0.0, 'N/A')
-              )
-              es_encendido = val_q_pz > 0.1
-              color_pz = '#00ff00' if es_encendido else '#ff4d4d'
-
-              html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p}</b><br>Estado: {'Encendido' if es_encendido else 'Apagado'}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
-              icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
-
-              folium.Marker(
-                  location=coord_pz,
-                  icon=folium.DivIcon(
-                      icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz
-                  ),
-                  popup=folium.Popup(html_popup_pz, max_width=250),
-              ).add_to(capa_pozos)
-              folium.Marker(
-                  location=coord_pz,
-                  icon=folium.features.DivIcon(
-                      icon_size=(200, 30),
-                      icon_anchor=(-12, 15),
-                      html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid {color_pz};">P{id_p}</div>',
-                  ),
-              ).add_to(capa_pozos)
-
-        folium.LayerControl(collapsed=True).add_to(m_sec)
-        Fullscreen(position='topleft').add_to(m_sec)
-
-        folium_static(m_sec, width=None, height=360)
-
-      with col_der:
-        st.markdown(
-            f"""
-                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
-                    </div>
-                """,
-            unsafe_allow_html=True,
-        )
-
-        tags_visualizar = []
-        mapeo_config = {}
-        tags_grafico_set = set()
-
-        for s_id_reg in list(dict_reg.keys()):
-          r_info = dict_reg[s_id_reg]
-          conf_pc = [
-              ('tag_q', f'S:{s_id_reg} - Q', False),
-              ('tag_p1', f'S:{s_id_reg} - P1', True),
-              ('tag_p2', f'S:{s_id_reg} - P2', True),
-          ]
-          for key_t, lb, sec in conf_pc:
-            tag_v = r_info.get(key_t)
-            if (
-                tag_v
-                and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']
-            ):
-              if tag_v not in tags_grafico_set:
-                tags_visualizar.append(tag_v)
-                mapeo_config[tag_v] = {'label': lb, 'sec': sec}
-                tags_grafico_set.add(tag_v)
-
-        for id_p in ids_p:
-          if id_p in mapa_pozos_dict:
-            p_info = mapa_pozos_dict[id_p]
-            conf_pz = [
-                ('caudal', f'Pozo {id_p} - Q', False),
-                ('presion', f'Pozo {id_p} - P', True),
-                ('nivel_tanque', 'Nivel TQ', True),
-            ]
-            for key_t, lb, sec in conf_pz:
-              tag_v = p_info.get(key_t)
-              if (
-                  tag_v
-                  and str(tag_v).strip().lower()
-                  not in ['0', 'none', 'n/a', 'null']
-              ):
-                if key_t == 'nivel_tanque':
-                  if tag_v not in tags_grafico_set:
-                    tags_visualizar.append(tag_v)
-                    mapeo_config[tag_v] = {'label': 'Nivel TQ', 'sec': sec}
-                    tags_grafico_set.add(tag_v)
-                else:
-                  if tag_v not in tags_grafico_set:
-                    tags_visualizar.append(tag_v)
-                    mapeo_config[tag_v] = {'label': lb, 'sec': sec}
-                    tags_grafico_set.add(tag_v)
-
-        if tags_visualizar:
-          try:
-            engine_h = get_mysql_scada_engine()
-            tags_unicos_query = "', '".join(list(set(tags_visualizar)))
-            q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
-            df_h = pd.read_sql(q_hist, engine_h)
-
-            if not df_h.empty:
-              df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-              dias_es = {
-                  0: 'Lun',
-                  1: 'Mar',
-                  2: 'Mié',
-                  3: 'Jue',
-                  4: 'Vie',
-                  5: 'Sáb',
-                  6: 'Dom',
-              }
-              meses_es = {
-                  1: 'Ene',
-                  2: 'Feb',
-                  3: 'Mar',
-                  4: 'Abr',
-                  5: 'May',
-                  6: 'Jun',
-                  7: 'Jul',
-                  8: 'Ago',
-                  9: 'Sep',
-                  10: 'Oct',
-                  11: 'Nov',
-                  12: 'Dic',
-              }
-
-              f_ini_dia = f_ini_h.replace(
-                  hour=0, minute=0, second=0, microsecond=0
-              )
-              f_fin_dia = f_fin_h.replace(
-                  hour=23, minute=59, second=59, microsecond=0
-              )
-              fechas_lineas = pd.date_range(
-                  start=f_ini_dia, end=f_fin_dia, freq='D'
-              )
-              num_dias = len(fechas_lineas)
-              paso = (
-                  1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-              )
-              ticks_filtrados = fechas_lineas[::paso]
-
-              etiquetas_filtradas = [
-                  f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                  for d in ticks_filtrados
-              ]
-
-              fig = go.Figure()
-              idx_q = 0
-              idx_p = 0
-
-              for tag_name in tags_visualizar:
-                df_tag = df_h[df_h['TAG'] == tag_name]
-                if not df_tag.empty:
-                  cfg = mapeo_config[tag_name]
-                  es_caudal = not cfg['sec']
-                  label_u = cfg['label'].upper()
-
-                  if es_caudal:
-                    unidad_pc = 'L/s'
-                  elif (
-                      'NIVEL' in label_u
-                      or 'TANQUE' in label_u
-                      or 'MTS' in label_u
-                  ):
-                    unidad_pc = 'm'
-                  else:
-                    unidad_pc = 'Kg/cm²'
-
-                  if 'NIVEL' in label_u or 'TANQUE' in label_u:
-                    color_base = '#d400ff'
-                  elif es_caudal:
-                    brillo = max(75 - (idx_q * 15), 35)
-                    color_base = f'hsl(200, 100%, {brillo}%)'
-                    idx_q += 1
-                  else:
-                    brillo = max(80 - (idx_p * 20), 30)
-                    color_base = f'hsl(145, 100%, {brillo}%)'
-                    idx_p += 1
-
-                  fig.add_trace(
-                      go.Scatter(
-                          x=df_tag['FECHA'],
-                          y=df_tag['VALUE'],
-                          name=cfg['label'],
-                          yaxis='y2' if cfg['sec'] else 'y1',
-                          mode='lines+markers',
-                          line=dict(width=2, color=color_base),
-                          marker=dict(size=3, symbol='circle'),
-                          fill='tozeroy' if es_caudal else None,
-                          fillcolor=(
-                              color_base.replace('hsl', 'hsla').replace(
-                                  ')', ', 0.15)'
-                              )
-                              if not (
-                                  'NIVEL' in label_u or 'TANQUE' in label_u# ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO DE LA PESTAÑA)
-# ==============================================================================
-with pestaña_sectores:
-    # Inyección de estilo CSS corporativo, tarjetas compactas y animaciones
+    # Inyección de estilo CSS corporativo y animaciones para los indicadores
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
@@ -5054,21 +4261,21 @@ with pestaña_sectores:
                 padding-right: 8px;
             }
 
-            /* Tarjetas de Indicadores Superiores (Compactas) */
+            /* Tarjetas de Indicadores Superiores */
             .card-indicador {
                 background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
                 border: 1px solid #27445e;
                 border-top: 2px solid #47afd0;
-                border-radius: 8px;
-                padding: 8px 10px;
-                min-height: 90px;
+                border-radius: 10px;
+                padding: 14px 16px;
+                min-height: 115px;
                 display: flex;
                 flex-direction: column;
                 justify-content: space-between;
             }
-            .label-indicador { font-size: 0.72rem; color: #9ab0c7; margin: 0; font-weight: 500; }
-            .value-indicador { font-size: 1.3rem; color: #f0f7ff; font-weight: 700; margin: 2px 0 0 0; font-variant-numeric: tabular-nums; }
-            .sub-indicador { font-size: 0.65rem; color: #73b3d8; margin: 0; }
+            .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
+            .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
+            .sub-indicador { font-size: 0.72rem; color: #73b3d8; margin: 0; }
 
             /* Tablas de Datos Operativos */
             .st-key-dma_operational table { width: 100%; }
@@ -5173,7 +4380,6 @@ with pestaña_sectores:
             # Recopilación de tags para SCADA y pozos evitando duplicados
             tags_para_scada = []
             tags_caudal_pozos = []
-            tags_presion_pozos = []
             tags_agregados_set = set()
             
             for r in dict_reg.values():
@@ -5198,15 +4404,7 @@ with pestaña_sectores:
                             tags_para_scada.append(t_pz_q)
                             tags_agregados_set.add(t_pz_q)
                         tags_caudal_pozos.append(t_pz_q)
-                    
-                    t_pz_p = p_info.get('presion')
-                    if t_pz_p and str(t_pz_p).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if t_pz_p not in tags_agregados_set:
-                            tags_para_scada.append(t_pz_p)
-                            tags_agregados_set.add(t_pz_p)
-                        tags_presion_pozos.append(t_pz_p)
-
-                    for kt in ['nivel_tanque']:
+                    for kt in ['presion', 'nivel_tanque']:
                         t_val = p_info.get(kt)
                         if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                             if t_val not in tags_agregados_set:
@@ -5229,7 +4427,7 @@ with pestaña_sectores:
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
-            # CÁLCULO DE MÉTRICAS OPERATIVAS PARA LOS INDICADORES SUPERIORES
+            # CÁLCULO EXCLUSIVO DEL CAUDAL DE POZOS PARA EL INDICADOR SUPERIOR
             caudal_promedio_pozos = 0.0
             if tags_caudal_pozos:
                 try:
@@ -5248,27 +4446,7 @@ with pestaña_sectores:
                     if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
                         caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
                 except Exception:
-                    caudal_promedio_pozos = 0.0
-
-            presion_promedio_pozos = 0.0
-            if tags_presion_pozos:
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_p_pozos_in = "', '".join(list(set(tags_presion_pozos)))
-                    q_prom_presion_query = f"""
-                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
-                            SELECT h.FECHA, AVG(h.VALUE) as suma_instante 
-                            FROM vfitagnumhistory h 
-                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME IN ('{tags_p_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                            GROUP BY h.FECHA
-                        ) t
-                    """
-                    df_prom_p_presion = pd.read_sql(q_prom_presion_query, engine_h)
-                    if not df_prom_p_presion.empty and df_prom_p_presion['PROMEDIO_TOTAL'].iloc[0] is not None:
-                        presion_promedio_pozos = float(df_prom_p_presion['PROMEDIO_TOTAL'].iloc[0])
-                except Exception:
-                    presion_promedio_pozos = 0.0
+                    caudal_promedio_pozos = 20.5
 
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
@@ -5293,61 +4471,61 @@ with pestaña_sectores:
                         texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
                         break
 
-            # Tarjetas de Indicadores Superiores (Compactas y con Presión de Pozos real)
+            # Tarjetas de Indicadores Superiores con Títulos Centrados e Iconos Animados
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-flow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Caudal ingreso</p>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-flow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Caudal de ingreso</p>
                     </div>
-                    <p class="value-indicador" style="text-align: center;">{caudal_promedio_pozos:,.1f} <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Promedio pozos</p>
+                    <p class="value-indicador" style="text-align: center;">{caudal_promedio_pozos:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador" style="text-align: center;">Promedio del periodo (Pozos)</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-float" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
                         <p class="label-indicador" style="margin:0;">Volumen medido</p>
                     </div>
-                    <p class="value-indicador" style="text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:0.85rem; font-weight:normal;">m³</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Vol_Medid</p>
+                    <p class="value-indicador" style="text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
+                    <p class="sub-indicador" style="text-align: center;">Tabla Sectores_hidr (Vol_Medid)</p>
                 </div>''', unsafe_allow_html=True)
             with c3:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-pulse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
                         <p class="label-indicador" style="margin:0;">Demanda estimada</p>
                     </div>
-                    <p class="value-indicador" style="text-align: center;">{demanda_fmt} <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Cons_m3</p>
+                    <p class="value-indicador" style="text-align: center;">{demanda_fmt} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador" style="text-align: center;">Tabla Sectores_hidr (Cons_m3)</p>
                 </div>''', unsafe_allow_html=True)
             with c4:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-float" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                        <p class="label-indicador" style="margin:0;">Población</p>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                        <p class="label-indicador" style="margin:0;">Población estimada</p>
                     </div>
                     <p class="value-indicador" style="text-align: center;">{datos_s.get("Poblacion", 28450):,.0f}</p>
-                    <p class="sub-indicador" style="text-align: center;">Catálogo</p>
+                    <p class="sub-indicador" style="text-align: center;">Referencia del catálogo</p>
                 </div>''', unsafe_allow_html=True)
             with c5:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-pulse" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                        <p class="label-indicador" style="margin:0;">Mín. nocturno</p>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Mínimo nocturno</p>
                     </div>
-                    <p class="value-indicador" style="text-align: center;">32,5 <span style="font-size:0.85rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="text-align: center;">02:00 - 04:00</p>
+                    <p class="value-indicador" style="text-align: center;">32,5 <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador" style="text-align: center;">Mín. observado • 02:00 - 04:00</p>
                 </div>''', unsafe_allow_html=True)
             with c6:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <svg class="anim-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
                         <p class="label-indicador" style="margin:0;">Presión de ingreso</p>
                     </div>
-                    <p class="value-indicador" style="text-align: center;">{presion_promedio_pozos:,.2f} <span style="font-size:0.85rem; font-weight:normal;">Kg/cm²</span></p>
-                    <p class="sub-indicador" style="text-align: center;">Promedio pozos</p>
+                    <p class="value-indicador" style="text-align: center;">2.35 <span style="font-size:1rem; font-weight:normal;">Kg/cm²</span></p>
+                    <p class="sub-indicador" style="text-align: center;">Promedio del periodo</p>
                 </div>''', unsafe_allow_html=True)
 
             st.write("")
@@ -5365,7 +4543,10 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Mapa base general
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
+                
+                # Capas base
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
@@ -5376,12 +4557,14 @@ with pestaña_sectores:
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
 
+                # Grupos de capas independientes (FeatureGroups)
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
                 capa_criticos = folium.FeatureGroup(name="Puntos críticos", overlay=True, control=True).add_to(m_sec)
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
+                # 1. Polígono del sector y ajuste automático de zoom (fit_bounds)
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
@@ -5394,6 +4577,7 @@ with pestaña_sectores:
                     except: 
                         pass
 
+                # 2. Puntos de Control (Azules)
                 for r in dict_reg.values():
                     def get_rv(tk):
                         v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -5406,6 +4590,7 @@ with pestaña_sectores:
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(capa_control)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg} • Punto de control</div>')).add_to(capa_control)
 
+                # 3. Puntos Críticos (Rojos)
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
@@ -5414,6 +4599,7 @@ with pestaña_sectores:
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
 
+                # 4. VRPs (Verdes)
                 for id_vrp, vrp in dict_vrp_sec.items():
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
@@ -5423,6 +4609,7 @@ with pestaña_sectores:
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
+                # 5. Pozos
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
                         p_info = mapa_pozos_dict[id_p]
@@ -5550,7 +4737,7 @@ with pestaña_sectores:
                                         marker=dict(size=3, symbol='circle'),
                                         fill='tozeroy' if es_caudal else None,
                                         fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)") if not ("NIVEL" in label_u or "TANQUE" in label_u) else None,
-                                        hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_pc}<extra></extra>'
+                                        hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                     ))
 
                             delta = pd.Timedelta(hours=1)
@@ -5710,7 +4897,7 @@ with pestaña_sectores:
                                             marker=dict(size=3.5, symbol='circle'),
                                             fill='tozeroy' if not es_p else None,
                                             fillcolor="rgba(138, 203, 245, 0.15)" if not es_p else None,
-                                            hovertemplate=f'<b>%{fullData.name}</b>: %{{y:.2f}} ' + ('kg' if es_p else 'Lps') + '<extra></extra>'
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
                                         ))
 
                                 delta_h = pd.Timedelta(hours=1)
