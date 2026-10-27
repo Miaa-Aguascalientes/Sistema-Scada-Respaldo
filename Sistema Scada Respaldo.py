@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS CON NIVEL DESDE POZOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (MONITOREO INTEGRAL Y TQ)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4818,7 +4818,7 @@ with pestaña_sectores:
                             st.error(f"Error en gráfica de VRPs: {e}")
 
             # ==============================================================================
-            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS (CONECTADA A SECTORES_HIDR Y NIVEL TQ DE POZOS)
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS
             # ==============================================================================
             st.write("")
             st.markdown(f"""
