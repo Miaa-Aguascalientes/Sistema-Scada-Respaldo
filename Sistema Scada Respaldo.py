@@ -3380,8 +3380,8 @@ with pestaña_mapa:
     with col_l4: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Azul Claro (Leve)</span><span style="color: #69ADDD; font-size: 1.1rem; font-weight: bold;">1% - 30%</span></div>', unsafe_allow_html=True)
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
-# =============================================================================    
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TRASLADADA AL TOPE DE LAS PESTAÑAS)
+# ==============================================================================
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON HISTORIAL EN TABLA)
 # ==============================================================================
 with pestaña_incidencias:
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3403,7 +3403,6 @@ with pestaña_incidencias:
             return None
             
         try:
-            # CONSULTA ESTRICTA Y SEGURA: Evitamos comodines peligrosos en SQL
             query = """
                 SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor 
                 FROM Diccionario_colonias 
@@ -3419,7 +3418,6 @@ with pestaña_incidencias:
             
             df = pd.read_sql(query, engine, params=(p_exacto, p_comienza, p_medio, p_termina))
             
-            # FILTRO DE SEGURIDAD EN MEMORIA: Verificamos elemento por elemento en la lista de pozos
             if not df.empty:
                 def pozo_en_lista(cell_value):
                     if pd.isna(cell_value):
@@ -3448,10 +3446,8 @@ with pestaña_incidencias:
         else:
             id_pozo_original = ""
         
-        # Llamamos a la nueva función get_geometries optimizada y estricta
         gdf = get_geometries(id_pozo_original) if id_pozo_original else None
 
-        # FILTRO DE SEGURIDAD ADICIONAL EN MEMORIA
         if gdf is not None and not gdf.empty:
             col_pozo_encontrada = next((c for c in gdf.columns if c.upper() in ['NUM_POZO', 'POZO', 'ID_POZO', 'CVE_POZO', 'SITE', 'SITIO']), None)
             
@@ -3478,7 +3474,6 @@ with pestaña_incidencias:
                     lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                     m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
 
-                    # Capa de Vista Nocturna personalizada con API Key
                     api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
                     folium.TileLayer(
                         tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
@@ -3541,13 +3536,6 @@ with pestaña_incidencias:
             st.subheader("Tiempo de Atención")
             
             estatus = str(row.get('ESTATUS', '')).upper()
-            if estatus == 'CERRADA':
-                color_estatus = "🟢"
-            elif estatus == 'PENDIENTE':
-                color_estatus = "🔴"
-            else:
-                color_estatus = "🟡"
-                
             tz_mx = pytz.timezone('America/Mexico_City')
             ahora_mx = datetime.now(tz_mx)
             inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
@@ -3559,10 +3547,8 @@ with pestaña_incidencias:
                     estimado = float(valor_raw)
                     hora_limite = inicio + pd.Timedelta(hours=estimado)
                 except ValueError:
-                    st.error(f"Error: El tiempo estimado '{valor_raw}' no es un número válido.")
                     hora_limite = inicio
             else:
-                st.warning("Advertencia: No hay tiempo estimado de atención definido.")
                 hora_limite = inicio
             
             total_seg = (hora_limite - inicio).total_seconds()
@@ -3588,13 +3574,6 @@ with pestaña_incidencias:
                 st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
             
             transcurrido = ahora_mx - inicio
-            color_inicio = "#00CC96"
-            color_ahora = "#1f77b4"
-            color_limite = "#FF4B4B"
-
-            st.markdown(f'<span style="color:{color_inicio}">▲</span> **Fecha de Inicio:** {inicio.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
-            st.markdown(f'<span style="color:{color_ahora}">▲</span> **Tiempo actual:** {ahora_mx.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
-            st.markdown(f'<span style="color:{color_limite}">▲</span> **Tiempo límite para atención:** {hora_limite.strftime("%H:%M %d de %B de %Y")}', unsafe_allow_html=True)
             dias = transcurrido.days
             horas = transcurrido.seconds // 3600
             minutos = (transcurrido.seconds % 3600) // 60
@@ -3632,22 +3611,15 @@ with pestaña_incidencias:
 
         df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
         
-        # Definimos 'hoy' sin zona horaria
         hoy = pd.Timestamp.now(tz=pytz.timezone('America/Mexico_City')).normalize().tz_localize(None)
         
-        # Normalizamos fechas de inicio y fin para comparar sin horas de diferencia
         f_inicio_norm = df_final['FECHA_HORA_INICIO'].dt.tz_localize(None).dt.normalize()
         f_fin_norm = df_final['FECHA_HORA_FIN'].dt.tz_localize(None).dt.normalize()
         
-        # 1. Activas puras (En proceso o pendientes)
         mask_activas = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
-        
-        # 2. Cerradas que iniciaron HOY o que se cerraron HOY
         mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & ((f_inicio_norm == hoy) | (f_fin_norm == hoy))
         
         df_actual = df_final[mask_activas | mask_cerradas_hoy]
-        
-        # El historial solo es lo que se cerró antes de hoy y cuya fecha de inicio tampoco es hoy
         df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)]
 
         tz_mx = pytz.timezone('America/Mexico_City')
@@ -3661,62 +3633,24 @@ with pestaña_incidencias:
 
         st.markdown("""
             <style>
-            .metric-container {
-                display: flex;
-                gap: 15px;
-                margin-top: 10px;
-                margin-bottom: 25px;
-            }
-            .metric-card {
-                background-color: #111418;
-                border-radius: 8px;
-                padding: 8px 12px;
-                text-align: center;
-                flex: 1;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                border: 1px solid #222d3d;
-            }
+            .metric-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 25px; }
+            .metric-card { background-color: #111418; border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); border: 1px solid #222d3d; }
             .metric-card.proceso { border-color: #d4ac0d; }
             .metric-card.pendientes { border-color: #c0392b; }
             .metric-card.cerradas { border-color: #196f3d; }
             .metric-card.total { border-color: #2e4053; }
-            
-            .metric-title {
-                font-size: 11px;
-                font-weight: bold;
-                margin-bottom: 2px;
-                letter-spacing: 0.5px;
-            }
+            .metric-title { font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 0.5px; }
             .metric-title.proceso { color: #f1c40f; }
             .metric-title.pendientes { color: #e74c3c; }
             .metric-title.cerradas { color: #2ecc71; }
             .metric-title.total { color: #bdc3c7; }
-            
-            .metric-value {
-                font-size: 20px;
-                font-weight: bold;
-                color: #ffffff;
-                line-height: 1.2;
-            }
+            .metric-value { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
             </style>
-
             <div class="metric-container">
-                <div class="metric-card proceso">
-                    <div class="metric-title proceso">EN PROCESO</div>
-                    <div class="metric-value">""" + str(total_en_proceso) + """</div>
-                </div>
-                <div class="metric-card pendientes">
-                    <div class="metric-title pendientes">PENDIENTES</div>
-                    <div class="metric-value">""" + str(total_pendientes) + """</div>
-                </div>
-                <div class="metric-card cerradas">
-                    <div class="metric-title cerradas">CERRADAS</div>
-                    <div class="metric-value">""" + str(total_cerradas_hoy) + """</div>
-                </div>
-                <div class="metric-card total">
-                    <div class="metric-title total">TOTAL ACTIVAS</div>
-                    <div class="metric-value">""" + str(total_activas_y_dia) + """</div>
-                </div>
+                <div class="metric-card proceso"><div class="metric-title proceso">EN PROCESO</div><div class="metric-value">""" + str(total_en_proceso) + """</div></div>
+                <div class="metric-card pendientes"><div class="metric-title pendientes">PENDIENTES</div><div class="metric-value">""" + str(total_pendientes) + """</div></div>
+                <div class="metric-card cerradas"><div class="metric-title cerradas">CERRADAS</div><div class="metric-value">""" + str(total_cerradas_hoy) + """</div></div>
+                <div class="metric-card total"><div class="metric-title total">TOTAL ACTIVAS</div><div class="metric-value">""" + str(total_activas_y_dia) + """</div></div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -3740,7 +3674,6 @@ with pestaña_incidencias:
                 delta = ahora_mx - inicio_raw
                 
             duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-
             ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
             
             titulo = (
@@ -3820,34 +3753,30 @@ with pestaña_incidencias:
             if datos_mes.empty:
                 st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
             else:
-                for index, row in datos_mes.iterrows():
-                    inicio_raw = row['FECHA_HORA_INICIO']
-                    fin_raw = row['FECHA_HORA_FIN']
-                    
-                    if pd.notnull(fin_raw):
-                        delta = fin_raw - inicio_raw
-                        dias = delta.days
-                        horas = delta.seconds // 3600
-                        minutos = (delta.seconds % 3600) // 60
-                        duracion_str = f"{dias}d {horas}h {minutos}m"
-                        fin_str = fin_raw.strftime('%H:%M %d de %B de %Y')
+                # --- CAMBIO A TABLA DE DATOS PARA EL HISTORIAL ---
+                df_tabla = pd.DataFrame()
+                df_tabla['Sitio'] = datos_mes.get('NUM_POZO', 'N/A')
+                df_tabla['Inicio'] = datos_mes['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
+                df_tabla['Diagnóstico de Falla'] = datos_mes.get('DIAGNOSTICO_FALLA', 'N/A')
+                df_tabla['Cierre'] = datos_mes['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
+                
+                # Cálculo de duración para la tabla
+                duraciones = []
+                for _, row_t in datos_mes.iterrows():
+                    if pd.notnull(row_t['FECHA_HORA_FIN']):
+                        delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
                     else:
-                        duracion_str = "N/A"
-                        fin_str = "N/A"
-                    
-                    diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-                    
-                    titulo_hist = (
-                        f"🟢 **Sitio: {row.get('NUM_POZO', 'N/A')}** | "
-                        f"🕒 Fecha y hora de inicio: {inicio_raw.strftime('%H:%M %d de %B de %Y')} | "
-                        f"⚠️ Diagnostico de la falla: {diag} | "
-                        f"🏁 Fecha y hora de cierre: {fin_str} | "
-                        f"⏳ Duración del evento: {duracion_str} | "
-                        f"🆗 Estatus: {str(row.get('ESTATUS', 'CERRADA')).upper()}"
-                    )
-                    
-                    with st.expander(titulo_hist):
-                        renderizar_bloque_incidencia(row, index, "hist")
+                        duraciones.append("N/A")
+                df_tabla['Duración'] = duraciones
+                df_tabla['Estatus'] = datos_mes.get('ESTATUS', 'CERRADA').str.upper()
+                df_tabla['Responsable'] = datos_mes.get('RESPONSABLE', 'N/A')
+
+                st.dataframe(
+                    df_tabla.reset_index(drop=True),
+                    use_container_width=True,
+                    hide_index=True
+                )
 
 
 # ==============================================================================
