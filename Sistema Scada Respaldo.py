@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (SIN FILTRO DE FECHA NI BOTÓN)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICO VRP EXACTO A LA IMAGEN)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4620,7 +4620,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (IZQ) Y VRPs (DER)
+            # FILA INFERIOR: PUNTOS CRÍTICOS (IZQ) Y VRPs (DER - RÉPLICA DE TU IMAGEN)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4669,20 +4669,26 @@ with pestaña_sectores:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Válvulas reductoras de presión (VRP)</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión de entrada y salida de las VRPs del sector</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
                     </div>
                 """, unsafe_allow_html=True)
 
                 if dict_vrp_sec:
                     tags_vrp_list = []
                     vrp_mapeo_config = {}
+                    
                     for v_id, v_info in dict_vrp_sec.items():
-                        v_nombre = v_info.get('nombre', f'VRP {v_id}')
-                        for k_t, label_s in [('tag_p1', f"{v_nombre} - P. Entrada"), ('tag_p2', f"{v_nombre} - P. Salida")]:
+                        v_serie = v_info.get('Serie', f"{v_id}")
+                        conf_vrp = [
+                            ('tag_q', f"VRP {v_serie} - Q", False),
+                            ('tag_p1', f"VRP {v_serie} - P1", True),
+                            ('tag_p2', f"VRP {v_serie} - P2", True)
+                        ]
+                        for k_t, label_s, es_presion in conf_vrp:
                             t_val = v_info.get(k_t)
                             if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                                 tags_vrp_list.append(t_val)
-                                vrp_mapeo_config[t_val] = label_s
+                                vrp_mapeo_config[t_val] = {'label': label_s, 'es_presion': es_presion}
 
                     if tags_vrp_list:
                         try:
@@ -4691,24 +4697,61 @@ with pestaña_sectores:
 
                             if not df_vrp_h.empty:
                                 df_vrp_h['FECHA'] = pd.to_datetime(df_vrp_h['FECHA'])
+                                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                                fechas_lineas_vrp = pd.date_range(start=df_vrp_h['FECHA'].min().floor('D'), end=df_vrp_h['FECHA'].max().ceil('D'), freq='D')
+                                ticks_vrp = fechas_lineas_vrp[::1]
+                                etiquetas_vrp = [
+                                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                    for d in ticks_vrp
+                                ]
+
                                 fig_vrp = go.Figure()
+                                idx_q_v = 0
+                                idx_p_v = 0
+
+                                # Colores idénticos a la interfaz (Celeste para caudal, verdes menta para presión)
+                                colores_presion = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99", "#a1ffce"]
 
                                 for tag in tags_vrp_list:
                                     df_temp = df_vrp_h[df_vrp_h['TAG'] == tag]
                                     if not df_temp.empty:
+                                        cfg_v = vrp_mapeo_config[tag]
+                                        es_p = cfg_v['es_presion']
+                                        
+                                        if not es_p:
+                                            color_trace = "#8acbf5" # Celeste igual a la imagen
+                                        else:
+                                            color_trace = colores_presion[idx_p_v % len(colores_presion)]
+                                            idx_p_v += 1
+
                                         fig_vrp.add_trace(go.Scatter(
                                             x=df_temp['FECHA'], y=df_temp['VALUE'], 
-                                            name=vrp_mapeo_config.get(tag, tag), mode='lines',
-                                            line=dict(width=2),
-                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
+                                            name=cfg_v['label'], 
+                                            yaxis="y2" if es_p else "y1", 
+                                            mode='lines+markers',
+                                            line=dict(width=2, color=color_trace),
+                                            marker=dict(size=3.5, symbol='circle'),
+                                            fill='tozeroy' if not es_p else None,
+                                            fillcolor="rgba(138, 203, 245, 0.15)" if not es_p else None,
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
                                         ))
+
+                                # Franja nocturna 02:00 - 04:00 y líneas divisorias exactas
+                                delta_h = pd.Timedelta(hours=1)
+                                for d in fechas_lineas_vrp:
+                                    es_lunes = (d.dayofweek == 0)
+                                    fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                    fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                                 fig_vrp.update_layout(
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
-                                    xaxis=dict(color="#888888", showgrid=False),
-                                    yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Kg/cm²"),
-                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9))
+                                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                                    xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
+                                    yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
+                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
                                 )
                                 st.plotly_chart(fig_vrp, use_container_width=True)
                         except Exception as e:
