@@ -3381,7 +3381,7 @@ with pestaña_mapa:
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL EN TABLA CON COLONIAS)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL PAGINADO Y COLUMNAS AJUSTADAS)
 # ==============================================================================
 with pestaña_incidencias:
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3753,22 +3753,9 @@ with pestaña_incidencias:
             if datos_mes.empty:
                 st.info("No hay registros de pozos fuera de servicio para los filtros seleccionados.")
             else:
-                # --- CONSTRUCCIÓN DE LA TABLA CON COLONIAS AFECTADAS ---
+                # --- CONSTRUCCIÓN DE LA TABLA (COLONIAS EN LA ÚLTIMA COLUMNA) ---
                 df_tabla = pd.DataFrame()
                 df_tabla['Sitio'] = datos_mes.get('NUM_POZO', 'N/A')
-                
-                # Buscamos y mapeamos las colonias afectadas (Col_atl) por cada pozo
-                colonias_por_fila = []
-                for _, r_hist in datos_mes.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])
-                    gdf_h = get_geometries(id_p)
-                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
-                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
-                    else:
-                        colonias_por_fila.append("N/A")
-                
-                df_tabla['Colonias Afectadas'] = colonias_por_fila
                 df_tabla['Inicio'] = datos_mes['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
                 df_tabla['Diagnóstico de Falla'] = datos_mes.get('DIAGNOSTICO_FALLA', 'N/A')
                 df_tabla['Cierre'] = datos_mes['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
@@ -3783,9 +3770,41 @@ with pestaña_incidencias:
                 df_tabla['Duración'] = duraciones
                 df_tabla['Estatus'] = datos_mes.get('ESTATUS', 'CERRADA').str.upper()
                 df_tabla['Responsable'] = datos_mes.get('RESPONSABLE', 'N/A')
+                
+                # Mapeo de colonias afectadas para colocarlo al final (última columna)
+                colonias_por_fila = []
+                for _, r_hist in datos_mes.iterrows():
+                    id_p = normalizar_id(r_hist['NUM_POZO'])
+                    gdf_h = get_geometries(id_p)
+                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
+                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                    else:
+                        colonias_por_fila.append("N/A")
+                
+                df_tabla['Colonias Afectadas'] = colonias_por_fila
+
+                # --- LÓGICA DE PAGINACIÓN (10 EN 10) ---
+                tamanio_pagina = 10
+                total_registros = len(df_tabla)
+                total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+
+                col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+                with col_pag2:
+                    pagina_actual = st.number_input(
+                        f"Página (Total registros: {total_registros})", 
+                        min_value=1, 
+                        max_value=total_paginas, 
+                        step=1, 
+                        key="num_pagina_historial"
+                    )
+
+                inicio_idx = (pagina_actual - 1) * tamanio_pagina
+                fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+                df_paginado = df_tabla.iloc[inicio_idx:fin_idx]
 
                 st.dataframe(
-                    df_tabla.reset_index(drop=True),
+                    df_paginado.reset_index(drop=True),
                     use_container_width=True,
                     hide_index=True
                 )
