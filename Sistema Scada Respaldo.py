@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ESTILO COMPLETO CON MAPA, VRPs, PUNTOS CRÍTICOS Y GRÁFICAS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÁLCULOS DINÁMICOS DESDE DB Y SECTORES_HIDR)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4251,7 +4251,7 @@ with pestaña_sectores:
     """, unsafe_allow_html=True)
 
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
-    st.caption("Resumen • MODO DEMOSTRACIÓN - Sectores, límites, ubicaciones y lecturas ficticias.")
+    st.caption("Resumen • MODO DEMOSTRACIÓN - Sectores, límites, ubicaciones y lecturas.")
 
     # 1. Filtros superiores
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
@@ -4313,19 +4313,56 @@ with pestaña_sectores:
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # 2. Tarjetas de Indicadores Superiores con Iconos
+            # Carga de datos de control, VRPs y puntos críticos del sector
+            dict_reg_all = cargar_puntos_de_control_desde_db() 
+            dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            
+            dict_vrp_all = cargar_vrp_desde_db()
+            dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+
+            mapa_pc_all = cargar_puntos_criticos_desde_db()
+            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+
+            # Recopilación de tags para SCADA
+            tags_para_scada = []
+            for r in dict_reg.values():
+                for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
+                    if r.get(k): tags_para_scada.append(r.get(k))
+            for pc in dict_pc_sec.values():
+                if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
+            for v in dict_vrp_sec.values():
+                for k in ['tag_p1', 'tag_p2', 'tag_q']:
+                    if v.get(k): tags_para_scada.append(v.get(k))
+
+            scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
+
+            # CÁLCULO DINÁMICO: Suma del último caudal (tag_q) de todos los pozos/puntos de control del sector
+            caudal_ingreso_total = 0.0
+            for r in dict_reg.values():
+                tag_q = r.get('tag_q')
+                if tag_q and tag_q in scada_res_reg:
+                    val_q, _ = scada_res_reg.get(tag_q, (0.0, "N/A"))
+                    try:
+                        caudal_ingreso_total += float(val_q)
+                    except:
+                        pass
+
+            # OBTENCIÓN DE VOLUMEN MEDIDO DESDE LA TABLA SECTORES_HIDR (Vol_Medid)
+            volumen_medido_val = datos_s.get('Vol_Medid', datos_s.get('Cons_m3', 0.0))
+
+            # 2. Tarjetas de Indicadores Superiores con valores reales y dinámicos
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">💧 Caudal de ingreso</p>
-                    <p class="value-indicador">55,5 <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador">Promedio ponderado del periodo</p>
+                    <p class="value-indicador">{caudal_ingreso_total:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
+                    <p class="sub-indicador">Suma de pozos / puntos de control</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
                     <p class="label-indicador">📦 Volumen medido</p>
-                    <p class="value-indicador">4.777 <span style="font-size:1rem; font-weight:normal;">m³</span></p>
-                    <p class="sub-indicador">Cobertura temporal: 99,7%</p>
+                    <p class="value-indicador">{volumen_medido_val:,.0f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
+                    <p class="sub-indicador">Tabla Sectores_hidr (Vol_Medid)</p>
                 </div>''', unsafe_allow_html=True)
             with c3:
                 st.markdown(f'''<div class="card-indicador">
@@ -4353,29 +4390,6 @@ with pestaña_sectores:
                 </div>''', unsafe_allow_html=True)
 
             st.write("")
-
-            # Carga de datos de control, VRPs y puntos críticos del sector
-            dict_reg_all = cargar_puntos_de_control_desde_db() 
-            dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-            
-            dict_vrp_all = cargar_vrp_desde_db()
-            dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-
-            mapa_pc_all = cargar_puntos_criticos_desde_db()
-            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-
-            # Recopilación de tags para SCADA
-            tags_para_scada = []
-            for r in dict_reg.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
-                    if r.get(k): tags_para_scada.append(r.get(k))
-            for pc in dict_pc_sec.values():
-                if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
-            for v in dict_vrp_sec.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q']:
-                    if v.get(k): tags_para_scada.append(v.get(k))
-
-            scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
             # ==============================================================================
             # FILA SUPERIOR: MAPA ACERCADO AL POLÍGONO (IZQ) Y COMPORTAMIENTO HIDRÁULICO (DER)
@@ -4427,7 +4441,7 @@ with pestaña_sectores:
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(m_sec)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg}</div>')).add_to(m_sec)
 
-                # 2. Marcadores de Puntos Críticos (Regresados al mapa)
+                # 2. Marcadores de Puntos Críticos
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
@@ -4436,7 +4450,7 @@ with pestaña_sectores:
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(m_sec)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc}</div>')).add_to(m_sec)
 
-                # 3. Marcadores de VRPs (Regresados al mapa)
+                # 3. Marcadores de VRPs
                 for id_vrp, vrp in dict_vrp_sec.items():
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
@@ -4515,7 +4529,6 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Gráfico histórico real de Puntos Críticos recuperado
                 if dict_pc_sec:
                     tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
                     if tags_pc_list:
@@ -4557,7 +4570,6 @@ with pestaña_sectores:
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Tabla de Datos Operativos exacta
                 st.markdown(f"""
                     <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 10px 15px;">
                         <table>
