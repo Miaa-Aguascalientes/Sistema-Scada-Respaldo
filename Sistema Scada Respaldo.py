@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS SIN DUPLICADOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DATOS OPERATIVOS CONECTADOS A DICCIONARIO DE TANQUES)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4342,7 +4342,7 @@ with pestaña_sectores:
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # Carga de datos de control, VRPs y puntos críticos del sector
+            # Carga de datos de control, VRPs, puntos críticos y tanques del sector
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
@@ -4352,10 +4352,14 @@ with pestaña_sectores:
             mapa_pc_all = cargar_puntos_criticos_desde_db()
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
+            # Carga del Diccionario de Tanques filtrado por sector
+            dict_tanques_all = cargar_tanques_desde_db() if 'cargar_tanques_desde_db' in globals() else {}
+            dict_tanques_sec = {k: v for k, v in dict_tanques_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+
             # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilación de tags para SCADA y pozos
+            # Recopilación de tags para SCADA, pozos y tanques
             tags_para_scada = []
             tags_caudal_pozos = []
             
@@ -4382,6 +4386,10 @@ with pestaña_sectores:
             for v in dict_vrp_sec.values():
                 for k in ['tag_p1', 'tag_p2', 'tag_q']:
                     if v.get(k): tags_para_scada.append(v.get(k))
+            
+            for t_id, t_info in dict_tanques_sec.items():
+                t_tag_niv = t_info.get('tag_nivel') or t_info.get('tag_n')
+                if t_tag_niv: tags_para_scada.append(t_tag_niv)
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
@@ -4416,6 +4424,16 @@ with pestaña_sectores:
                     return "0"
 
             demanda_fmt = fmt_miles(demanda_estimada_val)
+
+            # Obtención dinámica del nivel del tanque desde el Diccionario de Tanques
+            texto_tanque_op = "Sin tanque asociado"
+            if dict_tanques_sec:
+                t_item = list(dict_tanques_sec.values())[0]
+                t_nombre = t_item.get('nombre', 'Tanque')
+                t_tag = t_item.get('tag_nivel') or t_item.get('tag_n')
+                val_t_scada, fec_t_scada = scada_res_reg.get(t_tag, (0.0, "N/A"))
+                fec_t_str = str(fec_t_scada).strftime('%d/%m %H:%M') if hasattr(fec_t_scada, 'strftime') else str(fec_t_scada)
+                texto_tanque_op = f"{t_nombre} • {val_t_scada:,.2f} m ({fec_t_str})"
 
             # Tarjetas de Indicadores Superiores
             c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -4806,7 +4824,7 @@ with pestaña_sectores:
                             st.error(f"Error en gráfica de VRPs: {e}")
 
             # ==============================================================================
-            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS (SIN DUPLICADOS)
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS (CONECTADA A SECTORES_HIDR Y TANQUES)
             # ==============================================================================
             st.write("")
             st.markdown(f"""
@@ -4832,9 +4850,7 @@ with pestaña_sectores:
                             <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
                         </tr>
                         <tr>
-                            <td>📉 <b>Presión mínima de referencia:</b> 1.50 Kg/cm²</td>
-                            <td>⚙️ <b>Consigna VRP · catálogo:</b> 3.00 Kg/cm²</td>
-                            <td>🔵 <b>Tanque TQ-055 · último:</b> 4,13 m (26/10 14:15)</td>
+                            <td colspan="3">🔵 <b>Nivel de tanque asociado (Diccionario de tanques):</b> {texto_tanque_op}</td>
                         </tr>
                     </table>
                 </div>
