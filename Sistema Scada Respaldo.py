@@ -4471,58 +4471,58 @@ with pestaña_sectores:
                         texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
                         break
 
-            # Tarjetas de Indicadores Superiores con Iconos Animados
+            # Tarjetas de Indicadores Superiores con Iconos Animados a la Izquierda
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">💧 Caudal de ingreso</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-flow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Caudal de ingreso</p>
                     </div>
                     <p class="value-indicador">{caudal_promedio_pozos:,.1f} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
                     <p class="sub-indicador">Promedio del periodo (Pozos)</p>
                 </div>''', unsafe_allow_html=True)
             with c2:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">📦 Volumen medido</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Volumen medido</p>
                     </div>
                     <p class="value-indicador">{volumen_medido_val:,.0f} <span style="font-size:1rem; font-weight:normal;">m³</span></p>
                     <p class="sub-indicador">Tabla Sectores_hidr (Vol_Medid)</p>
                 </div>''', unsafe_allow_html=True)
             with c3:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">📈 Demanda estimada</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                        <p class="label-indicador" style="margin:0;">Demanda estimada</p>
                     </div>
                     <p class="value-indicador">{demanda_fmt} <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
                     <p class="sub-indicador">Tabla Sectores_hidr (Cons_m3)</p>
                 </div>''', unsafe_allow_html=True)
             with c4:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">👥 Población estimada</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                        <p class="label-indicador" style="margin:0;">Población estimada</p>
                     </div>
                     <p class="value-indicador">{datos_s.get("Poblacion", 28450):,.0f}</p>
                     <p class="sub-indicador">Referencia del catálogo</p>
                 </div>''', unsafe_allow_html=True)
             with c5:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">🌙 Mínimo nocturno</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Mínimo nocturno</p>
                     </div>
                     <p class="value-indicador">32,5 <span style="font-size:1rem; font-weight:normal;">L/s</span></p>
                     <p class="sub-indicador">Mín. observado • 02:00 - 04:00</p>
                 </div>''', unsafe_allow_html=True)
             with c6:
                 st.markdown(f'''<div class="card-indicador">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <p class="label-indicador">📊 Presión de ingreso</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
                         <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                        <p class="label-indicador" style="margin:0;">Presión de ingreso</p>
                     </div>
                     <p class="value-indicador">2.35 <span style="font-size:1rem; font-weight:normal;">Kg/cm²</span></p>
                     <p class="sub-indicador">Promedio ponderado del periodo</p>
