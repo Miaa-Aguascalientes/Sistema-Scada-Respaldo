@@ -5451,7 +5451,4 @@ with pestaña_sectores:
           unsafe_allow_html=True,
       )
     else:
-      st.info(
-          '👆 Seleccione un sector en el menú desplegable superior para cargar'
-          ' el análisis integral.'
-      )
+            st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
