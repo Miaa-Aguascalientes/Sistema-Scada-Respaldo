@@ -4209,7 +4209,7 @@ with pestaña_tanques:
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ETIQUETAS Y SELECTORES AJUSTADOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICOS ADAPTABLES AL ANCHO DEL PERIODO)
 # ==============================================================================
 with pestaña_sectores:
     # Inyección de tu estilo CSS corporativo exacto
@@ -4580,7 +4580,7 @@ with pestaña_sectores:
                             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                             meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                            fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), end=df_h['FECHA'].max().ceil('D'), freq='D')
+                            fechas_lineas = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
                             num_dias = len(fechas_lineas)
                             paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
                             ticks_filtrados = fechas_lineas[::paso]
@@ -4634,7 +4634,7 @@ with pestaña_sectores:
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
                                 margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                                xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
+                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
                                 yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
                                 yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
                             )
@@ -4643,7 +4643,7 @@ with pestaña_sectores:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (ADAPTADOS AL RANGO DE FECHAS)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4667,7 +4667,7 @@ with pestaña_sectores:
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                                fechas_lineas_pc = pd.date_range(start=df_pc_h['FECHA'].min().floor('D'), end=df_pc_h['FECHA'].max().ceil('D'), freq='D')
+                                fechas_lineas_pc = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
                                 ticks_pc = fechas_lineas_pc[::1]
                                 etiquetas_pc = [
                                     f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
@@ -4703,7 +4703,7 @@ with pestaña_sectores:
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
+                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
                                     yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
@@ -4745,7 +4745,7 @@ with pestaña_sectores:
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                                fechas_lineas_vrp = pd.date_range(start=df_vrp_h['FECHA'].min().floor('D'), end=df_vrp_h['FECHA'].max().ceil('D'), freq='D')
+                                fechas_lineas_vrp = pd.date_range(start=f_ini_h.floor('D'), end=f_fin_h.ceil('D'), freq='D')
                                 ticks_vrp = fechas_lineas_vrp[::1]
                                 etiquetas_vrp = [
                                     f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
@@ -4790,7 +4790,7 @@ with pestaña_sectores:
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
+                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
                                     yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
                                     yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
                                 )
