@@ -1937,21 +1937,21 @@ st.markdown("""
             padding-top: 0px !important;
         }
 
-        /* 1. RESTAURAMOS LAS PESTAÑAS: Las bajamos a su posición correcta para que no queden cortadas */
+        /* Barra de pestañas arriba */
         .miaa-skew-bar {
             display: flex;
             gap: 10px;
             width: 100%;
-            margin-top: -12px !important; /* Ajustado de -45px a -12px para que se vean completas y visibles */
-            margin-bottom: 8px !important;
+            margin-top: -45px !important; 
+            margin-bottom: 5px !important;
             padding: 0 !important;
             position: relative;
             z-index: 999;
         }
 
-        /* 2. SUBIMOS EL MAPA UN POQUITO MÁS: Ajustado para quedar exactamente debajo de las pestañas visibles */
+        /* --- MAPA CALIBRADO PARA QUEDAR DEBAJO DE LAS PESTAÑAS --- */
         div.element-container:has(iframe) {
-            margin-top: -18px !important; /* Sube el mapa un poco más para cerrar el espacio restante */
+            margin-top: -15px !important;
             margin-bottom: 0px !important;
         }
 
@@ -1960,7 +1960,7 @@ st.markdown("""
         }
 
         .mapa-area iframe { 
-            margin-top: 0px !important;
+            margin-top: 5px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
@@ -5137,3 +5137,6 @@ elif tab_activa == "sectores":
             """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
+
+
+      
