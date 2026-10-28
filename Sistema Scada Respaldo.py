@@ -1909,7 +1909,6 @@ if "ver_grafico" in st.query_params:
 
     st.stop()
 
-# 5. ESTILO CSS GENERAL ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
         /* Ocultar elementos nativos innecesarios del header */
@@ -2077,55 +2076,64 @@ st.markdown("""
             100% { opacity: 1; }
         }
         
-        /* --- BOTÓN FLOTANTE PERSONALIZADO CON FLECHAS --- */
+        /* --- BOTÓN FLOTANTE INTERACTIVO --- */
         .custom-collapse-btn {
             position: fixed;
-            top: 15px;
-            left: 285px; /* Ajustado al borde exterior de tu barra lateral */
+            top: 12px;
+            right: 15px; /* Lo ponemos flotando en la esquina superior derecha del mapa para garantizar que reciba el evento */
             z-index: 9999999;
             background-color: #0b1a29;
             color: #00d4ff;
             border: 1px solid #1f4068;
-            border-radius: 4px;
-            padding: 4px 8px;
+            border-radius: 6px;
+            padding: 6px 12px;
             cursor: pointer;
             font-weight: bold;
             font-size: 14px;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
             transition: all 0.2s ease;
         }
         .custom-collapse-btn:hover {
             background-color: #1f4068;
             color: #ffffff;
-            box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
         }
     </style>
 
     <script>
-        // Función para alternar la barra lateral simulando el evento nativo de Streamlit
-        function toggleSidebar() {
-            const nativeBtn = parent.document.querySelector('[data-testid="collapsedControl"]') || 
-                              parent.document.querySelector('[data-testid="stSidebarCollapseButton"]') ||
-                              parent.document.querySelector('button[kind="headerNoPadding"]');
-            if (nativeBtn) {
-                nativeBtn.click();
+        function toggleSidebarState() {
+            // Buscamos el botón colapsador interno de Streamlit simulando un evento de teclado (atajo por defecto: tecla '>') o buscando el estado de UI
+            const doc = window.parent.document;
+            
+            // Intentar encontrar el botón de colapso a través de los elementos de control de Streamlit
+            const collapseControl = doc.querySelector('[data-testid="collapsedControl"]') || 
+                                    doc.querySelector('button[kind="headerNoPadding"]');
+            
+            if (collapseControl) {
+                collapseControl.click();
             } else {
-                // Fallback directo buscando por atributos colapsadores en el DOM principal
-                const allButtons = parent.document.querySelectorAll('button');
-                for (let btn of allButtons) {
-                    if (btn.getAttribute('aria-label') && btn.getAttribute('aria-label').toLowerCase().includes('sidebar')) {
-                        btn.click();
-                        return;
+                // Si no existe, simulamos el evento de teclado que usa Streamlit para colapsar la barra (usualmente Ctrl+B o atajos internos) o alteramos el ancho del elemento sidebar mediante DOM
+                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                if (sidebar) {
+                    if (sidebar.style.width === '0px' || sidebar.classList.contains('collapsed')) {
+                        sidebar.style.width = '';
+                        sidebar.style.minWidth = '';
+                        sidebar.classList.remove('collapsed');
+                    } else {
+                        sidebar.style.width = '0px';
+                        sidebar.style.minWidth = '0px';
+                        sidebar.classList.add('collapsed');
                     }
                 }
             }
         }
     </script>
 
-    <button class="custom-collapse-btn" onclick="toggleSidebar()" title="Ocultar / Mostrar barra lateral">
-        &lt;&lt;
+    <button class="custom-collapse-btn" onclick="toggleSidebarState()" title="Ocultar / Mostrar barra lateral">
+        &lt;&lt; Ocultar Menú
     </button>
 """, unsafe_allow_html=True)
+
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
