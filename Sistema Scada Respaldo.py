@@ -1909,12 +1909,13 @@ if "ver_grafico" in st.query_params:
 
     st.stop()
 
-# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        [data-testid="collapsedControl"], button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
+        /* Eliminamos [data-testid="collapsedControl"] del selector que ocultaba todo */
+        button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
+        
         header { visibility: hidden !important; height: 0px !important; }
         [data-testid="stHeader"] { display: none !important; }
         
@@ -2075,9 +2076,29 @@ st.markdown("""
             50% { opacity: 0.1; }
             100% { opacity: 1; }
         }
+        
+        /* --- CONTROL FLOTANTE DE LA BARRA LATERAL (FLECHAS) --- */
+        [data-testid="collapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+            position: fixed !important;
+            top: 15px !important;
+            left: 15px !important;
+            z-index: 9999999 !important;
+            background-color: #0b1a29 !important;
+            border: 1px solid #1f4068 !important;
+            border-radius: 6px !important;
+            padding: 4px !important;
+        }
+
+        [data-testid="collapsedControl"] svg {
+            fill: #00d4ff !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+        
     </style>
 """, unsafe_allow_html=True)
-
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
