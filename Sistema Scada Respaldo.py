@@ -1920,8 +1920,9 @@ st.markdown("""
         
         .stApp { background-color: #000000; color: white; }
         
+        /* Reducimos el padding superior a cero o casi cero para eliminar el colchón de Streamlit */
         .block-container {
-            padding-top: 40px !important; /* Espacio base justo debajo del título fijo */
+            padding-top: 5px !important; 
             padding-bottom: 0rem !important;
             margin-top: 0px !important;
             max-width: 100% !important;
@@ -1937,13 +1938,13 @@ st.markdown("""
             padding-top: 0px !important;
         }
 
-        /* TIRÓN HACIA ARRIBA: Esto sube las pestañas para pegarlas a la línea azul superior */
+        /* TIRÓN EXTREMO HACIA ARRIBA: Sube drásticamente las pestañas para meterlas contra la línea */
         .miaa-skew-bar {
             display: flex;
             gap: 10px;
             width: 100%;
-            margin-top: -25px !important; 
-            margin-bottom: 8px !important;
+            margin-top: -45px !important; 
+            margin-bottom: 5px !important;
             padding: 0 !important;
             position: relative;
             z-index: 999;
