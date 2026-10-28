@@ -1910,15 +1910,16 @@ if "ver_grafico" in st.query_params:
     st.stop()
 
 
+# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 st.markdown("""
     <style>
-        /* Eliminado [data-testid="collapsedControl"] de la regla que lo ocultaba para permitir que aparezca */
+        /* Ocultar header nativo */
+        header { visibility: hidden !important; height: 0px !important; }
+        [data-testid="stHeader"] { display: none !important; }
         button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
-        header { visibility: hidden !important; height: 0px !important; }
-        [data-testid="stHeader"] { display: none !important; }
         
         .stApp { background-color: #000000; color: white; }
         
@@ -2078,34 +2079,53 @@ st.markdown("""
             100% { opacity: 1; }
         }
 
-        /* --- BOTÓN NATIVO DE LAS FLECHAS RESCATADO Y POSICIONADO --- */
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            visibility: visible !important;
-            position: fixed !important;
-            top: 12px !important;
-            left: 12px !important;
-            z-index: 9999999 !important;
-            background-color: #0b1a29 !important;
-            border: 1px solid #1f4068 !important;
-            border-radius: 6px !important;
-            padding: 4px !important;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+        /* --- BOTÓN DE FLECHAS IDÉNTICO AL NATIVO (FLOTANTE) --- */
+        .native-toggle-replica {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 9999999;
+            background-color: #0b1a29;
+            border: 1px solid #1f4068;
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            color: #00d4ff;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.2s ease;
         }
-
-        [data-testid="collapsedControl"] svg {
-            fill: #00d4ff !important;
-            width: 20px !important;
-            height: 20px !important;
-        }
-
-        [data-testid="collapsedControl"]:hover {
-            background-color: #1f4068 !important;
-            border-color: #00d4ff !important;
+        .native-toggle-replica:hover {
+            background-color: #1f4068;
+            color: #ffffff;
+            border-color: #00d4ff;
         }
     </style>
-""", unsafe_allow_html=True)
 
+    <script>
+        function toggleSidebarCustom() {
+            const doc = window.parent.document;
+            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                if (sidebar.style.width === '0px' || sidebar.style.display === 'none') {
+                    sidebar.style.width = '';
+                    sidebar.style.display = '';
+                } else {
+                    sidebar.style.width = '0px';
+                }
+            }
+        }
+    </script>
+
+    <div class="native-toggle-replica" onclick="toggleSidebarCustom()" title="Ocultar / Mostrar barra lateral">
+        &laquo;
+    </div>
+""", unsafe_allow_html=True)
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
