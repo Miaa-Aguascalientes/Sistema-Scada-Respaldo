@@ -1919,35 +1919,32 @@ st.markdown("""
         #MainMenu { visibility: hidden !important; }
         header [data-testid="stDecoration"] { display: none !important; }
 
-        /* --- BOTÓN PARA OCULTAR Y MOSTRAR LA BARRA LATERAL (AMBOS ESTADOS) --- */
+        /* --- FORZAR QUE EL BOTÓN DE ABRIR/CERRAR ESTÉ SIEMPRE VISIBLE EN LA ESQUINA --- */
         [data-testid="collapsedControl"], 
-        [data-testid="stSidebarCollapseButton"],
-        button[kind="headerNoPadding"] {
+        [data-testid="stSidebarCollapseButton"] {
             display: flex !important;
             visibility: visible !important;
             position: fixed !important;
             top: 10px !important;
             left: 10px !important;
-            z-index: 9999999 !important;
+            z-index: 99999999 !important;
             background-color: #0b1a29 !important;
             border: 1px solid #1f4068 !important;
             border-radius: 6px !important;
             padding: 6px !important;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.5) !important;
         }
 
-        /* Color cian para las flechas en cualquier estado */
+        /* Color cian brillante para las flechas en ambos estados */
         [data-testid="collapsedControl"] svg, 
-        [data-testid="stSidebarCollapseButton"] svg,
-        button[kind="headerNoPadding"] svg {
+        [data-testid="stSidebarCollapseButton"] svg {
             fill: #00d4ff !important;
-            width: 20px !important;
-            height: 20px !important;
+            width: 22px !important;
+            height: 22px !important;
         }
 
         [data-testid="collapsedControl"]:hover, 
-        [data-testid="stSidebarCollapseButton"]:hover,
-        button[kind="headerNoPadding"]:hover {
+        [data-testid="stSidebarCollapseButton"]:hover {
             background-color: #1f4068 !important;
             border-color: #00d4ff !important;
         }
