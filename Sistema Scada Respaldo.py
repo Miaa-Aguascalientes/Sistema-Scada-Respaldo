@@ -3545,7 +3545,7 @@ if tab_activa == "mapa":
 # ==============================================================================
 # PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL PAGINADO Y COLUMNAS AJUSTADAS)
 # ==============================================================================
-with pestaña_incidencias:
+elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
     
     tz_mx = pytz.timezone('America/Mexico_City')
@@ -3953,7 +3953,7 @@ with pestaña_incidencias:
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
-with pestaña_tanques:
+welif tab_activa == "tanques":
     st.markdown('<div class="titulo-superior">SEGUIMIENTO Y MONITOREO A TANQUES PRINCIPALES </div>', unsafe_allow_html=True)
     import numpy as np
     import pandas as pd
@@ -4373,7 +4373,7 @@ with pestaña_tanques:
 # ==============================================================================
 # PESTAÑA 4: SECTORES HIDRÁULICOS (CON ICONOS ANIMADOS Y FIT_BOUNDS AUTOMÁTICO)
 # ==============================================================================
-with pestaña_sectores:
+elif tab_activa == "sectores":
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
     st.markdown("""
         <style>
