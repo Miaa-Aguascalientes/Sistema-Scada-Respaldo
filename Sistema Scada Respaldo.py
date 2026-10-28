@@ -2731,57 +2731,81 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# Inyectamos el diseño visual que transforma los st.tabs nativos en tu barra de la imagen
+# 1. Inyectamos los estilos CSS para transformar el radio button en tu barra de botones con píldora activa
 st.markdown("""
 <style>
-    /* Estiliza la barra contenedora principal de las pestañas */
-    [data-baseweb="tab-list"] {
-        background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%) !important;
-        border: 1px solid #1f4068 !important;
-        border-radius: 12px !important;
-        padding: 8px 12px !important;
-        gap: 12px !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+    /* Contenedor general de la barra de navegación */
+    [data-testid="stHorizontalBlock"] {
+        background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%);
+        border: 1px solid #1f4068;
+        border-radius: 12px;
+        padding: 8px 15px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+        margin-bottom: 20px;
     }
 
-    /* Estilo para las pestañas inactivas */
-    [data-baseweb="tab"] {
-        background-color: transparent !important;
-        border-radius: 10px !important;
-        color: #a0aec0 !important;
-        font-weight: 600 !important;
-        padding: 10px 18px !important;
-        border: 1px solid transparent !important;
-        transition: all 0.3s ease !important;
+    /* Ocultamos los círculos de selección del radio */
+    div[data-testid="stRadio"] div[role="radiogroup"] {
+        display: flex;
+        gap: 10px;
+        width: 100%;
     }
 
-    [data-baseweb="tab"]:hover {
-        color: #ffffff !important;
-        background: rgba(0, 212, 255, 0.05) !important;
+    div[data-testid="stRadio"] div[role="radiogroup"] label {
+        flex: 1;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        padding: 10px 15px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
     }
 
-    /* Pestaña ACTIVA: Estilo de píldora con brillo azul exacto a tu imagen */
-    [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(0, 114, 255, 0.2) 0%, rgba(0, 212, 255, 0.15) 100%) !important;
+    div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
+        background: rgba(0, 212, 255, 0.05);
+    }
+
+    /* ESTILO DE LA PESTAÑA ACTIVA (Píldora con brillo azul exacto a tu imagen) */
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
+        background: linear-gradient(135deg, rgba(0, 114, 255, 0.25) 0%, rgba(0, 212, 255, 0.2) 100%) !important;
         border: 1px solid #00d4ff !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 18px rgba(0, 212, 255, 0.4), inset 0 0 10px rgba(0, 212, 255, 0.2) !important;
+        box-shadow: 0 0 18px rgba(0, 212, 255, 0.4), inset 0 0 10px rgba(0, 212, 255, 0.2);
     }
-    
-    /* Ocultar la línea deslizadora predeterminada de Streamlit */
-    [data-baseweb="tab-highlight"] {
-        display: none !important;
+
+    /* Color y tipografía del texto */
+    div[data-testid="stRadio"] div[role="radiogroup"] label p {
+        color: #a0aec0;
+        font-weight: 600;
+        font-size: 14px;
+    }
+    div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
+        color: #ffffff !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Definición estándar de tus pestañas (esto mantiene vivos tus bloques 'with' intactos)
-pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
+# 2. Creamos la barra horizontal de selección
+opciones_pestanas = [
     "🗺️ Mapa Principal", 
     "⚠️ Incidencias Activas y del día", 
     "🛢️ Miaa Tanques", 
     "💧 Sectores Hidráulicos"
-])
+]
+
+seleccion = st.radio(
+    "Navegación", 
+    options=opciones_pestanas, 
+    horizontal=True, 
+    label_visibility="collapsed",
+    key="menu_hud_principal"
+)
+
+# 3. Mapeo para conservar tus variables y bloques 'with' originales intactos
+pestaña_mapa = (seleccion == opciones_pestanas[0])
+pestaña_incidencias = (seleccion == opciones_pestanas[1])
+pestaña_tanques = (seleccion == opciones_pestanas[2])
+pestaña_sectores = (seleccion == opciones_pestanas[3])
 
 
 # ==============================================================================
