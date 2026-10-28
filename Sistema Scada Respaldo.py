@@ -1937,7 +1937,7 @@ st.markdown("""
             padding-top: 0px !important;
         }
 
-        /* 1. LAS PESTAÑAS SE QUEDAN INTACTAS en su posición correcta */
+        /* Barra de pestañas arriba */
         .miaa-skew-bar {
             display: flex;
             gap: 10px;
@@ -1949,9 +1949,9 @@ st.markdown("""
             z-index: 999;
         }
 
-        /* 2. SUBIMOS EL MAPA UN POQUITO MÁS para cerrar el espacio restante justo debajo de las pestañas */
+        /* Mapa ajustado justo debajo de las pestañas */
         div.element-container:has(iframe) {
-            margin-top: -25px !important; /* Subido un poco más para que pegue perfecto abajo de las pestañas */
+            margin-top: -25px !important;
             margin-bottom: 0px !important;
         }
 
@@ -2027,13 +2027,16 @@ st.markdown("""
             border-top: none !important;
         }
 
+        /* --- BARRA LATERAL SEPARADA DE LA DERECHA --- */
         [data-testid="stSidebarContent"] {
             padding-top: 3px !important; 
+            padding-right: 8px !important;
         }
 
         [data-testid="stSidebar"] { 
             background-color: #0b1a29 !important; 
-            border-right: 2px solid #1f4068; 
+            border-right: 2px solid #1f4068 !important; 
+            margin-right: 10px !important;
         }
 
        .sidebar-logo { 
@@ -2074,6 +2077,7 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
+
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
