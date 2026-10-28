@@ -2835,15 +2835,16 @@ with col_b4:
 
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
-# 4. Declaramos objetos falsos tipo Tab para que tus bloques 'with pestaña_...' funcionen sin tocar su interior
+# 4. Declaramos objetos MockTab seguros para TODAS las pestañas simultáneamente
 class MockTab:
     def __enter__(self): return self
     def __exit__(self, exc_type, exc_val, exc_tb): pass
 
-pestaña_mapa = MockTab() if tab_activa == "mapa" else None
-pestaña_incidencias = MockTab() if tab_activa == "incidencias" else None
-pestaña_tanques = MockTab() if tab_activa == "tanques" else None
-pestaña_sectores = MockTab() if tab_activa == "sectores" else None
+# Creamos una instancia para cada pestaña para que NUNCA sean None y el 'with' nunca falle
+pestaña_mapa = MockTab()
+pestaña_incidencias = MockTab()
+pestaña_tanques = MockTab()
+pestaña_sectores = MockTab()
 
 
 # ==============================================================================
