@@ -1912,6 +1912,7 @@ if "ver_grafico" in st.query_params:
 # 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
+        /* Ocultar el control nativo original que a veces falla */
         [data-testid="collapsedControl"], button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
@@ -2027,7 +2028,7 @@ st.markdown("""
             border-top: none !important;
         }
 
-        /* --- BARRA LATERAL SEPARADA DE LA DERECHA Y FORZADA VISIBLE --- */
+        /* --- CONFIGURACIÓN DE LA BARRA LATERAL CON SOPORTE DE OCULTAMIENTO --- */
         [data-testid="stSidebarContent"] {
             padding-top: 3px !important; 
             padding-right: 8px !important;
@@ -2037,10 +2038,15 @@ st.markdown("""
             background-color: #0b1a29 !important; 
             border-right: 2px solid #1f4068 !important; 
             margin-right: 10px !important;
-            display: block !important;
-            visibility: visible !important;
-            transform: none !important;
             min-width: 280px !important;
+            transition: transform 0.3s ease, margin-left 0.3s ease !important;
+        }
+
+        /* Clase dinámica para colapsar la barra lateral desde JS */
+        [data-testid="stSidebar"].sidebar-oculta {
+            margin-left: -320px !important;
+            position: absolute !important;
+            z-index: -999 !important;
         }
 
        .sidebar-logo { 
@@ -2079,7 +2085,49 @@ st.markdown("""
             50% { opacity: 0.1; }
             100% { opacity: 1; }
         }
+
+        /* --- BOTÓN FLOTANTE ESTILO HUD PARA CONTROLAR LA BARRA --- */
+        #btn-toggle-sidebar {
+            position: fixed;
+            top: 12px;
+            left: 15px;
+            z-index: 9999999;
+            background: #0b1a29;
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+            transition: all 0.2s ease;
+        }
+        #btn-toggle-sidebar:hover {
+            background: #00d4ff;
+            color: #050a10;
+        }
     </style>
+
+    <!-- Script de JavaScript para alternar la visibilidad de la barra lateral -->
+    <script>
+        function toggleSidebar() {
+            const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+            if (sidebar) {
+                sidebar.classList.toggle('sidebar-oculta');
+            }
+        }
+
+        // Inyectar el botón flotante en la interfaz principal si no existe
+        if (!window.parent.document.getElementById('btn-toggle-sidebar')) {
+            const btn = window.parent.document.createElement('button');
+            btn.id = 'btn-toggle-sidebar';
+            btn.innerHTML = '📂 MENÚ';
+            btn.onclick = toggleSidebar;
+            window.parent.document.body.appendChild(btn);
+        }
+    </script>
 """, unsafe_allow_html=True)
 
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
