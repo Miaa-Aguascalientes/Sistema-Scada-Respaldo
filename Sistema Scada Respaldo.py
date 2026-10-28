@@ -2027,7 +2027,7 @@ st.markdown("""
             border-top: none !important;
         }
 
-        /* --- BARRA LATERAL SEPARADA DE LA DERECHA --- */
+        /* --- BARRA LATERAL SEPARADA DE LA DERECHA Y FORZADA VISIBLE --- */
         [data-testid="stSidebarContent"] {
             padding-top: 3px !important; 
             padding-right: 8px !important;
@@ -2037,6 +2037,10 @@ st.markdown("""
             background-color: #0b1a29 !important; 
             border-right: 2px solid #1f4068 !important; 
             margin-right: 10px !important;
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
+            min-width: 280px !important;
         }
 
        .sidebar-logo { 
