@@ -2730,6 +2730,56 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # ==============================================================================
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
+
+# Estilo HUD moderno para las pestañas
+st.markdown("""
+    <style>
+        /* Contenedor general de las pestañas */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 8px;
+            background-color: #081421;
+            padding: 10px 10px 0 10px;
+            border-bottom: 2px solid #1f4068;
+        }
+
+        /* Estilo base para cada pestaña (Inactivas) */
+        .stTabs [data-baseweb="tab"] {
+            height: 45px;
+            background-color: #0b1a29;
+            border-radius: 6px 6px 0 0 !important;
+            border: 1px solid #1f4068;
+            border-bottom: none;
+            color: #8899a6;
+            font-size: 14px;
+            font-weight: 600;
+            padding: 0 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* Pestaña al pasar el mouse (Hover) */
+        .stTabs [data-baseweb="tab"]:hover {
+            background-color: #122c42;
+            color: #00d4ff;
+            border-color: #00d4ff;
+        }
+
+        /* Pestaña ACTIVA (Seleccionada) */
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            background: linear-gradient(180deg, #122c42 0%, #0b1a29 100%);
+            color: #00d4ff !important;
+            border: 1px solid #00d4ff;
+            border-bottom: 2px solid #0b1a29;
+            box-shadow: 0 -3px 10px rgba(0, 212, 255, 0.2);
+        }
+
+        /* Línea de realce de Streamlit debajo de las pestañas */
+        .stTabs [data-baseweb="tab-highlight"] {
+            background-color: #00d4ff !important;
+            height: 3px !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
     ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
 )
