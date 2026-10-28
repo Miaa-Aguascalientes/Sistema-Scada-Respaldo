@@ -1914,16 +1914,7 @@ if "ver_grafico" in st.query_params:
 # 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* Ocultar el header general pero PERMITIR y rescatar el botón nativo de las flechas */
-        header { visibility: hidden !important; height: 0px !important; }
-        [data-testid="stHeader"] { display: none !important; }
-        
-        /* Asegurar que los selectores de colapso nativos no estén ocultos */
-        button[kind="headerNoPadding"] {
-            display: none !important;
-        }
-
-        /* --- RESTAURAR Y POSICIONAR LAS FLECHAS NATIVAS DE STREAMLIT --- */
+        /* ÚNICAMENTE rescatar y posicionar el botón nativo de las flechas */
         [data-testid="collapsedControl"] {
             display: flex !important;
             visibility: visible !important;
@@ -1938,7 +1929,7 @@ st.markdown("""
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
         }
 
-        /* Dar color cian a las flechas SVG nativas de Streamlit */
+        /* Dar color cian a las flechas nativas */
         [data-testid="collapsedControl"] svg {
             fill: #00d4ff !important;
             width: 20px !important;
@@ -1948,28 +1939,6 @@ st.markdown("""
         [data-testid="collapsedControl"]:hover {
             background-color: #1f4068 !important;
             border-color: #00d4ff !important;
-        }
-
-        /* El resto de tus estilos generales */
-        .stApp { background-color: #000000; color: white; }
-        
-        .block-container {
-            padding-top: 5px !important; 
-            padding-bottom: 0rem !important;
-            margin-top: 0px !important;
-            max-width: 100% !important;
-        }
-        
-        /* --- BARRA LATERAL --- */
-        [data-testid="stSidebarContent"] {
-            padding-top: 3px !important; 
-            padding-right: 8px !important;
-        }
-
-        [data-testid="stSidebar"] { 
-            background-color: #0b1a29 !important; 
-            border-right: 2px solid #1f4068 !important; 
-            margin-right: 10px !important;
         }
     </style>
 """, unsafe_allow_html=True)
