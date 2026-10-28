@@ -4275,7 +4275,7 @@ with pestaña_sectores:
             }
             .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
             .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
-            .sub-indicador { font-size: 0.12rem; color: #73b3d8; margin: 0; }
+            .sub-indicador { font-size: 1.12rem; color: #73b3d8; margin: 0; }
 
             /* Tablas de Datos Operativos */
             .st-key-dma_operational table { width: 100%; }
