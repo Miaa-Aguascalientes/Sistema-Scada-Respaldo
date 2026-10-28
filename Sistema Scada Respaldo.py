@@ -1920,8 +1920,10 @@ st.markdown("""
         
         .stApp { background-color: #000000; color: white; }
         
+        /* Reducción drástica del espacio superior del contenedor principal */
         .block-container {
-            padding-top: 0.5rem !important;
+            padding-top: 35px !important; /* Ajustado para que el contenido empiece justo debajo del título fijo */
+            padding-bottom: 0rem !important;
             margin-top: 0px !important;
             max-width: 100% !important;
         }
@@ -1929,6 +1931,22 @@ st.markdown("""
         div[data-testid="stHorizontalBlock"] {
             margin-top: 0px !important;
             padding-top: 0px !important;
+        }
+
+        /* Elimina el espacio superior que Streamlit mete al HTML personalizado */
+        .stMarkdown {
+            margin-top: 0px !important;
+            padding-top: 0px !important;
+        }
+
+        /* Ajuste específico para la barra de pestañas para subirla hacia la línea */
+        .miaa-skew-bar {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: -10px !important; /* Sube la barra hacia la línea del título */
+            margin-bottom: 10px !important;
+            padding: 0 !important;
         }
 
         .mapa-area iframe { 
@@ -1956,7 +1974,7 @@ st.markdown("""
             background-color: #000000;
             width: 100%;
             text-align: center;
-            padding: 10px 0;
+            padding: 5px 0; /* Reducido de 10px a 5px para ajustar grosor del encabezado */
             border-bottom: 1px solid #1f4068;
         }
 
