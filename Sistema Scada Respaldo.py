@@ -2848,7 +2848,9 @@ st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 # ==============================================================================
 # PESTAÑA 1 MAPA DE POZOS, TANQUES Y REBOMBEOS
 # ==============================================================================
-with pestaña_mapa:
+if tab_activa == "mapa":
+    with pestaña_mapa:
+
     st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
     c_total = total_q if 'total_q' in locals() else 0.0
