@@ -2731,55 +2731,118 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
+# Obtenemos la pestaña seleccionada de la URL (por defecto "mapa")
+query_params = st.query_params
+tab_activa = query_params.get("nav", "mapa")
+
+# Inyectamos el diseño CSS exacto de la barra con iconos e iluminación
 st.markdown("""
 <style>
-    /* Contenedor principal de las pestañas (la barra oscura) */
+    /* Ocultamos las pestañas nativas feas de Streamlit pero conservamos la lógica de los bloques */
     [data-baseweb="tab-list"] {
-        background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%) !important;
-        border: 1px solid #1f4068 !important;
-        border-radius: 12px !important;
-        padding: 8px 12px !important;
-        gap: 10px !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
-    }
-
-    /* Cada pestaña individual inactiva */
-    [data-baseweb="tab"] {
-        background-color: transparent !important;
-        border-radius: 30px !important;
-        color: #a0aec0 !important;
-        font-weight: 600 !important;
-        padding: 10px 18px !important;
-        border: none !important;
-        transition: all 0.3s ease !important;
-    }
-
-    [data-baseweb="tab"]:hover {
-        color: #ffffff !important;
-    }
-
-    /* Pestaña activa (Estilo Píldora con Brillo Azul exacto a la imagen) */
-    [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #0072ff 0%, #00d4ff 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4) !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        display: none !important;
     }
     
-    /* Ocultar la línea deslizadora inferior predeterminada de Streamlit */
-    [data-baseweb="tab-highlight"] {
-        display: none !important;
+    .miaa-hud-bar {
+        background: linear-gradient(180deg, #050a10 0%, #0c1a29 100%);
+        border: 1px solid #1f4068;
+        border-radius: 12px;
+        padding: 10px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+    }
+
+    .hud-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        text-decoration: none !important;
+        padding: 12px 15px;
+        border-radius: 10px;
+        background: transparent;
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+        color: #a0aec0;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        text-align: left;
+    }
+
+    .hud-tab:hover {
+        color: #ffffff;
+        background: rgba(0, 212, 255, 0.05);
+    }
+
+    /* Estilo de la pestaña ACTIVA (Píldora con brillo azul exacto a tu imagen) */
+    .hud-tab.active {
+        background: linear-gradient(135deg, rgba(0, 114, 255, 0.2) 0%, rgba(0, 212, 255, 0.15) 100%);
+        border: 1px solid #00d4ff;
+        color: #ffffff !important;
+        box-shadow: 0 0 18px rgba(0, 212, 255, 0.4), inset 0 0 10px rgba(0, 212, 255, 0.2);
+    }
+
+    .hud-icon {
+        width: 32px;
+        height: 32px;
+        object-fit: contain;
+    }
+    
+    .hud-text {
+        line-height: 1.2;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Mantén tu definición de pestañas exactamente como la tienes
-pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
-    "🗺️ Mapa Principal", 
-    "⚠️ Incidencias Activas y del día", 
-    "🛢️ Miaa Tanques", 
-    "💧 Sectores Hidráulicos"
-])
+# URL base para conservar tus permisos de acceso y rol
+base_url = f"?access=granted&role={st.session_state.get('rol', 'usuario')}"
+
+# Renderizamos la barra visual personalizada con columnas de Streamlit
+col_b1, col_b2, col_b3, col_b4 = st.columns(4)
+
+with col_b1:
+    act = "active" if tab_activa == "mapa" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=mapa" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" class="hud-icon">
+            <span class="hud-text">Mapa Principal</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b2:
+    act = "active" if tab_activa == "incidencias" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=incidencias" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png" class="hud-icon">
+            <span class="hud-text">Incidencias Activas<br>y del día</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b3:
+    act = "active" if tab_activa == "tanques" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=tanques" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png" class="hud-icon">
+            <span class="hud-text">Miaa Tanques</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b4:
+    act = "active" if tab_activa == "sectores" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=sectores" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png" class="hud-icon">
+            <span class="hud-text">Sectores Hidráulicos</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
 
 # ==============================================================================
