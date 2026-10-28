@@ -2731,58 +2731,55 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# Estilo HUD moderno para las pestañas
 st.markdown("""
-    <style>
-        /* Contenedor general de la barra de pestañas */
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: #050a10 !important;
-            padding: 12px 16px !important;
-            border-radius: 14px !important;
-            border: 1px solid #1f4068 !important;
-            gap: 12px !important;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5) !important;
-        }
+<style>
+    /* Contenedor principal de las pestañas (la barra oscura) */
+    [data-baseweb="tab-list"] {
+        background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%) !important;
+        border: 1px solid #1f4068 !important;
+        border-radius: 12px !important;
+        padding: 8px 12px !important;
+        gap: 10px !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7) !important;
+    }
 
-        /* Ocultar la línea o barra deslizante por defecto de Streamlit */
-        .stTabs [data-baseweb="tab-highlight"] {
-            display: none !important;
-        }
+    /* Cada pestaña individual inactiva */
+    [data-baseweb="tab"] {
+        background-color: transparent !important;
+        border-radius: 30px !important;
+        color: #a0aec0 !important;
+        font-weight: 600 !important;
+        padding: 10px 18px !important;
+        border: none !important;
+        transition: all 0.3s ease !important;
+    }
 
-        /* Estilo base de cada botón/pestaña (Inactiva) */
-        .stTabs [data-baseweb="tab"] {
-            height: 50px !important;
-            background-color: transparent !important;
-            border-radius: 25px !important;
-            border: none !important;
-            color: #8899a6 !important;
-            font-size: 14px !important;
-            font-weight: 600 !important;
-            padding: 0 22px !important;
-            transition: all 0.3s ease !important;
-        }
+    [data-baseweb="tab"]:hover {
+        color: #ffffff !important;
+    }
 
-        /* Efecto Hover al pasar el mouse por encima */
-        .stTabs [data-baseweb="tab"]:hover {
-            background-color: rgba(0, 212, 255, 0.08) !important;
-            color: #00d4ff !important;
-        }
-
-        /* Pestaña ACTIVA (Seleccionada - Estilo Cápsula Brillante) */
-        .stTabs [data-baseweb="tab"][aria-selected="true"] {
-            background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%) !important;
-            color: #ffffff !important;
-            border-radius: 25px !important;
-            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
-            font-weight: 700 !important;
-        }
-    </style>
+    /* Pestaña activa (Estilo Píldora con Brillo Azul exacto a la imagen) */
+    [data-baseweb="tab"][aria-selected="true"] {
+        background: linear-gradient(135deg, #0072ff 0%, #00d4ff 100%) !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.4) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    /* Ocultar la línea deslizadora inferior predeterminada de Streamlit */
+    [data-baseweb="tab-highlight"] {
+        display: none !important;
+    }
+</style>
 """, unsafe_allow_html=True)
 
-# Definición de tus pestañas
-pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
-    ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
-)
+# 2. Mantén tu definición de pestañas exactamente como la tienes
+pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
+    "🗺️ Mapa Principal", 
+    "⚠️ Incidencias Activas y del día", 
+    "🛢️ Miaa Tanques", 
+    "💧 Sectores Hidráulicos"
+])
 
 
 # ==============================================================================
