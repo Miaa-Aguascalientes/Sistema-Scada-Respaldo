@@ -1914,13 +1914,33 @@ if "ver_grafico" in st.query_params:
 
 st.markdown("""
     <style>
-        /* Permitir que aparezca el control nativo para ocultar y desocultar la barra */
-        button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
-            display: none !important;
+        /* NO ocultar el header completo para permitir que aparezcan las flechas nativas */
+        [data-testid="stToolbar"] { display: none !important; }
+        #MainMenu { visibility: hidden !important; }
+        header [data-testid="stDecoration"] { display: none !important; }
+
+        /* Estilizar y forzar la visibilidad del botón nativo de las flechas */
+        [data-testid="collapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+            background-color: #0b1a29 !important;
+            border: 1px solid #1f4068 !important;
+            border-radius: 6px !important;
+            z-index: 9999999 !important;
         }
-        header { visibility: hidden !important; height: 0px !important; }
-        [data-testid="stHeader"] { display: none !important; }
-        
+
+        [data-testid="collapsedControl"] svg {
+            fill: #00d4ff !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        [data-testid="collapsedControl"]:hover {
+            background-color: #1f4068 !important;
+            border-color: #00d4ff !important;
+        }
+
+        /* El resto de tus estilos intactos */
         .stApp { background-color: #000000; color: white; }
         
         .block-container {
@@ -2077,32 +2097,6 @@ st.markdown("""
             0% { opacity: 1; }
             50% { opacity: 0.1; }
             100% { opacity: 1; }
-        }
-
-        /* --- BOTÓN DE FLECHAS FLOTANTE PARA OCULTAR Y DESOCULTAR LA BARRA --- */
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            visibility: visible !important;
-            position: fixed !important;
-            top: 10px !important;
-            left: 10px !important;
-            z-index: 9999999 !important;
-            background-color: #0b1a29 !important;
-            border: 1px solid #1f4068 !important;
-            border-radius: 6px !important;
-            padding: 6px !important;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
-        }
-
-        [data-testid="collapsedControl"] svg {
-            fill: #00d4ff !important;
-            width: 20px !important;
-            height: 20px !important;
-        }
-
-        [data-testid="collapsedControl"]:hover {
-            background-color: #1f4068 !important;
-            border-color: #00d4ff !important;
         }
     </style>
 """, unsafe_allow_html=True)
