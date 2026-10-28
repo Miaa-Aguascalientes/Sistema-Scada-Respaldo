@@ -2008,7 +2008,7 @@ st.markdown("""
         .card-value { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }
         
         .mapa-principal-ajuste {
-            margin-top: -10px !important;
+            margin-top: -1000px !important;
             z-index: 1;
         }
         .mapa-principal-ajuste iframe {
