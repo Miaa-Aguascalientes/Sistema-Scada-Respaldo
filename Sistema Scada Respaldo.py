@@ -2731,77 +2731,176 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# Inyectamos el CSS personalizado que sobreescribe el diseño de st.tabs
+# 1. Obtenemos la pestaña activa de la URL (por defecto "mapa")
+query_params = st.query_params
+tab_activa = query_params.get("nav", "mapa")
+
+# 2. Inyectamos los estilos CSS avanzados con efectos de brillo y transiciones vivas
 st.markdown("""
 <style>
-    /* 1. Contenedor principal de la barra (Fondo oscuro profundo con borde sutil) */
-    div.stTabs [data-baseweb="tab-list"] {
-        background: #040911 !important;
-        border: 1px solid #0e1e2e !important;
-        border-radius: 12px !important;
-        padding: 6px 8px !important;
-        gap: 0px !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9) !important;
-        display: flex !important;
-        align-items: center !important;
+    .miaa-custom-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(180deg, #050a10 0%, #081421 100%);
+        border: 1px solid #1f4068;
+        border-radius: 12px;
+        padding: 12px 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     }
 
-    /* 2. Pestañas inactivas con divisores verticales a la derecha */
-    div.stTabs [data-baseweb="tab"] {
-        background: transparent !important;
-        border: none !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 0px !important;
-        color: #8fa1b8 !important;
-        font-weight: 600 !important;
-        font-size: 14px !important;
-        padding: 12px 24px !important;
-        flex: 1 !important;
-        justify-content: center !important;
-        transition: all 0.25s ease !important;
+    .nav-tab-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none !important;
+        position: relative;
+        padding: 10px 0;
+        transition: all 0.3s ease-in-out;
     }
 
-    /* Quitar el divisor vertical a la última pestaña */
-    div.stTabs [data-baseweb="tab"]:last-child {
-        border-right: none !important;
+    .nav-tab-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
     }
 
-    div.stTabs [data-baseweb="tab"]:hover {
-        color: #ffffff !important;
-        background: rgba(0, 212, 255, 0.04) !important;
+    .nav-tab-item span {
+        color: #7d9ab5;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        transition: color 0.3s ease;
     }
 
-    /* 3. PESTAÑA ACTIVA (Tarjeta azul con brillo cyan en borde izquierdo y base) */
-    div.stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(180deg, #024389 0%, #012b5b 100%) !important;
-        border-radius: 10px !important;
-        border-left: 3.5px solid #00e5ff !important;
-        border-bottom: 2.5px solid #00b0ff !important;
-        border-right: none !important;
-        border-top: 1px solid rgba(0, 229, 255, 0.3) !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 22px rgba(0, 180, 255, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+    .nav-tab-item img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+        filter: brightness(0.7);
+        transition: filter 0.3s ease, transform 0.3s ease;
     }
 
-    /* Ocultar la línea roja/blanca nativa de Streamlit */
-    div.stTabs [data-baseweb="tab-highlight"] {
-        display: none !important;
+    /* Efecto Hover con vida */
+    .nav-tab-item:hover span {
+        color: #ffffff;
+    }
+    .nav-tab-item:hover img {
+        filter: brightness(1);
+        transform: scale(1.08);
+    }
+
+    /* Línea base inactiva sutil */
+    .nav-tab-item::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 10%;
+        width: 80%;
+        height: 3px;
+        background: rgba(31, 64, 104, 0.5);
+        border-radius: 2px;
+        transition: all 0.3s ease;
+    }
+
+    /* ESTADO ACTIVO: Pestaña brillante con línea cyan y triángulo indicador (idéntico a tu imagen) */
+    .nav-tab-item.active span {
+        color: #00e5ff !important;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+    }
+
+    .nav-tab-item.active img {
+        filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.8));
+        transform: scale(1.1);
+    }
+
+    .nav-tab-item.active::after {
+        content: '';
+        position: absolute;
+        bottom: -6px;
+        left: 0;
+        width: 100%;
+        height: 3.5px;
+        background: #00e5ff;
+        box-shadow: 0 0 15px #00e5ff, 0 0 5px #00e5ff;
+        border-radius: 2px;
+    }
+
+    /* El pequeño triángulo apuntador hacia arriba justo en el centro de la barra activa */
+    .nav-tab-item.active::before {
+        content: '';
+        position: absolute;
+        bottom: -11px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 5px 5px 0 5px;
+        border-style: solid;
+        border-color: #00e5ff transparent transparent transparent;
+        filter: drop-shadow(0 0 6px #00e5ff);
+        z-index: 5;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Definición de pestañas nativas con sus emojis exactos
-pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
-    "🗺️ Mapa Principal", 
-    "⚠️ Incidencias Activas y del día", 
-    "🛢️ Miaa Tanques", 
-    "💧 Sectores Hidráulicos"
-])
+# URL base para conservar tus parámetros de sesión y roles
+base_url = f"?access=granted&role={st.session_state.get('rol', 'usuario')}"
+
+# 3. Renderizamos la barra interactiva con columnas de Streamlit
+col_n1, col_n2, col_n3, col_n4 = st.columns(4)
+
+with col_n1:
+    cls = "active" if tab_activa == "mapa" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=mapa" target="_self" class="nav-tab-item {cls}">
+            <div class="nav-tab-content">
+                <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+                <span>Mapa Principal</span>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_n2:
+    cls = "active" if tab_activa == "incidencias" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=incidencias" target="_self" class="nav-tab-item {cls}">
+            <div class="nav-tab-content">
+                <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png">
+                <span>Incidencias Activas y del día</span>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_n3:
+    cls = "active" if tab_activa == "tanques" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=tanques" target="_self" class="nav-tab-item {cls}">
+            <div class="nav-tab-content">
+                <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png">
+                <span>Miaa Tanques</span>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_n4:
+    cls = "active" if tab_activa == "sectores" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=sectores" target="_self" class="nav-tab-item {cls}">
+            <div class="nav-tab-content">
+                <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png">
+                <span>Sectores Hidráulicos</span>
+            </div>
+        </a>
+    """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
 # ==============================================================================
 # PESTAÑA 1 MAPA DE POZOS, TANQUES Y REBOMBEOS
 # ==============================================================================
-with pestaña_mapa:
+if tab_activa == "mapa":
     st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
     c_total = total_q if 'total_q' in locals() else 0.0
