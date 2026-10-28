@@ -1951,7 +1951,7 @@ st.markdown("""
         }
 
         .mapa-area iframe { 
-            margin-top: 10px !important;
+            margin-top: 5px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
