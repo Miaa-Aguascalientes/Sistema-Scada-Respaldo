@@ -2734,52 +2734,52 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # Estilo HUD moderno para las pestañas
 st.markdown("""
     <style>
-        /* Contenedor general de las pestañas */
-        div[data-baseweb="tab-list"] {
-            gap: 6px !important;
-            background-color: #081421 !important;
-            padding: 10px 10px 0 10px !important;
-            border-bottom: 2px solid #1f4068 !important;
+        /* Contenedor general de la barra de pestañas */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #050a10 !important;
+            padding: 12px 16px !important;
+            border-radius: 14px !important;
+            border: 1px solid #1f4068 !important;
+            gap: 12px !important;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5) !important;
         }
 
-        /* Botones de las pestañas (Inactivas) */
-        button[data-baseweb="tab"] {
-            height: 45px !important;
-            background-color: #0b1a29 !important;
-            border-radius: 6px 6px 0 0 !important;
-            border: 1px solid #1f4068 !important;
-            border-bottom: none !important;
+        /* Ocultar la línea o barra deslizante por defecto de Streamlit */
+        .stTabs [data-baseweb="tab-highlight"] {
+            display: none !important;
+        }
+
+        /* Estilo base de cada botón/pestaña (Inactiva) */
+        .stTabs [data-baseweb="tab"] {
+            height: 50px !important;
+            background-color: transparent !important;
+            border-radius: 25px !important;
+            border: none !important;
             color: #8899a6 !important;
             font-size: 14px !important;
             font-weight: 600 !important;
-            padding: 0 20px !important;
-            box-shadow: none !important;
+            padding: 0 22px !important;
+            transition: all 0.3s ease !important;
         }
 
-        /* Efecto al pasar el mouse */
-        button[data-baseweb="tab"]:hover {
-            background-color: #122c42 !important;
+        /* Efecto Hover al pasar el mouse por encima */
+        .stTabs [data-baseweb="tab"]:hover {
+            background-color: rgba(0, 212, 255, 0.08) !important;
             color: #00d4ff !important;
-            border-color: #00d4ff !important;
         }
 
-        /* Pestaña ACTIVA (Seleccionada) */
-        button[data-baseweb="tab"][aria-selected="true"] {
-            background: linear-gradient(180deg, #122c42 0%, #0b1a29 100%) !important;
-            color: #00d4ff !important;
-            border: 1px solid #00d4ff !important;
-            border-bottom: 2px solid #0b1a29 !important;
-            box-shadow: 0 -3px 10px rgba(0, 212, 255, 0.2) !important;
-        }
-
-        /* Barra indicadora inferior de Streamlit */
-        div[data-baseweb="tab-highlight"] {
-            background-color: #00d4ff !important;
-            height: 3px !important;
+        /* Pestaña ACTIVA (Seleccionada - Estilo Cápsula Brillante) */
+        .stTabs [data-baseweb="tab"][aria-selected="true"] {
+            background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%) !important;
+            color: #ffffff !important;
+            border-radius: 25px !important;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5) !important;
+            font-weight: 700 !important;
         }
     </style>
 """, unsafe_allow_html=True)
 
+# Definición de tus pestañas
 pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs(
     ["🗺️ Mapa Principal", "⚠️ Incidencias Activas y del día", "🛢️ Miaa Tanques", "🏘️ Sectores Hidráulicos"]
 )
