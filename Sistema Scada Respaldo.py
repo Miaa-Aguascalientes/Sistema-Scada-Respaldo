@@ -1910,75 +1910,39 @@ if "ver_grafico" in st.query_params:
     st.stop()
 
 
-# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+# 5. ESTILO CSS GENERAL Y CONTROL DE BARRA LATERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-st.markdown("""
+if "sidebar_collapsed" not in st.session_state:
+    st.session_state.sidebar_collapsed = False
+
+st.markdown(f"""
     <style>
-        /* NO ocultar el header completo para que Streamlit mantenga vivo el botón nativo */
-        header {
-            background: transparent !important;
-            visibility: visible !important;
-            height: auto !important;
-        }
-        [data-testid="stToolbar"], #MainMenu, footer {
-            display: none !important;
-        }
-
-        /* --- BOTÓN NATIVO DE LAS FLECHAS (SIEMPRE VISIBLE Y FUNCIONAL) --- */
-        [data-testid="collapsedControl"], 
-        [data-testid="stSidebarCollapseButton"],
-        button[kind="headerNoPadding"] {
-            display: flex !important;
-            visibility: visible !important;
-            position: fixed !important;
-            top: 10px !important;
-            left: 10px !important;
-            z-index: 99999999 !important;
-            background-color: #0b1a29 !important;
-            border: 1px solid #1f4068 !important;
-            border-radius: 6px !important;
-            padding: 6px !important;
-            box-shadow: 0 0 12px rgba(0, 212, 255, 0.4) !important;
-        }
-
-        /* Color cian brillante para las flechas en ambos estados */
-        [data-testid="collapsedControl"] svg, 
-        [data-testid="stSidebarCollapseButton"] svg,
-        button[kind="headerNoPadding"] svg {
-            fill: #00d4ff !important;
-            width: 20px !important;
-            height: 20px !important;
-        }
-
-        [data-testid="collapsedControl"]:hover, 
-        [data-testid="stSidebarCollapseButton"]:hover,
-        button[kind="headerNoPadding"]:hover {
-            background-color: #1f4068 !important;
-            border-color: #00d4ff !important;
-        }
-
-        /* El resto de tus estilos intactos */
-        .stApp { background-color: #000000; color: white; }
+        /* Ocultar elementos nativos innecesarios */
+        [data-testid="stToolbar"] {{ display: none !important; }}
+        #MainMenu {{ visibility: hidden !important; }}
+        header [data-testid="stDecoration"] {{ display: none !important; }}
         
-        .block-container {
+        .stApp {{ background-color: #000000; color: white; }}
+        
+        .block-container {{
             padding-top: 5px !important; 
             padding-bottom: 0rem !important;
             margin-top: 0px !important;
             max-width: 100% !important;
         }
 
-        div[data-testid="stHorizontalBlock"] {
+        div[data-testid="stHorizontalBlock"] {{
             margin-top: 0px !important;
             padding-top: 0px !important;
         }
 
-        .stMarkdown {
+        .stMarkdown {{
             margin-top: 0px !important;
             padding-top: 0px !important;
         }
 
         /* Barra de pestañas arriba */
-        .miaa-skew-bar {
+        .miaa-skew-bar {{
             display: flex;
             gap: 10px;
             width: 100%;
@@ -1990,28 +1954,28 @@ st.markdown("""
         }
 
         /* Mapa ajustado justo debajo de las pestañas */
-        div.element-container:has(iframe) {
+        div.element-container:has(iframe) {{
             margin-top: -25px !important;
             margin-bottom: 0px !important;
         }
 
-        .mapa-area {
+        .mapa-area {{
             margin-top: 0px !important;
         }
 
-        .mapa-area iframe { 
+        .mapa-area iframe {{ 
             margin-top: 0px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
 
-        .mapa-area [data-testid="column"] {
+        .mapa-area [data-testid="column"] {{
             flex: 1 1 0% !important;
             margin-top: 0px !important;
             padding-top: 0px !important;
         }
 
-        .titulo-superior {
+        .titulo-superior {{
             position: fixed;
             top: 0px; 
             left: calc(50% + 160px); 
@@ -2030,7 +1994,7 @@ st.markdown("""
             border-bottom: 1px solid #1f4068;
         }
 
-        .contenedor-indicadores {
+        .contenedor-indicadores {{
            position: fixed;
            top: 65px; 
            left: 320px;
@@ -2044,7 +2008,7 @@ st.markdown("""
            padding: 0 15px;
         }
 
-        .card-indicador {
+        .card-indicador {{
            flex: 1;
            border: 1px solid #1f4068; 
            background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
@@ -2053,33 +2017,36 @@ st.markdown("""
            border-radius: 10px;
            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
         }
-        .card-indicador:first-child { border-left: 1px solid #1f4068; }
+        .card-indicador:first-child {{ border-left: 1px solid #1f4068; }}
 
-        .card-label { color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin: 0; }
-        .card-value { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }
+        .card-label {{ color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin: 0; }}
+        .card-value {{ font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }}
         
-        .mapa-principal-ajuste {
+        .mapa-principal-ajuste {{
             margin-top: -200px !important;
             z-index: 1;
         }
-        .mapa-principal-ajuste iframe {
+        .mapa-principal-ajuste iframe {{
             border: 1px solid #1f4068 !important;
             border-top: none !important;
         }
 
-        /* --- BARRA LATERAL SEPARADA DE LA DERECHA --- */
-        [data-testid="stSidebarContent"] {
+        /* --- BARRA LATERAL --- */
+        [data-testid="stSidebarContent"] {{
             padding-top: 3px !important; 
             padding-right: 8px !important;
         }
 
-        [data-testid="stSidebar"] { 
+        [data-testid="stSidebar"] {{ 
             background-color: #0b1a29 !important; 
             border-right: 2px solid #1f4068 !important; 
             margin-right: 10px !important;
-        }
+            width: {'0px !important' if st.session_state.sidebar_collapsed else '24rem !important'};
+            min-width: {'0px !important' if st.session_state.sidebar_collapsed else '24rem !important'};
+            overflow: {'hidden !important' if st.session_state.sidebar_collapsed else 'auto !important'};
+        }}
 
-       .sidebar-logo { 
+        .sidebar-logo {{ 
             position: fixed; 
             top: 20px; 
             left: 40px; 
@@ -2091,9 +2058,9 @@ st.markdown("""
             align-items: center;
             background-color: #0b1a29; 
             border-bottom: 1px solid #1f4068;
-        }
+        }}
          
-        .status-tag { 
+        .status-tag {{ 
             font-size: 10px; 
             padding: 2px 6px; 
             border-radius: 4px; 
@@ -2101,22 +2068,49 @@ st.markdown("""
             font-weight: bold; 
         }
         
-        .status-ok { background-color: #1b5e20; color: #a5d6a7; }
-        .status-err { background-color: #b71c1c; color: #ef9a9a; }
+        .status-ok {{ background-color: #1b5e20; color: #a5d6a7; }}
+        .status-err {{ background-color: #b71c1c; color: #ef9a9a; }}
         
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        .blink_me { animation: blink 1.2s infinite; }
+        @keyframes blink {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0; }} 100% {{ opacity: 1; }} }}
+        .blink_me {{ animation: blink 1.2s infinite; }}
 
-        .pulsante {
+        .pulsante {{
             animation: parpadeo 1.2s infinite;
-        }
-        @keyframes parpadeo {
-            0% { opacity: 1; }
-            50% { opacity: 0.1; }
-            100% { opacity: 1; }
-        }
+        }}
+        @keyframes parpadeo {{
+            0% {{ opacity: 1; }}
+            50% {{ opacity: 0.1; }}
+            100% {{ opacity: 1; }}
+        }}
+
+        /* --- BOTÓN FLOTANTE DE CONTROL DE MENÚ EN LA ESQUINITA --- */
+        .st-key-btn_toggle_sidebar {{
+            position: fixed !important;
+            top: 10px !important;
+            left: 10px !important;
+            z-index: 99999999 !important;
+        }}
+        .st-key-btn_toggle_sidebar button {{
+            background-color: #0b1a29 !important;
+            color: #00d4ff !important;
+            border: 1px solid #1f4068 !important;
+            border-radius: 6px !important;
+            padding: 4px 10px !important;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+        }}
+        .st-key-btn_toggle_sidebar button:hover {{
+            background-color: #1f4068 !important;
+            color: #ffffff !important;
+            border-color: #00d4ff !important;
+        }}
     </style>
 """, unsafe_allow_html=True)
+
+# Botón interactivo real que activa y desactiva la barra lateral sin depender del DOM roto
+if st.button("<< / >> Menú", key="btn_toggle_sidebar"):
+    st.session_state.sidebar_collapsed = not st.session_state.sidebar_collapsed
+    st.rerun()
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
