@@ -1912,25 +1912,12 @@ if "ver_grafico" in st.query_params:
 # 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* ⚠️ QUITAMOS [data-testid="collapsedControl"] de aquí para que aparezca la flecha de ocultar/mostrar */
-        button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
+        [data-testid="collapsedControl"], button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
-        
-        /* Mantenemos el resto del encabezado oculto para que no estorbe, pero dejamos el botón de la barra */
         header { visibility: hidden !important; height: 0px !important; }
-        [data-testid="stHeader"] { 
-            visibility: visible !important; 
-            background: transparent !important; 
-        }
+        [data-testid="stHeader"] { display: none !important; }
         
-        /* Aseguramos que el botón de colapso de Streamlit flote visible y accesible */
-        [data-testid="collapsedControl"] {
-            display: block !important;
-            z-index: 999999 !important;
-            color: #00d4ff !important;
-        }
-
         .stApp { background-color: #000000; color: white; }
         
         .block-container {
@@ -2040,6 +2027,7 @@ st.markdown("""
             border-top: none !important;
         }
 
+        /* --- BARRA LATERAL SEPARADA DE LA DERECHA Y FORZADA VISIBLE --- */
         [data-testid="stSidebarContent"] {
             padding-top: 3px !important; 
             padding-right: 8px !important;
@@ -2049,6 +2037,10 @@ st.markdown("""
             background-color: #0b1a29 !important; 
             border-right: 2px solid #1f4068 !important; 
             margin-right: 10px !important;
+            display: block !important;
+            visibility: visible !important;
+            transform: none !important;
+            min-width: 280px !important;
         }
 
        .sidebar-logo { 
@@ -2169,7 +2161,7 @@ if sector_seleccionado:
         f"""
         <style>
             [data-testid="column"] {{ margin-top: -105px !important; }}
-            /* (AQUÍ ESTABA LA LÍNEA QUE OCULTABA EL SIDEBAR, YA FUERA) */
+            [data-testid="stSidebar"] {{display: none;}}
             header {{visibility: hidden;}}
             .stAppDeployButton {{display:none;}}
             #MainMenu {{visibility: hidden;}}
