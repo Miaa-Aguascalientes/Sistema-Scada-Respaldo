@@ -1914,38 +1914,47 @@ if "ver_grafico" in st.query_params:
 
 st.markdown("""
     <style>
-        /* Limpiar header sin romper la interfaz */
-        [data-testid="stToolbar"] { display: none !important; }
-        #MainMenu { visibility: hidden !important; }
-        header [data-testid="stDecoration"] { display: none !important; }
+        /* NO ocultar el header completo para que Streamlit mantenga vivo el botón nativo */
+        header {
+            background: transparent !important;
+            visibility: visible !important;
+            height: auto !important;
+        }
+        [data-testid="stToolbar"], #MainMenu, footer {
+            display: none !important;
+        }
 
-        /* --- BOTÓN FLOTANTE PERSONALIZADO PARA ABRIR Y CERRAR LA BARRA --- */
-        .custom-hud-toggle {
+        /* --- BOTÓN NATIVO DE LAS FLECHAS (SIEMPRE VISIBLE Y FUNCIONAL) --- */
+        [data-testid="collapsedControl"], 
+        [data-testid="stSidebarCollapseButton"],
+        button[kind="headerNoPadding"] {
+            display: flex !important;
+            visibility: visible !important;
             position: fixed !important;
             top: 10px !important;
             left: 10px !important;
             z-index: 99999999 !important;
             background-color: #0b1a29 !important;
-            color: #00d4ff !important;
             border: 1px solid #1f4068 !important;
             border-radius: 6px !important;
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
+            padding: 6px !important;
             box-shadow: 0 0 12px rgba(0, 212, 255, 0.4) !important;
-            transition: all 0.2s ease;
         }
 
-        .custom-hud-toggle:hover {
+        /* Color cian brillante para las flechas en ambos estados */
+        [data-testid="collapsedControl"] svg, 
+        [data-testid="stSidebarCollapseButton"] svg,
+        button[kind="headerNoPadding"] svg {
+            fill: #00d4ff !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        [data-testid="collapsedControl"]:hover, 
+        [data-testid="stSidebarCollapseButton"]:hover,
+        button[kind="headerNoPadding"]:hover {
             background-color: #1f4068 !important;
-            color: #ffffff !important;
             border-color: #00d4ff !important;
-            box-shadow: 0 0 18px rgba(0, 212, 255, 0.8) !important;
         }
 
         /* El resto de tus estilos intactos */
@@ -2107,36 +2116,6 @@ st.markdown("""
             100% { opacity: 1; }
         }
     </style>
-
-    <script>
-        function toggleSidebarHUD() {
-            const doc = window.parent.document;
-            const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-            const btn = doc.getElementById('hud-toggle-btn');
-            
-            if (sidebar) {
-                // Comprobamos si está cerrada (ancho 0 o menor a 50px)
-                const currentWidth = window.getComputedStyle(sidebar).width;
-                if (currentWidth === '0px' || parseInt(currentWidth) < 50 || sidebar.classList.contains('collapsed')) {
-                    sidebar.style.width = '24rem'; // Ancho estándar de Streamlit
-                    sidebar.style.minWidth = '24rem';
-                    sidebar.style.transform = 'none';
-                    sidebar.classList.remove('collapsed');
-                    if (btn) btn.innerHTML = '&lt;&lt;';
-                } else {
-                    sidebar.style.width = '0px';
-                    sidebar.style.minWidth = '0px';
-                    sidebar.style.transform = 'translateX(-100%)';
-                    sidebar.classList.add('collapsed');
-                    if (btn) btn.innerHTML = '&gt;&gt;';
-                }
-            }
-        }
-    </script>
-
-    <div id="hud-toggle-btn" class="custom-hud-toggle" onclick="toggleSidebarHUD()" title="Ocultar / Mostrar barra lateral">
-        &lt;&lt;
-    </div>
 """, unsafe_allow_html=True)
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
