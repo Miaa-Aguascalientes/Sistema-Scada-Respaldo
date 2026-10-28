@@ -1909,15 +1909,48 @@ if "ver_grafico" in st.query_params:
 
     st.stop()
 
+
+
+# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* Ocultar elementos nativos innecesarios del header */
+        /* Ocultar el header general pero PERMITIR y rescatar el botón nativo de las flechas */
         header { visibility: hidden !important; height: 0px !important; }
         [data-testid="stHeader"] { display: none !important; }
-        button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
+        
+        /* Asegurar que los selectores de colapso nativos no estén ocultos */
+        button[kind="headerNoPadding"] {
             display: none !important;
         }
-        
+
+        /* --- RESTAURAR Y POSICIONAR LAS FLECHAS NATIVAS DE STREAMLIT --- */
+        [data-testid="collapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+            z-index: 9999999 !important;
+            background-color: #0b1a29 !important;
+            border: 1px solid #1f4068 !important;
+            border-radius: 6px !important;
+            padding: 4px !important;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+        }
+
+        /* Dar color cian a las flechas SVG nativas de Streamlit */
+        [data-testid="collapsedControl"] svg {
+            fill: #00d4ff !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+
+        [data-testid="collapsedControl"]:hover {
+            background-color: #1f4068 !important;
+            border-color: #00d4ff !important;
+        }
+
+        /* El resto de tus estilos generales */
         .stApp { background-color: #000000; color: white; }
         
         .block-container {
@@ -1926,108 +1959,8 @@ st.markdown("""
             margin-top: 0px !important;
             max-width: 100% !important;
         }
-
-        div[data-testid="stHorizontalBlock"] {
-            margin-top: 0px !important;
-            padding-top: 0px !important;
-        }
-
-        .stMarkdown {
-            margin-top: 0px !important;
-            padding-top: 0px !important;
-        }
-
-        /* Barra de pestañas arriba */
-        .miaa-skew-bar {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-            margin-top: -12px !important; 
-            margin-bottom: 8px !important;
-            padding: 0 !important;
-            position: relative;
-            z-index: 999;
-        }
-
-        /* Mapa ajustado justo debajo de las pestañas */
-        div.element-container:has(iframe) {
-            margin-top: -25px !important;
-            margin-bottom: 0px !important;
-        }
-
-        .mapa-area {
-            margin-top: 0px !important;
-        }
-
-        .mapa-area iframe { 
-            margin-top: 0px !important;
-            border: 1px solid #1f4068 !important;
-            height: 85vh !important;
-        }
-
-        .mapa-area [data-testid="column"] {
-            flex: 1 1 0% !important;
-            margin-top: 0px !important;
-            padding-top: 0px !important;
-        }
-
-        .titulo-superior {
-            position: fixed;
-            top: 0px; 
-            left: calc(50% + 160px); 
-            transform: translateX(-50%);
-            z-index: 1000;
-            color: #00d4ff; 
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-            background-color: #000000;
-            width: 100%;
-            text-align: center;
-            padding: 4px 0;
-            border-bottom: 1px solid #1f4068;
-        }
-
-        .contenedor-indicadores {
-           position: fixed;
-           top: 65px; 
-           left: 320px;
-           right: 0;
-           display: flex;
-           justify-content: center;
-           align-items: center;
-           gap: 15px;
-           z-index: 1001;
-           background: transparent;
-           padding: 0 15px;
-        }
-
-        .card-indicador {
-           flex: 1;
-           border: 1px solid #1f4068; 
-           background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
-           padding: 8px 5px;
-           text-align: center;
-           border-radius: 10px;
-           box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-        }
-        .card-indicador:first-child { border-left: 1px solid #1f4068; }
-
-        .card-label { color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin: 0; }
-        .card-value { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }
         
-        .mapa-principal-ajuste {
-            margin-top: -200px !important;
-            z-index: 1;
-        }
-        .mapa-principal-ajuste iframe {
-            border: 1px solid #1f4068 !important;
-            border-top: none !important;
-        }
-
-        /* --- BARRA LATERAL SEPARADA DE LA DERECHA --- */
+        /* --- BARRA LATERAL --- */
         [data-testid="stSidebarContent"] {
             padding-top: 3px !important; 
             padding-right: 8px !important;
@@ -2038,100 +1971,7 @@ st.markdown("""
             border-right: 2px solid #1f4068 !important; 
             margin-right: 10px !important;
         }
-
-       .sidebar-logo { 
-            position: fixed; 
-            top: 20px; 
-            left: 40px; 
-            width: 170px;  
-            height: 50px;  
-            z-index: 999999; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center;
-            background-color: #0b1a29; 
-            border-bottom: 1px solid #1f4068;
-        }
-         
-        .status-tag { 
-            font-size: 10px; 
-            padding: 2px 6px; 
-            border-radius: 4px; 
-            margin-left: 5px; 
-            font-weight: bold; 
-        }
-        
-        .status-ok { background-color: #1b5e20; color: #a5d6a7; }
-        .status-err { background-color: #b71c1c; color: #ef9a9a; }
-        
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
-        .blink_me { animation: blink 1.2s infinite; }
-
-        .pulsante {
-            animation: parpadeo 1.2s infinite;
-        }
-        @keyframes parpadeo {
-            0% { opacity: 1; }
-            50% { opacity: 0.1; }
-            100% { opacity: 1; }
-        }
-        
-        /* --- BOTÓN FLOTANTE INTERACTIVO --- */
-        .custom-collapse-btn {
-            position: fixed;
-            top: 12px;
-            right: 15px; /* Lo ponemos flotando en la esquina superior derecha del mapa para garantizar que reciba el evento */
-            z-index: 9999999;
-            background-color: #0b1a29;
-            color: #00d4ff;
-            border: 1px solid #1f4068;
-            border-radius: 6px;
-            padding: 6px 12px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
-            transition: all 0.2s ease;
-        }
-        .custom-collapse-btn:hover {
-            background-color: #1f4068;
-            color: #ffffff;
-            box-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
-        }
     </style>
-
-    <script>
-        function toggleSidebarState() {
-            // Buscamos el botón colapsador interno de Streamlit simulando un evento de teclado (atajo por defecto: tecla '>') o buscando el estado de UI
-            const doc = window.parent.document;
-            
-            // Intentar encontrar el botón de colapso a través de los elementos de control de Streamlit
-            const collapseControl = doc.querySelector('[data-testid="collapsedControl"]') || 
-                                    doc.querySelector('button[kind="headerNoPadding"]');
-            
-            if (collapseControl) {
-                collapseControl.click();
-            } else {
-                // Si no existe, simulamos el evento de teclado que usa Streamlit para colapsar la barra (usualmente Ctrl+B o atajos internos) o alteramos el ancho del elemento sidebar mediante DOM
-                const sidebar = doc.querySelector('[data-testid="stSidebar"]');
-                if (sidebar) {
-                    if (sidebar.style.width === '0px' || sidebar.classList.contains('collapsed')) {
-                        sidebar.style.width = '';
-                        sidebar.style.minWidth = '';
-                        sidebar.classList.remove('collapsed');
-                    } else {
-                        sidebar.style.width = '0px';
-                        sidebar.style.minWidth = '0px';
-                        sidebar.classList.add('collapsed');
-                    }
-                }
-            }
-        }
-    </script>
-
-    <button class="custom-collapse-btn" onclick="toggleSidebarState()" title="Ocultar / Mostrar barra lateral">
-        &lt;&lt; Ocultar Menú
-    </button>
 """, unsafe_allow_html=True)
 
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
