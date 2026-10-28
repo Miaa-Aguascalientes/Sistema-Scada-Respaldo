@@ -1914,7 +1914,7 @@ if "ver_grafico" in st.query_params:
 
 st.markdown("""
     <style>
-        /* ÚNICO CAMBIO: Quitamos [data-testid="collapsedControl"] de aquí para que no se oculte */
+        /* Permitir que aparezca el control nativo para ocultar y desocultar la barra */
         button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
@@ -2079,7 +2079,7 @@ st.markdown("""
             100% { opacity: 1; }
         }
 
-        /* --- POSICIONAR Y ESTILIZAR LAS FLECHAS NATIVAS DE STREAMLIT --- */
+        /* --- BOTÓN DE FLECHAS FLOTANTE PARA OCULTAR Y DESOCULTAR LA BARRA --- */
         [data-testid="collapsedControl"] {
             display: flex !important;
             visibility: visible !important;
