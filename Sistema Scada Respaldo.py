@@ -1911,10 +1911,174 @@ if "ver_grafico" in st.query_params:
 
 
 
-# 5. ESTILO CSS GENERAL ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* ÚNICAMENTE rescatar y posicionar el botón nativo de las flechas */
+        /* Eliminado [data-testid="collapsedControl"] de la regla que lo ocultaba para permitir que aparezca */
+        button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
+            display: none !important;
+        }
+        header { visibility: hidden !important; height: 0px !important; }
+        [data-testid="stHeader"] { display: none !important; }
+        
+        .stApp { background-color: #000000; color: white; }
+        
+        .block-container {
+            padding-top: 5px !important; 
+            padding-bottom: 0rem !important;
+            margin-top: 0px !important;
+            max-width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            margin-top: 0px !important;
+            padding-top: 0px !important;
+        }
+
+        .stMarkdown {
+            margin-top: 0px !important;
+            padding-top: 0px !important;
+        }
+
+        /* Barra de pestañas arriba */
+        .miaa-skew-bar {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin-top: -12px !important; 
+            margin-bottom: 8px !important;
+            padding: 0 !important;
+            position: relative;
+            z-index: 999;
+        }
+
+        /* Mapa ajustado justo debajo de las pestañas */
+        div.element-container:has(iframe) {
+            margin-top: -25px !important;
+            margin-bottom: 0px !important;
+        }
+
+        .mapa-area {
+            margin-top: 0px !important;
+        }
+
+        .mapa-area iframe { 
+            margin-top: 0px !important;
+            border: 1px solid #1f4068 !important;
+            height: 85vh !important;
+        }
+
+        .mapa-area [data-testid="column"] {
+            flex: 1 1 0% !important;
+            margin-top: 0px !important;
+            padding-top: 0px !important;
+        }
+
+        .titulo-superior {
+            position: fixed;
+            top: 0px; 
+            left: calc(50% + 160px); 
+            transform: translateX(-50%);
+            z-index: 1000;
+            color: #00d4ff; 
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            background-color: #000000;
+            width: 100%;
+            text-align: center;
+            padding: 4px 0;
+            border-bottom: 1px solid #1f4068;
+        }
+
+        .contenedor-indicadores {
+           position: fixed;
+           top: 65px; 
+           left: 320px;
+           right: 0;
+           display: flex;
+           justify-content: center;
+           align-items: center;
+           gap: 15px;
+           z-index: 1001;
+           background: transparent;
+           padding: 0 15px;
+        }
+
+        .card-indicador {
+           flex: 1;
+           border: 1px solid #1f4068; 
+           background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(0, 0, 0, 1) 100%);
+           padding: 8px 5px;
+           text-align: center;
+           border-radius: 10px;
+           box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+        }
+        .card-indicador:first-child { border-left: 1px solid #1f4068; }
+
+        .card-label { color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin: 0; }
+        .card-value { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }
+        
+        .mapa-principal-ajuste {
+            margin-top: -200px !important;
+            z-index: 1;
+        }
+        .mapa-principal-ajuste iframe {
+            border: 1px solid #1f4068 !important;
+            border-top: none !important;
+        }
+
+        /* --- BARRA LATERAL SEPARADA DE LA DERECHA --- */
+        [data-testid="stSidebarContent"] {
+            padding-top: 3px !important; 
+            padding-right: 8px !important;
+        }
+
+        [data-testid="stSidebar"] { 
+            background-color: #0b1a29 !important; 
+            border-right: 2px solid #1f4068 !important; 
+            margin-right: 10px !important;
+        }
+
+       .sidebar-logo { 
+            position: fixed; 
+            top: 20px; 
+            left: 40px; 
+            width: 170px;  
+            height: 50px;  
+            z-index: 999999; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            background-color: #0b1a29; 
+            border-bottom: 1px solid #1f4068;
+        }
+         
+        .status-tag { 
+            font-size: 10px; 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            margin-left: 5px; 
+            font-weight: bold; 
+        }
+        
+        .status-ok { background-color: #1b5e20; color: #a5d6a7; }
+        .status-err { background-color: #b71c1c; color: #ef9a9a; }
+        
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+        .blink_me { animation: blink 1.2s infinite; }
+
+        .pulsante {
+            animation: parpadeo 1.2s infinite;
+        }
+        @keyframes parpadeo {
+            0% { opacity: 1; }
+            50% { opacity: 0.1; }
+            100% { opacity: 1; }
+        }
+
+        /* --- BOTÓN NATIVO DE LAS FLECHAS RESCATADO Y POSICIONADO --- */
         [data-testid="collapsedControl"] {
             display: flex !important;
             visibility: visible !important;
@@ -1929,7 +2093,6 @@ st.markdown("""
             box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
         }
 
-        /* Dar color cian a las flechas nativas */
         [data-testid="collapsedControl"] svg {
             fill: #00d4ff !important;
             width: 20px !important;
