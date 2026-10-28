@@ -2735,112 +2735,91 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 query_params = st.query_params
 tab_activa = query_params.get("nav", "mapa")
 
-# 2. Inyectamos los estilos CSS avanzados con efectos de brillo y transiciones vivas
+# 2. Inyectamos los estilos CSS para las pestañas inclinadas con efectos de brillo
 st.markdown("""
 <style>
-    .miaa-custom-nav {
+    .miaa-skew-bar {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: linear-gradient(180deg, #050a10 0%, #081421 100%);
-        border: 1px solid #1f4068;
-        border-radius: 12px;
-        padding: 12px 20px;
+        gap: 10px;
+        width: 100%;
         margin-bottom: 25px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+        padding: 5px 0;
     }
 
-    .nav-tab-item {
+    .skew-tab {
         flex: 1;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
         text-decoration: none !important;
-        position: relative;
-        padding: 10px 0;
+        /* Inclinación tipo paralelogramo */
+        transform: skewX(-14deg);
+        background: linear-gradient(135deg, rgba(8, 25, 50, 0.85) 0%, rgba(4, 12, 25, 0.95) 100%);
+        border: 1px solid rgba(0, 140, 255, 0.25);
+        border-radius: 6px;
+        padding: 12px 10px;
+        box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.08), 0 4px 15px rgba(0, 0, 0, 0.5);
         transition: all 0.3s ease-in-out;
     }
 
-    .nav-tab-content {
+    /* Enderezamos el contenido interno para que el texto y los iconos no salgan chuecos */
+    .skew-content {
+        transform: skewX(14deg);
         display: flex;
         align-items: center;
         gap: 10px;
+        text-align: left;
     }
 
-    .nav-tab-item span {
-        color: #7d9ab5;
+    .skew-tab span {
+        color: #8da4c4;
         font-family: 'Segoe UI', Tahoma, sans-serif;
-        font-size: 14px;
+        font-size: 13px;
         font-weight: 600;
+        line-height: 1.2;
         transition: color 0.3s ease;
     }
 
-    .nav-tab-item img {
+    .skew-tab img {
         width: 26px;
         height: 26px;
         object-fit: contain;
-        filter: brightness(0.7);
+        filter: brightness(0.8);
         transition: filter 0.3s ease, transform 0.3s ease;
     }
 
     /* Efecto Hover con vida */
-    .nav-tab-item:hover span {
+    .skew-tab:hover {
+        border-color: rgba(0, 212, 255, 0.6);
+        background: linear-gradient(135deg, rgba(12, 38, 75, 0.9) 0%, rgba(6, 20, 40, 0.95) 100%);
+    }
+
+    .skew-tab:hover span {
         color: #ffffff;
     }
-    .nav-tab-item:hover img {
-        filter: brightness(1);
+
+    .skew-tab:hover img {
+        filter: brightness(1.1);
         transform: scale(1.08);
     }
 
-    /* Línea base inactiva sutil */
-    .nav-tab-item::after {
-        content: '';
-        position: absolute;
-        bottom: -6px;
-        left: 10%;
-        width: 80%;
-        height: 3px;
-        background: rgba(31, 64, 104, 0.5);
-        border-radius: 2px;
-        transition: all 0.3s ease;
+    /* ESTADO ACTIVO: Pestaña brillante con degradado cian intenso y resplandor (idéntico a la imagen) */
+    .skew-tab.active {
+        background: linear-gradient(135deg, #0055ff 0%, #00d4ff 100%) !important;
+        border: 1px solid #00ffff !important;
+        box-shadow: 0 0 22px rgba(0, 212, 255, 0.65), inset 0 1px 4px rgba(255, 255, 255, 0.5) !important;
+        transform: skewX(-14deg) scale(1.02);
+        z-index: 2;
     }
 
-    /* ESTADO ACTIVO: Pestaña brillante con línea cyan y triángulo indicador (idéntico a tu imagen) */
-    .nav-tab-item.active span {
-        color: #00e5ff !important;
-        text-shadow: 0 0 10px rgba(0, 229, 255, 0.6);
+    .skew-tab.active span {
+        color: #ffffff !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
     }
 
-    .nav-tab-item.active img {
-        filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.8));
+    .skew-tab.active img {
+        filter: brightness(1.2) drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
         transform: scale(1.1);
-    }
-
-    .nav-tab-item.active::after {
-        content: '';
-        position: absolute;
-        bottom: -6px;
-        left: 0;
-        width: 100%;
-        height: 3.5px;
-        background: #00e5ff;
-        box-shadow: 0 0 15px #00e5ff, 0 0 5px #00e5ff;
-        border-radius: 2px;
-    }
-
-    /* El pequeño triángulo apuntador hacia arriba justo en el centro de la barra activa */
-    .nav-tab-item.active::before {
-        content: '';
-        position: absolute;
-        bottom: -11px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 5px 5px 0 5px;
-        border-style: solid;
-        border-color: #00e5ff transparent transparent transparent;
-        filter: drop-shadow(0 0 6px #00e5ff);
-        z-index: 5;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -2854,45 +2833,53 @@ col_n1, col_n2, col_n3, col_n4 = st.columns(4)
 with col_n1:
     cls = "active" if tab_activa == "mapa" else ""
     st.markdown(f"""
-        <a href="{base_url}&nav=mapa" target="_self" class="nav-tab-item {cls}">
-            <div class="nav-tab-content">
-                <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png">
-                <span>Mapa Principal</span>
-            </div>
-        </a>
+        <div class="miaa-skew-bar" style="margin:0;">
+            <a href="{base_url}&nav=mapa" target="_self" class="skew-tab {cls}">
+                <div class="skew-content">
+                    <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png">
+                    <span>Mapa Principal</span>
+                </div>
+            </a>
+        </div>
     """, unsafe_allow_html=True)
 
 with col_n2:
     cls = "active" if tab_activa == "incidencias" else ""
     st.markdown(f"""
-        <a href="{base_url}&nav=incidencias" target="_self" class="nav-tab-item {cls}">
-            <div class="nav-tab-content">
-                <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png">
-                <span>Incidencias Activas y del día</span>
-            </div>
-        </a>
+        <div class="miaa-skew-bar" style="margin:0;">
+            <a href="{base_url}&nav=incidencias" target="_self" class="skew-tab {cls}">
+                <div class="skew-content">
+                    <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png">
+                    <span>Incidencias Activas<br>y del día</span>
+                </div>
+            </a>
+        </div>
     """, unsafe_allow_html=True)
 
 with col_n3:
     cls = "active" if tab_activa == "tanques" else ""
     st.markdown(f"""
-        <a href="{base_url}&nav=tanques" target="_self" class="nav-tab-item {cls}">
-            <div class="nav-tab-content">
-                <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png">
-                <span>Miaa Tanques</span>
-            </div>
-        </a>
+        <div class="miaa-skew-bar" style="margin:0;">
+            <a href="{base_url}&nav=tanques" target="_self" class="skew-tab {cls}">
+                <div class="skew-content">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png">
+                    <span>Miaa Tanques</span>
+                </div>
+            </a>
+        </div>
     """, unsafe_allow_html=True)
 
 with col_n4:
     cls = "active" if tab_activa == "sectores" else ""
     st.markdown(f"""
-        <a href="{base_url}&nav=sectores" target="_self" class="nav-tab-item {cls}">
-            <div class="nav-tab-content">
-                <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png">
-                <span>Sectores Hidráulicos</span>
-            </div>
-        </a>
+        <div class="miaa-skew-bar" style="margin:0;">
+            <a href="{base_url}&nav=sectores" target="_self" class="skew-tab {cls}">
+                <div class="skew-content">
+                    <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png">
+                    <span>Sectores Hidráulicos</span>
+                </div>
+            </a>
+        </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
