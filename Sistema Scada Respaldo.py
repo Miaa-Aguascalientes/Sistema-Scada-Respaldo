@@ -1920,7 +1920,6 @@ st.markdown("""
         
         .stApp { background-color: #000000; color: white; }
         
-        /* Reducimos el padding superior a cero o casi cero para eliminar el colchón de Streamlit */
         .block-container {
             padding-top: 5px !important; 
             padding-bottom: 0rem !important;
@@ -1938,26 +1937,39 @@ st.markdown("""
             padding-top: 0px !important;
         }
 
-        /* TIRÓN EXTREMO HACIA ARRIBA: Sube drásticamente las pestañas para meterlas contra la línea */
+        /* Barra de pestañas arriba */
         .miaa-skew-bar {
             display: flex;
             gap: 10px;
             width: 100%;
             margin-top: -45px !important; 
-            margin-bottom: 5px !important;
+            margin-bottom: 0px !important;
             padding: 0 !important;
             position: relative;
             z-index: 999;
         }
 
+        /* --- SOLUCIÓN DEFINITIVA PARA SUBIR EL MAPA --- */
+        /* Forzamos al contenedor de Streamlit que envuelve al mapa a subir con margen negativo */
+        div.element-container:has(iframe) {
+            margin-top: -50px !important;
+            margin-bottom: 0px !important;
+        }
+
+        .mapa-area {
+            margin-top: -30px !important;
+        }
+
         .mapa-area iframe { 
-            margin-top: 5px !important;
+            margin-top: 0px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
 
         .mapa-area [data-testid="column"] {
             flex: 1 1 0% !important;
+            margin-top: 0px !important;
+            padding-top: 0px !important;
         }
 
         .titulo-superior {
@@ -2008,7 +2020,7 @@ st.markdown("""
         .card-value { font-family: 'Courier New', monospace; font-size: 1.5rem; font-weight: bold; margin: 0; }
         
         .mapa-principal-ajuste {
-            margin-top: -30px !important;
+            margin-top: -200px !important;
             z-index: 1;
         }
         .mapa-principal-ajuste iframe {
