@@ -2162,7 +2162,7 @@ if sector_seleccionado:
         f"""
         <style>
             [data-testid="column"] {{ margin-top: -105px !important; }}
-            [data-testid="stSidebar"] {{display: none;}}
+            /* (AQUÍ ESTABA LA LÍNEA QUE OCULTABA EL SIDEBAR, YA FUERA) */
             header {{visibility: hidden;}}
             .stAppDeployButton {{display:none;}}
             #MainMenu {{visibility: hidden;}}
