@@ -2731,81 +2731,119 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# 1. Inyectamos los estilos CSS para transformar el radio button en tu barra de botones con píldora activa
+# 1. Obtenemos la pestaña activa de la URL (por defecto "mapa")
+query_params = st.query_params
+tab_activa = query_params.get("nav", "mapa")
+
+# 2. Inyectamos el diseño CSS para la barra oscura con bordes y píldora brillante
 st.markdown("""
 <style>
-    /* Contenedor general de la barra de navegación */
-    [data-testid="stHorizontalBlock"] {
+    .miaa-hud-bar {
         background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%);
         border: 1px solid #1f4068;
         border-radius: 12px;
-        padding: 8px 15px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
-        margin-bottom: 20px;
-    }
-
-    /* Ocultamos los círculos de selección del radio */
-    div[data-testid="stRadio"] div[role="radiogroup"] {
+        padding: 8px 12px;
         display: flex;
+        align-items: center;
+        justify-content: space-between;
         gap: 10px;
-        width: 100%;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
     }
 
-    div[data-testid="stRadio"] div[role="radiogroup"] label {
+    .hud-tab {
         flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-decoration: none !important;
+        padding: 10px 14px;
+        border-radius: 10px;
         background: transparent;
         border: 1px solid transparent;
-        border-radius: 10px;
-        padding: 10px 15px;
-        text-align: center;
         transition: all 0.3s ease;
-        cursor: pointer;
+        color: #a0aec0;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        font-size: 13.5px;
+        font-weight: 600;
+        text-align: center;
     }
 
-    div[data-testid="stRadio"] div[role="radiogroup"] label:hover {
+    .hud-tab:hover {
+        color: #ffffff;
         background: rgba(0, 212, 255, 0.05);
     }
 
-    /* ESTILO DE LA PESTAÑA ACTIVA (Píldora con brillo azul exacto a tu imagen) */
-    div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] {
+    /* ESTILO DE LA PESTAÑA ACTIVA (Píldora con brillo azul exacto a la imagen) */
+    .hud-tab.active {
         background: linear-gradient(135deg, rgba(0, 114, 255, 0.25) 0%, rgba(0, 212, 255, 0.2) 100%) !important;
         border: 1px solid #00d4ff !important;
+        color: #ffffff !important;
         box-shadow: 0 0 18px rgba(0, 212, 255, 0.4), inset 0 0 10px rgba(0, 212, 255, 0.2);
     }
 
-    /* Color y tipografía del texto */
-    div[data-testid="stRadio"] div[role="radiogroup"] label p {
-        color: #a0aec0;
-        font-weight: 600;
-        font-size: 14px;
-    }
-    div[data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"] p {
-        color: #ffffff !important;
+    .hud-icon {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# 2. Creamos la barra horizontal de selección
-opciones_pestanas = [
-    "🗺️ Mapa Principal", 
-    "⚠️ Incidencias Activas y del día", 
-    "🛢️ Miaa Tanques", 
-    "💧 Sectores Hidráulicos"
-]
+# URL base para conservar tus permisos de acceso y rol actuales
+base_url = f"?access=granted&role={st.session_state.get('rol', 'usuario')}"
 
-seleccion = st.radio(
-    "Navegación", 
-    options=opciones_pestanas, 
-    horizontal=True, 
-    label_visibility="collapsed",
-    key="menu_hud_principal"
-)
+# 3. Renderizamos la barra visual interactiva con columnas de Streamlit
+col_b1, col_b2, col_b3, col_b4 = st.columns(4)
 
-# 3. Mapeo para conservar tus variables y bloques 'with' originales intactos
-pestaña_mapa = (seleccion == opciones_pestanas[0])
-pestaña_incidencias = (seleccion == opciones_pestanas[1])
-pestaña_tanques = (seleccion == opciones_pestanas[2])
-pestaña_sectores = (seleccion == opciones_pestanas[3])
+with col_b1:
+    act = "active" if tab_activa == "mapa" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=mapa" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" class="hud-icon">
+            <span>Mapa Principal</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b2:
+    act = "active" if tab_activa == "incidencias" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=incidencias" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png" class="hud-icon">
+            <span>Incidencias Activas y del día</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b3:
+    act = "active" if tab_activa == "tanques" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=tanques" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png" class="hud-icon">
+            <span>Miaa Tanques</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+with col_b4:
+    act = "active" if tab_activa == "sectores" else ""
+    st.markdown(f"""
+        <a href="{base_url}&nav=sectores" target="_self" class="hud-tab {act}">
+            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png" class="hud-icon">
+            <span>Sectores Hidráulicos</span>
+        </a>
+    """, unsafe_allow_html=True)
+
+st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+
+# 4. Declaramos objetos falsos tipo Tab para que tus bloques 'with pestaña_...' funcionen sin tocar su interior
+class MockTab:
+    def __enter__(self): return self
+    def __exit__(self, exc_type, exc_val, exc_tb): pass
+
+pestaña_mapa = MockTab() if tab_activa == "mapa" else None
+pestaña_incidencias = MockTab() if tab_activa == "incidencias" else None
+pestaña_tanques = MockTab() if tab_activa == "tanques" else None
+pestaña_sectores = MockTab() if tab_activa == "sectores" else None
 
 
 # ==============================================================================
