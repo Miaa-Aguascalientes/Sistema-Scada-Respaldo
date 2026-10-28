@@ -1914,28 +1914,40 @@ if "ver_grafico" in st.query_params:
 
 st.markdown("""
     <style>
-        /* NO ocultar el header completo para permitir que aparezcan las flechas nativas */
+        /* Ocultar elementos innecesarios del header */
         [data-testid="stToolbar"] { display: none !important; }
         #MainMenu { visibility: hidden !important; }
         header [data-testid="stDecoration"] { display: none !important; }
 
-        /* Estilizar y forzar la visibilidad del botón nativo de las flechas */
-        [data-testid="collapsedControl"] {
+        /* --- BOTÓN PARA OCULTAR Y MOSTRAR LA BARRA LATERAL (AMBOS ESTADOS) --- */
+        [data-testid="collapsedControl"], 
+        [data-testid="stSidebarCollapseButton"],
+        button[kind="headerNoPadding"] {
             display: flex !important;
             visibility: visible !important;
+            position: fixed !important;
+            top: 10px !important;
+            left: 10px !important;
+            z-index: 9999999 !important;
             background-color: #0b1a29 !important;
             border: 1px solid #1f4068 !important;
             border-radius: 6px !important;
-            z-index: 9999999 !important;
+            padding: 6px !important;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
         }
 
-        [data-testid="collapsedControl"] svg {
+        /* Color cian para las flechas en cualquier estado */
+        [data-testid="collapsedControl"] svg, 
+        [data-testid="stSidebarCollapseButton"] svg,
+        button[kind="headerNoPadding"] svg {
             fill: #00d4ff !important;
             width: 20px !important;
             height: 20px !important;
         }
 
-        [data-testid="collapsedControl"]:hover {
+        [data-testid="collapsedControl"]:hover, 
+        [data-testid="stSidebarCollapseButton"]:hover,
+        button[kind="headerNoPadding"]:hover {
             background-color: #1f4068 !important;
             border-color: #00d4ff !important;
         }
