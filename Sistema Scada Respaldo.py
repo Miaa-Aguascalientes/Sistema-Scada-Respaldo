@@ -1909,15 +1909,15 @@ if "ver_grafico" in st.query_params:
 
     st.stop()
 
+# 5. ESTILO CSS GENERAL ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 st.markdown("""
     <style>
-        /* Eliminamos [data-testid="collapsedControl"] del selector que ocultaba todo */
+        /* Ocultar elementos nativos innecesarios del header */
+        header { visibility: hidden !important; height: 0px !important; }
+        [data-testid="stHeader"] { display: none !important; }
         button[kind="headerNoPadding"], [data-testid="stSidebarCollapseButton"] {
             display: none !important;
         }
-        
-        header { visibility: hidden !important; height: 0px !important; }
-        [data-testid="stHeader"] { display: none !important; }
         
         .stApp { background-color: #000000; color: white; }
         
@@ -2077,27 +2077,54 @@ st.markdown("""
             100% { opacity: 1; }
         }
         
-        /* --- CONTROL FLOTANTE DE LA BARRA LATERAL (FLECHAS) --- */
-        [data-testid="collapsedControl"] {
-            display: flex !important;
-            visibility: visible !important;
-            position: fixed !important;
-            top: 15px !important;
-            left: 15px !important;
-            z-index: 9999999 !important;
-            background-color: #0b1a29 !important;
-            border: 1px solid #1f4068 !important;
-            border-radius: 6px !important;
-            padding: 4px !important;
+        /* --- BOTÓN FLOTANTE PERSONALIZADO CON FLECHAS --- */
+        .custom-collapse-btn {
+            position: fixed;
+            top: 15px;
+            left: 285px; /* Ajustado al borde exterior de tu barra lateral */
+            z-index: 9999999;
+            background-color: #0b1a29;
+            color: #00d4ff;
+            border: 1px solid #1f4068;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            transition: all 0.2s ease;
         }
-
-        [data-testid="collapsedControl"] svg {
-            fill: #00d4ff !important;
-            width: 20px !important;
-            height: 20px !important;
+        .custom-collapse-btn:hover {
+            background-color: #1f4068;
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
         }
-        
     </style>
+
+    <script>
+        // Función para alternar la barra lateral simulando el evento nativo de Streamlit
+        function toggleSidebar() {
+            const nativeBtn = parent.document.querySelector('[data-testid="collapsedControl"]') || 
+                              parent.document.querySelector('[data-testid="stSidebarCollapseButton"]') ||
+                              parent.document.querySelector('button[kind="headerNoPadding"]');
+            if (nativeBtn) {
+                nativeBtn.click();
+            } else {
+                // Fallback directo buscando por atributos colapsadores en el DOM principal
+                const allButtons = parent.document.querySelectorAll('button');
+                for (let btn of allButtons) {
+                    if (btn.getAttribute('aria-label') && btn.getAttribute('aria-label').toLowerCase().includes('sidebar')) {
+                        btn.click();
+                        return;
+                    }
+                }
+            }
+        }
+    </script>
+
+    <button class="custom-collapse-btn" onclick="toggleSidebar()" title="Ocultar / Mostrar barra lateral">
+        &lt;&lt;
+    </button>
 """, unsafe_allow_html=True)
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
