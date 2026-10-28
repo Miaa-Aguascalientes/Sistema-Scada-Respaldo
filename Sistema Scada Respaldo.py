@@ -1949,9 +1949,9 @@ st.markdown("""
             z-index: 999;
         }
 
-        /* --- MAPA CALIBRADO PARA QUEDAR DEBAJO DE LAS PESTAÑAS --- */
+        /* --- MAPA AJUSTADO MILIMÉTRICAMENTE DEBAJO DE LAS PESTAÑAS --- */
         div.element-container:has(iframe) {
-            margin-top: -15px !important;
+            margin-top: -25px !important;
             margin-bottom: 0px !important;
         }
 
@@ -1960,7 +1960,7 @@ st.markdown("""
         }
 
         .mapa-area iframe { 
-            margin-top: 5px !important;
+            margin-top: 0px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
@@ -2074,7 +2074,6 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
