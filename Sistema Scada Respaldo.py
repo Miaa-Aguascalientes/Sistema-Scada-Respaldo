@@ -2731,120 +2731,61 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# 1. Obtenemos la pestaña activa de la URL (por defecto "mapa")
-query_params = st.query_params
-tab_activa = query_params.get("nav", "mapa")
-
-# 2. Inyectamos el diseño CSS para la barra oscura con bordes y píldora brillante
 st.markdown("""
 <style>
-    .miaa-hud-bar {
-        background: linear-gradient(180deg, #050a10 0%, #0d1b2a 100%);
-        border: 1px solid #1f4068;
-        border-radius: 12px;
-        padding: 8px 12px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+    /* Contenedor principal de la barra de pestañas (Caja oscura con borde y sombra) */
+    div.stTabs [data-baseweb="tab-list"] {
+        background: linear-gradient(180deg, #050a10 0%, #081421 100%) !important;
+        border: 1px solid #1f4068 !important;
+        border-radius: 14px !important;
+        padding: 8px 12px !important;
+        gap: 10px !important;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8) !important;
+        display: flex !important;
+        justify-content: space-between !important;
     }
 
-    .hud-tab {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        text-decoration: none !important;
-        padding: 10px 14px;
-        border-radius: 10px;
-        background: transparent;
-        border: 1px solid transparent;
-        transition: all 0.3s ease;
-        color: #a0aec0;
-        font-family: 'Segoe UI', Tahoma, sans-serif;
-        font-size: 13.5px;
-        font-weight: 600;
-        text-align: center;
+    /* Cada pestaña individual inactiva */
+    div.stTabs [data-baseweb="tab"] {
+        background-color: transparent !important;
+        border-radius: 30px !important;
+        color: #8899a6 !important;
+        font-weight: 600 !important;
+        font-size: 13.5px !important;
+        padding: 10px 16px !important;
+        border: 1px solid transparent !important;
+        flex: 1 !important;
+        justify-content: center !important;
+        transition: all 0.3s ease !important;
     }
 
-    .hud-tab:hover {
-        color: #ffffff;
-        background: rgba(0, 212, 255, 0.05);
+    div.stTabs [data-baseweb="tab"]:hover {
+        color: #ffffff !important;
+        background: rgba(0, 212, 255, 0.05) !important;
     }
 
-    /* ESTILO DE LA PESTAÑA ACTIVA (Píldora con brillo azul exacto a la imagen) */
-    .hud-tab.active {
+    /* Pestaña ACTIVA: Estilo de Píldora con Brillo Azul exacto a tu imagen */
+    div.stTabs [data-baseweb="tab"][aria-selected="true"] {
         background: linear-gradient(135deg, rgba(0, 114, 255, 0.25) 0%, rgba(0, 212, 255, 0.2) 100%) !important;
         border: 1px solid #00d4ff !important;
         color: #ffffff !important;
-        box-shadow: 0 0 18px rgba(0, 212, 255, 0.4), inset 0 0 10px rgba(0, 212, 255, 0.2);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), inset 0 0 10px rgba(0, 212, 255, 0.2) !important;
     }
-
-    .hud-icon {
-        width: 28px;
-        height: 28px;
-        object-fit: contain;
+    
+    /* Ocultar la línea deslizadora inferior predeterminada de Streamlit */
+    div.stTabs [data-baseweb="tab-highlight"] {
+        display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# URL base para conservar tus permisos de acceso y rol actuales
-base_url = f"?access=granted&role={st.session_state.get('rol', 'usuario')}"
-
-# 3. Renderizamos la barra visual interactiva con columnas de Streamlit
-col_b1, col_b2, col_b3, col_b4 = st.columns(4)
-
-with col_b1:
-    act = "active" if tab_activa == "mapa" else ""
-    st.markdown(f"""
-        <a href="{base_url}&nav=mapa" target="_self" class="hud-tab {act}">
-            <img src="https://cdn-icons-png.flaticon.com/512/854/854878.png" class="hud-icon">
-            <span>Mapa Principal</span>
-        </a>
-    """, unsafe_allow_html=True)
-
-with col_b2:
-    act = "active" if tab_activa == "incidencias" else ""
-    st.markdown(f"""
-        <a href="{base_url}&nav=incidencias" target="_self" class="hud-tab {act}">
-            <img src="https://cdn-icons-png.flaticon.com/512/564/564619.png" class="hud-icon">
-            <span>Incidencias Activas y del día</span>
-        </a>
-    """, unsafe_allow_html=True)
-
-with col_b3:
-    act = "active" if tab_activa == "tanques" else ""
-    st.markdown(f"""
-        <a href="{base_url}&nav=tanques" target="_self" class="hud-tab {act}">
-            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105807.png" class="hud-icon">
-            <span>Miaa Tanques</span>
-        </a>
-    """, unsafe_allow_html=True)
-
-with col_b4:
-    act = "active" if tab_activa == "sectores" else ""
-    st.markdown(f"""
-        <a href="{base_url}&nav=sectores" target="_self" class="hud-tab {act}">
-            <img src="https://cdn-icons-png.flaticon.com/512/3105/3105785.png" class="hud-icon">
-            <span>Sectores Hidráulicos</span>
-        </a>
-    """, unsafe_allow_html=True)
-
-st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
-
-# 4. Declaramos objetos MockTab seguros para TODAS las pestañas simultáneamente
-class MockTab:
-    def __enter__(self): return self
-    def __exit__(self, exc_type, exc_val, exc_tb): pass
-
-# Creamos una instancia para cada pestaña para que NUNCA sean None y el 'with' nunca falle
-pestaña_mapa = MockTab()
-pestaña_incidencias = MockTab()
-pestaña_tanques = MockTab()
-pestaña_sectores = MockTab()
+# Tus pestañas nativas originales (Streamlit maneja la carga exclusiva de cada una)
+pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
+    "🗺️ Mapa Principal", 
+    "⚠️ Incidencias Activas y del día", 
+    "🛢️ Miaa Tanques", 
+    "💧 Sectores Hidráulicos"
+])
 
 
 # ==============================================================================
