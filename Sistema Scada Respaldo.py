@@ -1943,25 +1943,24 @@ st.markdown("""
             gap: 10px;
             width: 100%;
             margin-top: -45px !important; 
-            margin-bottom: 0px !important;
+            margin-bottom: 5px !important;
             padding: 0 !important;
             position: relative;
             z-index: 999;
         }
 
-        /* --- SOLUCIÓN DEFINITIVA PARA SUBIR EL MAPA --- */
-        /* Forzamos al contenedor de Streamlit que envuelve al mapa a subir con margen negativo */
+        /* --- MAPA CALIBRADO PARA QUEDAR DEBAJO DE LAS PESTAÑAS --- */
         div.element-container:has(iframe) {
-            margin-top: -50px !important;
+            margin-top: -15px !important;
             margin-bottom: 0px !important;
         }
 
         .mapa-area {
-            margin-top: -30px !important;
+            margin-top: 0px !important;
         }
 
         .mapa-area iframe { 
-            margin-top: 0px !important;
+            margin-top: 5px !important;
             border: 1px solid #1f4068 !important;
             height: 85vh !important;
         }
