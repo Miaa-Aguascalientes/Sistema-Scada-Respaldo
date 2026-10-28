@@ -2731,57 +2731,66 @@ dic_incidencias_activas = obtener_pozos_con_incidencias_hoy() if 'obtener_pozos_
 # 9. ORGANIZACIÓN EN PESTAÑAS (MAPA PRINCIPAL VS INCIDENCIAS VS MIAA TANQUES)
 # ==============================================================================
 
-# Inyectamos el CSS avanzado para transformar visualmente las pestañas nativas
+# Inyectamos el CSS personalizado que sobreescribe el diseño de st.tabs
 st.markdown("""
 <style>
-    /* 1. Contenedor principal de la barra (Caja oscura con degradado, borde y sombra) */
+    /* 1. Contenedor principal de la barra (Fondo oscuro profundo con borde sutil) */
     div.stTabs [data-baseweb="tab-list"] {
-        background: linear-gradient(180deg, #050a10 0%, #081421 100%) !important;
-        border: 1px solid #1f4068 !important;
-        border-radius: 14px !important;
-        padding: 8px 12px !important;
-        gap: 10px !important;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8) !important;
+        background: #040911 !important;
+        border: 1px solid #0e1e2e !important;
+        border-radius: 12px !important;
+        padding: 6px 8px !important;
+        gap: 0px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.9) !important;
         display: flex !important;
-        justify-content: space-between !important;
+        align-items: center !important;
     }
 
-    /* 2. Cada pestaña individual inactiva */
+    /* 2. Pestañas inactivas con divisores verticales a la derecha */
     div.stTabs [data-baseweb="tab"] {
-        background-color: transparent !important;
-        border-radius: 30px !important;
-        color: #8899a6 !important;
+        background: transparent !important;
+        border: none !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 0px !important;
+        color: #8fa1b8 !important;
         font-weight: 600 !important;
-        font-size: 13.5px !important;
-        padding: 10px 16px !important;
-        border: 1.5px solid transparent !important;
+        font-size: 14px !important;
+        padding: 12px 24px !important;
         flex: 1 !important;
         justify-content: center !important;
-        transition: all 0.3s ease !important;
+        transition: all 0.25s ease !important;
+    }
+
+    /* Quitar el divisor vertical a la última pestaña */
+    div.stTabs [data-baseweb="tab"]:last-child {
+        border-right: none !important;
     }
 
     div.stTabs [data-baseweb="tab"]:hover {
         color: #ffffff !important;
-        background: rgba(0, 212, 255, 0.05) !important;
+        background: rgba(0, 212, 255, 0.04) !important;
     }
 
-    /* 3. PESTAÑA ACTIVA: Estilo de Píldora con Brillo Azul exacto a tu imagen */
+    /* 3. PESTAÑA ACTIVA (Tarjeta azul con brillo cyan en borde izquierdo y base) */
     div.stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, rgba(0, 114, 255, 0.25) 0%, rgba(0, 212, 255, 0.2) 100%) !important;
-        border: 1.5px solid #00d4ff !important;
+        background: linear-gradient(180deg, #024389 0%, #012b5b 100%) !important;
+        border-radius: 10px !important;
+        border-left: 3.5px solid #00e5ff !important;
+        border-bottom: 2.5px solid #00b0ff !important;
+        border-right: none !important;
+        border-top: 1px solid rgba(0, 229, 255, 0.3) !important;
         color: #ffffff !important;
-        box-shadow: 0 0 20px rgba(0, 212, 255, 0.5), inset 0 0 10px rgba(0, 212, 255, 0.2) !important;
+        box-shadow: 0 0 22px rgba(0, 180, 255, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
     }
-    
-    /* 4. Ocultar la línea roja/blanca predeterminada de Streamlit */
+
+    /* Ocultar la línea roja/blanca nativa de Streamlit */
     div.stTabs [data-baseweb="tab-highlight"] {
         display: none !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Definición estándar de tus pestañas. 
-# Esto maneja de forma nativa la selección y ejecución exclusiva de cada sección.
+# Definición de pestañas nativas con sus emojis exactos
 pestaña_mapa, pestaña_incidencias, pestaña_tanques, pestaña_sectores = st.tabs([
     "🗺️ Mapa Principal", 
     "⚠️ Incidencias Activas y del día", 
