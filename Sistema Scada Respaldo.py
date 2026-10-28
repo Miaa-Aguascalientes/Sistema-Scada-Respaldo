@@ -1916,12 +1916,19 @@ st.markdown("""
             display: none !important;
         }
         header { visibility: hidden !important; height: 0px !important; }
+        [data-testid="stHeader"] { display: none !important; }
+        
         .stApp { background-color: #000000; color: white; }
         
         .block-container {
-            padding-top: 0rem !important;
-            margin-top: 15px !important;
+            padding-top: 0.5rem !important;
+            margin-top: 0px !important;
             max-width: 100% !important;
+        }
+
+        div[data-testid="stHorizontalBlock"] {
+            margin-top: 0px !important;
+            padding-top: 0px !important;
         }
 
         .mapa-area iframe { 
@@ -2000,17 +2007,17 @@ st.markdown("""
         }
 
        .sidebar-logo { 
-           position: fixed; 
-           top: 20px; 
-           left: 40px; 
-           width: 170px;  
-           height: 50px;  
-           z-index: 999999; 
-           display: flex; 
-           justify-content: center; 
-           align-items: center;
-           background-color: #0b1a29; 
-           border-bottom: 1px solid #1f4068;
+            position: fixed; 
+            top: 20px; 
+            left: 40px; 
+            width: 170px;  
+            height: 50px;  
+            z-index: 999999; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            background-color: #0b1a29; 
+            border-bottom: 1px solid #1f4068;
         }
          
         .status-tag { 
