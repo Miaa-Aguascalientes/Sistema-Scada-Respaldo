@@ -1951,7 +1951,7 @@ st.markdown("""
 
         /* --- MAPA CALIBRADO PARA QUEDAR DEBAJO DE LAS PESTAÑAS --- */
         div.element-container:has(iframe) {
-            margin-top: -15px !important;
+            margin-top: -25px !important;
             margin-bottom: 0px !important;
         }
 
