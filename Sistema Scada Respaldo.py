@@ -1937,21 +1937,21 @@ st.markdown("""
             padding-top: 0px !important;
         }
 
-        /* Barra de pestañas arriba */
+        /* 1. RESTAURAMOS LAS PESTAÑAS: Las bajamos a su posición correcta para que no queden cortadas */
         .miaa-skew-bar {
             display: flex;
             gap: 10px;
             width: 100%;
-            margin-top: -45px !important; 
-            margin-bottom: 5px !important;
+            margin-top: -12px !important; /* Ajustado de -45px a -12px para que se vean completas y visibles */
+            margin-bottom: 8px !important;
             padding: 0 !important;
             position: relative;
             z-index: 999;
         }
 
-        /* --- MAPA AJUSTADO MILIMÉTRICAMENTE DEBAJO DE LAS PESTAÑAS --- */
+        /* 2. SUBIMOS EL MAPA UN POQUITO MÁS: Ajustado para quedar exactamente debajo de las pestañas visibles */
         div.element-container:has(iframe) {
-            margin-top: -25px !important;
+            margin-top: -18px !important; /* Sube el mapa un poco más para cerrar el espacio restante */
             margin-bottom: 0px !important;
         }
 
@@ -2074,6 +2074,7 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
+
 # 6. PROCESAMIENTO DE DATOS BASE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 sectores = cargar_sectores_poligonos()
