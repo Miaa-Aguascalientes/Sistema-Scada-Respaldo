@@ -4402,7 +4402,7 @@ elif tab_activa == "tanques":
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DISEÑO ORIGINAL RESTAURADO Y CORREGIDO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DISEÑO ORIGINAL + REGISTRADORES CORREGIDO)
 # ==============================================================================
 elif tab_activa == "sectores":
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
@@ -4551,14 +4551,31 @@ elif tab_activa == "sectores":
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
+            # Carga de Registradores / Puntos de Control y Puntos Críticos directamente de base de datos
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
             dict_vrp_all = cargar_vrp_desde_db()
             dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
-            mapa_pc_all = cargar_puntos_criticos_desde_db()
-            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            # Extracción directa de la tabla REGISTRADORES para los puntos críticos
+            dict_pc_sec = {}
+            try:
+                engine_db = get_mysql_scada_engine()
+                query_reg = f"SELECT * FROM REGISTRADORES WHERE sector = '{sec_id}'"
+                df_reg_db = pd.read_sql(query_reg, engine_db)
+                for _, row in df_reg_db.iterrows():
+                    id_reg = str(row.get('Serie', row.get('id', '')))
+                    dict_pc_sec[id_reg] = {
+                        'sector': row.get('sector'),
+                        'nombre': row.get('nombre', 'Punto Crítico'),
+                        'Domicilio': row.get('Domicilio', row.get('domicilio', 'S/D')),
+                        'tag_p1': row.get('tag_p1', row.get('tag', '')),
+                        'coord': [float(row.get('lat', 21.88)), float(row.get('lon', -102.28))]
+                    }
+            except Exception:
+                mapa_pc_all = cargar_puntos_criticos_desde_db()
+                dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
@@ -5114,5 +5131,4 @@ elif tab_activa == "sectores":
             """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
-
       
