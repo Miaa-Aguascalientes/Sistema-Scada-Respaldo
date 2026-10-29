@@ -4926,22 +4926,23 @@ elif tab_activa == "sectores":
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
-            st.markdown(f"""
+            with col_pc:
+                st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Válvulas reductoras de presión (VRP)</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda - Presión a la derecha - Franja nocturna 02:00 - 04:00</p>
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES)</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        q_reg = f\"\"\"
+                        q_reg = f"""
                             SELECT Fecha, Serie, Presion_1 
                             FROM REGISTRADORES 
                             WHERE Fecha BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
                             ORDER BY Fecha ASC
-                        \"\"\"
+                        """
                         df_reg_h = pd.read_sql(q_reg, engine_tel)
 
                         if not df_reg_h.empty:
@@ -4967,14 +4968,12 @@ elif tab_activa == "sectores":
 
                             for pc_key, pc_info in dict_pc_sec.items():
                                 serie_raw = str(pc_info.get('Serie', pc_key)).strip()
-                                serie_norm = re.sub(r'\\D', '', serie_raw)
+                                serie_norm = re.sub(r'\D', '', serie_raw)
                                 
-                                # Obtenemos el domicilio asegurando que muestre un texto claro
                                 domicilio_nombre = str(pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))).strip()
                                 if not domicilio_nombre or domicilio_nombre == 'nan':
                                     domicilio_nombre = f"Registrador {serie_raw}"
 
-                                # Filtramos la tabla REGISTRADORES usando tanto la serie exacta como la normalizada
                                 df_temp = df_reg_h[
                                     (df_reg_h['serie_norm'] == serie_norm) | 
                                     (df_reg_h['Serie'].astype(str).str.strip() == serie_raw)
