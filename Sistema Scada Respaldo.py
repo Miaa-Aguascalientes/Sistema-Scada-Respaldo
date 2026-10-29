@@ -4402,9 +4402,15 @@ elif tab_activa == "tanques":
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DISEÑO ORIGINAL + REGISTRADORES CORREGIDO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CONEXIÓN CORRECTA DESDE STREAMLIT SECRETS)
 # ==============================================================================
 elif tab_activa == "sectores":
+    # Función auxiliar para la conexión utilizando los secretos de Streamlit
+    @st.cache_resource
+    def get_mysql_telemetria2_engine():
+        sec = st.secrets["mysql_telemetria"]
+        return create_engine(f"mysql+pymysql://{sec['user']}:{sec['password']}@{sec['host']}:3306/{sec['database']}")
+
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
     st.markdown("""
         <style>
@@ -4551,19 +4557,19 @@ elif tab_activa == "sectores":
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # Carga de Registradores / Puntos de Control y Puntos Críticos directamente de base de datos
+            # Carga de Registradores y VRPs
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
             dict_vrp_all = cargar_vrp_desde_db()
             dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
-            # Extracción directa de la tabla REGISTRADORES para los puntos críticos
+            # Extracción directa de la tabla REGISTRADORES usando los secretos de Streamlit
             dict_pc_sec = {}
             try:
-                engine_db = get_mysql_scada_engine()
+                engine_db2 = get_mysql_telemetria2_engine()
                 query_reg = f"SELECT * FROM REGISTRADORES WHERE sector = '{sec_id}'"
-                df_reg_db = pd.read_sql(query_reg, engine_db)
+                df_reg_db = pd.read_sql(query_reg, engine_db2)
                 for _, row in df_reg_db.iterrows():
                     id_reg = str(row.get('Serie', row.get('id', '')))
                     dict_pc_sec[id_reg] = {
@@ -4573,9 +4579,8 @@ elif tab_activa == "sectores":
                         'tag_p1': row.get('tag_p1', row.get('tag', '')),
                         'coord': [float(row.get('lat', 21.88)), float(row.get('lon', -102.28))]
                     }
-            except Exception:
-                mapa_pc_all = cargar_puntos_criticos_desde_db()
-                dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            except Exception as e:
+                st.error(f"Error al consultar REGISTRADORES en miaamx_telemetria2: {e}")
 
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
@@ -4949,7 +4954,7 @@ elif tab_activa == "sectores":
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES en miaamx_telemetria2)</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
