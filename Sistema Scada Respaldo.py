@@ -4943,10 +4943,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
                 
+                # Inicializamos la figura para evitar cualquier error de variable no definida
+                fig_pc = go.Figure()
+                
                 if dict_pc_sec:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        # Consulta directa a la nueva tabla REGISTRADORES
                         q_reg = f"""
                             SELECT Fecha, Serie, Presion_1 
                             FROM REGISTRADORES 
@@ -4971,7 +4973,6 @@ elif tab_activa == "sectores":
                                 for d in ticks_pc
                             ]
 
-                            fig_pc = go.Figure()
                             colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                             idx_pc_c = 0
 
@@ -4989,7 +4990,7 @@ elif tab_activa == "sectores":
                                         x=df_temp['FECHA'], y=df_temp['Presion_1'], 
                                         name=domicilio_nombre, 
                                         mode='lines+markers',
-                                        showlegend=True,  # <--- AQUÍ ESTÁ LA SOLUCIÓN
+                                        showlegend=True,
                                         marker=dict(size=3.5, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
@@ -5001,17 +5002,21 @@ elif tab_activa == "sectores":
                                 fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                 fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                            # -> MARGEN SUPERIOR AUMENTADO A 45 Y LEYENDA A 1.18 PARA BAJAR MÁS EL GRÁFICO INTERNO
-                            fig_pc.update_layout(
-                                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                margin=dict(l=40, r=40, t=70, b=10), hovermode="x unified",
-                                legend=dict(orientation="h", yanchor="bottom", y=1.90, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
-                                yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
-                            )
-                            st.plotly_chart(fig_pc, use_container_width=True)
-                        else:
-                            st.info("No hay registros en la tabla REGISTRADORES para este periodo.")
+                        fig_pc.update_layout(
+                            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                            margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                            legend=dict(
+                                orientation="h", 
+                                yanchor="bottom", 
+                                y=1.12, 
+                                x=0.5, 
+                                xanchor="center", 
+                                font=dict(color="white", size=9)
+                            ),
+                            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
+                            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
+                        )
+                        st.plotly_chart(fig_pc, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error al consultar REGISTRADORES para Puntos Críticos: {e}")
 
