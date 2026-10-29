@@ -4406,7 +4406,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (DISEÑO ORIGINAL CON DATOS DE REGISTRADORES EN MCA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y CORREGIDO)
 # ==============================================================================
 elif tab_activa == "sectores":
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
@@ -4924,8 +4924,8 @@ elif tab_activa == "sectores":
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
-           # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (CORREGIDO PARA EL FORMATO CON PUNTO)
+            # ==============================================================================
+            # FILA INFERIOR: PUNTOS CRÍTICOS (CON TOLERANCIA DE PUNTO DECIMAL EN SERIE) Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4938,27 +4938,23 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
-                    # Limpiamos y preparamos las series del diccionario (ej. '31219' -> '31.219' o viceversa)
                     series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
                     
                     if series_pc_list:
                         try:
                             engine_tele = get_mysql_telemetria_engine()
                             
-                            # Normalizamos para buscar tanto si está con punto ('31.219') como sin él ('31219')
+                            # Generamos variantes tolerantes para el match (con o sin punto flotante)
                             busqueda_series = []
                             for s in series_pc_list:
                                 busqueda_series.append(s)
                                 if '.' not in s and len(s) > 3:
-                                    # Si es como 31219, agregamos también la variante 31.219 por si acaso
                                     busqueda_series.append(s[:2] + '.' + s[2:])
                                 elif '.' in s:
-                                    # Si viene con punto, agregamos la versión sin punto
                                     busqueda_series.append(s.replace('.', ''))
                                     
                             series_in = "', '".join(list(set(busqueda_series)))
                             
-                            # Consulta SQL robusta reemplazando puntos en la BD para hacer el cruce exacto
                             query_pc = f"""
                                 SELECT Fecha, REPLACE(CAST(Serie AS CHAR), '.', '') AS Serie_Clean, CAST(Serie AS CHAR) AS Serie_Str, Presion_1 
                                 FROM REGISTRADORES 
@@ -4971,7 +4967,6 @@ elif tab_activa == "sectores":
 
                             if not df_pc_h.empty:
                                 df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
-                                # Normalizamos la columna del DF para igualarla con el diccionario
                                 df_pc_h['Serie_Match'] = df_pc_h['Serie_Str'].astype(str).str.replace('.', '', regex=False).str.strip()
                                 df_pc_h['Presion_mca'] = df_pc_h['Presion_1'].astype(float)
 
@@ -4988,7 +4983,6 @@ elif tab_activa == "sectores":
                                 ]
 
                                 fig_pc = go.Figure()
-                                # Mapeo tolerante con y sin punto
                                 serie_to_name = {}
                                 for v in dict_pc_sec.values():
                                     raw_s = str(v.get('Serie')).strip()
@@ -5032,7 +5026,7 @@ elif tab_activa == "sectores":
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                             else:
-                                st.warning("⚠️ No hay registros de presión en la tabla REGISTRADORES para estas series y rango de fechas.")
+                                st.warning("⚠️ No hay registros de presión en la tabla REGISTRADORES para el rango seleccionado.")
                         except Exception as e:
                             st.error(f"Error en consulta de Puntos Críticos: {e}")
 
@@ -5157,4 +5151,3 @@ elif tab_activa == "sectores":
             """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
-      
