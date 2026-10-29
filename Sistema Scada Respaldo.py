@@ -5063,31 +5063,28 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
+                fig_vrp = go.Figure()
+
                 if dict_vrp_sec:
-                    tags_vrp_list = []
-                    vrp_mapeo_config = {}
-                    
-                    for v_id, v_info in dict_vrp_sec.items():
-                        v_serie = v_info.get('Serie', f"{v_id}")
-                        conf_vrp = [
-                            ('tag_q', f"VRP {v_serie} - Q", False),
-                            ('tag_p1', f"VRP {v_serie} - P1", True),
-                            ('tag_p2', f"VRP {v_serie} - P2", True)
-                        ]
-                        for k_t, label_s, es_presion in conf_vrp:
-                            t_val = v_info.get(k_t)
-                            if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                                tags_vrp_list.append(t_val)
-                                vrp_mapeo_config[t_val] = {'label': label_s, 'es_presion': es_presion}
+                    try:
+                        engine_tel = get_mysql_telemetria_engine()
+                        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items()]
+                        
+                        if series_vrp_list:
+                            series_vrp_in = "', '".join(series_vrp_list)
+                            q_vrp_reg = f"""
+                                SELECT Fecha, Serie, Caudal, Presion_1, Presion_2 
+                                FROM REGISTRADORES 
+                                WHERE Serie IN ('{series_vrp_in}')
+                                  AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                                ORDER BY Fecha ASC
+                            """
+                            df_vrp_reg = pd.read_sql(q_vrp_reg, engine_tel)
 
-                    if tags_vrp_list:
-                        try:
-                            engine_h = get_mysql_scada_engine()
-                            tags_vrp_in = "', '".join(list(set(tags_vrp_list)))
-                            df_vrp_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_vrp_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
+                            if not df_vrp_reg.empty:
+                                df_vrp_reg['FECHA'] = pd.to_datetime(df_vrp_reg['Fecha'])
+                                df_vrp_reg['serie_norm'] = df_vrp_reg['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
 
-                            if not df_vrp_h.empty:
-                                df_vrp_h['FECHA'] = pd.to_datetime(df_vrp_h['FECHA'])
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
@@ -5100,33 +5097,57 @@ elif tab_activa == "sectores":
                                     for d in ticks_vrp
                                 ]
 
-                                fig_vrp = go.Figure()
+                                colores_caudal = ["#8acbf5", "#3399ff", "#0088ff"]
+                                colores_presion = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+                                idx_q_v = 0
                                 idx_p_v = 0
-                                colores_presion = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99", "#a1ffce"]
 
-                                for tag in tags_vrp_list:
-                                    df_temp = df_vrp_h[df_vrp_h['TAG'] == tag]
-                                    if not df_temp.empty:
-                                        cfg_v = vrp_mapeo_config[tag]
-                                        es_p = cfg_v['es_presion']
-                                        
-                                        if not es_p:
-                                            color_trace = "#8acbf5"
-                                        else:
-                                            color_trace = colores_presion[idx_p_v % len(colores_presion)]
+                                for v_key, v_info in dict_vrp_sec.items():
+                                    serie_raw = str(v_info.get('Serie', v_key))
+                                    serie_norm = re.sub(r'\D', '', serie_raw)
+
+                                    df_temp_vrp = df_vrp_reg[df_vrp_reg['serie_norm'] == serie_norm]
+                                    if not df_temp_vrp.empty:
+                                        # Caudal (Q) -> Eje y1
+                                        if 'Caudal' in df_temp_vrp.columns and df_temp_vrp['Caudal'].notna().any():
+                                            color_q = colores_caudal[idx_q_v % len(colores_caudal)]
+                                            idx_q_v += 1
+                                            fig_vrp.add_trace(go.Scatter(
+                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Caudal'],
+                                                name=f"VRP {serie_raw} - Q",
+                                                yaxis="y1", mode='lines+markers',
+                                                line=dict(width=2, color=color_q),
+                                                marker=dict(size=3.5, symbol='circle'),
+                                                fill='tozeroy',
+                                                fillcolor="rgba(138, 203, 245, 0.15)",
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
+                                            ))
+
+                                        # Presión 1 (P1) -> Eje y2
+                                        if 'Presion_1' in df_temp_vrp.columns and df_temp_vrp['Presion_1'].notna().any():
+                                            color_p1 = colores_presion[idx_p_v % len(colores_presion)]
                                             idx_p_v += 1
+                                            fig_vrp.add_trace(go.Scatter(
+                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Presion_1'],
+                                                name=f"VRP {serie_raw} - P1",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p1),
+                                                marker=dict(size=3.5, symbol='circle'),
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} kg<extra></extra>'
+                                            ))
 
-                                        fig_vrp.add_trace(go.Scatter(
-                                            x=df_temp['FECHA'], y=df_temp['VALUE'], 
-                                            name=cfg_v['label'], 
-                                            yaxis="y2" if es_p else "y1", 
-                                            mode='lines+markers',
-                                            line=dict(width=2, color=color_trace),
-                                            marker=dict(size=3.5, symbol='circle'),
-                                            fill='tozeroy' if not es_p else None,
-                                            fillcolor="rgba(138, 203, 245, 0.15)" if not es_p else None,
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
-                                        ))
+                                        # Presión 2 (P2) -> Eje y2
+                                        if 'Presion_2' in df_temp_vrp.columns and df_temp_vrp['Presion_2'].notna().any():
+                                            color_p2 = colores_presion[idx_p_v % len(colores_presion)]
+                                            idx_p_v += 1
+                                            fig_vrp.add_trace(go.Scatter(
+                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Presion_2'],
+                                                name=f"VRP {serie_raw} - P2",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p2),
+                                                marker=dict(size=3.5, symbol='circle'),
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} kg<extra></extra>'
+                                            ))
 
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_vrp:
@@ -5134,17 +5155,18 @@ elif tab_activa == "sectores":
                                     fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                                fig_vrp.update_layout(
-                                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-                                    yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
-                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
-                                )
-                                st.plotly_chart(fig_vrp, use_container_width=True)
-                        except Exception as e:
-                            st.error(f"Error en gráfica de VRPs: {e}")
+                    except Exception as e:
+                        st.error(f"Error en consulta de REGISTRADORES para VRPs: {e}")
+
+                fig_vrp.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
+                    yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
+                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
+                )
+                st.plotly_chart(fig_vrp, use_container_width=True)
 
             st.write("")
             st.markdown(f"""
