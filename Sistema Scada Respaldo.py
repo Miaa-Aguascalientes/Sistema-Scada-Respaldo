@@ -4406,10 +4406,14 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y CORREGIDO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (DISEÑO Y PLOT_PC APLICADO)
 # ==============================================================================
 elif tab_activa == "sectores":
-    # Inyección de estilo CSS corporativo y animaciones para los indicadores
+    @st.cache_resource
+    def get_mysql_telemetria2_engine():
+        sec = st.secrets["mysql_telemetria"]
+        return create_engine(f"mysql+pymysql://{sec['user']}:{sec['password']}@{sec['host']}:3306/{sec['database']}")
+
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
@@ -4561,8 +4565,22 @@ elif tab_activa == "sectores":
             dict_vrp_all = cargar_vrp_desde_db()
             dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
-            mapa_pc_all = cargar_puntos_criticos_desde_db()
-            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            dict_pc_sec = {}
+            try:
+                engine_db2 = get_mysql_telemetria2_engine()
+                query_reg = f"SELECT * FROM REGISTRADORES WHERE sector = '{sec_id}'"
+                df_reg_db = pd.read_sql(query_reg, engine_db2)
+                for _, row in df_reg_db.iterrows():
+                    id_reg = str(row.get('Serie', row.get('id', '')))
+                    dict_pc_sec[id_reg] = {
+                        'sector': row.get('sector'),
+                        'nombre': row.get('nombre', 'Punto Crítico'),
+                        'Domicilio': row.get('Domicilio', row.get('domicilio', 'S/D')),
+                        'tag_p1': row.get('tag_p1', row.get('tag', '')),
+                        'coord': [float(row.get('lat', 21.88)), float(row.get('lon', -102.28))]
+                    }
+            except Exception as e:
+                st.error(f"Error al consultar REGISTRADORES en miaamx_telemetria2: {e}")
 
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
@@ -4599,6 +4617,12 @@ elif tab_activa == "sectores":
                                 tags_para_scada.append(t_val)
                                 tags_agregados_set.add(t_val)
 
+            for pc in dict_pc_sec.values():
+                t_pc = pc.get('tag_p1')
+                if t_pc and t_pc not in tags_agregados_set:
+                    tags_para_scada.append(t_pc)
+                    tags_agregados_set.add(t_pc)
+                    
             for v in dict_vrp_sec.values():
                 for k in ['tag_p1', 'tag_p2', 'tag_q']:
                     t_vrp = v.get(k)
@@ -4719,7 +4743,6 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
-                
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
@@ -4762,8 +4785,8 @@ elif tab_activa == "sectores":
 
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
-                    val_p = 0.0 # Valor por defecto o se puede enlazar si se desea
-                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small></div>"""
+                    val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
+                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} Kg/cm²</b></div>"""
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
@@ -4925,62 +4948,49 @@ elif tab_activa == "sectores":
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
-            # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (CONSULTANDO LA TABLA REGISTRADORES) Y VRPs
-            # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
             with col_pc:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES en miaamx_telemetria2)</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
-                    try:
-                        engine_tel = get_mysql_telemetria_engine()
-                        # Consulta directa a la nueva tabla REGISTRADORES
-                        q_reg = f"""
-                            SELECT Fecha, Serie, Presion_1 
-                            FROM REGISTRADORES 
-                            WHERE Fecha BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
-                            ORDER BY Fecha ASC
-                        """
-                        df_reg_h = pd.read_sql(q_reg, engine_tel)
+                    tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
+                    if tags_pc_list:
+                        try:
+                            tags_pc_in = "', '".join(tags_pc_list)
+                            df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
 
-                        if not df_reg_h.empty:
-                            df_reg_h['FECHA'] = pd.to_datetime(df_reg_h['Fecha'])
-                            df_reg_h['serie_norm'] = df_reg_h['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                            if not df_pc_h.empty:
+                                df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
+                                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                                fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                                ticks_pc = fechas_lineas_pc[::1]
+                                etiquetas_pc = [
+                                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                    for d in ticks_pc
+                                ]
 
-                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                            fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                            ticks_pc = fechas_lineas_pc[::1]
-                            etiquetas_pc = [
-                                f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                                for d in ticks_pc
-                            ]
+                                fig_pc = go.Figure()
+                                tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+                                colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                                idx_pc_c = 0
 
-                            fig_pc = go.Figure()
-                            colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
-                            idx_pc_c = 0
+                                for tag in tags_pc_list:
+                                    df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                                    if not df_temp.empty:
+                                        color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                        idx_pc_c += 1
 
-                            for pc_key, pc_info in dict_pc_sec.items():
-                                serie_raw = str(pc_info.get('Serie', pc_key))
-                                serie_norm = re.sub(r'\D', '', serie_raw)
-                                domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
-
-                                df_temp = df_reg_h[df_reg_h['serie_norm'] == serie_norm]
-                                if not df_temp.empty:
-                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
-                                    idx_pc_c += 1
-
-                                    fig_pc.add_trace(go.Scatter(
+                                        fig_pc.add_trace(go.Scatter(
                                             x=df_temp['FECHA'], y=df_temp['VALUE'], 
                                             name=tag_to_name.get(tag, tag), mode='lines+markers',
                                             line=dict(width=2, color=color_trace_pc),
@@ -4988,13 +4998,13 @@ elif tab_activa == "sectores":
                                             hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                         ))
 
-                            delta_h = pd.Timedelta(hours=1)
-                            for d in fechas_lineas_pc:
-                                es_lunes = (d.dayofweek == 0)
-                                fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
-                                fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+                                delta_h = pd.Timedelta(hours=1)
+                                for d in fechas_lineas_pc:
+                                    es_lunes = (d.dayofweek == 0)
+                                    fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                    fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                            fig_pc.update_layout(
+                                fig_pc.update_layout(
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
@@ -5005,7 +5015,6 @@ elif tab_activa == "sectores":
                         except Exception as e:
                             st.error(f"Error en gráfica de Puntos Críticos: {e}")
 
-# ---------------------------------------------------------------------------------------------------- CODIGO GTRAFICO VRP ------------------------------------------------------------------------------------------------
             with col_vrp_g:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
@@ -5033,7 +5042,6 @@ elif tab_activa == "sectores":
 
                     if tags_vrp_list:
                         try:
-                            engine_h = get_mysql_scada_engine()
                             tags_vrp_in = "', '".join(list(set(tags_vrp_list)))
                             df_vrp_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_vrp_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
 
