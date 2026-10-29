@@ -4994,7 +4994,7 @@ elif tab_activa == "sectores":
                             fig_pc.update_layout(
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                 margin=dict(l=40, r=40, t=70, b=10), hovermode="x unified",
-                                legend=dict(orientation="h", yanchor="bottom", y=1.18, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                                legend=dict(orientation="h", yanchor="bottom", y=1.90, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                                 xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
                                 yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                             )
