@@ -4910,14 +4910,22 @@ elif tab_activa == "sectores":
                                 fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                                 fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-                            fig.update_layout(
-                                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
-                                margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-                                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-                                yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                            fig_pc.update_layout(
+                                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                                margin=dict(l=40, r=40, t=70, b=10), hovermode="x unified",
+                                # --- LEYENDA VISIBLE ARRIBA ---
+                                legend=dict(
+                                    orientation="h", 
+                                    yanchor="bottom", 
+                                    y=1.15,  # Ajusta esta altura si requieres más espacio para los nombres
+                                    x=0.5, 
+                                    xanchor="center", 
+                                    font=dict(color="white", size=9)
+                                ),
+                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
+                                yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                             )
+                            
                             st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
@@ -4979,8 +4987,11 @@ elif tab_activa == "sectores":
 
                                     fig_pc.add_trace(go.Scatter(
                                         x=df_temp['FECHA'], y=df_temp['Presion_1'], 
-                                        name=domicilio_nombre, mode='lines+markers',
-                                        marker=dict(size=3.5, symbol='circle'), line=dict(width=2, color=color_trace_pc),
+                                        name=domicilio_nombre, 
+                                        mode='lines+markers',
+                                        showlegend=True,  # <--- AQUÍ ESTÁ LA SOLUCIÓN
+                                        marker=dict(size=3.5, symbol='circle'), 
+                                        line=dict(width=2, color=color_trace_pc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                     ))
 
