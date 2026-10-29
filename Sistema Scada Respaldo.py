@@ -4990,10 +4990,11 @@ elif tab_activa == "sectores":
                                 fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                 fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
+                            # -> MARGEN SUPERIOR AUMENTADO A 45 Y LEYENDA A 1.18 PARA BAJAR MÁS EL GRÁFICO INTERNO
                             fig_pc.update_layout(
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                                legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                                margin=dict(l=40, r=40, t=45, b=10), hovermode="x unified",
+                                legend=dict(orientation="h", yanchor="bottom", y=1.18, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                                 xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
                                 yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                             )
