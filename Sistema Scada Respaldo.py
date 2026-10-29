@@ -4926,13 +4926,12 @@ elif tab_activa == "sectores":
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
-            with col_pc:
-                st.markdown(f"""
-                    <div style=\"background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;\">
-                        <p style=\"color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;\">Puntos críticos</p>
-                        <p style=\"color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;\">Presión real en los puntos críticos del sector (Tabla REGISTRADORES)</p>
+            st.markdown(f"""
+                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Válvulas reductoras de presión (VRP)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda - Presión a la derecha - Franja nocturna 02:00 - 04:00</p>
                     </div>
-                \"\"\", unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
                     try:
