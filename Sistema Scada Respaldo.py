@@ -4711,7 +4711,7 @@ elif tab_activa == "sectores":
                         <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
                         <p class="label-indicador" style="font-size: 13px; margin:0;">Presión de ingreso</p>
                     </div>
-                    <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">2.35 <span style="font-size:0.8rem; font-weight:normal;">Kg/cm²</span></p>
+                    <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">2.35 <span style="font-size:0.8rem; font-weight:normal;">mca</span></p>
                     <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo</p>
                 </div>''', unsafe_allow_html=True)
             st.write("")
@@ -4765,7 +4765,7 @@ elif tab_activa == "sectores":
                         except: return 0.0, f
                     rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q')
                     id_reg = r.get('Serie', 'S/N') 
-                    html_popup_reg = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:220px;"><b style="color:#00FFFF;">{r['nombre']}</b><br>Caudal: {rcau:.2f} L/s<br>Presión: {rp1:.2f} Kg/cm²</div>"""
+                    html_popup_reg = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:220px;"><b style="color:#00FFFF;">{r['nombre']}</b><br>Caudal: {rcau:.2f} L/s<br>Presión: {rp1:.2f} mca</div>"""
                     icon_html = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(capa_control)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg} • Punto de control</div>')).add_to(capa_control)
@@ -4773,7 +4773,7 @@ elif tab_activa == "sectores":
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
-                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} Kg/cm²</b></div>"""
+                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><br>Presión: <b style="color:#FF00FF;">{val_p:.2f} mca</b></div>"""
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
@@ -4782,7 +4782,7 @@ elif tab_activa == "sectores":
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
                     serie_vrp = vrp.get('Serie', 'S/N')
-                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} Kg/cm²<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} Kg/cm²</b></div>"""
+                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} mca<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} mca</b></div>"""
                     icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
@@ -4894,7 +4894,7 @@ elif tab_activa == "sectores":
 
                                     if es_caudal: unidad_pc = "L/s"
                                     elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
-                                    else: unidad_pc = "Kg/cm²"
+                                    else: unidad_pc = "mca"
                                     
                                     if "NIVEL" in label_u or "TANQUE" in label_u:
                                         color_base = "#d400ff"
@@ -4929,14 +4929,14 @@ elif tab_activa == "sectores":
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
                                 xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
                                 yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                                yaxis2=dict(title="mca", side="right", overlaying="y", color="#00ff00", showgrid=False)
                             )
                             st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (DESDE REGISTRADORES NORMALIZADO CON CONVERSIÓN Y CAST) Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS (DESDE REGISTRADORES SIN CONVERSIÓN Y CON ETIQUETA mca) Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4949,7 +4949,6 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
-                    # Normalización estricta de las series
                     series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
                     
                     if series_pc_list:
@@ -4957,7 +4956,6 @@ elif tab_activa == "sectores":
                             engine_tele = get_mysql_telemetria_engine()
                             series_in = "', '".join(series_pc_list)
                             
-                            # CCAST a CHAR para hacer un match perfecto de cadenas en MySQL y evitar fallo por tipo float
                             query_pc = f"""
                                 SELECT Fecha, CAST(Serie AS CHAR) AS Serie_Str, Presion_1 
                                 FROM REGISTRADORES 
@@ -4971,8 +4969,8 @@ elif tab_activa == "sectores":
                                 df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
                                 df_pc_h['Serie_Str'] = df_pc_h['Serie_Str'].astype(str).str.strip()
                                 
-                                # CONVERSIÓN DE UNIDADES: Si el valor es mayor a 5.0 (viene en m.c.a. o décimas), dividimos entre 10 para llevar a Kg/cm²
-                                df_pc_h['Presion_Kg'] = df_pc_h['Presion_1'].apply(lambda x: float(x) / 10.0 if float(x) > 5.0 else float(x))
+                                # Sin alteraciones: se usa directamente el valor original de Presion_1 tal como viene en la BD
+                                df_pc_h['Presion_mca'] = df_pc_h['Presion_1'].astype(float)
 
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -5000,11 +4998,11 @@ elif tab_activa == "sectores":
                                         nombre_lugar = serie_to_name.get(serie, f"Serie {serie}")
 
                                         fig_pc.add_trace(go.Scatter(
-                                            x=df_temp['Fecha'], y=df_temp['Presion_Kg'], 
+                                            x=df_temp['Fecha'], y=df_temp['Presion_mca'], 
                                             name=nombre_lugar, mode='lines+markers',
                                             line=dict(width=2, color=color_trace_pc),
                                             marker=dict(size=3.5, symbol='circle'),
-                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
+                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} mca<extra></extra>'
                                         ))
 
                                 delta_h = pd.Timedelta(hours=1)
@@ -5018,7 +5016,7 @@ elif tab_activa == "sectores":
                                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                                     xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
-                                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
+                                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="mca")
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                             else:
@@ -5095,7 +5093,7 @@ elif tab_activa == "sectores":
                                             marker=dict(size=3.5, symbol='circle'),
                                             fill='tozeroy' if not es_p else None,
                                             fillcolor="rgba(138, 203, 245, 0.15)" if not es_p else None,
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("mca" if es_p else "Lps") + '<extra></extra>'
                                         ))
 
                                 delta_h = pd.Timedelta(hours=1)
@@ -5110,7 +5108,7 @@ elif tab_activa == "sectores":
                                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                                     xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
                                     yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
-                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
+                                    yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
                                 )
                                 st.plotly_chart(fig_vrp, use_container_width=True)
                         except Exception as e:
