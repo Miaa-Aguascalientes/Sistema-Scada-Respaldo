@@ -4924,8 +4924,8 @@ elif tab_activa == "sectores":
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
-            # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (CON DEPURACIÓN VISIBLE)
+           # ==============================================================================
+            # FILA INFERIOR: PUNTOS CRÍTICOS (CORREGIDO PARA EL FORMATO CON PUNTO)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4938,32 +4938,41 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
+                    # Limpiamos y preparamos las series del diccionario (ej. '31219' -> '31.219' o viceversa)
                     series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
                     
-                    # DEPURACIÓN: Muestra en pantalla si leyó las series del sector
-                    st.caption(f"🔍 Series detectadas para este sector: {series_pc_list}")
-                    st.caption(f"📅 Rango de fechas: {f_ini_h} a {f_fin_h}")
-
                     if series_pc_list:
                         try:
                             engine_tele = get_mysql_telemetria_engine()
-                            series_in = "', '".join(series_pc_list)
                             
+                            # Normalizamos para buscar tanto si está con punto ('31.219') como sin él ('31219')
+                            busqueda_series = []
+                            for s in series_pc_list:
+                                busqueda_series.append(s)
+                                if '.' not in s and len(s) > 3:
+                                    # Si es como 31219, agregamos también la variante 31.219 por si acaso
+                                    busqueda_series.append(s[:2] + '.' + s[2:])
+                                elif '.' in s:
+                                    # Si viene con punto, agregamos la versión sin punto
+                                    busqueda_series.append(s.replace('.', ''))
+                                    
+                            series_in = "', '".join(list(set(busqueda_series)))
+                            
+                            # Consulta SQL robusta reemplazando puntos en la BD para hacer el cruce exacto
                             query_pc = f"""
-                                SELECT Fecha, CAST(Serie AS CHAR) AS Serie_Str, Presion_1 
+                                SELECT Fecha, REPLACE(CAST(Serie AS CHAR), '.', '') AS Serie_Clean, CAST(Serie AS CHAR) AS Serie_Str, Presion_1 
                                 FROM REGISTRADORES 
-                                WHERE CAST(Serie AS CHAR) IN ('{series_in}') 
+                                WHERE (REPLACE(CAST(Serie AS CHAR), '.', '') IN ('{series_in.replace(".", "")}')
+                                   OR CAST(Serie AS CHAR) IN ('{series_in}'))
                                   AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}' 
                                 ORDER BY Fecha ASC
                             """
                             df_pc_h = pd.read_sql(query_pc, engine_tele)
 
-                            # DEPURACIÓN: Muestra cuántos registros trajo la base de datos
-                            st.caption(f"📊 Registros obtenidos en DataFrame: {len(df_pc_h)}")
-
                             if not df_pc_h.empty:
                                 df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
-                                df_pc_h['Serie_Str'] = df_pc_h['Serie_Str'].astype(str).str.strip()
+                                # Normalizamos la columna del DF para igualarla con el diccionario
+                                df_pc_h['Serie_Match'] = df_pc_h['Serie_Str'].astype(str).str.replace('.', '', regex=False).str.strip()
                                 df_pc_h['Presion_mca'] = df_pc_h['Presion_1'].astype(float)
 
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -4979,17 +4988,26 @@ elif tab_activa == "sectores":
                                 ]
 
                                 fig_pc = go.Figure()
-                                serie_to_name = {str(v.get('Serie')).strip(): v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+                                # Mapeo tolerante con y sin punto
+                                serie_to_name = {}
+                                for v in dict_pc_sec.values():
+                                    raw_s = str(v.get('Serie')).strip()
+                                    clean_s = raw_s.replace('.', '')
+                                    nombre_lugar = v.get('Domicilio', v.get('nombre', 'Punto Crítico'))
+                                    serie_to_name[raw_s] = nombre_lugar
+                                    serie_to_name[clean_s] = nombre_lugar
                                 
                                 colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
                                 for serie in series_pc_list:
-                                    df_temp = df_pc_h[df_pc_h['Serie_Str'] == serie]
+                                    c_serie = serie.replace('.', '')
+                                    df_temp = df_pc_h[(df_pc_h['Serie_Match'] == c_serie) | (df_pc_h['Serie_Str'] == serie)]
+                                    
                                     if not df_temp.empty:
                                         color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                         idx_pc_c += 1
-                                        nombre_lugar = serie_to_name.get(serie, f"Serie {serie}")
+                                        nombre_lugar = serie_to_name.get(serie, serie_to_name.get(c_serie, f"Serie {serie}"))
 
                                         fig_pc.add_trace(go.Scatter(
                                             x=df_temp['Fecha'], y=df_temp['Presion_mca'], 
@@ -5014,13 +5032,9 @@ elif tab_activa == "sectores":
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                             else:
-                                st.warning("⚠️ El DataFrame de puntos críticos está vacío. La consulta no devolvió filas para estas series y fechas.")
+                                st.warning("⚠️ No hay registros de presión en la tabla REGISTRADORES para estas series y rango de fechas.")
                         except Exception as e:
-                            st.error(f"❌ Error crítico en consulta de Puntos Críticos: {e}")
-                    else:
-                        st.info("ℹ️ No hay series de puntos críticos configuradas para este sector en el diccionario.")
-                else:
-                    st.info("ℹ️ `dict_pc_sec` está vacío para este sector.")
+                            st.error(f"Error en consulta de Puntos Críticos: {e}")
 
             with col_vrp_g:
                 st.markdown(f"""
