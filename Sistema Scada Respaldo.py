@@ -4403,7 +4403,9 @@ elif tab_activa == "tanques":
 
 
 
-
+# ==============================================================================
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON ICONOS ANIMADOS Y FIT_BOUNDS AUTOMÁTICO)
+# ==============================================================================
 
 elif tab_activa == "sectores":
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
@@ -4759,7 +4761,7 @@ elif tab_activa == "sectores":
 
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
-                    val_p = 0.0 # Valor por defecto o se puede enlazar si se desea
+                    val_p = 0.0
                     html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small></div>"""
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
@@ -4802,6 +4804,9 @@ elif tab_activa == "sectores":
                         <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
                     </div>
                 """, unsafe_allow_html=True)
+
+                # Inicialización correcta de la figura para el comportamiento hidráulico
+                fig = go.Figure()
 
                 tags_visualizar = []
                 mapeo_config = {}
@@ -4868,7 +4873,6 @@ elif tab_activa == "sectores":
                                 for d in ticks_filtrados
                             ]
 
-                            fig = go.Figure()
                             idx_q = 0
                             idx_p = 0
 
@@ -4910,28 +4914,21 @@ elif tab_activa == "sectores":
                                 fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                                 fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-                            fig_pc.update_layout(
-                                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                                # --- LEYENDA AJUSTADA SIN ESPACIO MUERTO ---
-                                legend=dict(
-                                    orientation="h", 
-                                    yanchor="bottom", 
-                                    y=1.12,  # Posición ideal justo sobre el gráfico
-                                    x=0.5, 
-                                    xanchor="center", 
-                                    font=dict(color="white", size=9)
-                                ),
-                                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
-                                yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
-                            )
-                            
-                            st.plotly_chart(fig, use_container_width=True)
                     except Exception as e:
-                        st.error(f"Error en gráfica: {e}")
+                        st.error(f"Error en consulta de comportamiento hidráulico: {e}")
+
+                fig.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
+                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados if 'ticks_filtrados' in locals() else None, ticktext=etiquetas_filtradas if 'etiquetas_filtradas' in locals() else None, tickangle=0),
+                    yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                    yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (CONSULTANDO LA TABLA REGISTRADORES) Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4943,7 +4940,6 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Inicializamos la figura para evitar cualquier error de variable no definida
                 fig_pc = go.Figure()
                 
                 if dict_pc_sec:
@@ -5002,23 +4998,24 @@ elif tab_activa == "sectores":
                                 fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                 fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                        fig_pc.update_layout(
-                            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                            margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                            legend=dict(
-                                orientation="h", 
-                                yanchor="bottom", 
-                                y=1.12, 
-                                x=0.5, 
-                                xanchor="center", 
-                                font=dict(color="white", size=9)
-                            ),
-                            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-                            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
-                        )
-                        st.plotly_chart(fig_pc, use_container_width=True)
                     except Exception as e:
                         st.error(f"Error al consultar REGISTRADORES para Puntos Críticos: {e}")
+
+                fig_pc.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="bottom", 
+                        y=1.12, 
+                        x=0.5, 
+                        xanchor="center", 
+                        font=dict(color="white", size=9)
+                    ),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
+                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
+                )
+                st.plotly_chart(fig_pc, use_container_width=True)
 
             with col_vrp_g:
                 st.markdown(f"""
@@ -5103,9 +5100,9 @@ elif tab_activa == "sectores":
                                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                                     margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
                                     legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp, ticktext=etiquetas_vrp, tickangle=0),
+                                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
                                     yaxis=dict(title="Caudal (Lps)", color="#8acbf5", showgrid=True, gridcolor="#16304a", tickformat=".2f"),
-                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ffaa", showgrid=False, tickformat=".2f")
+                                    yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
                                 )
                                 st.plotly_chart(fig_vrp, use_container_width=True)
                         except Exception as e:
