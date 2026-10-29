@@ -4912,12 +4912,12 @@ elif tab_activa == "sectores":
 
                             fig_pc.update_layout(
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                margin=dict(l=40, r=40, t=70, b=10), hovermode="x unified",
-                                # --- LEYENDA VISIBLE ARRIBA ---
+                                margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                                # --- LEYENDA AJUSTADA SIN ESPACIO MUERTO ---
                                 legend=dict(
                                     orientation="h", 
                                     yanchor="bottom", 
-                                    y=1.15,  # Ajusta esta altura si requieres más espacio para los nombres
+                                    y=1.12,  # Posición ideal justo sobre el gráfico
                                     x=0.5, 
                                     xanchor="center", 
                                     font=dict(color="white", size=9)
