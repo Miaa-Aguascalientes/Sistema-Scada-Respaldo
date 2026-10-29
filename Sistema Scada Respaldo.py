@@ -4805,28 +4805,96 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Inicialización correcta de la figura para el comportamiento hidráulico
                 fig = go.Figure()
 
-                tags_visualizar = []
-                mapeo_config = {}
-                tags_grafico_set = set()
+                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                for s_id_reg in list(dict_reg.keys()):
-                    r_info = dict_reg[s_id_reg]
-                    conf_pc = [
-                        ('tag_q', f"S:{s_id_reg} - Q", False),
-                        ('tag_p1', f"S:{s_id_reg} - P1", True),
-                        ('tag_p2', f"S:{s_id_reg} - P2", True)
-                    ]
-                    for key_t, lb, sec in conf_pc:
-                        tag_v = r_info.get(key_t)
-                        if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                            if tag_v not in tags_grafico_set:
-                                tags_visualizar.append(tag_v)
-                                mapeo_config[tag_v] = {'label': lb, 'sec': sec}
-                                tags_grafico_set.add(tag_v)
+                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                num_dias = len(fechas_lineas)
+                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                ticks_filtrados = fechas_lineas[::paso]
 
+                etiquetas_filtradas = [
+                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    for d in ticks_filtrados
+                ]
+
+                idx_q = 0
+                idx_p = 0
+                colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+
+                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE LA TABLA REGISTRADORES
+                if dict_reg:
+                    try:
+                        engine_tel = get_mysql_telemetria_engine()
+                        series_list = [str(v.get('Serie', k)) for k, v in dict_reg.items()]
+                        if series_list:
+                            series_in = "', '".join(series_list)
+                            q_reg_hc = f"""
+                                SELECT Fecha, Serie, Caudal, Presion_1, Presion_2 
+                                FROM REGISTRADORES 
+                                WHERE Serie IN ('{series_in}')
+                                  AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                                ORDER BY Fecha ASC
+                            """
+                            df_reg_hc = pd.read_sql(q_reg_hc, engine_tel)
+                            if not df_reg_hc.empty:
+                                df_reg_hc['FECHA'] = pd.to_datetime(df_reg_hc['Fecha'])
+                                df_reg_hc['serie_norm'] = df_reg_hc['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+
+                                for s_id_reg, r_info in dict_reg.items():
+                                    serie_raw = str(r_info.get('Serie', s_id_reg))
+                                    serie_norm = re.sub(r'\D', '', serie_raw)
+                                    df_temp_reg = df_reg_hc[df_reg_hc['serie_norm'] == serie_norm]
+
+                                    if not df_temp_reg.empty:
+                                        if 'Caudal' in df_temp_reg.columns and df_temp_reg['Caudal'].notna().any():
+                                            color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                            idx_q += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Caudal'],
+                                                name=f"S:{serie_raw} - Q",
+                                                yaxis="y1", mode='lines+markers',
+                                                line=dict(width=2, color=color_q),
+                                                marker=dict(size=3, symbol='circle'),
+                                                fill='tozeroy',
+                                                fillcolor="rgba(138, 203, 245, 0.15)",
+                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                            ))
+
+                                        if 'Presion_1' in df_temp_reg.columns and df_temp_reg['Presion_1'].notna().any():
+                                            color_p1 = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                            idx_p += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Presion_1'],
+                                                name=f"S:{serie_raw} - P1",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p1),
+                                                marker=dict(size=3, symbol='circle'),
+                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                            ))
+
+                                        if 'Presion_2' in df_temp_reg.columns and df_temp_reg['Presion_2'].notna().any():
+                                            color_p2 = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                            idx_p += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Presion_2'],
+                                                name=f"S:{serie_raw} - P2",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p2),
+                                                marker=dict(size=3, symbol='circle'),
+                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                            ))
+                    except Exception as e:
+                        st.error(f"Error al cargar puntos de control desde REGISTRADORES: {e}")
+
+                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA, COMO ESTABA)
+                tags_pozos_visualizar = []
+                mapeo_pozos_config = {}
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
                         p_info = mapa_pozos_dict[id_p]
@@ -4838,65 +4906,36 @@ elif tab_activa == "sectores":
                         for key_t, lb, sec in conf_pz:
                             tag_v = p_info.get(key_t)
                             if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                                if key_t == 'nivel_tanque':
-                                    if tag_v not in tags_grafico_set:
-                                        tags_visualizar.append(tag_v)
-                                        mapeo_config[tag_v] = {'label': "Nivel TQ", 'sec': sec}
-                                        tags_grafico_set.add(tag_v)
-                                else:
-                                    if tag_v not in tags_grafico_set:
-                                        tags_visualizar.append(tag_v)
-                                        mapeo_config[tag_v] = {'label': lb, 'sec': sec}
-                                        tags_grafico_set.add(tag_v)
+                                if tag_v not in tags_pozos_visualizar:
+                                    tags_pozos_visualizar.append(tag_v)
+                                    mapeo_pozos_config[tag_v] = {'label': lb, 'sec': sec}
 
-                if tags_visualizar:
+                if tags_pozos_visualizar:
                     try:
                         engine_h = get_mysql_scada_engine()
-                        tags_unicos_query = "', '".join(list(set(tags_visualizar)))
+                        tags_unicos_query = "', '".join(list(set(tags_pozos_visualizar)))
                         q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
                         df_h = pd.read_sql(q_hist, engine_h)
-                        
+
                         if not df_h.empty:
                             df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
-                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                            fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                            num_dias = len(fechas_lineas)
-                            paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                            ticks_filtrados = fechas_lineas[::paso]
-
-                            etiquetas_filtradas = [
-                                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                                for d in ticks_filtrados
-                            ]
-
-                            idx_q = 0
-                            idx_p = 0
-
-                            for tag_name in tags_visualizar:
+                            for tag_name in tags_pozos_visualizar:
                                 df_tag = df_h[df_h['TAG'] == tag_name]
                                 if not df_tag.empty:
-                                    cfg = mapeo_config[tag_name]
+                                    cfg = mapeo_pozos_config[tag_name]
                                     es_caudal = not cfg['sec']
                                     label_u = cfg['label'].upper()
 
                                     if es_caudal: unidad_pc = "L/s"
                                     elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
                                     else: unidad_pc = "Kg/cm²"
-                                    
+
                                     if "NIVEL" in label_u or "TANQUE" in label_u:
                                         color_base = "#d400ff"
                                     elif es_caudal:
-                                        brillo = max(75 - (idx_q * 15), 35) 
-                                        color_base = f"hsl(200, 100%, {brillo}%)" 
-                                        idx_q += 1
+                                        color_base = "#00d4ff"
                                     else:
-                                        brillo = max(80 - (idx_p * 20), 30)
-                                        color_base = f"hsl(145, 100%, {brillo}%)"
-                                        idx_p += 1
+                                        color_base = "#00ff00"
 
                                     fig.add_trace(go.Scatter(
                                         x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
@@ -4904,24 +4943,23 @@ elif tab_activa == "sectores":
                                         line=dict(width=2, color=color_base),
                                         marker=dict(size=3, symbol='circle'),
                                         fill='tozeroy' if es_caudal else None,
-                                        fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)") if not ("NIVEL" in label_u or "TANQUE" in label_u) else None,
+                                        fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
                                         hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                     ))
-
-                            delta = pd.Timedelta(hours=1)
-                            for d in fechas_lineas:
-                                es_lunes = (d.dayofweek == 0)
-                                fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                                fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-
                     except Exception as e:
-                        st.error(f"Error en consulta de comportamiento hidráulico: {e}")
+                        st.error(f"Error en consulta de pozos para comportamiento hidráulico: {e}")
+
+                delta = pd.Timedelta(hours=1)
+                for d in fechas_lineas:
+                    es_lunes = (d.dayofweek == 0)
+                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
                 fig.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
                     legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados if 'ticks_filtrados' in locals() else None, ticktext=etiquetas_filtradas if 'etiquetas_filtradas' in locals() else None, tickangle=0),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
                     yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
                     yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
                 )
