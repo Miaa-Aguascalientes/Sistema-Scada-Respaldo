@@ -4983,7 +4983,7 @@ elif tab_activa == "sectores":
                                         marker=dict(size=3.5, symbol='circle'), line=dict(width=2, color=color_trace_pc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
                                     ))
-
+# CONFIGURACION GRAFICO PUNTOS DE CONTROL ----------------------------------------------------------------------------------------------------------------------------
                             delta_h = pd.Timedelta(hours=1)
                             for d in fechas_lineas_pc:
                                 es_lunes = (d.dayofweek == 0)
@@ -4992,7 +4992,7 @@ elif tab_activa == "sectores":
 
                             fig_pc.update_layout(
                                 paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                                margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
+                                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
                                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                                 xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc, ticktext=etiquetas_pc, tickangle=0),
                                 yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
@@ -5075,7 +5075,7 @@ elif tab_activa == "sectores":
                                             fillcolor="rgba(138, 203, 245, 0.15)" if not es_p else None,
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + ("kg" if es_p else "Lps") + '<extra></extra>'
                                         ))
-
+# CONFIGURACION GRFICO VRP ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_vrp:
                                     es_lunes = (d.dayofweek == 0)
