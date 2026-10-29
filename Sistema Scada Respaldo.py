@@ -4925,7 +4925,7 @@ elif tab_activa == "sectores":
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (DISEÑO ORIGINAL CON BANDAS Y LÍNEAS DE DÍA)
+            # FILA INFERIOR: PUNTOS CRÍTICOS (CON DEPURACIÓN VISIBLE)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4940,6 +4940,10 @@ elif tab_activa == "sectores":
                 if dict_pc_sec:
                     series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
                     
+                    # DEPURACIÓN: Muestra en pantalla si leyó las series del sector
+                    st.caption(f"🔍 Series detectadas para este sector: {series_pc_list}")
+                    st.caption(f"📅 Rango de fechas: {f_ini_h} a {f_fin_h}")
+
                     if series_pc_list:
                         try:
                             engine_tele = get_mysql_telemetria_engine()
@@ -4953,6 +4957,9 @@ elif tab_activa == "sectores":
                                 ORDER BY Fecha ASC
                             """
                             df_pc_h = pd.read_sql(query_pc, engine_tele)
+
+                            # DEPURACIÓN: Muestra cuántos registros trajo la base de datos
+                            st.caption(f"📊 Registros obtenidos en DataFrame: {len(df_pc_h)}")
 
                             if not df_pc_h.empty:
                                 df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
@@ -5007,9 +5014,13 @@ elif tab_activa == "sectores":
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
                             else:
-                                st.warning("⚠️ No hay registros de presión en la tabla REGISTRADORES para el rango seleccionado.")
+                                st.warning("⚠️ El DataFrame de puntos críticos está vacío. La consulta no devolvió filas para estas series y fechas.")
                         except Exception as e:
-                            st.error(f"Error en consulta de Puntos Críticos: {e}")
+                            st.error(f"❌ Error crítico en consulta de Puntos Críticos: {e}")
+                    else:
+                        st.info("ℹ️ No hay series de puntos críticos configuradas para este sector en el diccionario.")
+                else:
+                    st.info("ℹ️ `dict_pc_sec` está vacío para este sector.")
 
             with col_vrp_g:
                 st.markdown(f"""
