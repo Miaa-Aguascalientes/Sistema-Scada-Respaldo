@@ -4402,15 +4402,9 @@ elif tab_activa == "tanques":
     renderizar_pestana_tanques()
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CONEXIÓN CORRECTA DESDE STREAMLIT SECRETS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON ICONOS ANIMADOS Y FIT_BOUNDS AUTOMÁTICO)
 # ==============================================================================
 elif tab_activa == "sectores":
-    # Función auxiliar para la conexión utilizando los secretos de Streamlit
-    @st.cache_resource
-    def get_mysql_telemetria2_engine():
-        sec = st.secrets["mysql_telemetria"]
-        return create_engine(f"mysql+pymysql://{sec['user']}:{sec['password']}@{sec['host']}:3306/{sec['database']}")
-
     # Inyección de estilo CSS corporativo y animaciones para los indicadores
     st.markdown("""
         <style>
@@ -4424,6 +4418,7 @@ elif tab_activa == "sectores":
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
             
+            /* Animaciones para los indicadores */
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
                 50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
@@ -4446,6 +4441,7 @@ elif tab_activa == "sectores":
             .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
             .anim-float { animation: float-up 3s infinite ease-in-out; }
 
+            /* Estilo para etiquetas pegadas al selector */
             .label-inline {
                 font-size: 0.95rem;
                 font-weight: 600;
@@ -4458,6 +4454,7 @@ elif tab_activa == "sectores":
                 padding-right: 8px;
             }
 
+            /* Tarjetas de Indicadores Superiores */
             .card-indicador {
                 background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
                 border: 1px solid #27445e;
@@ -4473,6 +4470,7 @@ elif tab_activa == "sectores":
             .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
             .sub-indicador { font-size: 1.12rem; color: #73b3d8; margin: 0; }
 
+            /* Tablas de Datos Operativos */
             .st-key-dma_operational table { width: 100%; }
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
@@ -4481,6 +4479,7 @@ elif tab_activa == "sectores":
 
     st.markdown('<div class="titulo-superior">Monitoreo de sectores</div>', unsafe_allow_html=True)
 
+    # 1. Filtros superiores
     lista_nombres_sectores = sorted([str(s['sector']) for s in sectores]) if sectores else []
     
     indice_por_defecto = 0
@@ -4529,6 +4528,7 @@ elif tab_activa == "sectores":
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
+            # LÓGICA DE FECHAS
             hoy_dt = datetime.now()
             medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
             f_fin_h = hoy_dt
@@ -4557,33 +4557,20 @@ elif tab_activa == "sectores":
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # Carga de Registradores y VRPs
+            # Carga de datos de control, VRPs y puntos críticos del sector
             dict_reg_all = cargar_puntos_de_control_desde_db() 
             dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
             
             dict_vrp_all = cargar_vrp_desde_db()
             dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
-            # Extracción directa de la tabla REGISTRADORES usando los secretos de Streamlit
-            dict_pc_sec = {}
-            try:
-                engine_db2 = get_mysql_telemetria2_engine()
-                query_reg = f"SELECT * FROM REGISTRADORES WHERE sector = '{sec_id}'"
-                df_reg_db = pd.read_sql(query_reg, engine_db2)
-                for _, row in df_reg_db.iterrows():
-                    id_reg = str(row.get('Serie', row.get('id', '')))
-                    dict_pc_sec[id_reg] = {
-                        'sector': row.get('sector'),
-                        'nombre': row.get('nombre', 'Punto Crítico'),
-                        'Domicilio': row.get('Domicilio', row.get('domicilio', 'S/D')),
-                        'tag_p1': row.get('tag_p1', row.get('tag', '')),
-                        'coord': [float(row.get('lat', 21.88)), float(row.get('lon', -102.28))]
-                    }
-            except Exception as e:
-                st.error(f"Error al consultar REGISTRADORES en miaamx_telemetria2: {e}")
+            mapa_pc_all = cargar_puntos_criticos_desde_db()
+            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
+            # Recopilación de pozos asociados al sector
             ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
+            # Recopilación de tags para SCADA y pozos evitando duplicados
             tags_para_scada = []
             tags_caudal_pozos = []
             tags_agregados_set = set()
@@ -4633,6 +4620,7 @@ elif tab_activa == "sectores":
 
             scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
 
+            # CÁLCULO EXCLUSIVO DEL CAUDAL DE POZOS PARA EL INDICADOR SUPERIOR
             caudal_promedio_pozos = 0.0
             if tags_caudal_pozos:
                 try:
@@ -4664,6 +4652,7 @@ elif tab_activa == "sectores":
 
             demanda_fmt = fmt_miles(demanda_estimada_val)
 
+            # Extracción del Nivel TQ único para la tabla inferior
             texto_nivel_tq = "Sin registro de nivel TQ"
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
@@ -4675,6 +4664,7 @@ elif tab_activa == "sectores":
                         texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
                         break
 
+            # Tarjetas de Indicadores Superiores con Títulos Centrados e Iconos Animados
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             with c1:
                 st.markdown(f'''<div class="card-indicador">
@@ -4732,6 +4722,9 @@ elif tab_activa == "sectores":
                 </div>''', unsafe_allow_html=True)
             st.write("")
 
+            # ==============================================================================
+            # FILA SUPERIOR: MAPA (CON FIT_BOUNDS EXACTO AL SECTOR) Y COMPORTAMIENTO
+            # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
             with col_izq:
@@ -4742,7 +4735,10 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Mapa base general
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
+                
+                # Capas base
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
@@ -4753,12 +4749,14 @@ elif tab_activa == "sectores":
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
 
+                # Grupos de capas independientes (FeatureGroups)
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
                 capa_criticos = folium.FeatureGroup(name="Puntos críticos", overlay=True, control=True).add_to(m_sec)
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
+                # 1. Polígono del sector y ajuste automático de zoom (fit_bounds)
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
@@ -4771,6 +4769,7 @@ elif tab_activa == "sectores":
                     except: 
                         pass
 
+                # 2. Puntos de Control (Azules)
                 for r in dict_reg.values():
                     def get_rv(tk):
                         v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -4783,6 +4782,7 @@ elif tab_activa == "sectores":
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(capa_control)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg} • Punto de control</div>')).add_to(capa_control)
 
+                # 3. Puntos Críticos (Rojos)
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
@@ -4791,6 +4791,7 @@ elif tab_activa == "sectores":
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
 
+                # 4. VRPs (Verdes)
                 for id_vrp, vrp in dict_vrp_sec.items():
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
@@ -4800,6 +4801,7 @@ elif tab_activa == "sectores":
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
+                # 5. Pozos
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
                         p_info = mapa_pozos_dict[id_p]
@@ -4948,13 +4950,16 @@ elif tab_activa == "sectores":
                     except Exception as e:
                         st.error(f"Error en gráfica: {e}")
 
+            # ==============================================================================
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
+            # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
             with col_pc:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES en miaamx_telemetria2)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión en los puntos críticos del sector</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -5105,6 +5110,9 @@ elif tab_activa == "sectores":
                         except Exception as e:
                             st.error(f"Error en gráfica de VRPs: {e}")
 
+            # ==============================================================================
+            # SECCIÓN INFERIOR: TABLA DE DATOS OPERATIVOS
+            # ==============================================================================
             st.write("")
             st.markdown(f"""
                 <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
@@ -5136,4 +5144,6 @@ elif tab_activa == "sectores":
             """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
+
+
       
