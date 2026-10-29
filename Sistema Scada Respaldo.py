@@ -4936,7 +4936,7 @@ elif tab_activa == "sectores":
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (DESDE LA TABLA REGISTRADORES USANDO EL DICCIONARIO) Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS (DESDE REGISTRADORES NORMALIZADO CON CONVERSIÓN Y CAST) Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4949,27 +4949,30 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
-                    # Obtenemos los números de serie desde el diccionario (Diccionario_puntos_criticos)
+                    # Normalización estricta de las series
                     series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
                     
                     if series_pc_list:
                         try:
-                            engine_telemetria = get_mysql_telemetria_engine()
+                            engine_tele = get_mysql_telemetria_engine()
                             series_in = "', '".join(series_pc_list)
                             
-                            # Consultamos directamente la tabla REGISTRADORES usando la serie y el rango de fechas
+                            # CCAST a CHAR para hacer un match perfecto de cadenas en MySQL y evitar fallo por tipo float
                             query_pc = f"""
-                                SELECT Fecha, Serie, Presion_1 
+                                SELECT Fecha, CAST(Serie AS CHAR) AS Serie_Str, Presion_1 
                                 FROM REGISTRADORES 
-                                WHERE Serie IN ('{series_in}') 
+                                WHERE CAST(Serie AS CHAR) IN ('{series_in}') 
                                   AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}' 
                                 ORDER BY Fecha ASC
                             """
-                            df_pc_h = pd.read_sql(query_pc, engine_telemetria)
+                            df_pc_h = pd.read_sql(query_pc, engine_tele)
 
                             if not df_pc_h.empty:
                                 df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
-                                df_pc_h['Serie'] = df_pc_h['Serie'].astype(str).str.strip()
+                                df_pc_h['Serie_Str'] = df_pc_h['Serie_Str'].astype(str).str.strip()
+                                
+                                # CONVERSIÓN DE UNIDADES: Si el valor es mayor a 5.0 (viene en m.c.a. o décimas), dividimos entre 10 para llevar a Kg/cm²
+                                df_pc_h['Presion_Kg'] = df_pc_h['Presion_1'].apply(lambda x: float(x) / 10.0 if float(x) > 5.0 else float(x))
 
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -4984,21 +4987,20 @@ elif tab_activa == "sectores":
                                 ]
 
                                 fig_pc = go.Figure()
-                                # Mapeo de la Serie al Domicilio (nombre) almacenado en el diccionario
                                 serie_to_name = {str(v.get('Serie')).strip(): v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
                                 
                                 colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
                                 for serie in series_pc_list:
-                                    df_temp = df_pc_h[df_pc_h['Serie'] == serie]
+                                    df_temp = df_pc_h[df_pc_h['Serie_Str'] == serie]
                                     if not df_temp.empty:
                                         color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                         idx_pc_c += 1
                                         nombre_lugar = serie_to_name.get(serie, f"Serie {serie}")
 
                                         fig_pc.add_trace(go.Scatter(
-                                            x=df_temp['Fecha'], y=df_temp['Presion_1'], 
+                                            x=df_temp['Fecha'], y=df_temp['Presion_Kg'], 
                                             name=nombre_lugar, mode='lines+markers',
                                             line=dict(width=2, color=color_trace_pc),
                                             marker=dict(size=3.5, symbol='circle'),
@@ -5019,8 +5021,10 @@ elif tab_activa == "sectores":
                                     yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                                 )
                                 st.plotly_chart(fig_pc, use_container_width=True)
+                            else:
+                                st.warning("⚠️ No hay registros de presión en la tabla REGISTRADORES para el rango seleccionado.")
                         except Exception as e:
-                            st.error(f"Error en gráfica de Puntos Críticos: {e}")
+                            st.error(f"Error en consulta de Puntos Críticos: {e}")
 
             with col_vrp_g:
                 st.markdown(f"""
@@ -5146,6 +5150,5 @@ elif tab_activa == "sectores":
             """, unsafe_allow_html=True)
         else:
             st.info("👆 Seleccione un sector en el menú desplegable superior para cargar el análisis integral.")
-
 
       
