@@ -4604,12 +4604,6 @@ elif tab_activa == "sectores":
                                 tags_para_scada.append(t_val)
                                 tags_agregados_set.add(t_val)
 
-            for pc in dict_pc_sec.values():
-                t_pc = pc.get('tag_p1')
-                if t_pc and t_pc not in tags_agregados_set:
-                    tags_para_scada.append(t_pc)
-                    tags_agregados_set.add(t_pc)
-                    
             for v in dict_vrp_sec.values():
                 for k in ['tag_p1', 'tag_p2', 'tag_q']:
                     t_vrp = v.get(k)
@@ -4723,7 +4717,7 @@ elif tab_activa == "sectores":
             st.write("")
 
             # ==============================================================================
-            # FILA SUPERIOR: MAPA (CON FIT_BOUNDS EXACTO AL SECTOR) Y COMPORTAMIENTO
+            # FILA SUPERIOR: MAPA Y COMPORTAMIENTO
             # ==============================================================================
             col_izq, col_der = st.columns([1.0, 1.0])
             
@@ -4735,10 +4729,7 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Mapa base general
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
-                
-                # Capas base
                 folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
                 
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
@@ -4749,14 +4740,12 @@ elif tab_activa == "sectores":
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
 
-                # Grupos de capas independientes (FeatureGroups)
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
                 capa_criticos = folium.FeatureGroup(name="Puntos críticos", overlay=True, control=True).add_to(m_sec)
                 capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
                 capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
-                # 1. Polígono del sector y ajuste automático de zoom (fit_bounds)
                 if datos_s and datos_s.get('geo'):
                     try:
                         geo_data = json.loads(datos_s['geo'])
@@ -4769,7 +4758,6 @@ elif tab_activa == "sectores":
                     except: 
                         pass
 
-                # 2. Puntos de Control (Azules)
                 for r in dict_reg.values():
                     def get_rv(tk):
                         v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
@@ -4782,7 +4770,6 @@ elif tab_activa == "sectores":
                     folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(capa_control)
                     folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg} • Punto de control</div>')).add_to(capa_control)
 
-                # 3. Puntos Críticos (Rojos)
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
                     val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
@@ -4791,7 +4778,6 @@ elif tab_activa == "sectores":
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
 
-                # 4. VRPs (Verdes)
                 for id_vrp, vrp in dict_vrp_sec.items():
                     val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
                     val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
@@ -4801,7 +4787,6 @@ elif tab_activa == "sectores":
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
-                # 5. Pozos
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
                         p_info = mapa_pozos_dict[id_p]
@@ -4951,7 +4936,7 @@ elif tab_activa == "sectores":
                         st.error(f"Error en gráfica: {e}")
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS (DESDE LA TABLA REGISTRADORES USANDO EL DICCIONARIO) Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -4964,14 +4949,28 @@ elif tab_activa == "sectores":
                 """, unsafe_allow_html=True)
                 
                 if dict_pc_sec:
-                    tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
-                    if tags_pc_list:
+                    # Obtenemos los números de serie desde el diccionario (Diccionario_puntos_criticos)
+                    series_pc_list = [str(v.get('Serie')).strip() for v in dict_pc_sec.values() if v.get('Serie') is not None]
+                    
+                    if series_pc_list:
                         try:
-                            tags_pc_in = "', '".join(tags_pc_list)
-                            df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC", engine_h)
+                            engine_telemetria = get_mysql_telemetria_engine()
+                            series_in = "', '".join(series_pc_list)
+                            
+                            # Consultamos directamente la tabla REGISTRADORES usando la serie y el rango de fechas
+                            query_pc = f"""
+                                SELECT Fecha, Serie, Presion_1 
+                                FROM REGISTRADORES 
+                                WHERE Serie IN ('{series_in}') 
+                                  AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}' 
+                                ORDER BY Fecha ASC
+                            """
+                            df_pc_h = pd.read_sql(query_pc, engine_telemetria)
 
                             if not df_pc_h.empty:
-                                df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
+                                df_pc_h['Fecha'] = pd.to_datetime(df_pc_h['Fecha'])
+                                df_pc_h['Serie'] = df_pc_h['Serie'].astype(str).str.strip()
+
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
@@ -4985,19 +4984,22 @@ elif tab_activa == "sectores":
                                 ]
 
                                 fig_pc = go.Figure()
-                                tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+                                # Mapeo de la Serie al Domicilio (nombre) almacenado en el diccionario
+                                serie_to_name = {str(v.get('Serie')).strip(): v.get('Domicilio', v.get('nombre', 'Punto Crítico')) for v in dict_pc_sec.values()}
+                                
                                 colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
-                                for tag in tags_pc_list:
-                                    df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                                for serie in series_pc_list:
+                                    df_temp = df_pc_h[df_pc_h['Serie'] == serie]
                                     if not df_temp.empty:
                                         color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                         idx_pc_c += 1
+                                        nombre_lugar = serie_to_name.get(serie, f"Serie {serie}")
 
                                         fig_pc.add_trace(go.Scatter(
-                                            x=df_temp['FECHA'], y=df_temp['VALUE'], 
-                                            name=tag_to_name.get(tag, tag), mode='lines+markers',
+                                            x=df_temp['Fecha'], y=df_temp['Presion_1'], 
+                                            name=nombre_lugar, mode='lines+markers',
                                             line=dict(width=2, color=color_trace_pc),
                                             marker=dict(size=3.5, symbol='circle'),
                                             hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
