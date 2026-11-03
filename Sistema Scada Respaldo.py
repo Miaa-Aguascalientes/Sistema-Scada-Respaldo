@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL A ANCHO COMPLETO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL EN TABLA A ANCHO COMPLETO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3998,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL DE INCIDENCIAS CERRADAS
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL EN TABLA CLÁSICA
         # ==============================================================================
         st.markdown("---")
         st.subheader("📜 Historial de Incidencias Cerradas")
