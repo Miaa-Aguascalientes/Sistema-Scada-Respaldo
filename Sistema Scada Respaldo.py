@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORREGIDA CON SCROLLBAR Y NO REPETICIÓN)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORREGIDO Y ESTABLE)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3775,41 +3775,10 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS DE COLONIAS AFECTADAS (AGRUPADAS Y CON SCROLLBAR)
+        # COLUMNA IZQUIERDA: TARJETAS DE SECTORES AFECTADOS CON CONTENEDOR NATIVO SCROLLABLE
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// COLONIAS AFECTADAS</div>', unsafe_allow_html=True)
-            
-            # Estilos CSS con Scrollbar personalizada para limitar a 5 tarjetas visibles (~560px)
-            st.markdown("""
-                <style>
-                .colonias-scroll-container {
-                    max-height: 560px;
-                    overflow-y: auto;
-                    padding-right: 6px;
-                }
-                .colonias-scroll-container::-webkit-scrollbar {
-                    width: 6px;
-                }
-                .colonias-scroll-container::-webkit-scrollbar-track {
-                    background: rgba(10, 20, 30, 0.6);
-                    border-radius: 4px;
-                }
-                .colonias-scroll-container::-webkit-scrollbar-thumb {
-                    background: #00d4ff;
-                    border-radius: 4px;
-                    box-shadow: 0 0 6px rgba(0, 212, 255, 0.5);
-                }
-                .card-colonia-afectada {
-                    background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(4, 12, 22, 1) 100%);
-                    border: 1px solid #1f4068;
-                    border-radius: 8px;
-                    padding: 10px 12px;
-                    margin-bottom: 10px;
-                    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
-                }
-                </style>
-            """, unsafe_allow_html=True)
 
             gdf_sec_geo = get_todos_los_sectores_geo()
             sectores_agrupados = {}
@@ -3834,9 +3803,8 @@ elif tab_activa == "incidencias":
                     sector_nombre = "Sin Sector"
                     nombres_cols = ["Zona General"]
 
-                # LÓGICA DE NO REPETICIÓN: Agrupamos por nombre de sector
+                # Agrupación por sector para evitar duplicados
                 if sector_nombre not in sectores_agrupados:
-                    # Buscamos propiedades del sector en la capa geográfica para calcular color/afectación real
                     props_sec = {}
                     if gdf_sec_geo is not None and not gdf_sec_geo.empty:
                         matched = gdf_sec_geo[gdf_sec_geo['Sector'].astype(str).str.strip() == sector_nombre]
@@ -3865,38 +3833,33 @@ elif tab_activa == "incidencias":
                     if diag_inc not in sec['incidencias']:
                         sec['incidencias'].append(diag_inc)
 
-            # Ordenamos los sectores agrupados por tiempo fuera de operación (de mayor a menor)
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
-            html_tarjetas = []
-            for sec_name, sec_data in sectores_ordenados:
-                pozos_str = ", ".join(sec_data['pozos'])
-                colonias_str = ", ".join(sorted(sec_data['colonias']))
-                incidencias_str = " | ".join(sec_data['incidencias'])
-                pct_str = f"{int(sec_data['val_afectacion'])}%" if sec_data['val_afectacion'] > 0 else "N/D"
-                color_border = sec_data['color_badge']
+            # Contenedor nativo de Streamlit con scroll vertical fijo (altura para ~5 tarjetas)
+            with st.container(height=560, border=False):
+                if sectores_ordenados:
+                    for sec_name, sec_data in sectores_ordenados:
+                        pozos_str = ", ".join(sec_data['pozos'])
+                        colonias_str = ", ".join(sorted(sec_data['colonias']))
+                        incidencias_str = " | ".join(sec_data['incidencias'])
+                        pct_str = f"{int(sec_data['val_afectacion'])}%" if sec_data['val_afectacion'] > 0 else "N/D"
+                        color_border = sec_data['color_badge']
 
-                card_html = f"""
-                <div class="card-colonia-afectada" style="border-left: 5px solid {color_border};">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                        <span style="color: #00d4ff; font-weight: bold; font-size: 13px;">Sector: {sec_name}</span>
-                        <span style="background-color: {color_border}; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {pct_str}</span>
-                    </div>
-                    <div style="font-size: 11px; color: #ffffff; margin-bottom: 3px;">Pozo(s): <b>{pozos_str}</b> | Fuera de operación: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
-                    <div style="font-size: 10.5px; color: #a0aec0; margin-bottom: 4px; line-height: 1.2;"><b>Colonias:</b> {colonias_str}</div>
-                    <div style="font-size: 10.5px; color: #ff6b6b; font-weight: bold;">Incidencia: {incidencias_str}</div>
-                </div>
-                """
-                html_tarjetas.append(card_html)
-
-            # Renderizamos dentro del contenedor con scrollbar
-            if html_tarjetas:
-                st.markdown(f'<div class="colonias-scroll-container">{"".join(html_tarjetas)}</div>', unsafe_allow_html=True)
-            else:
-                st.info("No hay sectores con incidencias activas.")
+                        with st.container(border=True):
+                            st.markdown(f"""
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="color: #00d4ff; font-weight: bold; font-size: 13px;">Sector: {sec_name}</span>
+                                    <span style="background-color: {color_border}; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {pct_str}</span>
+                                </div>
+                                <div style="font-size: 11px; color: #ffffff; margin-bottom: 3px;">Pozo(s): <b>{pozos_str}</b> | Fuera de op: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
+                                <div style="font-size: 10.5px; color: #a0aec0; margin-bottom: 4px; line-height: 1.2;"><b>Colonias:</b> {colonias_str}</div>
+                                <div style="font-size: 10.5px; color: #ff6b6b; font-weight: bold;">Incidencia: {incidencias_str}</div>
+                            """, unsafe_allow_html=True)
+                else:
+                    st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES CORREGIDOS Y LISTADO DE INCIDENCIAS
+        # COLUMNA DERECHA: INDICADORES ESTABLES Y LISTADO DE INCIDENCIAS
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3906,16 +3869,12 @@ elif tab_activa == "incidencias":
             total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
             total_activas_y_dia = len(df_actual)
 
-            # MÉRICA DE 4 COLUMNAS LIMPIAS USANDO METRIC CARDS NATIVAS DE STREAMLIT (SIN ERRORES HTML)
+            # Tarjetas de métricas estables con st.metric nativo
             mc1, mc2, mc3, mc4 = st.columns(4)
-            with mc1:
-                st.markdown(f'<div style="background-color: #111418; border: 1px solid #d4ac0d; border-radius: 8px; padding: 8px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #f1c40f;">EN PROCESO</div><div style="font-size: 22px; font-weight: bold; color: white;">{total_en_proceso}</div></div>', unsafe_allow_html=True)
-            with mc2:
-                st.markdown(f'<div style="background-color: #111418; border: 1px solid #c0392b; border-radius: 8px; padding: 8px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #e74c3c;">PENDIENTES</div><div style="font-size: 22px; font-weight: bold; color: white;">{total_pendientes}</div></div>', unsafe_allow_html=True)
-            with mc3:
-                st.markdown(f'<div style="background-color: #111418; border: 1px solid #196f3d; border-radius: 8px; padding: 8px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #2ecc71;">CERRADAS</div><div style="font-size: 22px; font-weight: bold; color: white;">{total_cerradas_hoy}</div></div>', unsafe_allow_html=True)
-            with mc4:
-                st.markdown(f'<div style="background-color: #111418; border: 1px solid #2e4053; border-radius: 8px; padding: 8px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #bdc3c7;">TOTAL ACTIVAS</div><div style="font-size: 22px; font-weight: bold; color: white;">{total_activas_y_dia}</div></div>', unsafe_allow_html=True)
+            with mc1: st.metric("EN PROCESO", total_en_proceso)
+            with mc2: st.metric("PENDIENTES", total_pendientes)
+            with mc3: st.metric("CERRADAS", total_cerradas_hoy)
+            with mc4: st.metric("TOTAL ACTIVAS", total_activas_y_dia)
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
