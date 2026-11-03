@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORREGIDO - HTML NATIVO SEGURO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO LIMPIO Y CORREGIDO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3651,6 +3651,7 @@ elif tab_activa == "incidencias":
 
         col1, col2 = st.columns([3, 2], gap="small")
         
+        # COLUMNA IZQUIERDA DEL EXPANDER: SÓLO EL MAPA (Se removió el listado repetido de colonias)
         with col1:
             if gdf is not None and not gdf.empty:
                 try:
@@ -3692,6 +3693,7 @@ elif tab_activa == "incidencias":
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
+        # COLUMNA DERECHA DEL EXPANDER: TIEMPO DE ATENCIÓN Y DATOS
         with col2:
             st.subheader("Tiempo de Atención")
             estatus = str(row.get('ESTATUS', '')).upper()
@@ -3772,10 +3774,37 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS HUD SEGURAS (SIN HTML ROTO)
+        # COLUMNA IZQUIERDA: TARJETAS HUD (SIN INCIDENCIA, SÓLO POZO, SECTOR, TIEMPO Y COLONIAS)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
+
+            st.markdown("""
+                <style>
+                .hud-card {
+                    background: linear-gradient(180deg, rgba(13, 27, 42, 0.95) 0%, rgba(6, 14, 24, 1) 100%);
+                    border: 1px solid #1f3a5f;
+                    border-radius: 10px;
+                    padding: 12px;
+                    margin-bottom: 12px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+                }
+                .colonias-box-hud {
+                    background-color: rgba(0, 0, 0, 0.4);
+                    border: 1px solid #1b2a38;
+                    border-radius: 6px;
+                    padding: 8px;
+                    max-height: 75px;
+                    overflow-y: auto;
+                    font-size: 10px;
+                    color: #b0c4de;
+                    margin-bottom: 4px;
+                    line-height: 1.3;
+                }
+                .colonias-box-hud::-webkit-scrollbar { width: 4px; }
+                .colonias-box-hud::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 4px; }
+                </style>
+            """, unsafe_allow_html=True)
 
             gdf_sec_geo = get_todos_los_sectores_geo()
             sectores_agrupados = {}
@@ -3797,7 +3826,7 @@ elif tab_activa == "incidencias":
                     nombres_cols = sorted([c.strip() for c in gdf_r['Col_atl'].dropna().unique() if str(c).strip()])
                 else:
                     sector_nombre = "Sin Sector"
-                    nombres_cols = []
+                    nombres_cols = ["Zona General"]
 
                 if sector_nombre not in sectores_agrupados:
                     props_sec = {}
@@ -3831,32 +3860,32 @@ elif tab_activa == "incidencias":
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
                         pozos_str = ", ".join(sec_data['pozos'])
-                        lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
-                        colonias_str = ", ".join(lista_cols_validas) if lista_cols_validas else ""
-                        
+                        colonias_str = ", ".join(sorted(sec_data['colonias']))
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         pct_str = f"{pct_val}% AFECTACIÓN" if pct_val > 0 else "N/D"
                         bg_badge = "#FF4B4B" if pct_val > 50 else ("#F1C40F" if pct_val > 0 else "#3498DB")
 
-                        # Tarjeta contenedora visual limpia utilizando contenedores nativos
-                        with st.container(border=True):
-                            c_top1, c_top2 = st.columns([3, 1])
-                            with c_top1:
-                                st.markdown(f"**Pozo(s): {pozos_str}**")
-                            with c_top2:
-                                st.markdown(f'<div style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; text-align: center;">{pct_str}</div>', unsafe_allow_html=True)
-                            
-                            st.markdown(f"🎛️ Sector: <b style='color: #00d4ff;'>{sec_name}</b> | Fuera de op: <b style='color:#ffff00;'>{sec_data['max_tiempo_str']}</b>", unsafe_allow_html=True)
-                            
-                            # Si hay colonias, se muestran dentro de una cajita scrolleable limpia
-                            if colonias_str:
-                                st.markdown("**COLONIAS:**")
-                                st.markdown(f'<div style="background-color: rgba(0, 0, 0, 0.4); border: 1px solid #1b2a38; border-radius: 6px; padding: 8px; max-height: 75px; overflow-y: auto; font-size: 10px; color: #b0c4de;">{colonias_str}</div>', unsafe_allow_html=True)
+                        st.markdown(f"""
+                            <div class="hud-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 13px;">Pozo(s): {pozos_str}</span>
+                                    <span style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">{pct_str}</span>
+                                </div>
+                                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                                    <div style="font-size: 24px;">🎛️</div>
+                                    <div style="font-size: 11px; color: #a0aec0; width: 100%;">
+                                        <div>Sector: <b style="color: #00d4ff;">{sec_name}</b> | Fuera de op: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
+                                        <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
+                                        <div class="colonias-box-hud">{colonias_str}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
                 else:
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO
+        # COLUMNA DERECHA: INDICADORES SUPERIORES CON STREAMLIT NATIVO Y LISTADO
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3866,6 +3895,7 @@ elif tab_activa == "incidencias":
             total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
             total_activas_y_dia = len(df_actual)
 
+            # Tarjetas de métricas superiores perfectamente alineadas y estables con columnas nativas
             m1, m2, m3, m4 = st.columns(4)
             with m1:
                 st.markdown(f'<div style="background-color: #111418; border: 1px solid #d4ac0d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #f1c40f;">EN PROCESO</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_en_proceso}</div></div>', unsafe_allow_html=True)
@@ -3944,8 +3974,8 @@ elif tab_activa == "incidencias":
                     
                     duraciones = []
                     for _, row_t in datos_pagina.iterrows():
-                        if pd.notnull(row_t['FECHA_FIN']):
-                            delta = row_t['FECHA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        if pd.notnull(row_t['FECHA_HORA_FIN']):
+                            delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
                             duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
                         else:
                             duraciones.append("N/A")
@@ -3961,11 +3991,10 @@ elif tab_activa == "incidencias":
                             cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
                             colonias_por_fila.append(", ".join(map(str, cols_unicas)))
                         else:
-                            colonias_por_fila.append("")
+                            colonias_por_fila.append("N/A")
                     
                     df_tabla['Colonias Afectadas'] = colonias_por_fila
                     st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
-
                     
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
