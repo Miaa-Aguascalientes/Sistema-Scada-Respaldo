@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORRECCIÓN DE COLUMNA EN HISTORIAL)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TIEMPOS INDIVIDUALES Y EN RECUPERACIÓN)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3772,7 +3772,7 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS HUD (SIN COLONIAS = SE OMITE LA TARJETA)
+        # COLUMNA IZQUIERDA: TARJETAS HUD (TIEMPOS INDIVIDUALES Y "EN RECUPERACIÓN")
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
@@ -3815,7 +3815,14 @@ elif tab_activa == "incidencias":
                 
                 dias = duracion_delta.days
                 horas = duracion_delta.seconds // 3600
-                tiempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas}h"
+                minutos = (duracion_delta.seconds % 3600) // 60
+                
+                if dias > 0:
+                    tiempo_str = f"{dias}d {horas}h"
+                elif horas > 0:
+                    tiempo_str = f"{horas}h"
+                else:
+                    tiempo_str = f"{minutos}m"
                 
                 gdf_r = get_geometries(id_p_inc)
                 
@@ -3836,20 +3843,17 @@ elif tab_activa == "incidencias":
                     color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
                     
                     sectores_agrupados[sector_nombre] = {
-                        'pozos': [id_p_inc],
+                        'pozo_tiempos': [(id_p_inc, tiempo_str)],
                         'max_segundos': segundos_fuera,
-                        'max_tiempo_str': tiempo_str,
                         'colonias': set(nombres_cols),
                         'color_badge': color_afec,
                         'val_afectacion': val_afec
                     }
                 else:
                     sec = sectores_agrupados[sector_nombre]
-                    if id_p_inc not in sec['pozos']:
-                        sec['pozos'].append(id_p_inc)
+                    sec['pozo_tiempos'].append((id_p_inc, tiempo_str))
                     if segundos_fuera > sec['max_segundos']:
                         sec['max_segundos'] = segundos_fuera
-                        sec['max_tiempo_str'] = tiempo_str
                     sec['colonias'].update(nombres_cols)
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
@@ -3860,17 +3864,31 @@ elif tab_activa == "incidencias":
                     for sec_name, sec_data in sectores_ordenados:
                         lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
                         
-                        # Si no tiene colonias registradas, se omite por completo
                         if not lista_cols_validas:
                             continue
 
                         tarjetas_renderizadas += 1
-                        pozos_str = ", ".join(sec_data['pozos'])
+                        
+                        # Construimos la cadena con el tiempo fuera de operación específico de cada pozo
+                        desglose_pozos = []
+                        lista_nombres_pozos = []
+                        for p_id, t_str in sec_data['pozo_tiempos']:
+                            lista_nombres_pozos.append(p_id)
+                            desglose_pozos.append(f"{p_id}: <b style='color:#ffff00;'>{t_str}</b>")
+                        
+                        pozos_str = ", ".join(lista_nombres_pozos)
+                        tiempos_str = " | ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
-                        pct_str = f"{pct_val}% AFECTACIÓN" if pct_val > 0 else "N/D"
-                        bg_badge = "#FF4B4B" if pct_val > 50 else ("#F1C40F" if pct_val > 0 else "#3498DB")
+                        
+                        # Si la afectación es 0 o no disponible, muestra "EN RECUPERACIÓN" en lugar de "N/D"
+                        if pct_val > 0:
+                            pct_str = f"{pct_val}% AFECTACIÓN"
+                            bg_badge = "#FF4B4B" if pct_val > 50 else "#F1C40F"
+                        else:
+                            pct_str = "EN RECUPERACIÓN"
+                            bg_badge = "#3498DB"
 
                         st.markdown(f"""
                             <div class="hud-card">
@@ -3881,7 +3899,8 @@ elif tab_activa == "incidencias":
                                 <div style="display: flex; gap: 10px; align-items: flex-start;">
                                     <div style="font-size: 24px;">🎛️</div>
                                     <div style="font-size: 11px; color: #a0aec0; width: 100%;">
-                                        <div>Sector: <b style="color: #00d4ff;">{sec_name}</b> | Fuera de op: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
+                                        <div>Sector: <b style="color: #00d4ff;">{sec_name}</b></div>
+                                        <div style="margin-top: 2px;">Fuera de op: {tiempos_str}</div>
                                         <div style="margin-top: 4px;"><b>COLONIAS:</b></div>
                                         <div class="colonias-box-hud">{colonias_str}</div>
                                     </div>
