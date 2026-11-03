@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (TIEMPOS INDIVIDUALES Y EN RECUPERACIÓN)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORRECCIÓN DE TIEMPO EN CERRADAS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3772,7 +3772,7 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS HUD (TIEMPOS INDIVIDUALES Y "EN RECUPERACIÓN")
+        # COLUMNA IZQUIERDA: TARJETAS HUD (TIEMPO REAL SI ACTIVA, TIEMPO REAL DE DURACIÓN SI CERRADA)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
@@ -3810,7 +3810,16 @@ elif tab_activa == "incidencias":
             for _, r_inc in df_actual.iterrows():
                 id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
                 inicio_inc = pd.to_datetime(r_inc.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                duracion_delta = ahora_mx - inicio_inc
+                estatus_inc = str(r_inc.get('ESTATUS', '')).upper()
+                fin_inc = r_inc.get('FECHA_HORA_FIN')
+
+                # Si ya está cerrada, el tiempo fuera de operación es el lapso exacto que duró el evento
+                if estatus_inc == 'CERRADA' and pd.notnull(fin_inc):
+                    fin_dt = pd.to_datetime(fin_inc).tz_localize(None).tz_localize(tz_mx)
+                    duracion_delta = fin_dt - inicio_inc
+                else:
+                    duracion_delta = ahora_mx - inicio_inc
+
                 segundos_fuera = duracion_delta.total_seconds()
                 
                 dias = duracion_delta.days
@@ -3820,7 +3829,7 @@ elif tab_activa == "incidencias":
                 if dias > 0:
                     tiempo_str = f"{dias}d {horas}h"
                 elif horas > 0:
-                    tiempo_str = f"{horas}h"
+                    tiempo_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
                 else:
                     tiempo_str = f"{minutos}m"
                 
@@ -3869,7 +3878,6 @@ elif tab_activa == "incidencias":
 
                         tarjetas_renderizadas += 1
                         
-                        # Construimos la cadena con el tiempo fuera de operación específico de cada pozo
                         desglose_pozos = []
                         lista_nombres_pozos = []
                         for p_id, t_str in sec_data['pozo_tiempos']:
@@ -3882,7 +3890,6 @@ elif tab_activa == "incidencias":
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         
-                        # Si la afectación es 0 o no disponible, muestra "EN RECUPERACIÓN" en lugar de "N/D"
                         if pct_val > 0:
                             pct_str = f"{pct_val}% AFECTACIÓN"
                             bg_badge = "#FF4B4B" if pct_val > 50 else "#F1C40F"
