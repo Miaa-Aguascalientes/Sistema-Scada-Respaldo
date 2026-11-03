@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (ACTUALIZADO CON TÍTULO LIMPIO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL A ANCHO COMPLETO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3783,11 +3783,11 @@ elif tab_activa == "incidencias":
         df_actual = df_final[mask_activas | mask_cerradas_hoy]
         df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)].copy()
 
-        # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES ---
+        # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES (SUPERIOR) ---
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TÍTULO ACTUALIZADO, SELECTOR LIMPIO Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
@@ -3954,7 +3954,7 @@ elif tab_activa == "incidencias":
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO
+        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO DE ACTIVAS
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3997,72 +3997,75 @@ elif tab_activa == "incidencias":
                 with st.expander(titulo):
                     renderizar_bloque_incidencia(row, index, "act")
 
-            st.markdown("---")
-            st.subheader("📜 Historial de Incidencias Cerradas")
+        # ==============================================================================
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL DE INCIDENCIAS CERRADAS
+        # ==============================================================================
+        st.markdown("---")
+        st.subheader("📜 Historial de Incidencias Cerradas")
+        
+        df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
+        df_historial['FECHA_HORA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
+        df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+        df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
+        
+        periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
+        meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
+        
+        if meses:
+            col_filtro_mes, col_filtro_colonia = st.columns(2)
+            with col_filtro_mes:
+                mes_actual = datetime.now().strftime('%B %Y').capitalize()
+                default_index = meses.index(mes_actual) if mes_actual in meses else 0
+                mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
             
-            df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
-            df_historial['FECHA_HORA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
-            df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-            df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
+            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+            tamanio_pagina = 10
+            total_registros = len(datos_mes)
+            total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+
+            col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+            with col_pag2:
+                pagina_actual = st.number_input(f"Página (Total registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
+
+            inicio_idx = (pagina_actual - 1) * tamanio_pagina
+            fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+            datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
+
+            with col_filtro_colonia:
+                colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
             
-            periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
-            meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
-            
-            if meses:
-                col_filtro_mes, col_filtro_colonia = st.columns(2)
-                with col_filtro_mes:
-                    mes_actual = datetime.now().strftime('%B %Y').capitalize()
-                    default_index = meses.index(mes_actual) if mes_actual in meses else 0
-                    mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
+            if datos_pagina.empty:
+                st.info("No hay registros para la página seleccionada.")
+            else:
+                df_tabla = pd.DataFrame()
+                df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
+                df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
+                df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
+                df_tabla['Cierre'] = datos_pagina['FECHA_HORA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                 
-                datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
-                tamanio_pagina = 10
-                total_registros = len(datos_mes)
-                total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
-
-                col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-                with col_pag2:
-                    pagina_actual = st.number_input(f"Página (Total registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
-
-                inicio_idx = (pagina_actual - 1) * tamanio_pagina
-                fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
-                datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
-
-                with col_filtro_colonia:
-                    colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
+                duraciones = []
+                for _, row_t in datos_pagina.iterrows():
+                    if pd.notnull(row_t['FECHA_HORA_FIN']):
+                        delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
+                    else:
+                        duraciones.append("N/A")
+                df_tabla['Duración'] = duraciones
+                df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
+                df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
                 
-                if datos_pagina.empty:
-                    st.info("No hay registros para la página seleccionada.")
-                else:
-                    df_tabla = pd.DataFrame()
-                    df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
-                    df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
-                    df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
-                    df_tabla['Cierre'] = datos_pagina['FECHA_HORA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
-                    
-                    duraciones = []
-                    for _, row_t in datos_pagina.iterrows():
-                        if pd.notnull(row_t['FECHA_HORA_FIN']):
-                            delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
-                            duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
-                        else:
-                            duraciones.append("N/A")
-                    df_tabla['Duración'] = duraciones
-                    df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
-                    df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
-                    
-                    colonias_por_fila = []
-                    for _, r_hist in datos_pagina.iterrows():
-                        id_p = normalizar_id(r_hist['NUM_POZO'])
-                        gdf_h = get_geometries(id_p)
-                        if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                            cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
-                            colonias_por_fila.append(", ".join(map(str, cols_unicas)))
-                        else:
-                            colonias_por_fila.append("")
-                    
-                    df_tabla['Colonias Afectadas'] = colonias_por_fila
-                    st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
+                colonias_por_fila = []
+                for _, r_hist in datos_pagina.iterrows():
+                    id_p = normalizar_id(r_hist['NUM_POZO'])
+                    gdf_h = get_geometries(id_p)
+                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
+                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                    else:
+                        colonias_por_fila.append("")
+                
+                df_tabla['Colonias Afectadas'] = colonias_por_fila
+                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
                     
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
