@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (SIN TÍTULO REPETIDO DE POZOS)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (SELECTOR LIMPIO CON SÓLO LUPITA)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3787,17 +3787,17 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD (SIN TÍTULO REPETIDO DE POZOS)
+        # COLUMNA IZQUIERDA: SELECTOR CON SÓLO LUPITA Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
 
             todas_las_colonias_dict = get_todas_las_colonias_diccionario()
-            opciones_selectbox = ["🔍 Todas las colonias (Sin filtro)"] + todas_las_colonias_dict
+            opciones_selectbox = ["🔍"] + todas_las_colonias_dict
 
             colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
             
-            filtrar_por_colonia = None if colonia_seleccionada.startswith("🔍") else colonia_seleccionada.strip().upper()
+            filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
 
             st.markdown("""
                 <style>
@@ -3920,7 +3920,6 @@ elif tab_activa == "incidencias":
                             pct_str = "EN RECUPERACIÓN"
                             bg_badge = "#3498DB"
 
-                        # Tarjeta HUD limpia sin el título duplicado de pozos arriba
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
