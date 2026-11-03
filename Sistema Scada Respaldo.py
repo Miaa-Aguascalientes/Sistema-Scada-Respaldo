@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO LIMPIO Y CORREGIDO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO ORIGINAL Y FILTRADO ESTRICTO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3651,7 +3651,6 @@ elif tab_activa == "incidencias":
 
         col1, col2 = st.columns([3, 2], gap="small")
         
-        # COLUMNA IZQUIERDA DEL EXPANDER: SÓLO EL MAPA (Se removió el listado repetido de colonias)
         with col1:
             if gdf is not None and not gdf.empty:
                 try:
@@ -3693,7 +3692,6 @@ elif tab_activa == "incidencias":
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
-        # COLUMNA DERECHA DEL EXPANDER: TIEMPO DE ATENCIÓN Y DATOS
         with col2:
             st.subheader("Tiempo de Atención")
             estatus = str(row.get('ESTATUS', '')).upper()
@@ -3774,11 +3772,12 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS HUD (SIN INCIDENCIA, SÓLO POZO, SECTOR, TIEMPO Y COLONIAS)
+        # COLUMNA IZQUIERDA: TARJETAS HUD ORIGINALES (OMITIENDO LAS QUE NO TIENEN COLONIAS)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
 
+            # Estilos CSS exactos de tus tarjetas HUD originales
             st.markdown("""
                 <style>
                 .hud-card {
@@ -3826,7 +3825,7 @@ elif tab_activa == "incidencias":
                     nombres_cols = sorted([c.strip() for c in gdf_r['Col_atl'].dropna().unique() if str(c).strip()])
                 else:
                     sector_nombre = "Sin Sector"
-                    nombres_cols = ["Zona General"]
+                    nombres_cols = []
 
                 if sector_nombre not in sectores_agrupados:
                     props_sec = {}
@@ -3857,10 +3856,19 @@ elif tab_activa == "incidencias":
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
             with st.container(height=580, border=False):
+                tarjetas_renderizadas = 0
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
+                        lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
+                        
+                        # FILTRO ESTRICTO: Si no tiene colonias registradas, SE OMITE POR COMPLETO la tarjeta
+                        if not lista_cols_validas:
+                            continue
+
+                        tarjetas_renderizadas += 1
                         pozos_str = ", ".join(sec_data['pozos'])
-                        colonias_str = ", ".join(sorted(sec_data['colonias']))
+                        colonias_str = ", ".join(lista_cols_validas)
+                        
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         pct_str = f"{pct_val}% AFECTACIÓN" if pct_val > 0 else "N/D"
                         bg_badge = "#FF4B4B" if pct_val > 50 else ("#F1C40F" if pct_val > 0 else "#3498DB")
@@ -3875,17 +3883,20 @@ elif tab_activa == "incidencias":
                                     <div style="font-size: 24px;">🎛️</div>
                                     <div style="font-size: 11px; color: #a0aec0; width: 100%;">
                                         <div>Sector: <b style="color: #00d4ff;">{sec_name}</b> | Fuera de op: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
-                                        <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
+                                        <div style="margin-top: 4px;"><b>COLONIAS:</b></div>
                                         <div class="colonias-box-hud">{colonias_str}</div>
                                     </div>
                                 </div>
                             </div>
                         """, unsafe_allow_html=True)
+                    
+                    if tarjetas_renderizadas == 0:
+                        st.info("No hay sectores con colonias registradas afectadas actualmente.")
                 else:
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES CON STREAMLIT NATIVO Y LISTADO
+        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3895,7 +3906,6 @@ elif tab_activa == "incidencias":
             total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
             total_activas_y_dia = len(df_actual)
 
-            # Tarjetas de métricas superiores perfectamente alineadas y estables con columnas nativas
             m1, m2, m3, m4 = st.columns(4)
             with m1:
                 st.markdown(f'<div style="background-color: #111418; border: 1px solid #d4ac0d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #f1c40f;">EN PROCESO</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_en_proceso}</div></div>', unsafe_allow_html=True)
@@ -3933,7 +3943,7 @@ elif tab_activa == "incidencias":
             st.subheader("📜 Historial de Incidencias Cerradas")
             
             df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
-            df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
+            df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_FIN'], errors='coerce')
             df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
             df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
             
@@ -3974,8 +3984,8 @@ elif tab_activa == "incidencias":
                     
                     duraciones = []
                     for _, row_t in datos_pagina.iterrows():
-                        if pd.notnull(row_t['FECHA_HORA_FIN']):
-                            delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        if pd.notnull(row_t['FECHA_FIN']):
+                            delta = row_t['FECHA_FIN'] - row_t['FECHA_HORA_INICIO']
                             duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
                         else:
                             duraciones.append("N/A")
@@ -3991,7 +4001,7 @@ elif tab_activa == "incidencias":
                             cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
                             colonias_por_fila.append(", ".join(map(str, cols_unicas)))
                         else:
-                            colonias_por_fila.append("N/A")
+                            colonias_por_fila.append("")
                     
                     df_tabla['Colonias Afectadas'] = colonias_por_fila
                     st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
