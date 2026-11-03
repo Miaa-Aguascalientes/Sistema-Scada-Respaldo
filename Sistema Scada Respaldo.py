@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO TIPO HUD ESTILIZADO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO LIMPIO Y CORREGIDO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3651,11 +3651,9 @@ elif tab_activa == "incidencias":
 
         col1, col2 = st.columns([3, 2], gap="small")
         
+        # COLUMNA IZQUIERDA DEL EXPANDER: SÓLO EL MAPA (Se removió el listado repetido de colonias)
         with col1:
             if gdf is not None and not gdf.empty:
-                nombres_colonias = sorted(gdf['Col_atl'].dropna().unique())
-                st.markdown(f"**📍 Colonias afectadas ({len(nombres_colonias)}):**")
-                st.info(", ".join([str(n) for n in nombres_colonias]))
                 try:
                     lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                     m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
@@ -3695,6 +3693,7 @@ elif tab_activa == "incidencias":
             else:
                 st.warning("Sin datos geográficos disponibles.")
 
+        # COLUMNA DERECHA DEL EXPANDER: TIEMPO DE ATENCIÓN Y DATOS
         with col2:
             st.subheader("Tiempo de Atención")
             estatus = str(row.get('ESTATUS', '')).upper()
@@ -3775,12 +3774,11 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS TIPO HUD (ESTILO IMAGEN) CON SCROLL DE 5 ELEMENTOS
+        # COLUMNA IZQUIERDA: TARJETAS HUD (SIN INCIDENCIA, SÓLO POZO, SECTOR, TIEMPO Y COLONIAS)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
 
-            # Estilos CSS idénticos al HUD de la imagen (tarjetas oscuras, bordes sutiles y scroll interno en colonias)
             st.markdown("""
                 <style>
                 .hud-card {
@@ -3800,7 +3798,7 @@ elif tab_activa == "incidencias":
                     overflow-y: auto;
                     font-size: 10px;
                     color: #b0c4de;
-                    margin-bottom: 8px;
+                    margin-bottom: 4px;
                     line-height: 1.3;
                 }
                 .colonias-box-hud::-webkit-scrollbar { width: 4px; }
@@ -3820,7 +3818,6 @@ elif tab_activa == "incidencias":
                 dias = duracion_delta.days
                 horas = duracion_delta.seconds // 3600
                 tiempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas}h"
-                diag_inc = str(r_inc.get('DIAGNOSTICO_FALLA', 'S/D'))
                 
                 gdf_r = get_geometries(id_p_inc)
                 
@@ -3845,7 +3842,6 @@ elif tab_activa == "incidencias":
                         'max_segundos': segundos_fuera,
                         'max_tiempo_str': tiempo_str,
                         'colonias': set(nombres_cols),
-                        'incidencias': [diag_inc],
                         'color_badge': color_afec,
                         'val_afectacion': val_afec
                     }
@@ -3857,18 +3853,14 @@ elif tab_activa == "incidencias":
                         sec['max_segundos'] = segundos_fuera
                         sec['max_tiempo_str'] = tiempo_str
                     sec['colonias'].update(nombres_cols)
-                    if diag_inc not in sec['incidencias']:
-                        sec['incidencias'].append(diag_inc)
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
-            # Contenedor con altura fija para mostrar exactamente ~5 tarjetas y scroll lateral izquierdo
             with st.container(height=580, border=False):
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
                         pozos_str = ", ".join(sec_data['pozos'])
                         colonias_str = ", ".join(sorted(sec_data['colonias']))
-                        incidencias_str = " | ".join(sec_data['incidencias'])
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         pct_str = f"{pct_val}% AFECTACIÓN" if pct_val > 0 else "N/D"
                         bg_badge = "#FF4B4B" if pct_val > 50 else ("#F1C40F" if pct_val > 0 else "#3498DB")
@@ -3879,7 +3871,7 @@ elif tab_activa == "incidencias":
                                     <span style="color: #ffffff; font-weight: bold; font-size: 13px;">Pozo(s): {pozos_str}</span>
                                     <span style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">{pct_str}</span>
                                 </div>
-                                <div style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 6px;">
+                                <div style="display: flex; gap: 10px; align-items: flex-start;">
                                     <div style="font-size: 24px;">🎛️</div>
                                     <div style="font-size: 11px; color: #a0aec0; width: 100%;">
                                         <div>Sector: <b style="color: #00d4ff;">{sec_name}</b> | Fuera de op: <b style="color:#ffff00;">{sec_data['max_tiempo_str']}</b></div>
@@ -3887,16 +3879,13 @@ elif tab_activa == "incidencias":
                                         <div class="colonias-box-hud">{colonias_str}</div>
                                     </div>
                                 </div>
-                                <div style="font-size: 11px; color: #ff6b6b; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
-                                    Incidencia: {incidencias_str}
-                                </div>
                             </div>
                         """, unsafe_allow_html=True)
                 else:
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES ORIGINALES Y LISTADO
+        # COLUMNA DERECHA: INDICADORES SUPERIORES CON STREAMLIT NATIVO Y LISTADO
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3906,29 +3895,16 @@ elif tab_activa == "incidencias":
             total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
             total_activas_y_dia = len(df_actual)
 
-            # Tarjetas de métricas con el diseño original que tenías
-            st.markdown("""
-                <style>
-                .metric-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 25px; }
-                .metric-card { background-color: #111418; border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); border: 1px solid #222d3d; }
-                .metric-card.proceso { border-color: #d4ac0d; }
-                .metric-card.pendientes { border-color: #c0392b; }
-                .metric-card.cerradas { border-color: #196f3d; }
-                .metric-card.total { border-color: #2e4053; }
-                .metric-title { font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 0.5px; }
-                .metric-title.proceso { color: #f1c40f; }
-                .metric-title.pendientes { color: #e74c3c; }
-                .metric-title.cerradas { color: #2ecc71; }
-                .metric-title.total { color: #bdc3c7; }
-                .metric-value { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
-                </style>
-                <div class="metric-container">
-                    <div class="metric-card proceso"><div class="metric-title proceso">EN PROCESO</div><div class="metric-value">""" + str(total_en_proceso) + """</div></div>
-                    .metric-card pendientes"><div class="metric-title pendientes">PENDIENTES</div><div class="metric-value">""" + str(total_pendientes) + """</div></div>
-                    <div class="metric-card cerradas"><div class="metric-title cerradas">CERRADAS</div><div class="metric-value">""" + str(total_cerradas_hoy) + """</div></div>
-                    <div class="metric-card total"><div class="metric-title total">TOTAL ACTIVAS</div><div class="metric-value">""" + str(total_activas_y_dia) + """</div></div>
-                </div>
-            """, unsafe_allow_html=True)
+            # Tarjetas de métricas superiores perfectamente alineadas y estables con columnas nativas
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #d4ac0d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #f1c40f;">EN PROCESO</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_en_proceso}</div></div>', unsafe_allow_html=True)
+            with m2:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #c0392b; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #e74c3c;">PENDIENTES</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_pendientes}</div></div>', unsafe_allow_html=True)
+            with m3:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #196f3d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #2ecc71;">CERRADAS</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_cerradas_hoy}</div></div>', unsafe_allow_html=True)
+            with m4:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #2e4053; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #bdc3c7;">TOTAL ACTIVAS</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_activas_y_dia}</div></div>', unsafe_allow_html=True)
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
@@ -3993,7 +3969,7 @@ elif tab_activa == "incidencias":
                     df_tabla = pd.DataFrame()
                     df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
                     df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
-                    df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/As')
+                    df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
                     df_tabla['Cierre'] = datos_pagina['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                     
                     duraciones = []
@@ -4019,6 +3995,8 @@ elif tab_activa == "incidencias":
                     
                     df_tabla['Colonias Afectadas'] = colonias_por_fila
                     st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
+
+                    
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
