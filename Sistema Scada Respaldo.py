@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO LIMPIO Y COMPACTO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (SIN TÍTULO REPETIDO DE POZOS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3787,7 +3787,7 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD COMPACTAS (SIN ÍCONO)
+        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD (SIN TÍTULO REPETIDO DE POZOS)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
@@ -3905,12 +3905,9 @@ elif tab_activa == "incidencias":
                         tarjetas_renderizadas += 1
                         
                         desglose_pozos = []
-                        lista_nombres_pozos = []
                         for p_id, t_str in sec_data['pozo_tiempos']:
-                            lista_nombres_pozos.append(p_id)
                             desglose_pozos.append(f"{p_id}: <b style='color:#ffff00;'>{t_str}</b>")
                         
-                        pozos_str = ", ".join(lista_nombres_pozos)
                         tiempos_str = " | ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
                         
@@ -3923,11 +3920,11 @@ elif tab_activa == "incidencias":
                             pct_str = "EN RECUPERACIÓN"
                             bg_badge = "#3498DB"
 
-                        # Tarjeta HUD rediseñada en una sola línea superior limpia (sin ícono de control)
+                        # Tarjeta HUD limpia sin el título duplicado de pozos arriba
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                                    <span style="color: #ffffff; font-weight: bold; font-size: 13px;">Pozo(s): {pozos_str} &nbsp;&nbsp;|&nbsp;&nbsp; Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 13px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
                                     <span style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
