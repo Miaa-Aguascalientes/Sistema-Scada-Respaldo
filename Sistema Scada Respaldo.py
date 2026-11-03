@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORREGIDO Y ESTABLE)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO ORIGINAL RESTAURADO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3775,7 +3775,7 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS DE SECTORES AFECTADOS CON CONTENEDOR NATIVO SCROLLABLE
+        # COLUMNA IZQUIERDA: TARJETAS DE SECTORES CON SCROLLBAR (LÍMITE DE 5 VISIBLES)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// COLONIAS AFECTADAS</div>', unsafe_allow_html=True)
@@ -3803,7 +3803,6 @@ elif tab_activa == "incidencias":
                     sector_nombre = "Sin Sector"
                     nombres_cols = ["Zona General"]
 
-                # Agrupación por sector para evitar duplicados
                 if sector_nombre not in sectores_agrupados:
                     props_sec = {}
                     if gdf_sec_geo is not None and not gdf_sec_geo.empty:
@@ -3835,7 +3834,7 @@ elif tab_activa == "incidencias":
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
-            # Contenedor nativo de Streamlit con scroll vertical fijo (altura para ~5 tarjetas)
+            # Contenedor seguro con scroll vertical fijo equivalente a ~5 tarjetas
             with st.container(height=560, border=False):
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
@@ -3859,7 +3858,7 @@ elif tab_activa == "incidencias":
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES ESTABLES Y LISTADO DE INCIDENCIAS
+        # COLUMNA DERECHA: INDICADORES CON DISEÑO ORIGINAL RESTAURADO Y LISTADO
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
@@ -3869,12 +3868,29 @@ elif tab_activa == "incidencias":
             total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
             total_activas_y_dia = len(df_actual)
 
-            # Tarjetas de métricas estables con st.metric nativo
-            mc1, mc2, mc3, mc4 = st.columns(4)
-            with mc1: st.metric("EN PROCESO", total_en_proceso)
-            with mc2: st.metric("PENDIENTES", total_pendientes)
-            with mc3: st.metric("CERRADAS", total_cerradas_hoy)
-            with mc4: st.metric("TOTAL ACTIVAS", total_activas_y_dia)
+            # Estilo original restaurado para las tarjetas de métricas superiores
+            st.markdown("""
+                <style>
+                .metric-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 25px; }
+                .metric-card { background-color: #111418; border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); border: 1px solid #222d3d; }
+                .metric-card.proceso { border-color: #d4ac0d; }
+                .metric-card.pendientes { border-color: #c0392b; }
+                .metric-card.cerradas { border-color: #196f3d; }
+                .metric-card.total { border-color: #2e4053; }
+                .metric-title { font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 0.5px; }
+                .metric-title.proceso { color: #f1c40f; }
+                .metric-title.pendientes { color: #e74c3c; }
+                .metric-title.cerradas { color: #2ecc71; }
+                .metric-title.total { color: #bdc3c7; }
+                .metric-value { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
+                </style>
+                <div class="metric-container">
+                    <div class="metric-card proceso"><div class="metric-title proceso">EN PROCESO</div><div class="metric-value">""" + str(total_en_proceso) + """</div></div>
+                    <div class="metric-card pendientes"><div class="metric-title pendientes">PENDIENTES</div><div class="metric-value">""" + str(total_pendientes) + """</div></div>
+                    <div class="metric-card cerradas"><div class="metric-title cerradas">CERRADAS</div><div class="metric-value">""" + str(total_cerradas_hoy) + """</div></div>
+                    <div class="metric-card total"><div class="metric-title total">TOTAL ACTIVAS</div><div class="metric-value">""" + str(total_activas_y_dia) + """</div></div>
+                </div>
+            """, unsafe_allow_html=True)
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
