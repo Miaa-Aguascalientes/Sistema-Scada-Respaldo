@@ -2928,9 +2928,9 @@ with col_n4:
 
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
-# ==============================================================================
+# =====================================================================================================================================================================================================================================
 # PESTAÑA 1 MAPA DE POZOS, TANQUES Y REBOMBEOS
-# ==============================================================================
+# =====================================================================================================================================================================================================================================
 if tab_activa == "mapa":
     st.markdown('<div class="titulo-superior">SISTEMA - AGUASCALIENTES</div>', unsafe_allow_html=True)
 
@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL PAGINADO Y COLUMNAS AJUSTADAS)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON PANEL LATERAL DE COLONIAS AFECTADAS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3816,170 +3816,238 @@ elif tab_activa == "incidencias":
         df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)]
 
         tz_mx = pytz.timezone('America/Mexico_City')
-        st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
-        st.subheader("📋 Incidencias Activas y del día")
-        
-        total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
-        total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
-        total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
-        total_activas_y_dia = len(df_actual)
+        ahora_mx = datetime.now(tz_mx)
 
-        st.markdown("""
-            <style>
-            .metric-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 25px; }
-            .metric-card { background-color: #111418; border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); border: 1px solid #222d3d; }
-            .metric-card.proceso { border-color: #d4ac0d; }
-            .metric-card.pendientes { border-color: #c0392b; }
-            .metric-card.cerradas { border-color: #196f3d; }
-            .metric-card.total { border-color: #2e4053; }
-            .metric-title { font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 0.5px; }
-            .metric-title.proceso { color: #f1c40f; }
-            .metric-title.pendientes { color: #e74c3c; }
-            .metric-title.cerradas { color: #2ecc71; }
-            .metric-title.total { color: #bdc3c7; }
-            .metric-value { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
-            </style>
-            <div class="metric-container">
-                <div class="metric-card proceso"><div class="metric-title proceso">EN PROCESO</div><div class="metric-value">""" + str(total_en_proceso) + """</div></div>
-                <div class="metric-card pendientes"><div class="metric-title pendientes">PENDIENTES</div><div class="metric-value">""" + str(total_pendientes) + """</div></div>
-                <div class="metric-card cerradas"><div class="metric-title cerradas">CERRADAS</div><div class="metric-value">""" + str(total_cerradas_hoy) + """</div></div>
-                <div class="metric-card total"><div class="metric-title total">TOTAL ACTIVAS</div><div class="metric-value">""" + str(total_activas_y_dia) + """</div></div>
-            </div>
-        """, unsafe_allow_html=True)
+        # ==============================================================================
+        # DISTRIBUCIÓN EN 2 COLUMNAS: IZQUIERDA (APARTADO DE COLONIAS AFECTADAS) Y DERECHA (INCIDENCIAS)
+        # ==============================================================================
+        col_panel_izq, col_panel_der = st.columns([1, 2.8], gap="medium")
 
-        ahora_mx = datetime.now(tz_mx) 
-        
-        for index, row in df_actual.iterrows():
-            estatus = str(row.get('ESTATUS', 'N/A')).upper()
-            diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+        with col_panel_izq:
+            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 10px;">// COLONIAS AFECTADAS</div>', unsafe_allow_html=True)
             
-            inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-            fin_raw = row.get('FECHA_HORA_FIN')
-            
-            inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
-            
-            if pd.notnull(fin_raw):
-                fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-                fin_str = fin_dt.strftime('%H:%M %d de %B de %Y')
-                delta = fin_dt - inicio_raw
+            # Estilos personalizados para las tarjetas de colonias afectadas por tiempo fuera de operación
+            st.markdown("""
+                <style>
+                .card-colonia-afectada {
+                    background: linear-gradient(180deg, rgba(11, 26, 41, 0.95) 0%, rgba(5, 10, 16, 1) 100%);
+                    border: 1px solid #1f4068;
+                    border-radius: 8px;
+                    padding: 12px;
+                    margin-bottom: 12px;
+                    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.5);
+                }
+                .card-colonia-afectada.rojo { border-left: 5px solid #FF0000; }
+                .card-colonia-afectada.amarillo { border-left: 5px solid #FFFF00; }
+                .card-colonia-afectada.azul { border-left: 5px solid #3498DB; }
+                </style>
+            """, unsafe_allow_html=True)
+
+            # Procesamos las incidencias activas/del día para calcular el tiempo fuera de operación y ordenar de mayor a menor
+            lista_tarjetas_ranking = []
+            for _, r_inc in df_actual.iterrows():
+                id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
+                inicio_inc = pd.to_datetime(r_inc.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                duracion_delta = ahora_mx - inicio_inc
+                segundos_fuera = duracion_delta.total_seconds()
+                
+                dias = duracion_delta.days
+                horas = duracion_delta.seconds // 3600
+                tiempo_str = f"{dias}d {horas}h" if dias > 0 else f"{horas}h"
+                
+                diag_inc = str(r_inc.get('DIAGNOSTICO_FALLA', 'S/D'))
+                
+                # Obtenemos geometría / colonias del pozo
+                gdf_r = get_geometries(id_p_inc)
+                nombres_cols = ", ".join(sorted(gdf_r['Col_atl'].dropna().unique())) if gdf_r is not None and not gdf_r.empty else "Zona General"
+                sector_r = str(gdf_r['Sector'].iloc[0]) if gdf_r is not None and not gdf_r.empty and 'Sector' in gdf_r.columns else "N/A"
+
+                # Asignamos color o afectación simulada/estimada
+                clase_borde = "rojo" if segundos_fuera > 86400 else "amarillo"
+                color_badge = "#FF0000" if segundos_fuera > 86400 else "#F1C40F"
+                pct_afectacion = "100%" if segundos_fuera > 86400 else "50%"
+
+                lista_tarjetas_ranking.append({
+                    'segundos': segundos_fuera,
+                    'html': f"""
+                        <div class="card-colonia-afectada {clase_borde}">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                                <span style="color: #00d4ff; font-weight: bold; font-size: 13px;">Sector: {sector_r}</span>
+                                <span style="background-color: {color_badge}; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">Afectación: {pct_afectacion}</span>
+                            </div>
+                            <div style="font-size: 11px; color: #e4edf7; margin-bottom: 4px;">Pozo(s): <b>{id_p_inc}</b> | Fuera de operación: <b>{tiempo_str}</b></div>
+                            <div style="font-size: 11px; color: #b0c4de; margin-bottom: 6px;">Colonias: {nombres_cols}</div>
+                            <div style="font-size: 11px; color: #ff6b6b; font-weight: bold;">Incidencia: {diag_inc}</div>
+                        </div>
+                    """
+                })
+
+            # Ordenar de mayor a menor tiempo fuera de operación
+            lista_tarjetas_ranking.sort(key=lambda x: x['segundos'], reverse=True)
+
+            if lista_tarjetas_ranking:
+                for item in lista_tarjetas_ranking:
+                    st.markdown(item['html'], unsafe_allow_html=True)
             else:
-                fin_str = "Pendiente"
-                delta = ahora_mx - inicio_raw
-                
-            duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-            ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
-            
-            titulo = (
-                f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** "
-                f" |⏱️ Fecha y hora de inicio: {inicio_str} "
-                f" |⚠️ Diagnostico de la falla: {diag} "
-                f" |✅ Fecha y hora de cierre: {fin_str} "
-                f" |⏳ Duración del evento: {duracion_str} "
-                f" |🛠️ Estatus: {estatus}"
-            )
-            
-            with st.expander(titulo):
-                renderizar_bloque_incidencia(row, index, "act")
+                st.info("No hay incidencias activas para mostrar en el ranking.")
 
-        st.markdown("---")
-        st.subheader("📜 Historial de Incidencias Cerradas")
-        
-        df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
-        df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
-        
-        df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
-        df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
-        
-        periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
-        meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
-        
-        if meses:
-            col_filtro_mes, col_filtro_colonia = st.columns(2)
+        with col_panel_der:
+            st.markdown('<hr style="border: none; height: 2px; background-color: #007bff; margin-top: 0px; margin-bottom: 20px;">', unsafe_allow_html=True)
+            st.subheader("📋 Incidencias Activas y del día")
             
-            with col_filtro_mes:
-                mes_actual = datetime.now().strftime('%B %Y').capitalize()
-                default_index = meses.index(mes_actual) if mes_actual in meses else 0
+            total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
+            total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
+            total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
+            total_activas_y_dia = len(df_actual)
+
+            st.markdown("""
+                <style>
+                .metric-container { display: flex; gap: 15px; margin-top: 10px; margin-bottom: 25px; }
+                .metric-card { background-color: #111418; border-radius: 8px; padding: 8px 12px; text-align: center; flex: 1; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); border: 1px solid #222d3d; }
+                .metric-card.proceso { border-color: #d4ac0d; }
+                .metric-card.pendientes { border-color: #c0392b; }
+                .metric-card.cerradas { border-color: #196f3d; }
+                .metric-card.total { border-color: #2e4053; }
+                .metric-title { font-size: 11px; font-weight: bold; margin-bottom: 2px; letter-spacing: 0.5px; }
+                .metric-title.proceso { color: #f1c40f; }
+                .metric-title.pendientes { color: #e74c3c; }
+                .metric-title.cerradas { color: #2ecc71; }
+                .metric-title.total { color: #bdc3c7; }
+                .metric-value { font-size: 20px; font-weight: bold; color: #ffffff; line-height: 1.2; }
+                </style>
+                <div class="metric-container">
+                    <div class="metric-card proceso"><div class="metric-title proceso">EN PROCESO</div><div class="metric-value">""" + str(total_en_proceso) + """</div></div>
+                    .metric-card pendientes"><div class="metric-title pendientes">PENDIENTES</div><div class="metric-value">""" + str(total_pendientes) + """</div></div>
+                    <div class="metric-card cerradas"><div class="metric-title cerradas">CERRADAS</div><div class="metric-value">""" + str(total_cerradas_hoy) + """</div></div>
+                    <div class="metric-card total"><div class="metric-title total">TOTAL ACTIVAS</div><div class="metric-value">""" + str(total_activas_y_dia) + """</div></div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            ahora_mx = datetime.now(tz_mx) 
+            
+            for index, row in df_actual.iterrows():
+                estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
                 
-                mes_sel = st.selectbox(
-                    "Seleccionar mes:", 
-                    meses, 
-                    index=default_index, 
-                    key="select_mes_historial"
+                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                fin_raw = row.get('FECHA_HORA_FIN')
+                
+                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+                
+                if pd.notnull(fin_raw):
+                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                    fin_str = fin_dt.strftime('%H:%M %d de %B de %Y')
+                    delta = fin_dt - inicio_raw
+                else:
+                    fin_str = "Pendiente"
+                    delta = ahora_mx - inicio_raw
+                    
+                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                
+                titulo = (
+                    f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** "
+                    f" |⏱️ Inicio: {inicio_str} "
+                    f" |⚠️ Falla: {diag} "
+                    f" |⏳ Duración: {duracion_str} "
+                    f" |🛠️ Estatus: {estatus}"
                 )
-            
-            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
-            
-            # --- PAGINACIÓN PRIMERO (¡CLAVE PARA LA VELOCIDAD!) ---
-            # Procesamos y paginamos los 10 registros ANTES de buscar geometrías pesadas, 
-            # o consultamos únicamente los 10 que se van a mostrar en pantalla.
-            tamanio_pagina = 10
-            total_registros = len(datos_mes)
-            total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
-
-            col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-            with col_pag2:
-                pagina_actual = st.number_input(
-                    f"Página (Total registros del mes: {total_registros})", 
-                    min_value=1, 
-                    max_value=total_paginas, 
-                    step=1, 
-                    key="num_pagina_historial"
-                )
-
-            inicio_idx = (pagina_actual - 1) * tamanio_pagina
-            fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
-            
-            # Tomamos únicamente el bloque de 10 registros de esta página
-            datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
-
-            with col_filtro_colonia:
-                # Opciones simplificadas para el selector de colonias sin saturar
-                lista_colonias = ["Todas las colonias"]
-                colonia_sel = st.selectbox(
-                    "Filtrar por colonia afectada (Col_atl):", 
-                    lista_colonias, 
-                    key="select_colonia_historial"
-                )
-            
-            if datos_pagina.empty:
-                st.info("No hay registros para la página seleccionada.")
-            else:
-                # --- CONSTRUCCIÓN DE LA TABLA SOLO PARA LOS 10 DE LA PÁGINA ---
-                df_tabla = pd.DataFrame()
-                df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
-                df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
-                df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
-                df_tabla['Cierre'] = datos_pagina['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                 
-                duraciones = []
-                for _, row_t in datos_pagina.iterrows():
-                    if pd.notnull(row_t['FECHA_HORA_FIN']):
-                        delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
-                        duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
-                    else:
-                        duraciones.append("N/A")
-                df_tabla['Duración'] = duraciones
-                df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
-                df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
-                
-                # Consultar geometrías EXCLUSIVAMENTE para estos 10 registros visibles
-                colonias_por_fila = []
-                for _, r_hist in datos_pagina.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])
-                    gdf_h = get_geometries(id_p)
-                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
-                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
-                    else:
-                        colonias_por_fila.append("N/A")
-                
-                df_tabla['Colonias Afectadas'] = colonias_por_fila
+                with st.expander(titulo):
+                    renderizar_bloque_incidencia(row, index, "act")
 
-                st.dataframe(
-                    df_tabla.reset_index(drop=True),
-                    use_container_width=True,
-                    hide_index=True
-                )
+            st.markdown("---")
+            st.subheader("📜 Historial de Incidencias Cerradas")
+            
+            df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
+            df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
+            
+            df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+            df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
+            
+            periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
+            meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
+            
+            if meses:
+                col_filtro_mes, col_filtro_colonia = st.columns(2)
+                
+                with col_filtro_mes:
+                    mes_actual = datetime.now().strftime('%B %Y').capitalize()
+                    default_index = meses.index(mes_actual) if mes_actual in meses else 0
+                    
+                    mes_sel = st.selectbox(
+                        "Seleccionar mes:", 
+                        meses, 
+                        index=default_index, 
+                        key="select_mes_historial"
+                    )
+                
+                datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+                
+                tamanio_pagina = 10
+                total_registros = len(datos_mes)
+                total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+
+                col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
+                with col_pag2:
+                    pagina_actual = st.number_input(
+                        f"Página (Total registros del mes: {total_registros})", 
+                        min_value=1, 
+                        max_value=total_paginas, 
+                        step=1, 
+                        key="num_pagina_historial"
+                    )
+
+                inicio_idx = (pagina_actual - 1) * tamanio_pagina
+                fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+                
+                datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
+
+                with col_filtro_colonia:
+                    lista_colonias = ["Todas las colonias"]
+                    colonia_sel = st.selectbox(
+                        "Filtrar por colonia afectada (Col_atl):", 
+                        lista_colonias, 
+                        key="select_colonia_historial"
+                    )
+                
+                if datos_pagina.empty:
+                    st.info("No hay registros para la página seleccionada.")
+                else:
+                    df_tabla = pd.DataFrame()
+                    df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
+                    df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
+                    df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
+                    df_tabla['Cierre'] = datos_pagina['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
+                    
+                    duraciones = []
+                    for _, row_t in datos_pagina.iterrows():
+                        if pd.notnull(row_t['FECHA_HORA_FIN']):
+                            delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
+                            duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
+                        else:
+                            duraciones.append("N/A")
+                    df_tabla['Duración'] = duraciones
+                    df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
+                    df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
+                    
+                    colonias_por_fila = []
+                    for _, r_hist in datos_pagina.iterrows():
+                        id_p = normalizar_id(r_hist['NUM_POZO'])
+                        gdf_h = get_geometries(id_p)
+                        if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                            cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
+                            colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                        else:
+                            colonias_por_fila.append("N/A")
+                    
+                    df_tabla['Colonias Afectadas'] = colonias_por_fila
+
+                    st.dataframe(
+                        df_tabla.reset_index(drop=True),
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
