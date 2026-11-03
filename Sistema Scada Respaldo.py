@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON BUSCADOR Y FILTRADO HISTÓRICO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON MENÚ DESPLEGABLE DE COLONIAS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3630,6 +3630,22 @@ elif tab_activa == "incidencias":
             st.error(f"Error en BD al obtener geometrías: {e}")
             
         return None
+
+    # Función auxiliar para extraer el listado completo de colonias del diccionario
+    @st.cache_data(ttl=300)
+    def get_todas_las_colonias_diccionario():
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return []
+        try:
+            query = "SELECT DISTINCT Col_atl FROM Diccionario_colonias WHERE Col_atl IS NOT NULL AND Col_atl != ''"
+            df_cols = pd.read_sql(query, engine)
+            if not df_cols.empty:
+                lista = sorted([str(c).strip() for c in df_cols['Col_atl'].dropna().unique() if str(c).strip()])
+                return lista
+        except Exception:
+            pass
+        return []
 
     @st.fragment
     def renderizar_bloque_incidencia(row, index, tipo):
@@ -3772,14 +3788,18 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: BUSCADOR Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: SELECTOR DESPLEGABLE DE COLONIAS Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
 
-            # Buscador en tiempo real en la parte superior
-            texto_busqueda = st.text_input("🔍 Buscar colonia...", "", key="filtro_colonia_hud", placeholder="Escribe el nombre de la colonia...")
-            busqueda_norm = texto_busqueda.strip().upper()
+            # Obtener el listado de todas las colonias del diccionario para el selectbox
+            todas_las_colonias_dict = get_todas_las_colonias_diccionario()
+            opciones_selectbox = ["🔍 Todas las colonias (Sin filtro)"] + todas_las_colonias_dict
+
+            colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
+            
+            filtrar_por_colonia = None if colonia_seleccionada.startswith("🔍") else colonia_seleccionada.strip().upper()
 
             st.markdown("""
                 <style>
@@ -3879,9 +3899,9 @@ elif tab_activa == "incidencias":
                         if not lista_cols_validas:
                             continue
 
-                        # Aplicar filtro de búsqueda en tiempo real
-                        if busqueda_norm:
-                            coincide = any(busqueda_norm in col.upper() for col in lista_cols_validas)
+                        # Aplicar filtro del selectbox si se seleccionó una colonia específica
+                        if filtrar_por_colonia:
+                            coincide = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
                             if not coincide:
                                 continue
 
@@ -3925,21 +3945,21 @@ elif tab_activa == "incidencias":
                         """, unsafe_allow_html=True)
                     
                     if tarjetas_renderizadas == 0:
-                        if busqueda_norm:
+                        if filtrar_por_colonia:
                             # Verificar si la colonia buscada existe en el historial (días anteriores)
                             encontrada_en_historial = False
                             for _, r_hist in df_historial.iterrows():
                                 gdf_h = get_geometries(normalizar_id(r_hist['NUM_POZO']))
                                 if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
                                     cols_h = [str(c).upper() for c in gdf_h['Col_atl'].dropna().unique()]
-                                    if any(busqueda_norm in ch for ch in cols_h):
+                                    if any(filtrar_por_colonia in ch for ch in cols_h):
                                         encontrada_en_historial = True
                                         break
                             
                             if encontrada_en_historial:
-                                st.info(f"ℹ️ La colonia '{texto_busqueda}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
+                                st.info(f"ℹ️ La colonia '{colonia_seleccionada}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
                             else:
-                                st.warning(f"No se encontraron incidencias activas ni en historial para '{texto_busqueda}'.")
+                                st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
                         else:
                             st.info("No hay sectores con colonias registradas afectadas actualmente.")
                 else:
