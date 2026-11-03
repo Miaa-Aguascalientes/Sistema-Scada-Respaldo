@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (DISEÑO ORIGINAL Y FILTRADO ESTRICTO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CORRECCIÓN DE COLUMNA EN HISTORIAL)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3766,18 +3766,17 @@ elif tab_activa == "incidencias":
         mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & ((f_inicio_norm == hoy) | (f_fin_norm == hoy))
         
         df_actual = df_final[mask_activas | mask_cerradas_hoy]
-        df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)]
+        df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)].copy()
 
         # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES ---
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: TARJETAS HUD ORIGINALES (OMITIENDO LAS QUE NO TIENEN COLONIAS)
+        # COLUMNA IZQUIERDA: TARJETAS HUD (SIN COLONIAS = SE OMITE LA TARJETA)
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 12px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
 
-            # Estilos CSS exactos de tus tarjetas HUD originales
             st.markdown("""
                 <style>
                 .hud-card {
@@ -3861,7 +3860,7 @@ elif tab_activa == "incidencias":
                     for sec_name, sec_data in sectores_ordenados:
                         lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
                         
-                        # FILTRO ESTRICTO: Si no tiene colonias registradas, SE OMITE POR COMPLETO la tarjeta
+                        # Si no tiene colonias registradas, se omite por completo
                         if not lista_cols_validas:
                             continue
 
@@ -3943,7 +3942,7 @@ elif tab_activa == "incidencias":
             st.subheader("📜 Historial de Incidencias Cerradas")
             
             df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
-            df_historial['FECHA_FIN'] = pd.to_datetime(df_historial['FECHA_FIN'], errors='coerce')
+            df_historial['FECHA_HORA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
             df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
             df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
             
@@ -3980,12 +3979,12 @@ elif tab_activa == "incidencias":
                     df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
                     df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
                     df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
-                    df_tabla['Cierre'] = datos_pagina['FECHA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
+                    df_tabla['Cierre'] = datos_pagina['FECHA_HORA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
                     
                     duraciones = []
                     for _, row_t in datos_pagina.iterrows():
-                        if pd.notnull(row_t['FECHA_FIN']):
-                            delta = row_t['FECHA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        if pd.notnull(row_t['FECHA_HORA_FIN']):
+                            delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
                             duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
                         else:
                             duraciones.append("N/A")
