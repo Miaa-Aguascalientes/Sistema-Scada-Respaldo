@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL CON TABLA DE DISEÑO MODERNO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (FILTROS Y PAGINACIÓN ALINEADOS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3998,11 +3998,10 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL CON TABLA MODERNA Y PROFESIONAL
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL CON FILTROS EN UNA SOLA FILA
         # ==============================================================================
         st.markdown("---")
         
-        # Contenedor con diseño moderno para la tabla de historial
         st.markdown("""
             <style>
             .historial-header-container {
@@ -4012,7 +4011,6 @@ elif tab_activa == "incidencias":
                 border-radius: 6px;
                 margin-bottom: 15px;
             }
-            /* Estilo profesional para la tabla de datos */
             [data-testid="stDataFrame"] {
                 border: 1px solid #1f3a5f !important;
                 border-radius: 8px !important;
@@ -4034,8 +4032,10 @@ elif tab_activa == "incidencias":
         meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
         
         if meses:
-            col_filtro_mes, col_filtro_colonia = st.columns(2)
-            with col_filtro_mes:
+            # Los 3 elementos (mes, paginación y colonia) ahora en 3 columnas perfectamente alineadas en una sola fila
+            col_f1, col_f2, col_f3 = st.columns(3, gap="medium")
+            
+            with col_f1:
                 mes_actual = datetime.now().strftime('%B %Y').capitalize()
                 default_index = meses.index(mes_actual) if mes_actual in meses else 0
                 mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
@@ -4045,15 +4045,14 @@ elif tab_activa == "incidencias":
             total_registros = len(datos_mes)
             total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
 
-            col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-            with col_pag2:
+            with col_f2:
                 pagina_actual = st.number_input(f"Página (Total registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
 
             inicio_idx = (pagina_actual - 1) * tamanio_pagina
             fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
             datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
 
-            with col_filtro_colonia:
+            with col_f3:
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
             
             if datos_pagina.empty:
@@ -4088,7 +4087,6 @@ elif tab_activa == "incidencias":
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
                 
-                # Mostrar la tabla estilizada a ancho completo
                 st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
                     
 # ==============================================================================
