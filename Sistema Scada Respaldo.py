@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL EN TABLA A ANCHO COMPLETO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (HISTORIAL CON TABLA DE DISEÑO MODERNO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3998,10 +3998,32 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL EN TABLA CLÁSICA
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL CON TABLA MODERNA Y PROFESIONAL
         # ==============================================================================
         st.markdown("---")
-        st.subheader("📜 Historial de Incidencias Cerradas")
+        
+        # Contenedor con diseño moderno para la tabla de historial
+        st.markdown("""
+            <style>
+            .historial-header-container {
+                background: linear-gradient(90deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 0.4) 100%);
+                border-left: 4px solid #00d4ff;
+                padding: 10px 15px;
+                border-radius: 6px;
+                margin-bottom: 15px;
+            }
+            /* Estilo profesional para la tabla de datos */
+            [data-testid="stDataFrame"] {
+                border: 1px solid #1f3a5f !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            }
+            </style>
+            <div class="historial-header-container">
+                <h3 style="color:white; font-size: 20px; font-weight:bold; margin: 0; letter-spacing: 0.5px;">📜 Historial de Incidencias Cerradas</h3>
+                <p style="color:#8fa4c0; font-size: 11px; margin: 2px 0 0 0;">Registro detallado y consulta de eventos operativos finalizados</p>
+            </div>
+        """, unsafe_allow_html=True)
         
         df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
         df_historial['FECHA_HORA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
@@ -4065,6 +4087,8 @@ elif tab_activa == "incidencias":
                         colonias_por_fila.append("")
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
+                
+                # Mostrar la tabla estilizada a ancho completo
                 st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
                     
 # ==============================================================================
