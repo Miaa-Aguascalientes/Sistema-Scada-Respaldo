@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (SELECTOR LIMPIO CON SÓLO LUPITA)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (ACTUALIZADO CON TÍTULO LIMPIO)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3787,10 +3787,10 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR CON SÓLO LUPITA Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: TÍTULO ACTUALIZADO, SELECTOR LIMPIO Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
-            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas (Vista de Pozo)</div>', unsafe_allow_html=True)
+            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
 
             todas_las_colonias_dict = get_todas_las_colonias_diccionario()
             opciones_selectbox = ["🔍"] + todas_las_colonias_dict
