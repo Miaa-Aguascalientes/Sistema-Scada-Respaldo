@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (GRÁFICOS MODERNIZADOS Y OPTIMIZADOS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3787,7 +3787,7 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD (OPTIMIZADO PARA 6 VISIBLES)
+        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
@@ -3998,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS DEL MES
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS OPTIMIZADOS
         # ==============================================================================
         st.markdown("---")
         
@@ -4032,7 +4032,6 @@ elif tab_activa == "incidencias":
         meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
         
         if meses:
-            # Los 3 filtros alineados perfectamente en una sola fila
             col_f1, col_f2, col_f3 = st.columns(3, gap="medium")
             
             with col_f1:
@@ -4056,16 +4055,17 @@ elif tab_activa == "incidencias":
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
 
             # ==============================================================================
-            # GRÁFICOS DINÁMICOS SUPERIORES (BASADOS EN EL HISTORIAL DEL MES SELECCIONADO)
+            # GRÁFICOS MODERNIZADOS (TOP 5 FALLAS + TOP 5 PEORES SECTORES)
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
 
+            # --- GRÁFICO 1: TOP 5 TIPOS DE FALLA MÁS FRECUENTES ---
             with col_g1:
                 st.markdown("""
                     <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔺</span> Incidencias por Tipo (Mes: {})
+                            <span>🔺</span> Top Tipos de Falla (Mes: {})
                         </div>
                     </div>
                 """.format(mes_sel), unsafe_allow_html=True)
@@ -4073,23 +4073,28 @@ elif tab_activa == "incidencias":
                 if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
                     df_tipos_mes = datos_mes['DIAGNOSTICO_FALLA'].fillna('N/A').value_counts().reset_index()
                     df_tipos_mes.columns = ['Tipo', 'Cantidad']
+                    # Tomar solo los 5 principales para que no se sature
+                    df_tipos_mes = df_tipos_mes.head(5)
                 else:
                     df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
 
-                colores_tipos = ['#FF4B4B', '#F1C40F', '#3498DB', '#9B59B6', '#2ECC71', '#E67E22']
-                chart_tipos_mes = alt.Chart(df_tipos_mes).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
-                    x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
-                    y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white')),
-                    color=alt.Color('Tipo:N', scale=alt.Scale(range=colores_tipos), legend=None)
-                ).properties(height=200).configure_view(stroke=None).configure(background='transparent')
+                base_tipos = alt.Chart(df_tipos_mes).encode(
+                    x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white', labelLimit=150)),
+                    y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
+                )
+                bars_tipos = base_tipos.mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color='#00d4ff')
+                text_tipos = base_tipos.mark_text(align='center', baseline='bottom', dy=-4, color='white', fontSize=11).encode(text='Cantidad:Q')
+                
+                chart_tipos_mes = (bars_tipos + text_tipos).properties(height=220).configure_view(stroke=None).configure(background='transparent')
 
                 st.altair_chart(chart_tipos_mes, use_container_width=True)
 
+            # --- GRÁFICO 2: TOP 5 PEORES SECTORES (DONA LIMPIA) ---
             with col_g2:
                 st.markdown("""
                     <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Incidencias por Sector (Mes: {})
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {})
                         </div>
                     </div>
                 """.format(mes_sel), unsafe_allow_html=True)
@@ -4106,15 +4111,17 @@ elif tab_activa == "incidencias":
 
                 if sectores_mes_conteo:
                     df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
+                    # Ordenar de mayor a menor y tomar estrictamente los primeros 5 peores sectores
+                    df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
                 else:
                     df_sectores_mes = pd.DataFrame({'Sector': ['N/A'], 'Total': [0]})
 
-                colores_sectores = ['#3498DB', '#F1C40F', '#E67E22', '#2ECC71', '#9B59B6', '#FF4B4B']
-                chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=50, outerRadius=80).encode(
+                colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
+                chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
                     theta=alt.Theta(field="Total", type="quantitative"),
-                    color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_sectores), legend=alt.Legend(title=None, labelColor='white')),
+                    color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
                     tooltip=['Sector', 'Total']
-                ).properties(height=200).configure_view(stroke=None).configure(background='transparent')
+                ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
 
                 st.altair_chart(chart_sectores_mes, use_container_width=True)
 
@@ -4145,7 +4152,7 @@ elif tab_activa == "incidencias":
                 
                 colonias_por_fila = []
                 for _, r_hist in datos_pagina.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])
+                    id_p = normalizar_id(r_hist['NUM_POZO'])ig
                     gdf_h = get_geometries(id_p)
                     if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
                         cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
