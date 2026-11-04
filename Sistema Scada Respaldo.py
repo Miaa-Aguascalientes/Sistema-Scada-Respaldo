@@ -4117,12 +4117,11 @@ elif tab_activa == "incidencias":
                 datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
-            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP SECTORES (MES)
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP SECTORES
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 1 (IZQUIERDA): TOP TIPOS DE FALLA ---
             with col_g1:
                 with st.container(border=True):
                     st.markdown(f"""
@@ -4157,7 +4156,6 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_tipos_mes, use_container_width=True)
 
-            # --- GRÁFICO 2 (DERECHA): TOP 5 PEORES SECTORES (BARRAS) ---
             with col_g2:
                 with st.container(border=True):
                     st.markdown(f"""
@@ -4198,7 +4196,7 @@ elif tab_activa == "incidencias":
 
             import plotly.express as px
 
-            # --- GRÁFICO 3 (IZQUIERDA ABAJO): DONA - MES EN CURSO ---
+            # --- GRÁFICO 3: DONA - MES EN CURSO ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown(f"""
@@ -4239,7 +4237,7 @@ elif tab_activa == "incidencias":
 
                     st.plotly_chart(fig_donut_mes, use_container_width=True)
 
-            # --- GRÁFICO 4 (DERECHA ABAJO): DONA - AÑO EN CURSO (2026) ---
+            # --- GRÁFICO 4: DONA - AÑO EN CURSO (2026) ---
             with col_g4:
                 with st.container(border=True):
                     st.markdown("""
@@ -4290,6 +4288,86 @@ elif tab_activa == "incidencias":
                     )
 
                     st.plotly_chart(fig_donut_anual, use_container_width=True)
+
+            # ==============================================================================
+            # FILA 3 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA MENSUAL (LÍNEAS)
+            # ==============================================================================
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+            col_g5, col_g6 = st.columns(2, gap="medium")
+
+            with col_g5:
+                with st.container(border=True):
+                    st.markdown("""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>🔥</span> Mapa de calor 2026
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    df_2026_calor = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
+
+                    if not df_2026_calor.empty and 'NUM_POZO' in df_2026_calor.columns:
+                        df_2026_calor['Pozo'] = df_2026_calor['NUM_POZO'].fillna('N/A').astype(str).str.strip().str.upper()
+                        
+                        meses_es_corto = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                        df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
+                        df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
+
+                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
+                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
+
+                        pozos_validos = df_heatmap_data['Pozo'].unique().tolist()
+                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Pozo'].isin(pozos_validos)]
+
+                        df_totales_anuales = df_heatmap_data.groupby('Pozo')['Eventos'].sum().reset_index(name='Total_Anual')
+                        df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
+                        orden_pozos = df_totales_anuales['Pozo'].tolist()
+                    else:
+                        df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
+                        orden_pozos = []
+
+                    if not df_heatmap_data.empty:
+                        chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
+                            x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dec'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
+                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
+                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                            tooltip=['Pozo', 'Mes', 'Eventos']
+                        ).properties(height=280).configure_view(stroke=None).configure(background='transparent')
+                    else:
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias por mes']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=280).configure(background='transparent')
+
+                    st.altair_chart(chart_heatmap, use_container_width=True)
+
+            with col_g6:
+                with st.container(border=True):
+                    st.markdown("""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📅</span> Incidencias por Mes - Año en Curso (2026)
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    df_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
+
+                    if not df_2026.empty:
+                        nombres_meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
+                        df_2026['Mes_Num'] = df_2026['FECHA_HORA_INICIO'].dt.month
+                        df_2026['Mes_Nombre'] = df_2026['Mes_Num'].map(nombres_meses_es)
+                        
+                        df_meses_2026 = df_2026.groupby(['Mes_Num', 'Mes_Nombre']).size().reset_index(name='Cantidad')
+                        df_meses_2026 = df_meses_2026.sort_values('Mes_Num')
+                    else:
+                        df_meses_2026 = pd.DataFrame({'Mes_Nombre': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'], 'Cantidad': [0]*12})
+
+                    base_mensual = alt.Chart(df_meses_2026).encode(
+                        x=alt.X('Mes_Nombre:N', sort=None, title=None, axis=alt.Axis(labelAngle=-30, labelColor='white')),
+                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
+                    )
+                    line_mensual = base_mensual.mark_line(color='#00d4ff', strokeWidth=3)
+                    points_mensual = base_mensual.mark_circle(color='#ff4b4b', size=70)
+                    text_mensual = base_mensual.mark_text(align='center', baseline='bottom', dy=-8, color='white', fontSize=10).encode(text='Cantidad:Q')
+
+                    chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=280).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_mensual, use_container_width=True)
                     
             # ==============================================================================
             # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
