@@ -4157,25 +4157,37 @@ elif tab_activa == "incidencias":
                         </div>
                     """, unsafe_allow_html=True)
 
-                    # Filtramos las incidencias exclusivamente para el año en curso (2026) a partir del historial completo
+                    # Filtramos el historial para el año 2026
                     df_2026_sectores = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy() if 'FECHA_HORA_INICIO' in df_historial.columns else pd.DataFrame()
 
-                    sectores_2026_conteo = {}
-                    for _, r_h in df_2026_sectores.iterrows():
-                        id_ph = normalizar_id(r_h.get('NUM_POZO'))
-                        gdf_hm = get_geometries(id_ph)
-                        if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
-                            sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
-                            if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
-                                sectores_2026_conteo[sec_val] = sectores_2026_conteo.get(sec_val, 0) + 1
+                    if not df_2026_sectores.empty and 'NUM_POZO' in df_2026_sectores.columns:
+                        # Normalizamos y obtenemos los pozos únicos para no repetir consultas espaciales innecesarias
+                        df_2026_sectores['POZO_NORM'] = df_2026_sectores['NUM_POZO'].apply(normalizar_id)
+                        pozos_unicos = df_2026_sectores['POZO_NORM'].dropna().unique()
 
-                    if sectores_2026_conteo:
-                        df_sectores_10 = pd.DataFrame(list(sectores_2026_conteo.items()), columns=['Sector', 'Total'])
-                        df_sectores_10 = df_sectores_10.sort_values(by='Total', ascending=False).head(10)
+                        # Mapeo rápido de pozo a sector usando caché o consultas individuales solo de los únicos
+                        pozo_a_sector = {}
+                        for p in pozos_unicos:
+                            gdf_hm = get_geometries(p)
+                            if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
+                                sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
+                                if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
+                                    pozo_a_sector[p] = sec_val
+
+                        # Asignamos el sector al DataFrame filtrado y contamos de golpe
+                        df_2026_sectores['Sector'] = df_2026_sectores['POZO_NORM'].map(pozo_a_sector)
+                        df_conteo_limpio = df_2026_sectores.dropna(subset=['Sector'])
+                        
+                        if not df_conteo_limpio.empty:
+                            df_sectores_10 = df_conteo_limpio['Sector'].value_counts().reset_index()
+                            df_sectores_10.columns = ['Sector', 'Total']
+                            df_sectores_10 = df_sectores_10.head(10)
+                        else:
+                            df_sectores_10 = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
                     else:
                         df_sectores_10 = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
-                    # Creamos el treemap para el Top 10 del año en curso
+                    # Creamos el treemap optimizado
                     fig_treemap = px.treemap(
                         df_sectores_10,
                         path=['Sector'],
