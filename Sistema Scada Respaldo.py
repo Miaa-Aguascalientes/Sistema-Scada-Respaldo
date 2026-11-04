@@ -3976,26 +3976,33 @@ elif tab_activa == "incidencias":
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
-            for index, row in df_actual.iterrows():
-                estatus = str(row.get('ESTATUS', 'N/A')).upper()
-                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                fin_raw = row.get('FECHA_HORA_FIN')
-                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
-                
-                if pd.notnull(fin_raw):
-                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-                    delta = fin_dt - inicio_raw
-                else:
-                    delta = ahora_mx - inicio_raw
+            if df_actual.empty:
+                st.info("No hay incidencias activas o cerradas del día.")
+            else:
+                for index, row in df_actual.iterrows():
+                    estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                    diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                    inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                    fin_raw = row.get('FECHA_HORA_FIN')
                     
-                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
-                
-                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
-                
-                with st.expander(titulo):
-                    renderizar_bloque_incidencia(row, index, "act")
+                    inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+                    
+                    if pd.notnull(fin_raw):
+                        fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                        cierre_str = fin_dt.strftime('%H:%M %d de %B de %Y')
+                        delta = fin_dt - inicio_raw
+                    else:
+                        cierre_str = "Pendiente"
+                        delta = ahora_mx - inicio_raw
+                        
+                    duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                    ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                    
+                    # Título integrando de nuevo la Fecha y hora de cierre justo después de la falla
+                    titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ✅ Cierre: {cierre_str} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                    
+                    with st.expander(titulo):
+                        renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
         # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y FILTROS EN UNA SOLA HILERA DE 4
