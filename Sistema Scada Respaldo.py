@@ -4137,7 +4137,7 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔥</span> Mapa de Calor: Alta Criticidad (> 2 Incidencias) (2026)
+                            <span>🔥</span> Mapa de Calor: Alta Criticidad (> 4 Incidencias) (2026)
                         </div>
                     """, unsafe_allow_html=True)
 
