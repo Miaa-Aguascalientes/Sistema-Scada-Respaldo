@@ -4127,17 +4127,17 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR DE TODOS LOS POZOS + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO > 1 EVENTO) + TENDENCIA MENSUAL (2026)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (TODOS LOS POZOS CON INCIDENCIAS VS MESES 2026) ---
+            # --- GRÁFICO 3: MAPA DE CALOR (SOLO POZOS CON > 1 INCIDENCIA EN EL AÑO) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔥</span> Mapa de Calor: Todos los Pozos con Incidencias (2026)
+                            <span>🔥</span> Mapa de Calor: Pozos Críticos con > 1 Incidencia (2026)
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4148,8 +4148,14 @@ elif tab_activa == "incidencias":
                         df_2026_calor['Mes'] = df_2026_calor['FECHA_HORA_INICIO'].dt.strftime('%b').str.capitalize()
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
 
-                        # Tomar TODOS los pozos que sufrieron incidencias (sin restringir a un Top 6)
-                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
+                        # Calcular el total de incidencias por pozo en el año
+                        conteo_pozos = df_2026_calor['Pozo'].value_counts()
+                        # Filtrar y conservar únicamente los pozos que tengan más de 1 incidencia
+-                        pozos_validos = conteo_pozos[conteo_pozos > 1].index.tolist()
+                        
+                        df_filtrado_calor = df_2026_calor[df_2026_calor['Pozo'].isin(pozos_validos)]
+
+                        df_heatmap_data = df_filtrado_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
 
@@ -4161,7 +4167,7 @@ elif tab_activa == "incidencias":
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
                     else:
-                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['Sin datos']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay pozos con más de 1 incidencia']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
@@ -4196,39 +4202,6 @@ elif tab_activa == "incidencias":
                     chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=260).configure_view(stroke=None).configure(background='transparent')
 
                     st.altair_chart(chart_mensual, use_container_width=True)
-
-            with col_g4:
-                with st.container(border=True):
-                    st.markdown("""
-                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📅</span> Incidencias por Mes - Año en Curso (2026)
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                    df_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
-
-                    if not df_2026.empty:
-                        df_2026['Mes_Num'] = df_2026['FECHA_HORA_INICIO'].dt.month
-                        df_2026['Mes_Nombre'] = df_2026['FECHA_HORA_INICIO'].dt.strftime('%B').str.capitalize()
-                        
-                        df_meses_2026 = df_2026.groupby(['Mes_Num', 'Mes_Nombre']).size().reset_index(name='Cantidad')
-                        df_meses_2026 = df_meses_2026.sort_values('Mes_Num')
-                    else:
-                        df_meses_2026 = pd.DataFrame({'Mes_Nombre': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'], 'Cantidad': [0]*12})
-
-                    base_mensual = alt.Chart(df_meses_2026).encode(
-                        x=alt.X('Mes_Nombre:N', sort=None, title=None, axis=alt.Axis(labelAngle=-30, labelColor='white')),
-                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
-                    )
-                    line_mensual = base_mensual.mark_line(color='#00d4ff', strokeWidth=3)
-                    points_mensual = base_mensual.mark_circle(color='#ff4b4b', size=70)
-                    text_mensual = base_mensual.mark_text(align='center', baseline='bottom', dy=-8, color='white', fontSize=10).encode(text='Cantidad:Q')
-
-                    chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=220).configure_view(stroke=None).configure(background='transparent')
-
-                    st.altair_chart(chart_mensual, use_container_width=True)
-
-            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
             # ==============================================================================
             # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
