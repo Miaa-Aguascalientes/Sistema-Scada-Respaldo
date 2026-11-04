@@ -4110,7 +4110,7 @@ elif tab_activa == "incidencias":
                 datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
-            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 10 PEORES SECTORES 2026
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
@@ -4153,46 +4153,40 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 10 PEORES Sectores 2026
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias
                         </div>
                     """, unsafe_allow_html=True)
 
-                    # Filtramos el historial para el año 2026
-                    df_2026_sectores = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy() if 'FECHA_HORA_INICIO' in df_historial.columns else pd.DataFrame()
+                    sectores_mes_conteo = {}
+                    for _, r_h in datos_trabajo.iterrows():
+                        id_ph = normalizar_id(r_h.get('NUM_POZO'))
+                        gdf_hm = get_geometries(id_ph)
+                        if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
+                            sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
+                            if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
+                                sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
 
-                    if not df_2026_sectores.empty and 'NUM_POZO' in df_2026_sectores.columns:
-                        # Normalizamos y obtenemos los pozos únicos para no repetir consultas espaciales innecesarias
-                        df_2026_sectores['POZO_NORM'] = df_2026_sectores['NUM_POZO'].apply(normalizar_id)
-                        pozos_unicos = df_2026_sectores['POZO_NORM'].dropna().unique()
-
-                        # Mapeo rápido de pozo a sector usando caché o consultas individuales solo de los únicos
-                        pozo_a_sector = {}
-                        for p in pozos_unicos:
-                            gdf_hm = get_geometries(p)
-                            if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
-                                sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
-                                if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
-                                    pozo_a_sector[p] = sec_val
-
-                        # Asignamos el sector al DataFrame filtrado y contamos de golpe
-                        df_2026_sectores['Sector'] = df_2026_sectores['POZO_NORM'].map(pozo_a_sector)
-                        df_conteo_limpio = df_2026_sectores.dropna(subset=['Sector'])
-                        
-                        if not df_conteo_limpio.empty:
-                            df_sectores_10 = df_conteo_limpio['Sector'].value_counts().reset_index()
-                            df_sectores_10.columns = ['Sector', 'Total']
-                            df_sectores_10 = df_sectores_10.head(10)
-                        else:
-                            df_sectores_10 = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+                    if sectores_mes_conteo:
+                        df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
+                        df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
                     else:
-                        df_sectores_10 = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+                        df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
-                    # Creamos el treemap optimizado
+                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
+                    
+                    # Reemplazamos el gráfico circular por el Treemap exacto
                     fig_treemap = px.treemap(
-                        df_sectores_10,
+                        df_sectores_mes,
                         path=['Sector'],
                         values='Total',
-                        color='Sector'
+                        color='Sector',
+                        color_discrete_map={
+                            'COBANO': '#FF4B4B',
+                            'JESUS TERAN': '#2ECC71',
+                            'DC18': '#F1C40F',
+                            'DO16-DO18': '#00d4ff',
+                            'DS02B': '#9B59B6'
+                        }
                     )
 
                     fig_treemap.update_layout(
@@ -4200,12 +4194,12 @@ elif tab_activa == "incidencias":
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         font=dict(color='white', family='sans-serif'),
-                        height=260
+                        height=220
                     )
 
                     fig_treemap.update_traces(
                         marker=dict(line=dict(width=2, color='#0b1a29')),
-                        textfont=dict(size=12, color='white')
+                        textfont=dict(size=14, color='white')
                     )
 
                     st.plotly_chart(fig_treemap, use_container_width=True)
