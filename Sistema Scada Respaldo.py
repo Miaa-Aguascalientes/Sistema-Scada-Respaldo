@@ -4127,12 +4127,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (ESCALA ESTRICTA VERDE -> AMARILLO -> ROJO) + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR Y TENDENCIA MENSUAL (MESES EN ESPAÑOL)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR CON ESCALA VERDE-AMARILLO-ROJO PERSONALIZADA ---
+            # --- GRÁFICO 3: MAPA DE CALOR (MESES EN ESPAÑOL + ESCALA VERDE/AMARILLO/ROJO) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4145,8 +4145,11 @@ elif tab_activa == "incidencias":
 
                     if not df_2026_calor.empty and 'NUM_POZO' in df_2026_calor.columns:
                         df_2026_calor['Pozo'] = df_2026_calor['NUM_POZO'].fillna('N/A').astype(str).str.strip().str.upper()
-                        df_2026_calor['Mes'] = df_2026_calor['FECHA_HORA_INICIO'].dt.strftime('%b').str.capitalize()
+                        
+                        # Mapeo de meses a español abreviado
+                        meses_es_corto = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
+                        df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
 
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
@@ -4156,9 +4159,8 @@ elif tab_activa == "incidencias":
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
 
                     if not df_heatmap_data.empty:
-                        # Rango estricto personalizado: Verde (#2ecc71) -> Amarillo (#f1c40f) -> Rojo (#e74c3c)
                         chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
-                            x=alt.X('Mes:N', sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
+                            x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort='-x', title=None, axis=alt.Axis(labelColor='white')),
                             color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
                             tooltip=['Pozo', 'Mes', 'Eventos']
@@ -4168,7 +4170,7 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
-            # --- GRÁFICO 4: TENDENCIA MENSUAL DE INCIDENCIAS (AÑO 2026 - ÚNICO) ---
+            # --- GRÁFICO 4: TENDENCIA MENSUAL (MESES EN ESPAÑOL) ---
             with col_g4:
                 with st.container(border=True):
                     st.markdown("""
@@ -4180,13 +4182,14 @@ elif tab_activa == "incidencias":
                     df_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
 
                     if not df_2026.empty:
+                        nombres_meses_es = {1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio', 7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'}
                         df_2026['Mes_Num'] = df_2026['FECHA_HORA_INICIO'].dt.month
-                        df_2026['Mes_Nombre'] = df_2026['FECHA_HORA_INICIO'].dt.strftime('%B').str.capitalize()
+                        df_2026['Mes_Nombre'] = df_2026['Mes_Num'].map(nombres_meses_es)
                         
                         df_meses_2026 = df_2026.groupby(['Mes_Num', 'Mes_Nombre']).size().reset_index(name='Cantidad')
                         df_meses_2026 = df_meses_2026.sort_values('Mes_Num')
                     else:
-                        df_meses_2026 = pd.DataFrame({'Mes_Nombre': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], 'Cantidad': [0]*12})
+                        df_meses_2026 = pd.DataFrame({'Mes_Nombre': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'], 'Cantidad': [0]*12})
 
                     base_mensual = alt.Chart(df_meses_2026).encode(
                         x=alt.X('Mes_Nombre:N', sort=None, title=None, axis=alt.Axis(labelAngle=-30, labelColor='white')),
