@@ -4110,7 +4110,7 @@ elif tab_activa == "incidencias":
                 datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
-            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 10 PEORES SECTORES 2026
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
@@ -4153,40 +4153,34 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 5 PEORES Sectores con Incidencias
+                            <span>📊</span> Top 10 PEORES Sectores 2026
                         </div>
                     """, unsafe_allow_html=True)
 
-                    sectores_mes_conteo = {}
-                    for _, r_h in datos_trabajo.iterrows():
+                    # Filtramos las incidencias exclusivamente para el año en curso (2026) a partir del historial completo
+                    df_2026_sectores = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy() if 'FECHA_HORA_INICIO' in df_historial.columns else pd.DataFrame()
+
+                    sectores_2026_conteo = {}
+                    for _, r_h in df_2026_sectores.iterrows():
                         id_ph = normalizar_id(r_h.get('NUM_POZO'))
                         gdf_hm = get_geometries(id_ph)
                         if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
                             sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
                             if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
-                                sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
+                                sectores_2026_conteo[sec_val] = sectores_2026_conteo.get(sec_val, 0) + 1
 
-                    if sectores_mes_conteo:
-                        df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
-                        df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
+                    if sectores_2026_conteo:
+                        df_sectores_10 = pd.DataFrame(list(sectores_2026_conteo.items()), columns=['Sector', 'Total'])
+                        df_sectores_10 = df_sectores_10.sort_values(by='Total', ascending=False).head(10)
                     else:
-                        df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+                        df_sectores_10 = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
-                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
-                    
-                    # Reemplazamos el gráfico circular por el Treemap exacto
+                    # Creamos el treemap para el Top 10 del año en curso
                     fig_treemap = px.treemap(
-                        df_sectores_mes,
+                        df_sectores_10,
                         path=['Sector'],
                         values='Total',
-                        color='Sector',
-                        color_discrete_map={
-                            'COBANO': '#FF4B4B',
-                            'JESUS TERAN': '#2ECC71',
-                            'DC18': '#F1C40F',
-                            'DO16-DO18': '#00d4ff',
-                            'DS02B': '#9B59B6'
-                        }
+                        color='Sector'
                     )
 
                     fig_treemap.update_layout(
@@ -4194,12 +4188,12 @@ elif tab_activa == "incidencias":
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         font=dict(color='white', family='sans-serif'),
-                        height=220
+                        height=260
                     )
 
                     fig_treemap.update_traces(
                         marker=dict(line=dict(width=2, color='#0b1a29')),
-                        textfont=dict(size=14, color='white')
+                        textfont=dict(size=12, color='white')
                     )
 
                     st.plotly_chart(fig_treemap, use_container_width=True)
