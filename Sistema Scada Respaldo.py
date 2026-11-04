@@ -3787,17 +3787,25 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: SELECTORES (COLONIA Y POZO) Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
-            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
+            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Filtros de Búsqueda</div>', unsafe_allow_html=True)
 
-            todas_las_colonias_dict = get_todas_las_colonias_diccionario()
-            opciones_selectbox = ["🔍"] + todas_las_colonias_dict
-
-            colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
+            # Filtros en dos columnas (Colonia a un lado de Pozo)
+            col_f_col, col_f_poz = st.columns(2, gap="small")
             
-            filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
+            with col_f_col:
+                todas_las_colonias_dict = get_todas_las_colonias_diccionario()
+                opciones_selectbox = ["🔍 Colonia"] + todas_las_colonias_dict
+                colonia_seleccionada = st.selectbox("Colonia:", opciones_selectbox, key="select_colonia_hud", label_visibility="collapsed")
+                filtrar_por_colonia = None if colonia_seleccionada == "🔍 Colonia" else colonia_seleccionada.strip().upper()
+
+            with col_f_poz:
+                lista_pozos_disponibles = sorted([str(p).strip().upper() for p in df_final['NUM_POZO'].dropna().unique() if str(p).strip()])
+                opciones_pozos = ["📍 Pozo"] + lista_pozos_disponibles
+                pozo_seleccionado = st.selectbox("Pozo:", opciones_pozos, key="select_pozo_hud", label_visibility="collapsed")
+                filtrar_por_pozo = None if pozo_seleccionado == "📍 Pozo" else pozo_seleccionado.strip().upper()
 
             st.markdown("""
                 <style>
@@ -3897,9 +3905,15 @@ elif tab_activa == "incidencias":
                         if not lista_cols_validas:
                             continue
 
+                        # Lógica de filtrado combinado por Colonia y Pozo
                         if filtrar_por_colonia:
-                            coincide = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
-                            if not coincide:
+                            coincide_col = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
+                            if not coincide_col:
+                                continue
+
+                        if filtrar_por_pozo:
+                            coincide_pozo = any(filtrar_por_pozo == p_id for p_id, _ in sec_data['pozo_tiempos'])
+                            if not coincide_pozo:
                                 continue
 
                         tarjetas_renderizadas += 1
@@ -3934,35 +3948,25 @@ elif tab_activa == "incidencias":
                         """, unsafe_allow_html=True)
                     
                     if tarjetas_renderizadas == 0:
-                        if filtrar_por_colonia:
-                            encontrada_en_historial = False
-                            for _, r_hist in df_historial.iterrows():
-                                gdf_h = get_geometries(normalizar_id(r_hist['NUM_POZO']))
-                                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                                    cols_h = [str(c).upper() for c in gdf_h['Col_atl'].dropna().unique()]
-                                    if any(filtrar_por_colonia in ch for ch in cols_h):
-                                        encontrada_en_historial = True
-                                        break
-                            
-                            if encontrada_en_historial:
-                                st.info(f"ℹ️ La colonia '{colonia_seleccionada}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
-                            else:
-                                st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
-                        else:
-                            st.info("No hay sectores con colonias registradas afectadas actualmente.")
+                        st.info("No hay sectores que coincidan con los filtros seleccionados.")
                 else:
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO DE ACTIVAS
+        # COLUMNA DERECHA: INDICADORES SUPERIORES Y LISTADO DE ACTIVAS (CON FILTRO DE POZO)
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
             
-            total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
-            total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
-            total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
-            total_activas_y_dia = len(df_actual)
+            # Aplicar filtro de pozo también a la lista de tarjetas expandibles si está seleccionado
+            df_actual_filtrado = df_actual.copy()
+            if filtrar_por_pozo:
+                df_actual_filtrado = df_actual_filtrado[df_actual_filtrado['NUM_POZO'].astype(str).str.strip().str.upper() == filtrar_por_pozo]
+
+            total_en_proceso = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'EN PROCESO'])
+            total_pendientes = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'PENDIENTE'])
+            total_cerradas_hoy = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'CERRADA'])
+            total_activas_y_dia = len(df_actual_filtrado)
 
             m1, m2, m3, m4 = st.columns(4)
             with m1:
@@ -3976,29 +3980,32 @@ elif tab_activa == "incidencias":
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
-            for index, row in df_actual.iterrows():
-                estatus = str(row.get('ESTATUS', 'N/A')).upper()
-                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                fin_raw = row.get('FECHA_HORA_FIN')
-                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
-                
-                if pd.notnull(fin_raw):
-                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-                    delta = fin_dt - inicio_raw
-                else:
-                    delta = ahora_mx - inicio_raw
+            if df_actual_filtrado.empty:
+                st.info("No se encontraron incidencias activas para el pozo seleccionado.")
+            else:
+                for index, row in df_actual_filtrado.iterrows():
+                    estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                    diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                    inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                    fin_raw = row.get('FECHA_HORA_FIN')
+                    inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
                     
-                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
-                
-                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
-                
-                with st.expander(titulo):
-                    renderizar_bloque_incidencia(row, index, "act")
+                    if pd.notnull(fin_raw):
+                        fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                        delta = fin_dt - inicio_raw
+                    else:
+                        delta = ahora_mx - inicio_raw
+                        
+                    duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                    ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                    
+                    titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                    
+                    with st.expander(titulo):
+                        renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS ANALÍTICOS
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y GRÁFICOS ANALÍTICOS
         # ==============================================================================
         st.markdown("---")
         
@@ -4127,12 +4134,11 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR 2026 (VALORES MENSUALES PUROS) + TENDENCIA
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (VALORES MENSUALES EXACTOS) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4150,16 +4156,12 @@ elif tab_activa == "incidencias":
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
                         df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
 
-                        # Agrupación exacta por Pozo y Mes (conteo mensual puro)
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
-                        
-                        # FILTRO ESTRICTO: Ocultar celdas con de 1 a 4 eventos (mostrar solo > 4)
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
 
                         pozos_validos = df_heatmap_data['Pozo'].unique().tolist()
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Pozo'].isin(pozos_validos)]
 
-                        # Ordenar pozos por su acumulado total anual de mayor a menor
                         df_totales_anuales = df_heatmap_data.groupby('Pozo')['Eventos'].sum().reset_index(name='Total_Anual')
                         df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
                         orden_pozos = df_totales_anuales['Pozo'].tolist()
@@ -4168,7 +4170,6 @@ elif tab_activa == "incidencias":
                         orden_pozos = []
 
                     if not df_heatmap_data.empty:
-                        # Mapa de calor con ancho dinámico y tooltips mostrando únicamente Pozo, Mes y Eventos del mes
                         chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dec'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
@@ -4180,7 +4181,6 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
-            # --- GRÁFICO 4: TENDENCIA MENSUAL (MESES EN ESPAÑOL) ---
             with col_g4:
                 with st.container(border=True):
                     st.markdown("""
