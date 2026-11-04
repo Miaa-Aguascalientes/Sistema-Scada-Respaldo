@@ -4152,7 +4152,7 @@ elif tab_activa == "incidencias":
                 
                 colonias_por_fila = []
                 for _, r_hist in datos_pagina.iterrows():
-                    id_p = normalizar_id(r_hist['NUM_POZO'])ig
+                    id_p = normalizar_id(r_hist['NUM_POZO'])
                     gdf_h = get_geometries(id_p)
                     if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
                         cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
