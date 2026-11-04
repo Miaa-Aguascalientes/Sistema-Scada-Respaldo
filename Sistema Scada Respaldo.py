@@ -4173,11 +4173,27 @@ elif tab_activa == "incidencias":
                         df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
                     colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
-                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
-                        theta=alt.Theta(field="Total", type="quantitative"),
-                        color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
+                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_rect(
+                        stroke='#0b1a29',
+                        strokeWidth=2,
+                        cornerRadius=4
+                    ).encode(
+                        x=alt.X('Sector:N', title=None, axis=None),
+                        y=alt.Y('Total:Q', title=None, axis=None),
+                        color=alt.Color(
+                            field="Sector",
+                            type="nominal",
+                            scale=alt.Scale(range=['#FF4B4B', '#2ECC71', '#F1C40F', '#00d4ff', '#9B59B6']),
+                            legend=None
+                        ),
                         tooltip=['Sector', 'Total']
-                    ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+                    ).properties(
+                        height=220
+                    ).configure_view(
+                        stroke=None
+                    ).configure(
+                        background='transparent'
+                    )
 
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
