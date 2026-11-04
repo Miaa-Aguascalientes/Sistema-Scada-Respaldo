@@ -3998,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y FILTROS (CON EL FILTRO DE POZO)
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y FILTROS (CON BÚSQUEDA GLOBAL DE POZO)
         # ==============================================================================
         st.markdown("---")
         
@@ -4032,62 +4032,66 @@ elif tab_activa == "incidencias":
         meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
         
         if meses:
-            col_f1, col_f2, col_f3, col_f4 = st.columns(4, gap="medium")
+            # Organizar los 4 controles exactamente en una sola hilera a lo ancho
+            col_f1, col_f2, col_f3, col_f4 = st.columns([1.2, 0.9, 1.4, 1.4], gap="small")
             
             with col_f1:
                 mes_actual = datetime.now().strftime('%B %Y').capitalize()
                 default_index = meses.index(mes_actual) if mes_actual in meses else 0
                 mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
             
-            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+            # Obtener lista completa de pozos disponibles en TODO el historial general para el filtro
+            lista_pozos_global = sorted([str(p).strip().upper() for p in df_historial['NUM_POZO'].dropna().unique() if str(p).strip()])
+
+            with col_f4:
+                opciones_pozos_hist = ["Todos los pozos"] + lista_pozos_global
+                pozo_hist_sel = st.selectbox("Filtrar por Pozo:", opciones_pozos_hist, key="select_pozo_historial")
+
+            # Determinación de base de datos según si se seleccionó un pozo específico o no
+            if pozo_hist_sel != "Todos los pozos":
+                # Si hay un pozo seleccionado, ignoramos el filtro de mes y usamos TODO el historial global filtrado por ese pozo
+                datos_trabajo = df_historial[df_historial['NUM_POZO'].astype(str).str.strip().str.upper() == pozo_hist_sel].copy()
+                modo_pozo_activo = True
+            else:
+                # Funcionamiento habitual filtrado por mes
+                datos_trabajo = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+                modo_pozo_activo = False
 
             with col_f2:
-                total_registros_mes = len(datos_mes)
-                st.markdown(f"<div style='font-size:13px; color:#8fa4c0; margin-bottom: 6px;'>Total de registros: <b>{total_registros_mes}</b></div>", unsafe_allow_html=True)
-                st.write("") # Espaciador visual para alinear con los selectbox
+                total_registros_calc = len(datos_trabajo)
+                st.markdown(f"<div style='font-size:12px; color:#8fa4c0; margin-top: 28px;'>Registros: <b>{total_registros_calc}</b></div>", unsafe_allow_html=True)
 
             with col_f3:
-                # Obtener lista única de colonias disponibles en el historial del mes para filtrar
-                todas_cols_hist = ["Todas las colonias"]
-                # O si prefieres mostrar el selector general del diccionario:
                 todas_cols_hist = ["Todas las colonias"] + get_todas_las_colonias_diccionario()
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", todas_cols_hist, key="select_colonia_historial")
 
-            with col_f4:
-                # Nuevo filtro de Pozo ubicado a la derecha de la colonia
-                lista_pozos_hist = sorted([str(p).strip().upper() for p in datos_mes['NUM_POZO'].dropna().unique() if str(p).strip()])
-                opciones_pozos_hist = ["Todos los pozos"] + lista_pozos_hist
-                pozo_hist_sel = st.selectbox("Filtrar por Pozo:", opciones_pozos_hist, key="select_pozo_historial")
-
-            # Aplicar los filtros del historial sobre `datos_mes`
+            # Aplicar filtro adicional por colonia si está seleccionado
             if colonia_sel != "Todas las colonias":
-                # Filtrar por la colonia seleccionada cruzando con las geometrías/diccionario
                 pozos_validos_col = []
-                for _, rh in datos_mes.iterrows():
+                for _, rh in datos_trabajo.iterrows():
                     jp = normalizar_id(rh['NUM_POZO'])
                     gdf_th = get_geometries(jp)
                     if gdf_th is not None and not gdf_th.empty and 'Col_atl' in gdf_th.columns:
                         cols_h = [str(c).strip().upper() for c in gdf_th['Col_atl'].dropna().unique()]
                         if any(colonia_sel.strip().upper() in ch for ch in cols_h):
                             pozos_validos_col.append(jp)
-                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().str.upper().isin(pozos_validos_col)]
+                datos_trabajo = datos_trabajo[datos_trabajo['NUM_POZO'].astype(str).str.strip().str.upper().isin(pozos_validos_col)]
 
-            if pozo_hist_sel != "Todos los pozos":
-                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().str.upper() == pozo_hist_sel]
+            # Control de paginación: Si se busca un pozo específico, se desactiva la paginación de 10 en 10 y se muestran todos
+            if modo_pozo_activo:
+                datos_pagina = datos_trabajo.copy()
+            else:
+                tamanio_pagina = 10
+                total_registros = len(datos_trabajo)
+                total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
 
-            # Paginación basada en los datos ya filtrados
-            tamanio_pagina = 10
-            total_registros = len(datos_mes)
-            total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+                pagina_actual = 1
+                if total_paginas > 1:
+                    pagina_actual = st.number_input(f"Página (Registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
 
-            # Contenedor auxiliar para la paginación si se requiere
-            pagina_actual = 1
-            if total_paginas > 1:
-                pagina_actual = st.number_input(f"Página (Registros filtrados: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
-
-            inicio_idx = (pagina_actual - 1) * tamanio_pagina
-            fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
-            datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
+                inicio_idx = (pagina_actual - 1) * tamanio_pagina
+                fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+                datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
             # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
@@ -4099,12 +4103,12 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔺</span> Top Tipos de Falla (Mes: {mes_sel})
+                            <span>🔺</span> Top Tipos de Falla
                         </div>
                     """, unsafe_allow_html=True)
 
-                    if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
-                        df_tipos_temp = datos_mes.copy()
+                    if not datos_trabajo.empty and 'DIAGNOSTICO_FALLA' in datos_trabajo.columns:
+                        df_tipos_temp = datos_trabajo.copy()
                         df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].fillna('N/A').astype(str).str.strip().str.upper()
                         
                         fallas_a_agrupar = ['ALTA DEMANDA', 'EMBOBINADO ABIERTO', 'BOMBA DAÑADA', 'EQUIPO ATERRIZADO', 'DESGASTE MECANICO']
@@ -4133,12 +4137,12 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {mes_sel})
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias
                         </div>
                     """, unsafe_allow_html=True)
 
                     sectores_mes_conteo = {}
-                    for _, r_h in datos_mes.iterrows():
+                    for _, r_h in datos_trabajo.iterrows():
                         id_ph = normalizar_id(r_h.get('NUM_POZO'))
                         gdf_hm = get_geometries(id_ph)
                         if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
