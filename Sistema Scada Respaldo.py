@@ -4127,12 +4127,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO ESTRICTO > 4 EVENTOS POR CELDA) + TOTALES
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR + COLUMNA DE VALOR ACUMULADO (TEXTO PURO)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR + ACUMULADO ANUAL A LA DERECHA ---
+            # --- GRÁFICO 3: MAPA DE CALOR + TOTAL ACUMULADO EN TEXTO ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4153,13 +4153,13 @@ elif tab_activa == "incidencias":
                         # Agrupar por Pozo y Mes para contar los eventos exactos por celda
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
-                        # FILTRO ESTRICTO POR CELDA: Eliminar cualquier registro/mes que tenga de 1 a 4 eventos (solo mostrar > 4)
+                        # FILTRO ESTRICTO: Ocultar celdas con de 1 a 4 eventos (mostrar solo > 4)
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
 
-                        # Obtener la lista de pozos que pasaron el filtro y calcular su sumatoria para la barra lateral
                         pozos_validos = df_heatmap_data['Pozo'].unique().tolist()
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Pozo'].isin(pozos_validos)]
 
+                        # Calcular el total acumulado por pozo
                         df_totales_anuales = df_heatmap_data.groupby('Pozo')['Eventos'].sum().reset_index(name='Total_Anual')
                         df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
                         orden_pozos = df_totales_anuales['Pozo'].tolist()
@@ -4169,7 +4169,7 @@ elif tab_activa == "incidencias":
                         orden_pozos = []
 
                     if not df_heatmap_data.empty:
-                        # Mapa de calor principal con escala estricta Verde -> Amarillo -> Rojo
+                        # Mapa de calor principal
                         heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
@@ -4177,21 +4177,15 @@ elif tab_activa == "incidencias":
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260, width=260)
 
-                        # Gráfico de barras lateral derecho con la sumatoria del acumulado
-                        bar_total = alt.Chart(df_totales_anuales).mark_bar(color='#00d4ff', cornerRadiusTopRight=3, cornerRadiusBottomRight=3).encode(
+                        # Columna de texto puro con el valor acumulado (sin barras)
+                        text_total = alt.Chart(df_totales_anuales).mark_text(align='left', baseline='middle', dx=5, color='white', fontSize=11, fontWeight='bold').encode(
                             y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
-                            x=alt.X('Total_Anual:Q', title="Total", axis=alt.Axis(grid=False, labelColor='white', titleColor='white', titleFontSize=11)),
+                            x=alt.value(10),
+                            text='Total_Anual:Q',
                             tooltip=['Pozo', 'Total_Anual']
-                        ).properties(height=260, width=90)
+                        ).properties(height=260, width=60)
 
-                        # Texto con el número exacto del acumulado al lado de la barra
-                        text_total = alt.Chart(df_totales_anuales).mark_text(align='left', baseline='middle', dx=3, color='white', fontSize=10).encode(
-                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None),
-                            x=alt.X('Total_Anual:Q', title=None),
-                            text='Total_Anual:Q'
-                        )
-
-                        chart_heatmap = alt.hconcat(heatmap, bar_total + text_total).configure_view(stroke=None).configure(background='transparent')
+                        chart_heatmap = alt.hconcat(heatmap, text_total).configure_view(stroke=None).configure(background='transparent')
                     else:
                         chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias por mes']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
