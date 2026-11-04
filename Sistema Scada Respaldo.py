@@ -4127,17 +4127,17 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO > 1 EVENTO) + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO > 2 EVENTOS) + TENDENCIA MENSUAL (2026)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (SOLO POZOS CON > 1 INCIDENCIA EN EL AÑO) ---
+            # --- GRÁFICO 3: MAPA DE CALOR (SOLO POZOS CON > 2 INCIDENCIAS EN EL AÑO) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔥</span> Mapa de Calor: Pozos Críticos con > 1 Incidencia (2026)
+                            <span>🔥</span> Mapa de Calor: Pozos Críticos con > 2 Incidencias (2026)
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4150,8 +4150,8 @@ elif tab_activa == "incidencias":
 
                         # Calcular el total de incidencias por pozo en el año
                         conteo_pozos = df_2026_calor['Pozo'].value_counts()
-                        # Filtrar y conservar únicamente los pozos que tengan más de 1 incidencia
-                        pozos_validos = conteo_pozos[conteo_pozos > 1].index.tolist()
+                        # Filtrar y conservar únicamente los pozos que tengan más de 2 incidencias (quita 1 y 2)
+                        pozos_validos = conteo_pozos[conteo_pozos > 2].index.tolist()
                         
                         df_filtrado_calor = df_2026_calor[df_2026_calor['Pozo'].isin(pozos_validos)]
 
@@ -4167,7 +4167,7 @@ elif tab_activa == "incidencias":
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
                     else:
-                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay pozos con más de 1 incidencia']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay pozos con más de 2 incidencias']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
