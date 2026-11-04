@@ -4151,7 +4151,7 @@ elif tab_activa == "incidencias":
                         # Calcular el total de incidencias por pozo en el año
                         conteo_pozos = df_2026_calor['Pozo'].value_counts()
                         # Filtrar y conservar únicamente los pozos que tengan más de 1 incidencia
--                        pozos_validos = conteo_pozos[conteo_pozos > 1].index.tolist()
+                        pozos_validos = conteo_pozos[conteo_pozos > 1].index.tolist()
                         
                         df_filtrado_calor = df_2026_calor[df_2026_calor['Pozo'].isin(pozos_validos)]
 
@@ -4202,7 +4202,7 @@ elif tab_activa == "incidencias":
                     chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=260).configure_view(stroke=None).configure(background='transparent')
 
                     st.altair_chart(chart_mensual, use_container_width=True)
-
+                    
             # ==============================================================================
             # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
             # ==============================================================================
