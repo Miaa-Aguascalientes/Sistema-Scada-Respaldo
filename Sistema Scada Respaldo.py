@@ -4127,7 +4127,7 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR ORDENADO POR ACUMULADO + BARRA DE TOTALES A LA DERECHA
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO ESTRICTO > 4 EVENTOS POR CELDA) + TOTALES
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
@@ -4150,27 +4150,26 @@ elif tab_activa == "incidencias":
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
                         df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
 
-                        # 1. Calcular el total anual por pozo para filtrar y ordenar estrictamente
-                        df_totales_anuales = df_2026_calor.groupby('Pozo').size().reset_index(name='Total_Anual')
+                        # Agrupar por Pozo y Mes para contar los eventos exactos por celda
+                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
-                        # FILTRO ESTRICTO: Ocultar pozos con de 1 a 4 eventos totales en el año (> 4)
-                        pozos_validos = df_totales_anuales[df_totales_anuales['Total_Anual'] > 4]['Pozo'].tolist()
-                        
-                        df_2026_calor = df_2026_calor[df_2026_calor['Pozo'].isin(pozos_validos)]
-                        df_totales_anuales = df_totales_anuales[df_totales_anuales['Total_Anual'] > 4]
-                        
-                        # Ordenar pozos de mayor a menor total anual
+                        # FILTRO ESTRICTO POR CELDA: Eliminar cualquier registro/mes que tenga de 1 a 4 eventos (solo mostrar > 4)
+                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
+
+                        # Obtener la lista de pozos que pasaron el filtro y calcular su sumatoria para la barra lateral
+                        pozos_validos = df_heatmap_data['Pozo'].unique().tolist()
+                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Pozo'].isin(pozos_validos)]
+
+                        df_totales_anuales = df_heatmap_data.groupby('Pozo')['Eventos'].sum().reset_index(name='Total_Anual')
                         df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
                         orden_pozos = df_totales_anuales['Pozo'].tolist()
-
-                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
                         df_totales_anuales = pd.DataFrame(columns=['Pozo', 'Total_Anual'])
                         orden_pozos = []
 
                     if not df_heatmap_data.empty:
-                        # Mapa de calor principal ordenado por mayor acumulado y colores verde->amarillo->rojo
+                        # Mapa de calor principal con escala estricta Verde -> Amarillo -> Rojo
                         heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
@@ -4194,7 +4193,7 @@ elif tab_activa == "incidencias":
 
                         chart_heatmap = alt.hconcat(heatmap, bar_total + text_total).configure_view(stroke=None).configure(background='transparent')
                     else:
-                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias por mes']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
