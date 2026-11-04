@@ -4173,29 +4173,36 @@ elif tab_activa == "incidencias":
                         df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
                     colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
-                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_rect(
-                        stroke='#0b1a29',
-                        strokeWidth=2,
-                        cornerRadius=4
-                    ).encode(
-                        x=alt.X('Sector:N', title=None, axis=None),
-                        y=alt.Y('Total:Q', title=None, axis=None),
-                        color=alt.Color(
-                            field="Sector",
-                            type="nominal",
-                            scale=alt.Scale(range=['#FF4B4B', '#2ECC71', '#F1C40F', '#00d4ff', '#9B59B6']),
-                            legend=None
-                        ),
-                        tooltip=['Sector', 'Total']
-                    ).properties(
-                        height=220
-                    ).configure_view(
-                        stroke=None
-                    ).configure(
-                        background='transparent'
+                    
+                    # Reemplazamos el gráfico circular por el Treemap exacto
+                    fig_treemap = px.treemap(
+                        df_sectores_mes,
+                        path=['Sector'],
+                        values='Total',
+                        color='Sector',
+                        color_discrete_map={
+                            'COBANO': '#FF4B4B',
+                            'JESUS TERAN': '#2ECC71',
+                            'DC18': '#F1C40F',
+                            'DO16-DO18': '#00d4ff',
+                            'DS02B': '#9B59B6'
+                        }
                     )
 
-                    st.altair_chart(chart_sectores_mes, use_container_width=True)
+                    fig_treemap.update_layout(
+                        margin=dict(t=10, l=10, r=10, b=10),
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        font=dict(color='white', family='sans-serif'),
+                        height=220
+                    )
+
+                    fig_treemap.update_traces(
+                        marker=dict(line=dict(width=2, color='#0b1a29')),
+                        textfont=dict(size=14, color='white')
+                    )
+
+                    st.plotly_chart(fig_treemap, use_container_width=True)
 
             # ==============================================================================
             # FILA 2 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA
