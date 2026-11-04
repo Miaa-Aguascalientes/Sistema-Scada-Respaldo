@@ -4117,50 +4117,20 @@ elif tab_activa == "incidencias":
                 datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
-            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
+            # FILA 1 DE GRÁFICOS: TOP SECTORES (MES EN CURSO VS AÑO EN CURSO)
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
 
+            colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
+            import plotly.express as px
+
+            # --- GRÁFICO 1: MES EN CURSO ---
             with col_g1:
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔺</span> Top Tipos de Falla
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                    if not datos_trabajo.empty and 'DIAGNOSTICO_FALLA' in datos_trabajo.columns:
-                        df_tipos_temp = datos_trabajo.copy()
-                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].fillna('N/A').astype(str).str.strip().str.upper()
-                        
-                        fallas_a_agrupar = ['ALTA DEMANDA', 'EMBOBINADO ABIERTO', 'BOMBA DAÑADA', 'EQUIPO ATERRIZADO', 'DESGASTE MECANICO']
-                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].apply(
-                            lambda x: 'EQUIPO DE BOMBEO DAÑADO' if x in fallas_a_agrupar else x
-                        )
-                        
-                        df_tipos_mes = df_tipos_temp['DIAGNOSTICO_FALLA'].value_counts().reset_index()
-                        df_tipos_mes.columns = ['Tipo', 'Cantidad']
-                        df_tipos_mes = df_tipos_mes.head(5)
-                    else:
-                        df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
-
-                    base_tipos = alt.Chart(df_tipos_mes).encode(
-                        x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white', labelLimit=180)),
-                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
-                    )
-                    bars_tipos = base_tipos.mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color='#00d4ff')
-                    text_tipos = base_tipos.mark_text(align='center', baseline='bottom', dy=-4, color='white', fontSize=11).encode(text='Cantidad:Q')
-                    
-                    chart_tipos_mes = (bars_tipos + text_tipos).properties(height=220).configure_view(stroke=None).configure(background='transparent')
-
-                    st.altair_chart(chart_tipos_mes, use_container_width=True)
-
-            with col_g2:
-                with st.container(border=True):
-                    st.markdown(f"""
-                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 5 PEORES Sectores con Incidencias
+                            <span>📊</span> Top Sectores - Mes en Curso ({mes_sel})
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4179,14 +4149,84 @@ elif tab_activa == "incidencias":
                     else:
                         df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
 
-                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
-                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
-                        theta=alt.Theta(field="Total", type="quantitative"),
-                        color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
-                        tooltip=['Sector', 'Total']
-                    ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+                    fig_donut_mes = px.pie(
+                        df_sectores_mes, 
+                        names='Sector', 
+                        values='Total', 
+                        hole=0.5,
+                        color_discrete_sequence=colores_pastel
+                    )
+                    
+                    fig_donut_mes.update_traces(
+                        textposition='outside',
+                        textinfo='label+value+percent',
+                        textfont_size=11,
+                        textfont_color='white',
+                        marker=dict(line=dict(color='#0b1a29', width=2))
+                    )
+                    
+                    fig_donut_mes.update_layout(
+                        showlegend=False,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(t=10, b=10, l=10, r=10),
+                        height=240
+                    )
 
-                    st.altair_chart(chart_sectores_mes, use_container_width=True)
+                    st.plotly_chart(fig_donut_mes, use_container_width=True)
+
+            # --- GRÁFICO 2: AÑO EN CURSO (2026) ---
+            with col_g2:
+                with st.container(border=True):
+                    st.markdown("""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📊</span> Top Sectores - Año en Curso (2026)
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    # Filtrar todo el historial correspondiente estrictamente al año 2026
+                    df_anual_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
+
+                    sectores_anual_conteo = {}
+                    for _, r_a in df_anual_2026.iterrows():
+                        id_pa = normalizar_id(r_a.get('NUM_POZO'))
+                        gdf_ha = get_geometries(id_pa)
+                        if gdf_ha is not None and not gdf_ha.empty and 'Sector' in gdf_ha.columns:
+                            sec_val_a = str(gdf_ha['Sector'].iloc[0]).strip()
+                            if sec_val_a and sec_val_a.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
+                                sectores_anual_conteo[sec_val_a] = sectores_anual_conteo.get(sec_val_a, 0) + 1
+
+                    if sectores_anual_conteo:
+                        df_sectores_anual = pd.DataFrame(list(sectores_anual_conteo.items()), columns=['Sector', 'Total'])
+                        df_sectores_anual = df_sectores_anual.sort_values(by='Total', ascending=False).head(5)
+                    else:
+                        df_sectores_anual = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+
+                    fig_donut_anual = px.pie(
+                        df_sectores_anual, 
+                        names='Sector', 
+                        values='Total', 
+                        hole=0.5,
+                        color_discrete_sequence=colores_pastel
+                    )
+                    
+                    fig_donut_anual.update_traces(
+                        textposition='outside',
+                        textinfo='label+value+percent',
+                        textfont_size=11,
+                        textfont_color='white',
+                        marker=dict(line=dict(color='#0b1a29', width=2))
+                    )
+                    
+                    fig_donut_anual.update_layout(
+                        showlegend=False,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        margin=dict(t=10, b=10, l=10, r=10),
+                        height=240
+                    )
+
+                    st.plotly_chart(fig_donut_anual, use_container_width=True)
 
             # ==============================================================================
             # FILA 2 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA
