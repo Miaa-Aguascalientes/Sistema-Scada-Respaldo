@@ -4126,13 +4126,13 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
-            # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR + COLUMNA DE VALOR ACUMULADO (TEXTO PURO)
+           # ==============================================================================
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR EXPANSIVO (ANCHO TOTAL) + TENDENCIA MENSUAL
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR + TOTAL ACUMULADO EN TEXTO ---
+            # --- GRÁFICO 3: MAPA DE CALOR FLUIDO (OCUPA TODO EL CONTENEDOR) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4150,7 +4150,7 @@ elif tab_activa == "incidencias":
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
                         df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
 
-                        # Agrupar por Pozo y Mes para contar los eventos exactos por celda
+                        # Agrupar por Pozo y Mes para contar eventos por celda
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
                         # FILTRO ESTRICTO: Ocultar celdas con de 1 a 4 eventos (mostrar solo > 4)
@@ -4159,35 +4159,35 @@ elif tab_activa == "incidencias":
                         pozos_validos = df_heatmap_data['Pozo'].unique().tolist()
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Pozo'].isin(pozos_validos)]
 
-                        # Calcular el total acumulado por pozo
+                        # Calcular el total acumulado por pozo para ordenar el eje Y
                         df_totales_anuales = df_heatmap_data.groupby('Pozo')['Eventos'].sum().reset_index(name='Total_Anual')
                         df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
-                        orden_pozos = df_totales_anuales['Pozo'].tolist()
+                        orden_pozos = df_totales_anuales['Total_Anual'].sort_values(ascending=False).index.tolist() # o por nombre de pozo ordenado
+                        
+                        # Mapear el total anual de vuelta al dataframe del heatmap para mostrarlo opcionalmente en el tooltip o etiqueta
+                        mapping_totales = df_totales_anuales.set_index('Pozo')['Total_Anual'].to_dict()
+                        df_heatmap_data['Total_Pozo'] = df_heatmap_data['Pozo'].map(mapping_totales)
+                        
+                        orden_pozos_lista = df_totales_anuales['Pozo'].tolist()
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
-                        df_totales_anuales = pd.DataFrame(columns=['Pozo', 'Total_Anual'])
-                        orden_pozos = []
+                        orden_pozos_lista = []
 
                     if not df_heatmap_data.empty:
-                        # Mapa de calor principal
-                        heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
+                        # Usamos width="container" implícito al no declarar un width fijo numérico, permitiendo que Altair se expanda por completo
+                        base_hm = alt.Chart(df_heatmap_data).encode(
                             x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
-                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
-                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=None),
-                            tooltip=['Pozo', 'Mes', 'Eventos']
-                        ).properties(height=260, width=260)
+                            y=alt.Y('Pozo:N', sort=orden_pozos_lista, title=None, axis=alt.Axis(labelColor='white'))
+                        )
 
-                        # Columna de texto puro con el valor acumulado (sin barras)
-                        text_total = alt.Chart(df_totales_anuales).mark_text(align='left', baseline='middle', dx=5, color='white', fontSize=11, fontWeight='bold').encode(
-                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
-                            x=alt.value(10),
-                            text='Total_Anual:Q',
-                            tooltip=['Pozo', 'Total_Anual']
-                        ).properties(height=260, width=60)
+                        rects = base_hm.mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
+                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                            tooltip=['Pozo', 'Mes', 'Eventos', 'Total_Pozo']
+                        )
 
-                        chart_heatmap = alt.hconcat(heatmap, text_total).configure_view(stroke=None).configure(background='transparent')
+                        chart_heatmap = rects.properties(height=280).configure_view(stroke=None).configure(background='transparent')
                     else:
-                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias por mes']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias por mes']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=280).configure(background='transparent')
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
@@ -4220,7 +4220,7 @@ elif tab_activa == "incidencias":
                     points_mensual = base_mensual.mark_circle(color='#ff4b4b', size=70)
                     text_mensual = base_mensual.mark_text(align='center', baseline='bottom', dy=-8, color='white', fontSize=10).encode(text='Cantidad:Q')
 
-                    chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=260).configure_view(stroke=None).configure(background='transparent')
+                    chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=280).configure_view(stroke=None).configure(background='transparent')
 
                     st.altair_chart(chart_mensual, use_container_width=True)
                     
