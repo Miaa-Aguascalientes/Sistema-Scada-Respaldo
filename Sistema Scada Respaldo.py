@@ -4127,17 +4127,17 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO ESTRICTO > 4 EVENTOS) + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (PALETA CYAN/VERDE/NEÓN Y TÍTULO LIMPIO) + TENDENCIA MENSUAL (2026)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (SOLO CELDAS CON > 4 INCIDENCIAS) ---
+            # --- GRÁFICO 3: MAPA DE CALOR CON NUEVA GAMA DE COLORES Y TÍTULO CORREGIDO ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔥</span> Mapa de Calor: Alta Criticidad (> 4 Incidencias) (2026)
+                            <span>🔥</span> Mapa de calor 2026
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4148,19 +4148,19 @@ elif tab_activa == "incidencias":
                         df_2026_calor['Mes'] = df_2026_calor['FECHA_HORA_INICIO'].dt.strftime('%b').str.capitalize()
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
 
-                        # Agrupar por Pozo y Mes para contar los eventos mensuales
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
-                        # FILTRO ESTRICTO: Ocultar cualquier celda/mes que tenga de 1 a 4 eventos (mostrar solo > 4)
+                        # FILTRO ESTRICTO: Ocultar celdas con de 1 a 4 eventos (> 4)
                         df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
 
                     if not df_heatmap_data.empty:
-                        chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#1f3a5f', strokeWidth=0.5).encode(
+                        # Usamos la paleta 'tealblues' o 'viridis' / 'turbo' / 'lightgreen' que encajan perfecto con el estilo scada oscuro sin verse hueso
+                        chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort='-x', title=None, axis=alt.Axis(labelColor='white')),
-                            color=alt.Color('Eventos:Q', scale=alt.Scale(scheme='orangered', reverse=False), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                            color=alt.Color('Eventos:Q', scale=alt.Scale(scheme='tealblues', reverse=False), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
                     else:
