@@ -3574,12 +3574,564 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON MAPA DE CALOR Y TENDENCIA MENSUAL)
+# ==============================================================================
+elif tab_activa == "incidencias":
+    st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
+    
+    tz_mx = pytz.timezone('America/Mexico_City')
+    ahora_mx = datetime.now(tz_mx)
+
+    def normalizar_id(valor):
+        return str(valor).strip().upper()
+
+    @st.cache_data(ttl=60)
+    def get_geometries(num_pozo):
+        if not num_pozo:
+            return None
+            
+        id_busqueda = str(num_pozo).strip().upper()
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return None
+            
+        try:
+            query = """
+                SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor 
+                FROM Diccionario_colonias 
+                WHERE Pozos = %s 
+                   OR Pozos LIKE %s 
+                   OR Pozos LIKE %s 
+                   OR Pozos LIKE %s
+            """
+            p_exacto = id_busqueda
+            p_comienza = f"{id_busqueda},%"
+            p_medio = f"%, {id_busqueda},%"
+            p_termina = f"%, {id_busqueda}"
+            
+            df = pd.read_sql(query, engine, params=(p_exacto, p_comienza, p_medio, p_termina))
+            
+            if not df.empty:
+                def pozo_en_lista(cell_value):
+                    if pd.isna(cell_value):
+                        return False
+                    pozos_en_celda = [p.strip().upper() for p in str(cell_value).replace(';', ',').split(',')]
+                    return id_busqueda in pozos_en_celda
+
+                df = df[df['Pozos'].apply(pozo_en_lista)]
+
+            if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
+                df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
+                gdf.set_crs(epsg=32613, inplace=True)
+                return gdf.to_crs(epsg=4326)
+                
+        except Exception as e:
+            st.error(f"Error en BD al obtener geometrías: {e}")
+            
+        return None
+
+    @st.cache_data(ttl=300)
+    def get_todas_las_colonias_diccionario():
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return []
+        try:
+            query = "SELECT DISTINCT Col_atl FROM Diccionario_colonias WHERE Col_atl IS NOT NULL AND Col_atl != ''"
+            df_cols = pd.read_sql(query, engine)
+            if not df_cols.empty:
+                lista = sorted([str(c).strip() for c in df_cols['Col_atl'].dropna().unique() if str(c).strip()])
+                return lista
+        except Exception:
+            pass
+        return []
+
+    @st.fragment
+    def renderizar_bloque_incidencia(row, index, tipo):
+        val = row['NUM_POZO']
+        id_pozo_original = str(val).strip().upper() if pd.notna(val) else ""
+        
+        gdf = get_geometries(id_pozo_original) if id_pozo_original else None
+
+        if gdf is not None and not gdf.empty:
+            col_pozo_encontrada = next((c for c in gdf.columns if c.upper() in ['NUM_POZO', 'POZO', 'ID_POZO', 'CVE_POZO', 'SITE', 'SITIO']), None)
+            if col_pozo_encontrada:
+                gdf = gdf[gdf[col_pozo_encontrada].astype(str).str.strip().str.upper() == id_pozo_original]
+
+        st.markdown("""
+            <style>
+            [data-testid="column"] { padding-left: 0px !important; padding-right: 0px !important; }
+            </style>
+        """, unsafe_allow_html=True)        
+
+        col1, col2 = st.columns([3, 2], gap="small")
+        
+        with col1:
+            if gdf is not None and not gdf.empty:
+                try:
+                    lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                    m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
+
+                    api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+                    folium.TileLayer(
+                        tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
+                        name="Vista Nocturna",
+                        attr='&copy; CARTO',
+                        subdomains="abcd", max_zoom=20, overlay=False, control=True
+                    ).add_to(m)
+                    
+                    folium.GeoJson(
+                        gdf, 
+                        style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
+                    ).add_to(m)
+                    
+                    for i, (_, r) in enumerate(gdf.iterrows()):
+                        if r.geometry:
+                            c = r.geometry.centroid
+                            destino = [c.y + 0.001, c.x + 0.001]
+                            folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                            folium.PolyLine(locations=[[c.y, c.x], destino], color="white", weight=1).add_to(m)
+                            folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                            folium.Marker(
+                                location=destino,
+                                icon=folium.DivIcon(
+                                    icon_size=(200, 30),
+                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: white; padding: 2px 8px; border: 1px solid #FFFFFF; font-size: 10px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">{str(r.get("Col_atl", "N/A"))}</div>'
+                                )
+                            ).add_to(m)
+                    
+                    Fullscreen(position='topright').add_to(m)
+                    st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo_original}_{index}")
+                except Exception as e:
+                    st.error(f"Error al renderizar el mapa: {e}")
+            else:
+                st.warning("Sin datos geográficos disponibles.")
+
+        with col2:
+            st.subheader("Tiempo de Atención")
+            estatus = str(row.get('ESTATUS', '')).upper()
+            inicio = pd.to_datetime(row['FECHA_HORA_INICIO']).tz_localize(None).tz_localize(tz_mx)
+            valor_raw = row.get('TIEMPO_ESTIMADO_ATENCION')
+            
+            if pd.notnull(valor_raw):
+                try:
+                    estimado = float(valor_raw)
+                    hora_limite = inicio + pd.Timedelta(hours=estimado)
+                except ValueError:
+                    hora_limite = inicio
+            else:
+                hora_limite = inicio
+            
+            total_seg = (hora_limite - inicio).total_seconds()
+            porcentaje = min(max(0, (ahora_mx - inicio).total_seconds()) / total_seg, 1.0) if total_seg > 0 else 1.0
+            st.progress(porcentaje)
+            
+            data = pd.DataFrame({
+                'Evento': ['Inicio', 'Ahora', 'Límite'], 
+                'Tiempo': [inicio, ahora_mx, hora_limite], 
+                'Color': ['#00CC96', '#1f77b4', '#FF4B4B']
+            })
+            chart = alt.Chart(data).mark_point(shape='triangle-up', size=300).encode(
+                x='Tiempo:T', y=alt.value(0), color=alt.Color('Color', scale=None)
+            ).properties(height=50)
+            st.altair_chart(chart, use_container_width=True)
+            
+            restante = hora_limite - ahora_mx
+            if estatus == 'CERRADA':
+                st.info("✅ Incidencia Cerrada")
+            elif ahora_mx > hora_limite:
+                st.error("🔴 Restante: Excedido")
+            else:
+                st.success(f"✅ Restante: {int(restante.total_seconds()//3600)}h {int((restante.total_seconds()%3600)//60)}m")
+            
+            transcurrido = ahora_mx - inicio
+            dias = transcurrido.days
+            horas = transcurrido.seconds // 3600
+            minutos = (transcurrido.seconds % 3600) // 60
+            st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
+
+            if gdf is not None and not gdf.empty:
+                sectores = [str(s) for s in gdf['Sector'].unique() if pd.notnull(s)]
+                distritos = [str(d) for d in gdf['Distrito'].unique() if pd.notnull(d)]
+                sector_val = ', '.join(sectores) if sectores else 'N/A'
+                distrito_val = ', '.join(distritos) if distritos else 'N/A'
+            else:
+                sector_val = 'N/A'
+                distrito_val = 'N/A'
+
+            responsable_val = row.get('RESPONSABLE', 'N/A')
+            col_sec, col_dis, col_res = st.columns(3)
+            with col_sec: st.markdown(f"📍 **Sector:** {sector_val}")
+            with col_dis: st.markdown(f"🏢 **Distrito:** {distrito_val}")
+            with col_res: st.markdown(f"👤 **Responsable:** {responsable_val}")
+
+    # --- CARGA Y FILTRADO DE DATOS BASE ---
+    df_incidencias = get_data()
+
+    if isinstance(df_incidencias, pd.DataFrame) and not df_incidencias.empty:
+        df_incidencias['FECHA_HORA_INICIO'] = pd.to_datetime(df_incidencias['FECHA_HORA_INICIO'])
+        df_incidencias['FECHA_HORA_FIN'] = pd.to_datetime(df_incidencias['FECHA_HORA_FIN'], errors='coerce')
+        df_final = df_incidencias.sort_values(by='FECHA_HORA_INICIO', ascending=False)
+        
+        hoy = pd.Timestamp.now(tz=pytz.timezone('America/Mexico_City')).normalize().tz_localize(None)
+        f_inicio_norm = df_final['FECHA_HORA_INICIO'].dt.tz_localize(None).dt.normalize()
+        f_fin_norm = df_final['FECHA_HORA_FIN'].dt.tz_localize(None).dt.normalize()
+        
+        mask_activas = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
+        mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & ((f_inicio_norm == hoy) | (f_fin_norm == hoy))
+        
+        df_actual = df_final[mask_activas | mask_cerradas_hoy]
+        df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)].copy()
+
+        # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES (SUPERIOR) ---
+        col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
+
+        # ==============================================================================
+        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD
+        # ==============================================================================
+        with col_panel_izq:
+            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
+
+            todas_las_colonias_dict = get_todas_las_colonias_diccionario()
+            opciones_selectbox = ["🔍"] + todas_las_colonias_dict
+
+            colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
+            
+            filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
+
+            st.markdown("""
+                <style>
+                .hud-card {
+                    background: linear-gradient(180deg, rgba(13, 27, 42, 0.95) 0%, rgba(6, 14, 24, 1) 100%);
+                    border: 1px solid #1f3a5f;
+                    border-radius: 8px;
+                    padding: 8px 10px;
+                    margin-bottom: 8px;
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+                }
+                .colonias-box-hud {
+                    background-color: rgba(0, 0, 0, 0.4);
+                    border: 1px solid #1b2a38;
+                    border-radius: 5px;
+                    padding: 5px 8px;
+                    max-height: 55px;
+                    overflow-y: auto;
+                    font-size: 10px;
+                    color: #b0c4de;
+                    margin-top: 3px;
+                    line-height: 1.2;
+                }
+                .colonias-box-hud::-webkit-scrollbar { width: 3px; }
+                .colonias-box-hud::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 3px; }
+                </style>
+            """, unsafe_allow_html=True)
+
+            gdf_sec_geo = get_todos_los_sectores_geo()
+            sectores_agrupados = {}
+
+            for _, r_inc in df_actual.iterrows():
+                id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
+                inicio_inc = pd.to_datetime(r_inc.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                estatus_inc = str(r_inc.get('ESTATUS', '')).upper()
+                fin_inc = r_inc.get('FECHA_HORA_FIN')
+
+                if estatus_inc == 'CERRADA' and pd.notnull(fin_inc):
+                    fin_dt = pd.to_datetime(fin_inc).tz_localize(None).tz_localize(tz_mx)
+                    duracion_delta = fin_dt - inicio_inc
+                else:
+                    duracion_delta = ahora_mx - inicio_inc
+
+                segundos_fuera = duracion_delta.total_seconds()
+                
+                dias = duracion_delta.days
+                horas = duracion_delta.seconds // 3600
+                minutos = (duracion_delta.seconds % 3600) // 60
+                
+                if dias > 0:
+                    tiempo_str = f"{dias}d {horas}h"
+                elif horas > 0:
+                    tiempo_str = f"{horas}h {minutos}m" if minutos > 0 else f"{horas}h"
+                else:
+                    tiempo_str = f"{minutos}m"
+                
+                gdf_r = get_geometries(id_p_inc)
+                
+                if gdf_r is not None and not gdf_r.empty:
+                    sector_nombre = str(gdf_r['Sector'].iloc[0]).strip()
+                    nombres_cols = sorted([c.strip() for c in gdf_r['Col_atl'].dropna().unique() if str(c).strip()])
+                else:
+                    sector_nombre = "Sin Sector"
+                    nombres_cols = []
+
+                if sector_nombre not in sectores_agrupados:
+                    props_sec = {}
+                    if gdf_sec_geo is not None and not gdf_sec_geo.empty:
+                        matched = gdf_sec_geo[gdf_sec_geo['Sector'].astype(str).str.strip() == sector_nombre]
+                        if not matched.empty:
+                            props_sec = matched.iloc[0].to_dict()
+
+                    color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
+                    
+                    sectores_agrupados[sector_nombre] = {
+                        'pozo_tiempos': [(id_p_inc, tiempo_str)],
+                        'max_segundos': segundos_fuera,
+                        'colonias': set(nombres_cols),
+                        'color_badge': color_afec,
+                        'val_afectacion': val_afec
+                    }
+                else:
+                    sec = sectores_agrupados[sector_nombre]
+                    sec['pozo_tiempos'].append((id_p_inc, tiempo_str))
+                    if segundos_fuera > sec['max_segundos']:
+                        sec['max_segundos'] = segundos_fuera
+                    sec['colonias'].update(nombres_cols)
+
+            sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
+
+            with st.container(height=780, border=False):
+                tarjetas_renderizadas = 0
+                if sectores_ordenados:
+                    for sec_name, sec_data in sectores_ordenados:
+                        lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
+                        
+                        if not lista_cols_validas:
+                            continue
+
+                        if filtrar_por_colonia:
+                            coincide = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
+                            if not coincide:
+                                continue
+
+                        tarjetas_renderizadas += 1
+                        
+                        desglose_pozos = []
+                        for p_id, t_str in sec_data['pozo_tiempos']:
+                            desglose_pozos.append(f"{p_id}: <b style='color:#ffff00;'>{t_str}</b>")
+                        
+                        tiempos_str = " | ".join(desglose_pozos)
+                        colonias_str = ", ".join(lista_cols_validas)
+                        
+                        pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
+                        
+                        if pct_val > 0:
+                            pct_str = f"{pct_val}% AFECTACIÓN"
+                            bg_badge = "#FF4B4B" if pct_val > 50 else "#F1C40F"
+                        else:
+                            pct_str = "EN RECUPERACIÓN"
+                            bg_badge = "#3498DB"
+
+                        st.markdown(f"""
+                            <div class="hud-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
+                                    <span style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
+                                </div>
+                                <div style="font-size: 11px; color: #a0aec0;">
+                                    <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
+                                    <div class="colonias-box-hud">{colonias_str}</div>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                    
+                    if tarjetas_renderizadas == 0:
+                        if filtrar_por_colonia:
+                            encontrada_en_historial = False
+                            for _, r_hist in df_historial.iterrows():
+                                gdf_h = get_geometries(normalizar_id(r_hist['NUM_POZO']))
+                                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                                    cols_h = [str(c).upper() for c in gdf_h['Col_atl'].dropna().unique()]
+                                    if any(filtrar_por_colonia in ch for ch in cols_h):
+                                        encontrada_en_historial = True
+                                        break
+                            
+                            if encontrada_en_historial:
+                                st.info(f"ℹ️ La colonia '{colonia_seleccionada}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
+                            else:
+                                st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
+                        else:
+                            st.info("No hay sectores con colonias registradas afectadas actualmente.")
+                else:
+                    st.info("No hay sectores con incidencias activas.")
+
+        # ==============================================================================
+        # COLUMNA DERECHA: INDICADORES SUPERIORES ESTABLES Y LISTADO DE ACTIVAS
+        # ==============================================================================
+        with col_panel_der:
+            st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
+            
+            total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
+            total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
+            total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
+            total_activas_y_dia = len(df_actual)
+
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #d4ac0d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #f1c40f;">EN PROCESO</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_en_proceso}</div></div>', unsafe_allow_html=True)
+            with m2:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #c0392b; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #e74c3c;">PENDIENTES</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_pendientes}</div></div>', unsafe_allow_html=True)
+            with m3:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #196f3d; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #2ecc71;">CERRADAS</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_cerradas_hoy}</div></div>', unsafe_allow_html=True)
+            with m4:
+                st.markdown(f'<div style="background-color: #111418; border: 1px solid #2e4053; border-radius: 8px; padding: 10px; text-align: center;"><div style="font-size: 10px; font-weight: bold; color: #bdc3c7;">TOTAL ACTIVAS</div><div style="font-size: 20px; font-weight: bold; color: white;">{total_activas_y_dia}</div></div>', unsafe_allow_html=True)
+
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+
+            for index, row in df_actual.iterrows():
+                estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                fin_raw = row.get('FECHA_HORA_FIN')
+                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+                
+                if pd.notnull(fin_raw):
+                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                    delta = fin_dt - inicio_raw
+                else:
+                    delta = ahora_mx - inicio_raw
+                    
+                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                
+                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                
+                with st.expander(titulo):
+                    renderizar_bloque_incidencia(row, index, "act")
+
+        # ==============================================================================
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS ANALÍTICOS
+        # ==============================================================================
+        st.markdown("---")
+        
+        st.markdown("""
+            <style>
+            .historial-header-container {
+                background: linear-gradient(90deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 0.4) 100%);
+                border-left: 4px solid #00d4ff;
+                padding: 10px 15px;
+                border-radius: 6px;
+                margin-bottom: 15px;
+            }
+            [data-testid="stDataFrame"] {
+                border: 1px solid #1f3a5f !important;
+                border-radius: 8px !important;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            }
+            </style>
+            <div class="historial-header-container">
+                <h3 style="color:white; font-size: 20px; font-weight:bold; margin: 0; letter-spacing: 0.5px;">📜 Historial de Incidencias Cerradas</h3>
+                <p style="color:#8fa4c0; font-size: 11px; margin: 2px 0 0 0;">Registro detallado y consulta de eventos operativos finalizados</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        df_historial['FECHA_HORA_INICIO'] = pd.to_datetime(df_historial['FECHA_HORA_INICIO'])
+        df_historial['FECHA_HORA_FIN'] = pd.to_datetime(df_historial['FECHA_HORA_FIN'], errors='coerce')
+        df_historial['MES_AÑO'] = df_historial['FECHA_HORA_INICIO'].dt.strftime('%B %Y').str.capitalize()
+        df_historial['PERIODO'] = df_historial['FECHA_HORA_INICIO'].dt.to_period('M')
+        
+        periodos_hist = sorted(df_historial['PERIODO'].unique(), reverse=True)
+        meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
+        
+        if meses:
+            col_f1, col_f2, col_f3 = st.columns(3, gap="medium")
+            
+            with col_f1:
+                mes_actual = datetime.now().strftime('%B %Y').capitalize()
+                default_index = meses.index(mes_actual) if mes_actual in meses else 0
+                mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
+            
+            datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+            tamanio_pagina = 10
+            total_registros = len(datos_mes)
+            total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
+
+            with col_f2:
+                pagina_actual = st.number_input(f"Página (Total registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
+
+            inicio_idx = (pagina_actual - 1) * tamanio_pagina
+            fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
+            datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
+
+            with col_f3:
+                colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
+
+            # ==============================================================================
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
+            # ==============================================================================
+            st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+            col_g1, col_g2 = st.columns(2, gap="medium")
+
+            with col_g1:
+                with st.container(border=True):
+                    st.markdown(f"""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>🔺</span> Top Tipos de Falla (Mes: {mes_sel})
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
+                        df_tipos_temp = datos_mes.copy()
+                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].fillna('N/A').astype(str).str.strip().str.upper()
+                        
+                        fallas_a_agrupar = ['ALTA DEMANDA', 'EMBOBINADO ABIERTO', 'BOMBA DAÑADA', 'EQUIPO ATERRIZADO', 'DESGASTE MECANICO']
+                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].apply(
+                            lambda x: 'EQUIPO DE BOMBEO DAÑADO' if x in fallas_a_agrupar else x
+                        )
+                        
+                        df_tipos_mes = df_tipos_temp['DIAGNOSTICO_FALLA'].value_counts().reset_index()
+                        df_tipos_mes.columns = ['Tipo', 'Cantidad']
+                        df_tipos_mes = df_tipos_mes.head(5)
+                    else:
+                        df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
+
+                    base_tipos = alt.Chart(df_tipos_mes).encode(
+                        x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white', labelLimit=180)),
+                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
+                    )
+                    bars_tipos = base_tipos.mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color='#00d4ff')
+                    text_tipos = base_tipos.mark_text(align='center', baseline='bottom', dy=-4, color='white', fontSize=11).encode(text='Cantidad:Q')
+                    
+                    chart_tipos_mes = (bars_tipos + text_tipos).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_tipos_mes, use_container_width=True)
+
+            with col_g2:
+                with st.container(border=True):
+                    st.markdown(f"""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {mes_sel})
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    sectores_mes_conteo = {}
+                    for _, r_h in datos_mes.iterrows():
+                        id_ph = normalizar_id(r_h.get('NUM_POZO'))
+                        gdf_hm = get_geometries(id_ph)
+                        if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
+                            sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
+                            if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
+                                sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
+
+                    if sectores_mes_conteo:
+                        df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
+                        df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
+                    else:
+                        df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+
+                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
+                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
+                        theta=alt.Theta(field="Total", type="quantitative"),
+                        color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
+                        tooltip=['Sector', 'Total']
+                    ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_sectores_mes, use_container_width=True)
+
+            # ==============================================================================
             # FILA 2 DE GRÁFICOS: MAPA DE CALOR DE POZOS CRÍTICOS (ANUAL 2026) + INCIDENCIAS POR MES
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR DE POZOS MÁS CRÍTICOS (ANUAL 2026) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -3588,13 +4140,12 @@ if tab_activa == "mapa":
                         </div>
                     """, unsafe_allow_html=True)
 
-                    # Usar el DataFrame filtrado de todo el 2026 en lugar de solo el mes
                     df_2026_calor = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
 
                     if not df_2026_calor.empty and 'NUM_POZO' in df_2026_calor.columns:
                         df_pozos_anual = df_2026_calor['NUM_POZO'].fillna('N/A').astype(str).str.strip().str.upper().value_counts().reset_index()
                         df_pozos_anual.columns = ['Pozo', 'Total']
-                        df_pozos_anual = df_pozos_anual.head(8) # Top 8 pozos críticos del año
+                        df_pozos_anual = df_pozos_anual.head(8)
                     else:
                         df_pozos_anual = pd.DataFrame({'Pozo': ['Sin datos'], 'Total': [0]})
 
@@ -3607,7 +4158,6 @@ if tab_activa == "mapa":
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
-            # --- GRÁFICO 4: INCIDENCIAS POR MES (AÑO EN CURSO - 2026) ---
             with col_g4:
                 with st.container(border=True):
                     st.markdown("""
@@ -3638,6 +4188,45 @@ if tab_activa == "mapa":
                     chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=220).configure_view(stroke=None).configure(background='transparent')
 
                     st.altair_chart(chart_mensual, use_container_width=True)
+
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+
+            # ==============================================================================
+            # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
+            # ==============================================================================
+            if datos_pagina.empty:
+                st.info("No hay registros para la página seleccionada.")
+            else:
+                df_tabla = pd.DataFrame()
+                df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
+                df_tabla['Inicio'] = datos_pagina['FECHA_HORA_INICIO'].dt.strftime('%H:%M %d/%m/%Y')
+                df_tabla['Diagnóstico de Falla'] = datos_pagina.get('DIAGNOSTICO_FALLA', 'N/A')
+                df_tabla['Cierre'] = datos_pagina['FECHA_HORA_FIN'].dt.strftime('%H:%M %d/%m/%Y')
+                
+                duraciones = []
+                for _, row_t in datos_pagina.iterrows():
+                    if pd.notnull(row_t['FECHA_HORA_FIN']):
+                        delta = row_t['FECHA_HORA_FIN'] - row_t['FECHA_HORA_INICIO']
+                        duraciones.append(f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m")
+                    else:
+                        duraciones.append("N/A")
+                df_tabla['Duración'] = duraciones
+                df_tabla['Estatus'] = datos_pagina.get('ESTATUS', 'CERRADA').str.upper()
+                df_tabla['Responsable'] = datos_pagina.get('RESPONSABLE', 'N/A')
+                
+                colonias_por_fila = []
+                for _, r_hist in datos_pagina.iterrows():
+                    id_p = normalizar_id(r_hist['NUM_POZO'])
+                    gdf_h = get_geometries(id_p)
+                    if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
+                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                    else:
+                        colonias_por_fila.append("")
+                
+                df_tabla['Colonias Afectadas'] = colonias_por_fila
+                
+                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
                     
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
