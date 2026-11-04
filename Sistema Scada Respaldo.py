@@ -3976,33 +3976,26 @@ elif tab_activa == "incidencias":
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
-            if df_actual.empty:
-                st.info("No hay incidencias activas o cerradas del día.")
-            else:
-                for index, row in df_actual.iterrows():
-                    estatus = str(row.get('ESTATUS', 'N/A')).upper()
-                    diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-                    inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                    fin_raw = row.get('FECHA_HORA_FIN')
+            for index, row in df_actual.iterrows():
+                estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                fin_raw = row.get('FECHA_HORA_FIN')
+                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+                
+                if pd.notnull(fin_raw):
+                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                    delta = fin_dt - inicio_raw
+                else:
+                    delta = ahora_mx - inicio_raw
                     
-                    inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
-                    
-                    if pd.notnull(fin_raw):
-                        fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-                        cierre_str = fin_dt.strftime('%H:%M %d de %B de %Y')
-                        delta = fin_dt - inicio_raw
-                    else:
-                        cierre_str = "Pendiente"
-                        delta = ahora_mx - inicio_raw
-                        
-                    duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-                    ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
-                    
-                    # Título integrando de nuevo la Fecha y hora de cierre justo después de la falla
-                    titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ✅ Cierre: {cierre_str} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
-                    
-                    with st.expander(titulo):
-                        renderizar_bloque_incidencia(row, index, "act")
+                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                
+                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                
+                with st.expander(titulo):
+                    renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
         # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y FILTROS EN UNA SOLA HILERA DE 4
@@ -4117,7 +4110,7 @@ elif tab_activa == "incidencias":
                 datos_pagina = datos_trabajo.iloc[inicio_idx:fin_idx].copy()
 
             # ==============================================================================
-            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP SECTORES
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
@@ -4126,7 +4119,7 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔺</span> Top Tipos de Falla (Mes: {mes_sel})
+                            <span>🔺</span> Top Tipos de Falla
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4160,7 +4153,7 @@ elif tab_activa == "incidencias":
                 with st.container(border=True):
                     st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {mes_sel})
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias
                         </div>
                     """, unsafe_allow_html=True)
 
@@ -4189,113 +4182,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: DOS GRÁFICOS CIRCULARES JUNTOS (MES EN CURSO VS AÑO EN CURSO)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            import plotly.express as px
-
-            # --- GRÁFICO 3: DONA - MES EN CURSO ---
             with col_g3:
-                with st.container(border=True):
-                    st.markdown(f"""
-                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top Sectores - Mes en Curso ({mes_sel})
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                    if sectores_mes_conteo:
-                        df_donut_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
-                        df_donut_mes = df_donut_mes.sort_values(by='Total', ascending=False).head(5)
-                    else:
-                        df_donut_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
-
-                    fig_donut_mes = px.pie(
-                        df_donut_mes, 
-                        names='Sector', 
-                        values='Total', 
-                        hole=0.5,
-                        color_discrete_sequence=colores_pastel
-                    )
-                    
-                    fig_donut_mes.update_traces(
-                        textposition='outside',
-                        textinfo='label+value+percent',
-                        textfont_size=11,
-                        textfont_color='white',
-                        marker=dict(line=dict(color='#0b1a29', width=2))
-                    )
-                    
-                    fig_donut_mes.update_layout(
-                        showlegend=False,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=10, b=10, l=10, r=10),
-                        height=240
-                    )
-
-                    st.plotly_chart(fig_donut_mes, use_container_width=True)
-
-            # --- GRÁFICO 4: DONA - AÑO EN CURSO (2026) ---
-            with col_g4:
-                with st.container(border=True):
-                    st.markdown("""
-                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top Sectores - Año en Curso (2026)
-                        </div>
-                    """, unsafe_allow_html=True)
-
-                    df_anual_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
-
-                    sectores_anual_conteo = {}
-                    for _, r_a in df_anual_2026.iterrows():
-                        id_pa = normalizar_id(r_a.get('NUM_POZO'))
-                        gdf_ha = get_geometries(id_pa)
-                        if gdf_ha is not None and not gdf_ha.empty and 'Sector' in gdf_ha.columns:
-                            sec_val_a = str(gdf_ha['Sector'].iloc[0]).strip()
-                            if sec_val_a and sec_val_a.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
-                                sectores_anual_conteo[sec_val_a] = sectores_anual_conteo.get(sec_val_a, 0) + 1
-
-                    if sectores_anual_conteo:
-                        df_sectores_anual = pd.DataFrame(list(sectores_anual_conteo.items()), columns=['Sector', 'Total'])
-                        df_sectores_anual = df_sectores_anual.sort_values(by='Total', ascending=False).head(5)
-                    else:
-                        df_sectores_anual = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
-
-                    fig_donut_anual = px.pie(
-                        df_sectores_anual, 
-                        names='Sector', 
-                        values='Total', 
-                        hole=0.5,
-                        color_discrete_sequence=colores_pastel
-                    )
-                    
-                    fig_donut_anual.update_traces(
-                        textposition='outside',
-                        textinfo='label+value+percent',
-                        textfont_size=11,
-                        textfont_color='white',
-                        marker=dict(line=dict(color='#0b1a29', width=2))
-                    )
-                    
-                    fig_donut_anual.update_layout(
-                        showlegend=False,
-                        paper_bgcolor='rgba(0,0,0,0)',
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        margin=dict(t=10, b=10, l=10, r=10),
-                        height=240
-                    )
-
-                    st.plotly_chart(fig_donut_anual, use_container_width=True)
-
-            # ==============================================================================
-            # FILA 3 DE GRÁFICOS: MAPA DE CALOR 2026 + TENDENCIA MENSUAL (LÍNEAS)
-            # ==============================================================================
-            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
-            col_g5, col_g6 = st.columns(2, gap="medium")
-
-            with col_g5:
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
@@ -4337,7 +4229,7 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
-            with col_g6:
+            with col_g4:
                 with st.container(border=True):
                     st.markdown("""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
