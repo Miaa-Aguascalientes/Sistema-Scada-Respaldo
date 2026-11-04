@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON AGRUPACIÓN DE EQUIPO DE BOMBEO)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (ESTILO Y FILTRADO CORREGIDOS)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3998,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS OPTIMIZADOS
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS CON CONTENEDOR TIPO TARJETA
         # ==============================================================================
         st.markdown("---")
         
@@ -4055,85 +4055,79 @@ elif tab_activa == "incidencias":
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
 
             # ==============================================================================
-            # GRÁFICOS MODERNIZADOS (TOP TIPOS DE FALLA CON AGRUPACIÓN + TOP 5 PEORES SECTORES)
+            # GRÁFICOS DENTRO DE CONTENEDORES CON EL FONDO Y ESTILO EXACTO DE TUS TARJETAS
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
 
+            # --- GRÁFICO 1: TOP TIPOS DE FALLA ---
             with col_g1:
-                st.markdown("""
-                    <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
+                with st.container(border=True):
+                    st.markdown(f"""
                         <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>🔺</span> Top Tipos de Falla (Mes: {})
+                            <span>🔺</span> Top Tipos de Falla (Mes: {mes_sel})
                         </div>
-                    </div>
-                """.format(mes_sel), unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
-                if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
-                    # Copiar el DataFrame del mes para aplicar el reemplazo sin alterar los datos originales
-                    df_tipos_temp = datos_mes.copy()
-                    
-                    # Normalizar y limpiar textos de diagnóstico para asegurarnos de que coincidan exactamente
-                    df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].fillna('N/A').astype(str).str.strip().str.upper()
-                    
-                    # Definir las categorías que deseas agrupar bajo "EQUIPO DE BOMBEO DAÑADO"
-                    fallas_a_agrupar = ['ALTA DEMANDA', 'EMBOBINADO ABIERTO', 'BOMBA DAÑADA', 'EQUIPO ATERRIZADO', 'DESGASTE MECANICO']
-                    
-                    # Reemplazar las fallas específicas por la nueva categoría unificada
-                    df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].apply(
-                        lambda x: 'EQUIPO DE BOMBEO DAÑADO' if x in fallas_a_agrupar else x
-                    )
-                    
-                    df_tipos_mes = df_tipos_temp['DIAGNOSTICO_FALLA'].value_counts().reset_index()
-                    df_tipos_mes.columns = ['Tipo', 'Cantidad']
-                    df_tipos_mes = df_tipos_mes.head(5)
-                else:
-                    df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
-
-                base_tipos = alt.Chart(df_tipos_mes).encode(
-                    x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white', labelLimit=180)),
-                    y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
-                )
-                bars_tipos = base_tipos.mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color='#00d4ff')
-                text_tipos = base_tipos.mark_text(align='center', baseline='bottom', dy=-4, color='white', fontSize=11).encode(text='Cantidad:Q')
-                
-                chart_tipos_mes = (bars_tipos + text_tipos).properties(height=220).configure_view(stroke=None).configure(background='transparent')
-
-                st.altair_chart(chart_tipos_mes, use_container_width=True)
-
-            with col_g2:
-                st.markdown("""
-                    <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
-                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {})
-                        </div>
-                    </div>
-                """.format(mes_sel), unsafe_allow_html=True)
-
-                sectores_mes_conteo = {}
-                for _, r_h in datos_mes.iterrows():
-                    id_ph = normalizar_id(r_h.get('NUM_POZO'))
-                    gdf_hm = get_geometries(id_ph)
-                    if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
-                        sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
-                        sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
+                    if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
+                        df_tipos_temp = datos_mes.copy()
+                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].fillna('N/A').astype(str).str.strip().str.upper()
+                        
+                        fallas_a_agrupar = ['ALTA DEMANDA', 'EMBOBINADO ABIERTO', 'BOMBA DAÑADA', 'EQUIPO ATERRIZADO', 'DESGASTE MECANICO']
+                        df_tipos_temp['DIAGNOSTICO_FALLA'] = df_tipos_temp['DIAGNOSTICO_FALLA'].apply(
+                            lambda x: 'EQUIPO DE BOMBEO DAÑADO' if x in fallas_a_agrupar else x
+                        )
+                        
+                        df_tipos_mes = df_tipos_temp['DIAGNOSTICO_FALLA'].value_counts().reset_index()
+                        df_tipos_mes.columns = ['Tipo', 'Cantidad']
+                        df_tipos_mes = df_tipos_mes.head(5)
                     else:
-                        sectores_mes_conteo['Sin Sector'] = sectores_mes_conteo.get('Sin Sector', 0) + 1
+                        df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
 
-                if sectores_mes_conteo:
-                    df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
-                    df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
-                else:
-                    df_sectores_mes = pd.DataFrame({'Sector': ['N/A'], 'Total': [0]})
+                    base_tipos = alt.Chart(df_tipos_mes).encode(
+                        x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white', labelLimit=180)),
+                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
+                    )
+                    bars_tipos = base_tipos.mark_bar(cornerRadiusTopLeft=6, cornerRadiusTopRight=6, color='#00d4ff')
+                    text_tipos = base_tipos.mark_text(align='center', baseline='bottom', dy=-4, color='white', fontSize=11).encode(text='Cantidad:Q')
+                    
+                    chart_tipos_mes = (bars_tipos + text_tipos).properties(height=220).configure_view(stroke=None).configure(background='transparent')
 
-                colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
-                chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
-                    theta=alt.Theta(field="Total", type="quantitative"),
-                    color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
-                    tooltip=['Sector', 'Total']
-                ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+                    st.altair_chart(chart_tipos_mes, use_container_width=True)
 
-                st.altair_chart(chart_sectores_mes, use_container_width=True)
+            # --- GRÁFICO 2: TOP 5 PEORES SECTORES (SIN "Sin Sector") ---
+            with col_g2:
+                with st.container(border=True):
+                    st.markdown(f"""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📊</span> Top 5 PEORES Sectores con Incidencias (Mes: {mes_sel})
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    sectores_mes_conteo = {}
+                    for _, r_h in datos_mes.iterrows():
+                        id_ph = normalizar_id(r_h.get('NUM_POZO'))
+                        gdf_hm = get_geometries(id_ph)
+                        if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
+                            sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
+                            # Omitir sectores vacíos o que digan "Sin Sector"
+                            if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
+                                sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
+
+                    if sectores_mes_conteo:
+                        df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
+                        df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
+                    else:
+                        df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
+
+                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
+                    chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=55, outerRadius=85).encode(
+                        theta=alt.Theta(field="Total", type="quantitative"),
+                        color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_pastel), legend=alt.Legend(title=None, labelColor='white')),
+                        tooltip=['Sector', 'Total']
+                    ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
