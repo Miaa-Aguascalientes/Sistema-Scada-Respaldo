@@ -4127,12 +4127,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO ESTRICTO > 2 EVENTOS POR CELDA Y POZO) + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (FILTRADO ESTRICTO > 4 EVENTOS) + TENDENCIA MENSUAL (2026)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (SOLO CELDAS Y POZOS CON > 2 INCIDENCIAS) ---
+            # --- GRÁFICO 3: MAPA DE CALOR (SOLO CELDAS CON > 4 INCIDENCIAS) ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4151,8 +4151,8 @@ elif tab_activa == "incidencias":
                         # Agrupar por Pozo y Mes para contar los eventos mensuales
                         df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                         
-                        # FILTRO ESTRICTO: Eliminar cualquier celda/mes que tenga 1 o 2 eventos (mostrar solo > 2)
-                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 2]
+                        # FILTRO ESTRICTO: Ocultar cualquier celda/mes que tenga de 1 a 4 eventos (mostrar solo > 4)
+                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
 
@@ -4164,7 +4164,7 @@ elif tab_activa == "incidencias":
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
                     else:
-                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 2 incidencias']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
+                        chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
                     st.altair_chart(chart_heatmap, use_container_width=True)
 
