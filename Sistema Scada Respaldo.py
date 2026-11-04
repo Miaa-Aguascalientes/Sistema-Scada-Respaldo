@@ -3787,25 +3787,17 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTORES (COLONIA Y POZO) Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: SELECTOR DE COLONIAS Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
-            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Filtros de Búsqueda</div>', unsafe_allow_html=True)
+            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
 
-            # Filtros en dos columnas (Colonia a un lado de Pozo)
-            col_f_col, col_f_poz = st.columns(2, gap="small")
+            todas_las_colonias_dict = get_todas_las_colonias_diccionario()
+            opciones_selectbox = ["🔍"] + todas_las_colonias_dict
+
+            colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
             
-            with col_f_col:
-                todas_las_colonias_dict = get_todas_las_colonias_diccionario()
-                opciones_selectbox = ["🔍 Colonia"] + todas_las_colonias_dict
-                colonia_seleccionada = st.selectbox("Colonia:", opciones_selectbox, key="select_colonia_hud", label_visibility="collapsed")
-                filtrar_por_colonia = None if colonia_seleccionada == "🔍 Colonia" else colonia_seleccionada.strip().upper()
-
-            with col_f_poz:
-                lista_pozos_disponibles = sorted([str(p).strip().upper() for p in df_final['NUM_POZO'].dropna().unique() if str(p).strip()])
-                opciones_pozos = ["📍 Pozo"] + lista_pozos_disponibles
-                pozo_seleccionado = st.selectbox("Pozo:", opciones_pozos, key="select_pozo_hud", label_visibility="collapsed")
-                filtrar_por_pozo = None if pozo_seleccionado == "📍 Pozo" else pozo_seleccionado.strip().upper()
+            filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
 
             st.markdown("""
                 <style>
@@ -3905,15 +3897,9 @@ elif tab_activa == "incidencias":
                         if not lista_cols_validas:
                             continue
 
-                        # Lógica de filtrado combinado por Colonia y Pozo
                         if filtrar_por_colonia:
-                            coincide_col = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
-                            if not coincide_col:
-                                continue
-
-                        if filtrar_por_pozo:
-                            coincide_pozo = any(filtrar_por_pozo == p_id for p_id, _ in sec_data['pozo_tiempos'])
-                            if not coincide_pozo:
+                            coincide = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
+                            if not coincide:
                                 continue
 
                         tarjetas_renderizadas += 1
@@ -3948,25 +3934,35 @@ elif tab_activa == "incidencias":
                         """, unsafe_allow_html=True)
                     
                     if tarjetas_renderizadas == 0:
-                        st.info("No hay sectores que coincidan con los filtros seleccionados.")
+                        if filtrar_por_colonia:
+                            encontrada_en_historial = False
+                            for _, r_hist in df_historial.iterrows():
+                                gdf_h = get_geometries(normalizar_id(r_hist['NUM_POZO']))
+                                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
+                                    cols_h = [str(c).upper() for c in gdf_h['Col_atl'].dropna().unique()]
+                                    if any(filtrar_por_colonia in ch for ch in cols_h):
+                                        encontrada_en_historial = True
+                                        break
+                            
+                            if encontrada_en_historial:
+                                st.info(f"ℹ️ La colonia '{colonia_seleccionada}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
+                            else:
+                                st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
+                        else:
+                            st.info("No hay sectores con colonias registradas afectadas actualmente.")
                 else:
                     st.info("No hay sectores con incidencias activas.")
 
         # ==============================================================================
-        # COLUMNA DERECHA: INDICADORES SUPERIORES Y LISTADO DE ACTIVAS (CON FILTRO DE POZO)
+        # COLUMNA DERECHA: INDICADORES SUPERIORES Y LISTADO DE ACTIVAS
         # ==============================================================================
         with col_panel_der:
             st.markdown('<h3 style="color:white; font-size: 20px; font-weight:bold; margin-bottom:10px;">📋 Incidencias Activas y del día</h3>', unsafe_allow_html=True)
             
-            # Aplicar filtro de pozo también a la lista de tarjetas expandibles si está seleccionado
-            df_actual_filtrado = df_actual.copy()
-            if filtrar_por_pozo:
-                df_actual_filtrado = df_actual_filtrado[df_actual_filtrado['NUM_POZO'].astype(str).str.strip().str.upper() == filtrar_por_pozo]
-
-            total_en_proceso = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'EN PROCESO'])
-            total_pendientes = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'PENDIENTE'])
-            total_cerradas_hoy = len(df_actual_filtrado[df_actual_filtrado['ESTATUS'].str.upper() == 'CERRADA'])
-            total_activas_y_dia = len(df_actual_filtrado)
+            total_en_proceso = len(df_actual[df_actual['ESTATUS'].str.upper() == 'EN PROCESO'])
+            total_pendientes = len(df_actual[df_actual['ESTATUS'].str.upper() == 'PENDIENTE'])
+            total_cerradas_hoy = len(df_actual[df_actual['ESTATUS'].str.upper() == 'CERRADA'])
+            total_activas_y_dia = len(df_actual)
 
             m1, m2, m3, m4 = st.columns(4)
             with m1:
@@ -3980,32 +3976,29 @@ elif tab_activa == "incidencias":
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
-            if df_actual_filtrado.empty:
-                st.info("No se encontraron incidencias activas para el pozo seleccionado.")
-            else:
-                for index, row in df_actual_filtrado.iterrows():
-                    estatus = str(row.get('ESTATUS', 'N/A')).upper()
-                    diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
-                    inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                    fin_raw = row.get('FECHA_HORA_FIN')
-                    inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+            for index, row in df_actual.iterrows():
+                estatus = str(row.get('ESTATUS', 'N/A')).upper()
+                diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
+                inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
+                fin_raw = row.get('FECHA_HORA_FIN')
+                inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
+                
+                if pd.notnull(fin_raw):
+                    fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                    delta = fin_dt - inicio_raw
+                else:
+                    delta = ahora_mx - inicio_raw
                     
-                    if pd.notnull(fin_raw):
-                        fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
-                        delta = fin_dt - inicio_raw
-                    else:
-                        delta = ahora_mx - inicio_raw
-                        
-                    duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
-                    ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
-                    
-                    titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
-                    
-                    with st.expander(titulo):
-                        renderizar_bloque_incidencia(row, index, "act")
+                duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
+                ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
+                
+                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                
+                with st.expander(titulo):
+                    renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y GRÁFICOS ANALÍTICOS
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL Y FILTROS (CON EL FILTRO DE POZO)
         # ==============================================================================
         st.markdown("---")
         
@@ -4039,7 +4032,7 @@ elif tab_activa == "incidencias":
         meses = [p.strftime('%B %Y').capitalize() for p in periodos_hist]
         
         if meses:
-            col_f1, col_f2, col_f3 = st.columns(3, gap="medium")
+            col_f1, col_f2, col_f3, col_f4 = st.columns(4, gap="medium")
             
             with col_f1:
                 mes_actual = datetime.now().strftime('%B %Y').capitalize()
@@ -4047,19 +4040,54 @@ elif tab_activa == "incidencias":
                 mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
             
             datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
+
+            with col_f2:
+                total_registros_mes = len(datos_mes)
+                st.markdown(f"<div style='font-size:13px; color:#8fa4c0; margin-bottom: 6px;'>Total de registros: <b>{total_registros_mes}</b></div>", unsafe_allow_html=True)
+                st.write("") # Espaciador visual para alinear con los selectbox
+
+            with col_f3:
+                # Obtener lista única de colonias disponibles en el historial del mes para filtrar
+                todas_cols_hist = ["Todas las colonias"]
+                # O si prefieres mostrar el selector general del diccionario:
+                todas_cols_hist = ["Todas las colonias"] + get_todas_las_colonias_diccionario()
+                colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", todas_cols_hist, key="select_colonia_historial")
+
+            with col_f4:
+                # Nuevo filtro de Pozo ubicado a la derecha de la colonia
+                lista_pozos_hist = sorted([str(p).strip().upper() for p in datos_mes['NUM_POZO'].dropna().unique() if str(p).strip()])
+                opciones_pozos_hist = ["Todos los pozos"] + lista_pozos_hist
+                pozo_hist_sel = st.selectbox("Filtrar por Pozo:", opciones_pozos_hist, key="select_pozo_historial")
+
+            # Aplicar los filtros del historial sobre `datos_mes`
+            if colonia_sel != "Todas las colonias":
+                # Filtrar por la colonia seleccionada cruzando con las geometrías/diccionario
+                pozos_validos_col = []
+                for _, rh in datos_mes.iterrows():
+                    jp = normalizar_id(rh['NUM_POZO'])
+                    gdf_th = get_geometries(jp)
+                    if gdf_th is not None and not gdf_th.empty and 'Col_atl' in gdf_th.columns:
+                        cols_h = [str(c).strip().upper() for c in gdf_th['Col_atl'].dropna().unique()]
+                        if any(colonia_sel.strip().upper() in ch for ch in cols_h):
+                            pozos_validos_col.append(jp)
+                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().str.upper().isin(pozos_validos_col)]
+
+            if pozo_hist_sel != "Todos los pozos":
+                datos_mes = datos_mes[datos_mes['NUM_POZO'].astype(str).str.strip().str.upper() == pozo_hist_sel]
+
+            # Paginación basada en los datos ya filtrados
             tamanio_pagina = 10
             total_registros = len(datos_mes)
             total_paginas = max(1, (total_registros + tamanio_pagina - 1) // tamanio_pagina)
 
-            with col_f2:
-                pagina_actual = st.number_input(f"Página (Total registros del mes: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
+            # Contenedor auxiliar para la paginación si se requiere
+            pagina_actual = 1
+            if total_paginas > 1:
+                pagina_actual = st.number_input(f"Página (Registros filtrados: {total_registros})", min_value=1, max_value=total_paginas, step=1, key="num_pagina_historial")
 
             inicio_idx = (pagina_actual - 1) * tamanio_pagina
             fin_idx = min(inicio_idx + tamanio_pagina, total_registros)
             datos_pagina = datos_mes.iloc[inicio_idx:fin_idx].copy()
-
-            with col_f3:
-                colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
 
             # ==============================================================================
             # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
@@ -4217,7 +4245,7 @@ elif tab_activa == "incidencias":
             # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
             # ==============================================================================
             if datos_pagina.empty:
-                st.info("No hay registros para la página seleccionada.")
+                st.info("No hay registros para los filtros seleccionados.")
             else:
                 df_tabla = pd.DataFrame()
                 df_tabla['Sitio'] = datos_pagina.get('NUM_POZO', 'N/A')
