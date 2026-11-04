@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CONTENEDOR AJUSTADO PARA 6 TARJETAS)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (GRÁFICOS DE HISTORIAL ARRIBA DE LA TABLA)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3783,11 +3783,11 @@ elif tab_activa == "incidencias":
         df_actual = df_final[mask_activas | mask_cerradas_hoy]
         df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)].copy()
 
-        # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES (SUPERIOR) ---
+        # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES (SUPERIOR: TARJETAS Y ACTIVAS) ---
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR Y CONTENEDOR OPTIMIZADO PARA 6 TARJETAS
+        # COLUMNA IZQUIERDA: SELECTOR Y TARJETAS HUD
         # ==============================================================================
         with col_panel_izq:
             st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
@@ -3799,7 +3799,6 @@ elif tab_activa == "incidencias":
             
             filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
 
-            # Estilos optimizados con menor padding vertical para alojar 6 tarjetas visibles cómodamente
             st.markdown("""
                 <style>
                 .hud-card {
@@ -3889,7 +3888,6 @@ elif tab_activa == "incidencias":
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
-            # Altura ajustada a 780px para mostrar exactamente hasta 6 tarjetas de manera visible y fluida
             with st.container(height=780, border=False):
                 tarjetas_renderizadas = 0
                 if sectores_ordenados:
@@ -4000,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL CON FILTROS EN UNA SOLA FILA
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS BASADOS EN EL MES
         # ==============================================================================
         st.markdown("---")
         
@@ -4041,6 +4039,7 @@ elif tab_activa == "incidencias":
                 default_index = meses.index(mes_actual) if mes_actual in meses else 0
                 mes_sel = st.selectbox("Seleccionar mes:", meses, index=default_index, key="select_mes_historial")
             
+            # --- DATOS DEL MES SELECCIONADO PARA LA TABLA Y LOS GRÁFICOS ---
             datos_mes = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
             tamanio_pagina = 10
             total_registros = len(datos_mes)
@@ -4055,7 +4054,76 @@ elif tab_activa == "incidencias":
 
             with col_f3:
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
-            
+
+            # ==============================================================================
+            # GRÁFICOS DINÁMICOS BASADOS EN EL HISTORIAL DEL MES SELECCIONADO
+            # ==============================================================================
+            st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
+            col_g1, col_g2 = st.columns(2, gap="medium")
+
+            with col_g1:
+                st.markdown("""
+                    <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>🔺</span> Incidencias por Tipo (Mes: {})
+                        </div>
+                    </div>
+                """.format(mes_sel), unsafe_allow_html=True)
+
+                if not datos_mes.empty and 'DIAGNOSTICO_FALLA' in datos_mes.columns:
+                    df_tipos_mes = datos_mes['DIAGNOSTICO_FALLA'].fillna('N/A').value_counts().reset_index()
+                    df_tipos_mes.columns = ['Tipo', 'Cantidad']
+                else:
+                    df_tipos_mes = pd.DataFrame({'Tipo': ['Sin datos'], 'Cantidad': [0]})
+
+                colores_tipos = ['#FF4B4B', '#F1C40F', '#3498DB', '#9B59B6', '#2ECC71', '#E67E22']
+                chart_tipos_mes = alt.Chart(df_tipos_mes).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
+                    x=alt.X('Tipo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
+                    y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white')),
+                    color=alt.Color('Tipo:N', scale=alt.Scale(range=colores_tipos), legend=None)
+                ).properties(height=200).configure_view(stroke=None).configure_background(fill='transparent')
+
+                st.altair_chart(chart_tipos_mes, use_container_width=True)
+
+            with col_g2:
+                st.markdown("""
+                    <div style="background: linear-gradient(135deg, rgba(13, 27, 42, 0.9) 0%, rgba(6, 14, 24, 1) 100%); border: 1px solid #1f3a5f; border-radius: 10px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.6);">
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📊</span> Incidencias por Sector (Mes: {})
+                        </div>
+                    </div>
+                """.format(mes_sel), unsafe_allow_html=True)
+
+                # Calcular sectores para las incidencias del mes seleccionado
+                sectores_mes_conteo = {}
+                for _, r_h in datos_mes.iterrows():
+                    id_ph = normalizar_id(r_h.get('NUM_POZO'))
+                    gdf_hm = get_geometries(id_ph)
+                    if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
+                        sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
+                        sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
+                    else:
+                        sectores_mes_conteo['Sin Sector'] = sectores_mes_conteo.get('Sin Sector', 0) + 1
+
+                if sectores_mes_conteo:
+                    df_sectores_mes = pd.DataFrame(list(sectores_mes_conteo.items()), columns=['Sector', 'Total'])
+                else:
+                    df_sectores_mes = pd.DataFrame({'Sector': ['N/A'], 'Total': [0]})
+
+                colores_sectores = ['#3498DB', '#F1C40F', '#E67E22', '#2ECC71', '#9B59B6', '#FF4B4B']
+                chart_sectores_mes = alt.Chart(df_sectores_mes).mark_arc(innerRadius=50, outerRadius=80).encode(
+                    theta=alt.Theta(field="Total", type="quantitative"),
+                    color=alt.Color(field="Sector", type="nominal", scale=alt.Scale(range=colores_sectores), legend=alt.Legend(title=None, labelColor='white')),
+                    tooltip=['Sector', 'Total']
+                ).properties(height=200).configure_view(stroke=None).configure_background(fill='transparent')
+
+                st.altair_chart(chart_sectores_mes, use_container_width=True)
+
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+
+            # ==============================================================================
+            # TABLA DE HISTORIAL DE INCIDENCIAS CERRADAS
+            # ==============================================================================
             if datos_pagina.empty:
                 st.info("No hay registros para la página seleccionada.")
             else:
