@@ -3574,7 +3574,7 @@ if tab_activa == "mapa":
     with col_l5: st.markdown(f'<div style="{estilo_tarjeta}"><span style="color: #888888; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 4px;">Normal</span><span style="color: #3498DB; font-size: 1.1rem; font-weight: bold;">0%</span></div>', unsafe_allow_html=True)
 
 # ==============================================================================
-# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (ESTILO Y FILTRADO CORREGIDOS)
+# PESTAÑA 2: INCIDENCIAS ACTIVAS Y DEL DÍA (CON MAPA DE CALOR Y TENDENCIA MENSUAL)
 # ==============================================================================
 elif tab_activa == "incidencias":
     st.markdown('<div class="titulo-superior">REGISTRO Y SEGUIMIENTO A EVENTOS OPERATIVOS </div>', unsafe_allow_html=True)
@@ -3998,7 +3998,7 @@ elif tab_activa == "incidencias":
                     renderizar_bloque_incidencia(row, index, "act")
 
         # ==============================================================================
-        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS CON CONTENEDOR TIPO TARJETA
+        # SECCIÓN INFERIOR A ANCHO COMPLETO: HISTORIAL, FILTROS Y GRÁFICOS ANALÍTICOS
         # ==============================================================================
         st.markdown("---")
         
@@ -4055,12 +4055,11 @@ elif tab_activa == "incidencias":
                 colonia_sel = st.selectbox("Filtrar por colonia afectada (Col_atl):", ["Todas las colonias"], key="select_colonia_historial")
 
             # ==============================================================================
-            # GRÁFICOS DENTRO DE CONTENEDORES CON EL FONDO Y ESTILO EXACTO DE TUS TARJETAS
+            # FILA 1 DE GRÁFICOS: TOP TIPOS DE FALLA Y TOP 5 PEORES SECTORES
             # ==============================================================================
             st.markdown('<div style="margin-top: 20px;"></div>', unsafe_allow_html=True)
             col_g1, col_g2 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 1: TOP TIPOS DE FALLA ---
             with col_g1:
                 with st.container(border=True):
                     st.markdown(f"""
@@ -4095,7 +4094,6 @@ elif tab_activa == "incidencias":
 
                     st.altair_chart(chart_tipos_mes, use_container_width=True)
 
-            # --- GRÁFICO 2: TOP 5 PEORES SECTORES (SIN "Sin Sector") ---
             with col_g2:
                 with st.container(border=True):
                     st.markdown(f"""
@@ -4110,7 +4108,6 @@ elif tab_activa == "incidencias":
                         gdf_hm = get_geometries(id_ph)
                         if gdf_hm is not None and not gdf_hm.empty and 'Sector' in gdf_hm.columns:
                             sec_val = str(gdf_hm['Sector'].iloc[0]).strip()
-                            # Omitir sectores vacíos o que digan "Sin Sector"
                             if sec_val and sec_val.upper() not in ['SIN SECTOR', 'NAN', 'N/A', 'NONE']:
                                 sectores_mes_conteo[sec_val] = sectores_mes_conteo.get(sec_val, 0) + 1
 
@@ -4128,6 +4125,71 @@ elif tab_activa == "incidencias":
                     ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
 
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
+
+            # ==============================================================================
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR DE POZOS CRÍTICOS + INCIDENCIAS POR MES (2026)
+            # ==============================================================================
+            st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
+            col_g3, col_g4 = st.columns(2, gap="medium")
+
+            # --- GRÁFICO 3: MAPA DE CALOR DE POZOS MÁS CRÍTICOS ---
+            with col_g3:
+                with st.container(border=True):
+                    st.markdown("""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>🔥</span> Mapa de Calor: Top Pozos con Mayor Incidencia (Mes)
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    if not datos_mes.empty and 'NUM_POZO' in datos_mes.columns:
+                        df_pozos_mes = datos_mes['NUM_POZO'].fillna('N/A').astype(str).str.strip().str.upper().value_counts().reset_index()
+                        df_pozos_mes.columns = ['Pozo', 'Total']
+                        df_pozos_mes = df_pozos_mes.head(8) # Top 8 pozos para el mapa de calor
+                    else:
+                        df_pozos_mes = pd.DataFrame({'Pozo': ['Sin datos'], 'Total': [0]})
+
+                    chart_heatmap = alt.Chart(df_pozos_mes).mark_rect(cornerRadius=4).encode(
+                        x=alt.X('Pozo:N', sort='-y', title=None, axis=alt.Axis(labelAngle=-25, labelColor='white')),
+                        y=alt.Y('Total:Q', title=None, axis=alt.Axis(labelColor='white')),
+                        color=alt.Color('Total:Q', scale=alt.Scale(scheme='orangered', reverse=False), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                        tooltip=['Pozo', 'Total']
+                    ).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_heatmap, use_container_width=True)
+
+            # --- GRÁFICO 4: INCIDENCIAS POR MES (AÑO EN CURSO - 2026) ---
+            with col_g4:
+                with st.container(border=True):
+                    st.markdown("""
+                        <div style="color: white; font-weight: bold; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                            <span>📅</span> Incidencias por Mes - Año en Curso (2026)
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    # Filtrar estrictamente el año 2026
+                    df_2026 = df_historial[df_historial['FECHA_HORA_INICIO'].dt.year == 2026].copy()
+
+                    if not df_2026.empty:
+                        df_2026['Mes_Num'] = df_2026['FECHA_HORA_INICIO'].dt.month
+                        df_2026['Mes_Nombre'] = df_2026['FECHA_HORA_INICIO'].dt.strftime('%B').str.capitalize()
+                        
+                        # Agrupar y ordenar por mes cronológicamente
+                        df_meses_2026 = df_2026.groupby(['Mes_Num', 'Mes_Nombre']).size().reset_index(name='Cantidad')
+                        df_meses_2026 = df_meses_2026.sort_values('Mes_Num')
+                    else:
+                        df_meses_2026 = pd.DataFrame({'Mes_Nombre': ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'], 'Cantidad': [0]*12})
+
+                    base_mensual = alt.Chart(df_meses_2026).encode(
+                        x=alt.X('Mes_Nombre:N', sort=None, title=None, axis=alt.Axis(labelAngle=-30, labelColor='white')),
+                        y=alt.Y('Cantidad:Q', title=None, axis=alt.Axis(gridColor='#1f3a5f', labelColor='white'))
+                    )
+                    line_mensual = base_mensual.mark_line(color='#00d4ff', strokeWidth=3)
+                    points_mensual = base_mensual.mark_circle(color='#ff4b4b', size=70)
+                    text_mensual = base_mensual.mark_text(align='center', baseline='bottom', dy=-8, color='white', fontSize=10).encode(text='Cantidad:Q')
+
+                    chart_mensual = (line_mensual + points_mensual + text_mensual).properties(height=220).configure_view(stroke=None).configure(background='transparent')
+
+                    st.altair_chart(chart_mensual, use_container_width=True)
 
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
 
