@@ -4127,12 +4127,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR Y TENDENCIA MENSUAL (MESES EN ESPAÑOL)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR ORDENADO POR ACUMULADO + BARRA DE TOTALES A LA DERECHA
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR (MESES EN ESPAÑOL + ESCALA VERDE/AMARILLO/ROJO) ---
+            # --- GRÁFICO 3: MAPA DE CALOR + ACUMULADO ANUAL A LA DERECHA ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4146,25 +4146,53 @@ elif tab_activa == "incidencias":
                     if not df_2026_calor.empty and 'NUM_POZO' in df_2026_calor.columns:
                         df_2026_calor['Pozo'] = df_2026_calor['NUM_POZO'].fillna('N/A').astype(str).str.strip().str.upper()
                         
-                        # Mapeo de meses a español abreviado
                         meses_es_corto = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
                         df_2026_calor['Mes_Num'] = df_2026_calor['FECHA_HORA_INICIO'].dt.month
                         df_2026_calor['Mes'] = df_2026_calor['Mes_Num'].map(meses_es_corto)
 
-                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
+                        # 1. Calcular el total anual por pozo para filtrar y ordenar estrictamente
+                        df_totales_anuales = df_2026_calor.groupby('Pozo').size().reset_index(name='Total_Anual')
                         
-                        # FILTRO ESTRICTO: Ocultar celdas con de 1 a 4 eventos (> 4)
-                        df_heatmap_data = df_heatmap_data[df_heatmap_data['Eventos'] > 4]
+                        # FILTRO ESTRICTO: Ocultar pozos con de 1 a 4 eventos totales en el año (> 4)
+                        pozos_validos = df_totales_anuales[df_totales_anuales['Total_Anual'] > 4]['Pozo'].tolist()
+                        
+                        df_2026_calor = df_2026_calor[df_2026_calor['Pozo'].isin(pozos_validos)]
+                        df_totales_anuales = df_totales_anuales[df_totales_anuales['Total_Anual'] > 4]
+                        
+                        # Ordenar pozos de mayor a menor total anual
+                        df_totales_anuales = df_totales_anuales.sort_values(by='Total_Anual', ascending=False)
+                        orden_pozos = df_totales_anuales['Pozo'].tolist()
+
+                        df_heatmap_data = df_2026_calor.groupby(['Pozo', 'Mes_Num', 'Mes']).size().reset_index(name='Eventos')
                     else:
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
+                        df_totales_anuales = pd.DataFrame(columns=['Pozo', 'Total_Anual'])
+                        orden_pozos = []
 
                     if not df_heatmap_data.empty:
-                        chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
+                        # Mapa de calor principal ordenado por mayor acumulado y colores verde->amarillo->rojo
+                        heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
-                            y=alt.Y('Pozo:N', sort='-x', title=None, axis=alt.Axis(labelColor='white')),
-                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labelColor='white')),
+                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=None),
                             tooltip=['Pozo', 'Mes', 'Eventos']
-                        ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
+                        ).properties(height=260, width=260)
+
+                        # Gráfico de barras lateral derecho con la sumatoria del acumulado
+                        bar_total = alt.Chart(df_totales_anuales).mark_bar(color='#00d4ff', cornerRadiusTopRight=3, cornerRadiusBottomRight=3).encode(
+                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None, axis=alt.Axis(labels=False, ticks=False, domain=False)),
+                            x=alt.X('Total_Anual:Q', title="Total", axis=alt.Axis(grid=False, labelColor='white', titleColor='white', titleFontSize=11)),
+                            tooltip=['Pozo', 'Total_Anual']
+                        ).properties(height=260, width=90)
+
+                        # Texto con el número exacto del acumulado al lado de la barra
+                        text_total = alt.Chart(df_totales_anuales).mark_text(align='left', baseline='middle', dx=3, color='white', fontSize=10).encode(
+                            y=alt.Y('Pozo:N', sort=orden_pozos, title=None),
+                            x=alt.X('Total_Anual:Q', title=None),
+                            text='Total_Anual:Q'
+                        )
+
+                        chart_heatmap = alt.hconcat(heatmap, bar_total + text_total).configure_view(stroke=None).configure(background='transparent')
                     else:
                         chart_heatmap = alt.Chart(pd.DataFrame({'Mensaje': ['No hay registros con más de 4 incidencias']})).mark_text(color='white').encode(text='Mensaje:N').properties(height=260).configure(background='transparent')
 
