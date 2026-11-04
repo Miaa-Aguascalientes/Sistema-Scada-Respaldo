@@ -4127,12 +4127,12 @@ elif tab_activa == "incidencias":
                     st.altair_chart(chart_sectores_mes, use_container_width=True)
 
             # ==============================================================================
-            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (ESCALA VERDE -> AMARILLO -> ROJO) + TENDENCIA MENSUAL (2026)
+            # FILA 2 DE GRÁFICOS: MAPA DE CALOR (ESCALA ESTRICTA VERDE -> AMARILLO -> ROJO) + TENDENCIA MENSUAL (2026)
             # ==============================================================================
             st.markdown('<div style="margin-top: 15px;"></div>', unsafe_allow_html=True)
             col_g3, col_g4 = st.columns(2, gap="medium")
 
-            # --- GRÁFICO 3: MAPA DE CALOR CON ESCALA VERDE-AMARILLO-ROJO ---
+            # --- GRÁFICO 3: MAPA DE CALOR CON ESCALA VERDE-AMARILLO-ROJO PERSONALIZADA ---
             with col_g3:
                 with st.container(border=True):
                     st.markdown("""
@@ -4156,11 +4156,11 @@ elif tab_activa == "incidencias":
                         df_heatmap_data = pd.DataFrame(columns=['Pozo', 'Mes_Num', 'Mes', 'Eventos'])
 
                     if not df_heatmap_data.empty:
-                        # Usamos el esquema 'yellowgreen' o 'spectral' con inversión para lograr el paso natural de verde a rojo (vía amarillo)
+                        # Rango estricto personalizado: Verde (#2ecc71) -> Amarillo (#f1c40f) -> Rojo (#e74c3c)
                         chart_heatmap = alt.Chart(df_heatmap_data).mark_rect(cornerRadius=3, stroke='#0b1a29', strokeWidth=1).encode(
                             x=alt.X('Mes:N', sort=['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], title=None, axis=alt.Axis(labelAngle=0, labelColor='white')),
                             y=alt.Y('Pozo:N', sort='-x', title=None, axis=alt.Axis(labelColor='white')),
-                            color=alt.Color('Eventos:Q', scale=alt.Scale(scheme='spectral', reverse=True), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
+                            color=alt.Color('Eventos:Q', scale=alt.Scale(range=['#2ecc71', '#f1c40f', '#e74c3c']), legend=alt.Legend(title="Eventos", labelColor='white', titleColor='white')),
                             tooltip=['Pozo', 'Mes', 'Eventos']
                         ).properties(height=260).configure_view(stroke=None).configure(background='transparent')
                     else:
