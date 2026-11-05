@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CON ICONOS ANIMADOS Y FIT_BOUNDS AUTOMÁTICO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON DATOS DESDE BD_MADRE)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5101,7 +5101,6 @@ elif tab_activa == "sectores":
 
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
-                    val_p = 0.0
                     html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small></div>"""
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
@@ -5167,72 +5166,73 @@ elif tab_activa == "sectores":
                 colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE LA TABLA REGISTRADORES
+                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE BD_MADRE (Pivoteando filas a columnas)
                 if dict_reg:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
                         series_list = [str(v.get('Serie', k)) for k, v in dict_reg.items()]
                         if series_list:
                             series_in = "', '".join(series_list)
-                            q_reg_hc = f"""
-                                SELECT Fecha, Serie, Caudal, Presion_1, Presion_2 
-                                FROM REGISTRADORES 
-                                WHERE Serie IN ('{series_in}')
-                                  AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                                ORDER BY Fecha ASC
+                            q_madre = f"""
+                                SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                                FROM BD_MADRE 
+                                WHERE DISPOSITIVO IN ('{series_in}')
+                                  AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
-                            df_reg_hc = pd.read_sql(q_reg_hc, engine_tel)
-                            if not df_reg_hc.empty:
-                                df_reg_hc['FECHA'] = pd.to_datetime(df_reg_hc['Fecha'])
-                                df_reg_hc['serie_norm'] = df_reg_hc['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                            df_madre_raw = pd.read_sql(q_madre, engine_tel)
+                            if not df_madre_raw.empty:
+                                # Pivoteamos las filas de VARIABLE y VALOR a columnas separadas
+                                df_pivot = df_madre_raw.pivot_table(
+                                    index=['Fecha', 'Serie'],
+                                    columns='VARIABLE',
+                                    values='VALOR',
+                                    aggfunc='mean'
+                                ).reset_index()
+                                
+                                df_pivot['FECHA'] = pd.to_datetime(df_pivot['Fecha'])
+                                df_pivot['serie_norm'] = df_pivot['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
 
                                 for s_id_reg, r_info in dict_reg.items():
                                     serie_raw = str(r_info.get('Serie', s_id_reg))
                                     serie_norm = re.sub(r'\D', '', serie_raw)
-                                    df_temp_reg = df_reg_hc[df_reg_hc['serie_norm'] == serie_norm]
+                                    df_temp_reg = df_pivot[df_pivot['serie_norm'] == serie_norm]
 
                                     if not df_temp_reg.empty:
-                                        if 'Caudal' in df_temp_reg.columns and df_temp_reg['Caudal'].notna().any():
-                                            color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                                            idx_q += 1
-                                            fig.add_trace(go.Scatter(
-                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Caudal'],
-                                                name=f"S:{serie_raw} - Q",
-                                                yaxis="y1", mode='lines+markers',
-                                                line=dict(width=2, color=color_q),
-                                                marker=dict(size=3, symbol='circle'),
-                                                fill='tozeroy',
-                                                fillcolor="rgba(138, 203, 245, 0.15)",
-                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
-                                            ))
+                                        # Identificamos columnas de caudal (ej. Caudal1, Caudal)
+                                        col_q_candidatas = [c for c in df_temp_reg.columns if 'CAUDAL' in str(c).upper()]
+                                        for cq in col_q_candidatas:
+                                            if df_temp_reg[cq].notna().any():
+                                                color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                                idx_q += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_temp_reg['FECHA'], y=df_temp_reg[cq],
+                                                    name=f"S:{serie_raw} - {cq}",
+                                                    yaxis="y1", mode='lines+markers',
+                                                    line=dict(width=2, color=color_q),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    fill='tozeroy',
+                                                    fillcolor="rgba(138, 203, 245, 0.15)",
+                                                    hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                                ))
 
-                                        if 'Presion_1' in df_temp_reg.columns and df_temp_reg['Presion_1'].notna().any():
-                                            color_p1 = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                                            idx_p += 1
-                                            fig.add_trace(go.Scatter(
-                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Presion_1'],
-                                                name=f"S:{serie_raw} - P1",
-                                                yaxis="y2", mode='lines+markers',
-                                                line=dict(width=2, color=color_p1),
-                                                marker=dict(size=3, symbol='circle'),
-                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
-                                            ))
-
-                                        if 'Presion_2' in df_temp_reg.columns and df_temp_reg['Presion_2'].notna().any():
-                                            color_p2 = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                                            idx_p += 1
-                                            fig.add_trace(go.Scatter(
-                                                x=df_temp_reg['FECHA'], y=df_temp_reg['Presion_2'],
-                                                name=f"S:{serie_raw} - P2",
-                                                yaxis="y2", mode='lines+markers',
-                                                line=dict(width=2, color=color_p2),
-                                                marker=dict(size=3, symbol='circle'),
-                                                hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
-                                            ))
+                                        # Identificamos columnas de presión (ej. Presion1, Presion2)
+                                        col_p_candidatas = [c for c in df_temp_reg.columns if 'PRESION' in str(c).upper()]
+                                        for cp in col_p_candidatas:
+                                            if df_temp_reg[cp].notna().any():
+                                                color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                                idx_p += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_temp_reg['FECHA'], y=df_temp_reg[cp],
+                                                    name=f"S:{serie_raw} - {cp}",
+                                                    yaxis="y2", mode='lines+markers',
+                                                    line=dict(width=2, color=color_p),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                                ))
                     except Exception as e:
-                        st.error(f"Error al cargar puntos de control desde REGISTRADORES: {e}")
+                        st.error(f"Error al cargar puntos de control desde BD_MADRE: {e}")
 
-                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA, COMO ESTABA)
+                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA)
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5306,7 +5306,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (DESDE BD_MADRE)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5314,7 +5314,7 @@ elif tab_activa == "sectores":
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla REGISTRADORES)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Tabla BD_MADRE)</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
@@ -5323,61 +5323,66 @@ elif tab_activa == "sectores":
                 if dict_pc_sec:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        q_reg = f"""
-                            SELECT Fecha, Serie, Presion_1 
-                            FROM REGISTRADORES 
-                            WHERE Fecha BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
-                            ORDER BY Fecha ASC
-                        """
-                        df_reg_h = pd.read_sql(q_reg, engine_tel)
+                        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items()]
+                        if series_pc_list:
+                            series_pc_in = "', '".join(series_pc_list)
+                            q_madre_pc = f"""
+                                SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                                FROM BD_MADRE 
+                                WHERE DISPOSITIVO IN ('{series_pc_in}')
+                                  AND VARIABLE LIKE '%Presion%'
+                                  AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                            """
+                            df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
 
-                        if not df_reg_h.empty:
-                            df_reg_h['FECHA'] = pd.to_datetime(df_reg_h['Fecha'])
-                            df_reg_h['serie_norm'] = df_reg_h['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                            if not df_madre_pc.empty:
+                                df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
+                                df_madre_pc['serie_norm'] = df_madre_pc['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
 
-                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                            fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                            ticks_pc = fechas_lineas_pc[::1]
-                            etiquetas_pc = [
-                                f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                                for d in ticks_pc
-                            ]
+                                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                                fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                                ticks_pc = fechas_lineas_pc[::1]
+                                etiquetas_pc = [
+                                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                    for d in ticks_pc
+                                ]
 
-                            colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
-                            idx_pc_c = 0
+                                colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                                idx_pc_c = 0
 
-                            for pc_key, pc_info in dict_pc_sec.items():
-                                serie_raw = str(pc_info.get('Serie', pc_key))
-                                serie_norm = re.sub(r'\D', '', serie_raw)
-                                domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
+                                for pc_key, pc_info in dict_pc_sec.items():
+                                    serie_raw = str(pc_info.get('Serie', pc_key))
+                                    serie_norm = re.sub(r'\D', '', serie_raw)
+                                    domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
 
-                                df_temp = df_reg_h[df_reg_h['serie_norm'] == serie_norm]
-                                if not df_temp.empty:
-                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
-                                    idx_pc_c += 1
+                                    df_temp = df_madre_pc[df_madre_pc['serie_norm'] == serie_norm]
+                                    if not df_temp.empty:
+                                        for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                            color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                            idx_pc_c += 1
 
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_temp['FECHA'], y=df_temp['Presion_1'], 
-                                        name=domicilio_nombre, 
-                                        mode='lines+markers',
-                                        showlegend=True,
-                                        marker=dict(size=3.5, symbol='circle'), 
-                                        line=dict(width=2, color=color_trace_pc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
-                                    ))
+                                            fig_pc.add_trace(go.Scatter(
+                                                x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
+                                                name=f"{domicilio_nombre} - {var_name}", 
+                                                mode='lines+markers',
+                                                showlegend=True,
+                                                marker=dict(size=3.5, symbol='circle'), 
+                                                line=dict(width=2, color=color_trace_pc),
+                                                hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} Kg/cm²<extra></extra>'
+                                            ))
 
-                            delta_h = pd.Timedelta(hours=1)
-                            for d in fechas_lineas_pc:
-                                es_lunes = (d.dayofweek == 0)
-                                fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
-                                fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+                                delta_h = pd.Timedelta(hours=1)
+                                for d in fechas_lineas_pc:
+                                    es_lunes = (d.dayofweek == 0)
+                                    fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                    fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                     except Exception as e:
-                        st.error(f"Error al consultar REGISTRADORES para Puntos Críticos: {e}")
+                        st.error(f"Error al consultar BD_MADRE para Puntos Críticos: {e}")
 
                 fig_pc.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
@@ -5412,18 +5417,25 @@ elif tab_activa == "sectores":
                         
                         if series_vrp_list:
                             series_vrp_in = "', '".join(series_vrp_list)
-                            q_vrp_reg = f"""
-                                SELECT Fecha, Serie, Caudal, Presion_1, Presion_2 
-                                FROM REGISTRADORES 
-                                WHERE Serie IN ('{series_vrp_in}')
-                                  AND Fecha BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                                ORDER BY Fecha ASC
+                            q_vrp_madre = f"""
+                                SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                                FROM BD_MADRE 
+                                WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                                  AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
-                            df_vrp_reg = pd.read_sql(q_vrp_reg, engine_tel)
+                            df_vrp_madre = pd.read_sql(q_vrp_madre, engine_tel)
 
-                            if not df_vrp_reg.empty:
-                                df_vrp_reg['FECHA'] = pd.to_datetime(df_vrp_reg['Fecha'])
-                                df_vrp_reg['serie_norm'] = df_vrp_reg['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                            if not df_vrp_madre.empty:
+                                df_vrp_madre['FECHA'] = pd.to_datetime(df_vrp_madre['Fecha'])
+                                df_vrp_madre['serie_norm'] = df_vrp_madre['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+
+                                # Pivoteamos las filas de VARIABLE a columnas
+                                df_pivot_vrp = df_vrp_madre.pivot_table(
+                                    index=['FECHA', 'serie_norm'],
+                                    columns='VARIABLE',
+                                    values='VALOR',
+                                    aggfunc='mean'
+                                ).reset_index()
 
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -5446,48 +5458,37 @@ elif tab_activa == "sectores":
                                     serie_raw = str(v_info.get('Serie', v_key))
                                     serie_norm = re.sub(r'\D', '', serie_raw)
 
-                                    df_temp_vrp = df_vrp_reg[df_vrp_reg['serie_norm'] == serie_norm]
+                                    df_temp_vrp = df_pivot_vrp[df_pivot_vrp['serie_norm'] == serie_norm]
                                     if not df_temp_vrp.empty:
-                                        # Caudal (Q) -> Eje y1
-                                        if 'Caudal' in df_temp_vrp.columns and df_temp_vrp['Caudal'].notna().any():
-                                            color_q = colores_caudal[idx_q_v % len(colores_caudal)]
-                                            idx_q_v += 1
-                                            fig_vrp.add_trace(go.Scatter(
-                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Caudal'],
-                                                name=f"VRP {serie_raw} - Q",
-                                                yaxis="y1", mode='lines+markers',
-                                                line=dict(width=2, color=color_q),
-                                                marker=dict(size=3.5, symbol='circle'),
-                                                fill='tozeroy',
-                                                fillcolor="rgba(138, 203, 245, 0.15)",
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
-                                            ))
+                                        col_q_cands = [c for c in df_temp_vrp.columns if 'CAUDAL' in str(c).upper()]
+                                        for cq in col_q_cands:
+                                            if df_temp_vrp[cq].notna().any():
+                                                color_q = colores_caudal[idx_q_v % len(colores_caudal)]
+                                                idx_q_v += 1
+                                                fig_vrp.add_trace(go.Scatter(
+                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cq],
+                                                    name=f"VRP {serie_raw} - {cq}",
+                                                    yaxis="y1", mode='lines+markers',
+                                                    line=dict(width=2, color=color_q),
+                                                    marker=dict(size=3.5, symbol='circle'),
+                                                    fill='tozeroy',
+                                                    fillcolor="rgba(138, 203, 245, 0.15)",
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
+                                                ))
 
-                                        # Presión 1 (P1) -> Eje y2
-                                        if 'Presion_1' in df_temp_vrp.columns and df_temp_vrp['Presion_1'].notna().any():
-                                            color_p1 = colores_presion[idx_p_v % len(colores_presion)]
-                                            idx_p_v += 1
-                                            fig_vrp.add_trace(go.Scatter(
-                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Presion_1'],
-                                                name=f"VRP {serie_raw} - P1",
-                                                yaxis="y2", mode='lines+markers',
-                                                line=dict(width=2, color=color_p1),
-                                                marker=dict(size=3.5, symbol='circle'),
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} kg<extra></extra>'
-                                            ))
-
-                                        # Presión 2 (P2) -> Eje y2
-                                        if 'Presion_2' in df_temp_vrp.columns and df_temp_vrp['Presion_2'].notna().any():
-                                            color_p2 = colores_presion[idx_p_v % len(colores_presion)]
-                                            idx_p_v += 1
-                                            fig_vrp.add_trace(go.Scatter(
-                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Presion_2'],
-                                                name=f"VRP {serie_raw} - P2",
-                                                yaxis="y2", mode='lines+markers',
-                                                line=dict(width=2, color=color_p2),
-                                                marker=dict(size=3.5, symbol='circle'),
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} kg<extra></extra>'
-                                            ))
+                                        col_p_cands = [c for c in df_temp_vrp.columns if 'PRESION' in str(c).upper()]
+                                        for cp in col_p_cands:
+                                            if df_temp_vrp[cp].notna().any():
+                                                color_p = colores_presion[idx_p_v % len(colores_presion)]
+                                                idx_p_v += 1
+                                                fig_vrp.add_trace(go.Scatter(
+                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cp],
+                                                    name=f"VRP {serie_raw} - {cp}",
+                                                    yaxis="y2", mode='lines+markers',
+                                                    line=dict(width=2, color=color_p),
+                                                    marker=dict(size=3.5, symbol='circle'),
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} kg<extra></extra>'
+                                                ))
 
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_vrp:
@@ -5496,7 +5497,7 @@ elif tab_activa == "sectores":
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                     except Exception as e:
-                        st.error(f"Error en consulta de REGISTRADORES para VRPs: {e}")
+                        st.error(f"Error en consulta de BD_MADRE para VRPs: {e}")
 
                 fig_vrp.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
