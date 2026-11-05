@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CORRECCIÓN DE BÚSQUEDA DE SERIE EN BD_MADRE)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (INTEGRACIÓN UNIFICADA DE BD_MADRE PARA POZOS, VRPs Y PUNTOS)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4862,7 +4862,7 @@ elif tab_activa == "sectores":
 
     if sector_elegido and sector_elegido != "":
         sec_id = str(sector_elegido).split('.')[0].strip()
-        sec_id_clean = re.sub(r'^[^\d]*', '', sec_id) # limpia prefijos si los hay
+        sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
@@ -4895,7 +4895,6 @@ elif tab_activa == "sectores":
                 f_ini_h = medianoche - timedelta(days=7)
 
             dict_reg_all = cargar_puntos_de_control_desde_db() 
-            # Filtrado flexible comparando sector completo o subcadena
             dict_reg = {
                 k: v for k, v in dict_reg_all.items() 
                 if str(v.get('sector')).strip() == str(sec_id).strip() or 
@@ -4919,16 +4918,18 @@ elif tab_activa == "sectores":
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
             # ==============================================================================
-            # RECOLECCIÓN RIGUROSA DE NÚMEROS DE SERIE (DISPOSITIVO) DESDE TODOS LOS DICCS
+            # RECOLECCIÓN GLOBAL DE SERIES PARA BD_MADRE (INCLUYENDO POZOS, PUNTOS Y VRPs)
             # ==============================================================================
-            mapa_series_nombres = {} # Para dar etiquetas descriptivas a la gráfica
+            mapa_series_nombres = {}
             
+            # 1. Puntos de control / medidores
             for k, r in dict_reg.items():
                 s_val = r.get('Serie') or r.get('dispositivo') or k
                 if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
                     s_str = str(s_val).strip()
                     mapa_series_nombres[s_str] = r.get('nombre', f"Punto Control ({s_str})")
 
+            # 2. Pozos del sector (Asegurando que si tienen número de serie o ID en BD_MADRE se consulte)
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_inf = mapa_pozos_dict[id_p]
@@ -4936,7 +4937,11 @@ elif tab_activa == "sectores":
                     if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
                         s_str = str(s_val).strip()
                         mapa_series_nombres[s_str] = f"Pozo {id_p}"
+                else:
+                    # Por si el pozo viene directamente como string en ids_p
+                    mapa_series_nombres[str(id_p).strip()] = f"Pozo {id_p}"
 
+            # 3. Válvulas VRP
             for k, v in dict_vrp_sec.items():
                 s_val = v.get('Serie') or v.get('dispositivo') or k
                 if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
@@ -5209,7 +5214,7 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # CONSULTA DIRECTA Y PIVOTEADA DE BD_MADRE POR DISPOSITIVO (SERIES EXTRAÍDAS)
+                # CONSULTA MAESTRA DE BD_MADRE USANDO TODAS LAS SERIES RECOPILADAS (POZOS, VRPs, PUNTOS)
                 # ==============================================================================
                 if mapa_series_nombres:
                     try:
@@ -5237,12 +5242,12 @@ elif tab_activa == "sectores":
                                 df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
                                 df_pivot_sector['Serie_str'] = df_pivot_sector['Serie'].astype(str).str.strip()
 
-                                # Graficar cada dispositivo hallado en BD_MADRE
+                                # Graficar cada dispositivo/serie encontrado en BD_MADRE
                                 for s_str, etiqueta_nombre in mapa_series_nombres.items():
                                     df_temp_s = df_pivot_sector[df_pivot_sector['Serie_str'] == s_str]
 
                                     if not df_temp_s.empty:
-                                        # Procesar variables de Caudal
+                                        # Procesar variables de Caudal (eje y izquierdo)
                                         col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
                                         for cq in col_q_cands:
                                             if df_temp_s[cq].notna().any():
@@ -5259,7 +5264,7 @@ elif tab_activa == "sectores":
                                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                                 ))
 
-                                        # Procesar variables de Presión (Presion1, Presion2, etc.)
+                                        # Procesar variables de Presión (Presion1, Presion2, etc. - eje y derecho)
                                         col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
                                         for cp in col_p_cands:
                                             if df_temp_s[cp].notna().any():
@@ -5273,66 +5278,6 @@ elif tab_activa == "sectores":
                                                     marker=dict(size=3, symbol='circle'),
                                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
                                                 ))
-                    except Exception:
-                        pass
-
-                # ==============================================================================
-                # ADICIONALMENTE: DATOS DE POZOS DESDE EL SCADA TRADICIONAL
-                # ==============================================================================
-                tags_pozos_visualizar = []
-                mapeo_pozos_config = {}
-                for id_p in ids_p:
-                    if id_p in mapa_pozos_dict:
-                        p_info = mapa_pozos_dict[id_p]
-                        conf_pz = [
-                            ('caudal', f"Pozo {id_p} - Q", False),
-                            ('presion', f"Pozo {id_p} - P", True),
-                            ('nivel_tanque', "Nivel TQ", True)
-                        ]
-                        for key_t, lb, sec in conf_pz:
-                            tag_v = p_info.get(key_t)
-                            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                                if str(tag_v) not in tags_pozos_visualizar:
-                                    tags_pozos_visualizar.append(str(tag_v))
-                                    mapeo_pozos_config[str(tag_v)] = {'label': lb, 'sec': sec}
-
-                if tags_pozos_visualizar:
-                    try:
-                        engine_h = get_mysql_scada_engine()
-                        tags_unicos_query = "', '".join([str(t) for t in set(tags_pozos_visualizar) if t])
-                        if tags_unicos_query:
-                            q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
-                            df_h = pd.read_sql(q_hist, engine_h)
-
-                            if not df_h.empty:
-                                df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-                                for tag_name in tags_pozos_visualizar:
-                                    df_tag = df_h[df_h['TAG'] == tag_name]
-                                    if not df_tag.empty:
-                                        cfg = mapeo_pozos_config[tag_name]
-                                        es_caudal = not cfg['sec']
-                                        label_u = cfg['label'].upper()
-
-                                        if es_caudal: unidad_pc = "L/s"
-                                        elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
-                                        else: unidad_pc = "Kg/cm²"
-
-                                        if "NIVEL" in label_u or "TANQUE" in label_u:
-                                            color_base = "#d400ff"
-                                        elif es_caudal:
-                                            color_base = "#00d4ff"
-                                        else:
-                                            color_base = "#00ff00"
-
-                                        fig.add_trace(go.Scatter(
-                                            x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
-                                            yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
-                                            line=dict(width=2, color=color_base),
-                                            marker=dict(size=3, symbol='circle'),
-                                            fill='tozeroy' if es_caudal else None,
-                                            fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
-                                        ))
                     except Exception:
                         pass
 
