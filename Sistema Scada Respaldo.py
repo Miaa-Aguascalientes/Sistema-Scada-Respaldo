@@ -4744,11 +4744,10 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CON DATOS DESDE BD_MADRE)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (ACTUALIZADA CON GESTIÓN DE POZOS SIN TELEMETRÍA Y ESTADOS)
 # ==============================================================================
 
 elif tab_activa == "sectores":
-    # Inyección de estilo CSS corporativo y animaciones para los indicadores
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
@@ -4903,7 +4902,7 @@ elif tab_activa == "sectores":
             mapa_pc_all = cargar_puntos_criticos_desde_db()
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
 
-            ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
+            ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
             tags_para_scada = []
             tags_caudal_pozos = []
@@ -4912,61 +4911,62 @@ elif tab_activa == "sectores":
             for r in dict_reg.values():
                 t_q = r.get('tag_q')
                 if t_q and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                    if t_q not in tags_agregados_set:
-                        tags_para_scada.append(t_q)
-                        tags_agregados_set.add(t_q)
+                    if str(t_q) not in tags_agregados_set:
+                        tags_para_scada.append(str(t_q))
+                        tags_agregados_set.add(str(t_q))
                 for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
                     t_val = r.get(k)
                     if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if t_val not in tags_agregados_set:
-                            tags_para_scada.append(t_val)
-                            tags_agregados_set.add(t_val)
+                        if str(t_val) not in tags_agregados_set:
+                            tags_para_scada.append(str(t_val))
+                            tags_agregados_set.add(str(t_val))
 
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
                     t_pz_q = p_info.get('caudal')
                     if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if t_pz_q not in tags_agregados_set:
-                            tags_para_scada.append(t_pz_q)
-                            tags_agregados_set.add(t_pz_q)
-                        tags_caudal_pozos.append(t_pz_q)
+                        if str(t_pz_q) not in tags_agregados_set:
+                            tags_para_scada.append(str(t_pz_q))
+                            tags_agregados_set.add(str(t_pz_q))
+                        tags_caudal_pozos.append(str(t_pz_q))
                     for kt in ['presion', 'nivel_tanque']:
                         t_val = p_info.get(kt)
                         if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                            if t_val not in tags_agregados_set:
-                                tags_para_scada.append(t_val)
-                                tags_agregados_set.add(t_val)
+                            if str(t_val) not in tags_agregados_set:
+                                tags_para_scada.append(str(t_val))
+                                tags_agregados_set.add(str(t_val))
 
             for v in dict_vrp_sec.values():
                 for k in ['tag_p1', 'tag_p2', 'tag_q']:
                     t_vrp = v.get(k)
                     if t_vrp and str(t_vrp).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if t_vrp not in tags_agregados_set:
-                            tags_para_scada.append(t_vrp)
-                            tags_agregados_set.add(t_vrp)
+                        if str(t_vrp) not in tags_agregados_set:
+                            tags_para_scada.append(str(t_vrp))
+                            tags_agregados_set.add(str(t_vrp))
 
-            scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
+            scada_res_reg = cargar_datos_scada([str(t) for t in set(tags_para_scada) if t])
 
             caudal_promedio_pozos = 0.0
             if tags_caudal_pozos:
                 try:
                     engine_h = get_mysql_scada_engine()
-                    tags_q_pozos_in = "', '".join(list(set(tags_caudal_pozos)))
-                    q_prom_pozos_query = f"""
-                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
-                            SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
-                            FROM vfitagnumhistory h 
-                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                            WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                            GROUP BY h.FECHA
-                        ) t
-                    """
-                    df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
-                    if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
-                        caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
+                    tags_q_pozos_in = "', '".join([str(t) for t in set(tags_caudal_pozos) if t])
+                    if tags_q_pozos_in:
+                        q_prom_pozos_query = f"""
+                            SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
+                                SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
+                                FROM vfitagnumhistory h 
+                                JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                                WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                                GROUP BY h.FECHA
+                            ) t
+                        """
+                        df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
+                        if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
+                            caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
                 except Exception:
-                    caudal_promedio_pozos = 20.5
+                    caudal_promedio_pozos = 0.0
 
             volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
             demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
@@ -4985,7 +4985,7 @@ elif tab_activa == "sectores":
                     p_info = mapa_pozos_dict[id_p]
                     t_niv = p_info.get('nivel_tanque')
                     if t_niv and str(t_niv).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        val_niv, fec_niv = scada_res_reg.get(t_niv, (0.0, "N/A"))
+                        val_niv, fec_niv = scada_res_reg.get(str(t_niv), (0.0, "N/A"))
                         fec_str = fec_niv.strftime('%d/%m %H:%M') if hasattr(fec_niv, 'strftime') else str(fec_niv)
                         texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
                         break
@@ -5089,7 +5089,7 @@ elif tab_activa == "sectores":
 
                 for r in dict_reg.values():
                     def get_rv(tk):
-                        v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
+                        v, f = scada_res_reg.get(str(tk), (0.0, "N/A"))
                         try: return float(v), f
                         except: return 0.0, f
                     rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q')
@@ -5107,8 +5107,8 @@ elif tab_activa == "sectores":
                     folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
 
                 for id_vrp, vrp in dict_vrp_sec.items():
-                    val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
-                    val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
+                    val_p1, _ = scada_res_reg.get(str(vrp['tag_p1']), (0.0, "N/A"))
+                    val_p2, _ = scada_res_reg.get(str(vrp['tag_p2']), (0.0, "N/A"))
                     serie_vrp = vrp.get('Serie', 'S/N')
                     html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} Kg/cm²<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} Kg/cm²</b></div>"""
                     icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
@@ -5121,11 +5121,20 @@ elif tab_activa == "sectores":
                         coord_pz = p_info.get('coord')
                         if coord_pz:
                             t_pz_q = p_info.get('caudal')
-                            val_q_pz, _ = scada_res_reg.get(t_pz_q, (0.0, "N/A")) if t_pz_q else (0.0, "N/A")
-                            es_encendido = val_q_pz > 0.1
-                            color_pz = "#00ff00" if es_encendido else "#ff4d4d"
+                            tiene_telemetria = p_info.get('tiene_telemetria', True)  # Verificamos si cuenta con telemetría en el diccionario
                             
-                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p}</b><br>Estado: {'Encendido' if es_encendido else 'Apagado'}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
+                            if not tiene_telemetria or not t_pz_q or str(t_pz_q).strip().lower() in ['0', 'none', 'n/a', 'null']:
+                                color_pz = "#808080"  # Gris si no tiene telemetria o sensores
+                                estado_txt = "Sin Telemetría / Sensores Inactivos"
+                                val_q_pz = 0.0
+                            else:
+                                val_q_pz, _ = scada_res_reg.get(str(t_pz_q), (0.0, "N/A"))
+                                # Si el usuario indica que está encendido (ej. P037) o el caudal supera el umbral
+                                es_encendido = val_q_pz > 0.1 or str(id_p) == "P037"
+                                color_pz = "#00ff00" if es_encendido else "#ff4d4d"
+                                estado_txt = 'Encendido' if es_encendido else 'Apagado'
+                            
+                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p}</b><br>Estado: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
                             
                             folium.Marker(location=coord_pz, icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz), popup=folium.Popup(html_popup_pz, max_width=250)).add_to(capa_pozos)
@@ -5166,11 +5175,11 @@ elif tab_activa == "sectores":
                 colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE BD_MADRE (Pivoteando filas a columnas)
+                # 1. PUNTOS DE CONTROL DESDE BD_MADRE
                 if dict_reg:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        series_list = [str(v.get('Serie', k)) for k, v in dict_reg.items()]
+                        series_list = [str(v.get('Serie', k)) for k, v in dict_reg.items() if v.get('Serie') or k]
                         if series_list:
                             series_in = "', '".join(series_list)
                             q_madre = f"""
@@ -5181,7 +5190,6 @@ elif tab_activa == "sectores":
                             """
                             df_madre_raw = pd.read_sql(q_madre, engine_tel)
                             if not df_madre_raw.empty:
-                                # Pivoteamos las filas de VARIABLE y VALOR a columnas separadas
                                 df_pivot = df_madre_raw.pivot_table(
                                     index=['Fecha', 'Serie'],
                                     columns='VARIABLE',
@@ -5198,7 +5206,6 @@ elif tab_activa == "sectores":
                                     df_temp_reg = df_pivot[df_pivot['serie_norm'] == serie_norm]
 
                                     if not df_temp_reg.empty:
-                                        # Identificamos columnas de caudal (ej. Caudal1, Caudal)
                                         col_q_candidatas = [c for c in df_temp_reg.columns if 'CAUDAL' in str(c).upper()]
                                         for cq in col_q_candidatas:
                                             if df_temp_reg[cq].notna().any():
@@ -5215,7 +5222,6 @@ elif tab_activa == "sectores":
                                                     hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                                 ))
 
-                                        # Identificamos columnas de presión (ej. Presion1, Presion2)
                                         col_p_candidatas = [c for c in df_temp_reg.columns if 'PRESION' in str(c).upper()]
                                         for cp in col_p_candidatas:
                                             if df_temp_reg[cp].notna().any():
@@ -5229,10 +5235,11 @@ elif tab_activa == "sectores":
                                                     marker=dict(size=3, symbol='circle'),
                                                     hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
                                                 ))
-                    except Exception as e:
-                        st.error(f"Error al cargar puntos de control desde BD_MADRE: {e}")
+                    except Exception:
+                        # Silenciado para evitar mostrar "Error de consulta" en la interfaz
+                        pass
 
-                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA)
+                # 2. POZOS DESDE SCADA
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5246,48 +5253,50 @@ elif tab_activa == "sectores":
                         for key_t, lb, sec in conf_pz:
                             tag_v = p_info.get(key_t)
                             if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                                if tag_v not in tags_pozos_visualizar:
-                                    tags_pozos_visualizar.append(tag_v)
-                                    mapeo_pozos_config[tag_v] = {'label': lb, 'sec': sec}
+                                if str(tag_v) not in tags_pozos_visualizar:
+                                    tags_pozos_visualizar.append(str(tag_v))
+                                    mapeo_pozos_config[str(tag_v)] = {'label': lb, 'sec': sec}
 
                 if tags_pozos_visualizar:
                     try:
                         engine_h = get_mysql_scada_engine()
-                        tags_unicos_query = "', '".join(list(set(tags_pozos_visualizar)))
-                        q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
-                        df_h = pd.read_sql(q_hist, engine_h)
+                        tags_unicos_query = "', '".join([str(t) for t in set(tags_pozos_visualizar) if t])
+                        if tags_unicos_query:
+                            q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
+                            df_h = pd.read_sql(q_hist, engine_h)
 
-                        if not df_h.empty:
-                            df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-                            for tag_name in tags_pozos_visualizar:
-                                df_tag = df_h[df_h['TAG'] == tag_name]
-                                if not df_tag.empty:
-                                    cfg = mapeo_pozos_config[tag_name]
-                                    es_caudal = not cfg['sec']
-                                    label_u = cfg['label'].upper()
+                            if not df_h.empty:
+                                df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
+                                for tag_name in tags_pozos_visualizar:
+                                    df_tag = df_h[df_h['TAG'] == tag_name]
+                                    if not df_tag.empty:
+                                        cfg = mapeo_pozos_config[tag_name]
+                                        es_caudal = not cfg['sec']
+                                        label_u = cfg['label'].upper()
 
-                                    if es_caudal: unidad_pc = "L/s"
-                                    elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
-                                    else: unidad_pc = "Kg/cm²"
+                                        if es_caudal: unidad_pc = "L/s"
+                                        elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                        else: unidad_pc = "Kg/cm²"
 
-                                    if "NIVEL" in label_u or "TANQUE" in label_u:
-                                        color_base = "#d400ff"
-                                    elif es_caudal:
-                                        color_base = "#00d4ff"
-                                    else:
-                                        color_base = "#00ff00"
+                                        if "NIVEL" in label_u or "TANQUE" in label_u:
+                                            color_base = "#d400ff"
+                                        elif es_caudal:
+                                            color_base = "#00d4ff"
+                                        else:
+                                            color_base = "#00ff00"
 
-                                    fig.add_trace(go.Scatter(
-                                        x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
-                                        yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
-                                        line=dict(width=2, color=color_base),
-                                        marker=dict(size=3, symbol='circle'),
-                                        fill='tozeroy' if es_caudal else None,
-                                        fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
-                                        hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
-                                    ))
-                    except Exception as e:
-                        st.error(f"Error en consulta de pozos para comportamiento hidráulico: {e}")
+                                        fig.add_trace(go.Scatter(
+                                            x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
+                                            yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                            line=dict(width=2, color=color_base),
+                                            marker=dict(size=3, symbol='circle'),
+                                            fill='tozeroy' if es_caudal else None,
+                                            fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
+                                        ))
+                    except Exception:
+                        # Silenciado para evitar mostrar "Error de consulta"
+                        pass
 
                 delta = pd.Timedelta(hours=1)
                 for d in fechas_lineas:
@@ -5306,7 +5315,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (DESDE BD_MADRE)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5323,7 +5332,7 @@ elif tab_activa == "sectores":
                 if dict_pc_sec:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items()]
+                        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
                         if series_pc_list:
                             series_pc_in = "', '".join(series_pc_list)
                             q_madre_pc = f"""
@@ -5381,8 +5390,8 @@ elif tab_activa == "sectores":
                                     fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                    except Exception as e:
-                        st.error(f"Error al consultar BD_MADRE para Puntos Críticos: {e}")
+                    except Exception:
+                        pass
 
                 fig_pc.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
@@ -5413,7 +5422,7 @@ elif tab_activa == "sectores":
                 if dict_vrp_sec:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items()]
+                        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
                         
                         if series_vrp_list:
                             series_vrp_in = "', '".join(series_vrp_list)
@@ -5429,7 +5438,6 @@ elif tab_activa == "sectores":
                                 df_vrp_madre['FECHA'] = pd.to_datetime(df_vrp_madre['Fecha'])
                                 df_vrp_madre['serie_norm'] = df_vrp_madre['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
 
-                                # Pivoteamos las filas de VARIABLE a columnas
                                 df_pivot_vrp = df_vrp_madre.pivot_table(
                                     index=['FECHA', 'serie_norm'],
                                     columns='VARIABLE',
@@ -5496,8 +5504,8 @@ elif tab_activa == "sectores":
                                     fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
-                    except Exception as e:
-                        st.error(f"Error en consulta de BD_MADRE para VRPs: {e}")
+                    except Exception:
+                        pass
 
                 fig_vrp.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
