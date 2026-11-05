@@ -5129,15 +5129,21 @@ elif tab_activa == "sectores":
                     except: 
                         pass
 
-                # Marcadores de Puntos de Control con los últimos valores en el popup
+                # Marcadores de Puntos de Control con los últimos valores en el popup (seguro contra nulos)
                 for r_k, r in dict_reg.items():
                     serie_reg = str(r.get('Serie', r_k)).strip()
                     vals_dev = ultimos_valores_mapa.get(serie_reg, {})
                     
                     html_vars_detalle = ""
                     for var_name, info_v in vals_dev.items():
+                        val_bruto = info_v.get('valor')
+                        try:
+                            val_num = float(val_bruto) if val_bruto is not None else 0.0
+                        except (ValueError, TypeError):
+                            val_num = 0.0
+
                         unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
-                        html_vars_detalle += f"&bull; {var_name}: <b>{info_v['valor']:.2f} {unidad_v}</b><br>"
+                        html_vars_detalle += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
                     
                     if not html_vars_detalle:
                         html_vars_detalle = "Sin registros recientes<br>"
@@ -5445,7 +5451,14 @@ elif tab_activa == "sectores":
                 fig_pc.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                     margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="bottom", 
+                        y=1.12, 
+                        x=0.5, 
+                        xanchor="center", 
+                        font=dict(color="white", size=9)
+                    ),
                     xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
                     yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Kg/cm²")
                 )
