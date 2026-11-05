@@ -5513,15 +5513,17 @@ elif tab_activa == "sectores":
                         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
                         if series_vrp_list:
                             series_vrp_in = "', '".join(series_vrp_list)
-                            # Consulta directa buscando las variables exactas Caudal1, Presion1, Presion2 de BD_MADRE
+                            
+                            # CONSULTA FLEXIBLE IDÉNTICA A PUNTOS CRÍTICOS (Busca cualquier variante de Caudal o Presión)
                             q_vrp_madre = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_vrp_in}')
-                                  AND VARIABLE IN ('Caudal1', 'Presion1', 'Presion2', 'Volt_bateria')
+                                  AND (VARIABLE LIKE '%Caudal%' OR VARIABLE LIKE '%Presion%' OR VARIABLE LIKE '%Presión%')
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
                             df_vrp_madre = pd.read_sql(q_vrp_madre, engine_tel)
+                            
                             if not df_vrp_madre.empty:
                                 df_vrp_madre['FECHA'] = pd.to_datetime(df_vrp_madre['Fecha'])
                                 df_vrp_madre['Serie_str'] = df_vrp_madre['Serie'].astype(str).str.strip()
@@ -5553,30 +5555,34 @@ elif tab_activa == "sectores":
                                 for v_key, v_info in dict_vrp_sec.items():
                                     serie_raw = str(v_info.get('Serie', v_key)).strip()
                                     df_temp_vrp = df_pivot_vrp[df_pivot_vrp['Serie_str'] == serie_raw]
+                                    
                                     if not df_temp_vrp.empty:
-                                        # Mapeo directo con Caudal1
-                                        if 'Caudal1' in df_temp_vrp.columns and df_temp_vrp['Caudal1'].notna().any():
-                                            color_q = colores_caudal[idx_q_v % len(colores_caudal)]
-                                            idx_q_v += 1
-                                            fig_vrp.add_trace(go.Scatter(
-                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Caudal1'],
-                                                name=f"VRP {serie_raw} - Caudal1",
-                                                yaxis="y1", mode='lines+markers',
-                                                line=dict(width=2, color=color_q),
-                                                marker=dict(size=3.5, symbol='circle'),
-                                                fill='tozeroy',
-                                                fillcolor="rgba(138, 203, 245, 0.15)",
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
-                                            ))
+                                        # Detectar dinámicamente cualquier columna que contenga Caudal
+                                        col_q_cands = [c for c in df_temp_vrp.columns if 'CAUDAL' in str(c).upper()]
+                                        for cq in col_q_cands:
+                                            if df_temp_vrp[cq].notna().any():
+                                                color_q = colores_caudal[idx_q_v % len(colores_caudal)]
+                                                idx_q_v += 1
+                                                fig_vrp.add_trace(go.Scatter(
+                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cq],
+                                                    name=f"VRP {serie_raw} - {cq}",
+                                                    yaxis="y1", mode='lines+markers',
+                                                    line=dict(width=2, color=color_q),
+                                                    marker=dict(size=3.5, symbol='circle'),
+                                                    fill='tozeroy',
+                                                    fillcolor="rgba(138, 203, 245, 0.15)",
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
+                                                ))
 
-                                        # Mapeo directo con Presion1 y Presion2
-                                        for p_var in ['Presion1', 'Presion2']:
-                                            if p_var in df_temp_vrp.columns and df_temp_vrp[p_var].notna().any():
+                                        # Detectar dinámicamente cualquier columna que contenga Presion o Presión
+                                        col_p_cands = [c for c in df_temp_vrp.columns if 'PRESION' in str(c).upper() or 'PRESIÓN' in str(c).upper()]
+                                        for cp in col_p_cands:
+                                            if df_temp_vrp[cp].notna().any():
                                                 color_p = colores_presion[idx_p_v % len(colores_presion)]
                                                 idx_p_v += 1
                                                 fig_vrp.add_trace(go.Scatter(
-                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[p_var],
-                                                    name=f"VRP {serie_raw} - {p_var}",
+                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cp],
+                                                    name=f"VRP {serie_raw} - {cp}",
                                                     yaxis="y2", mode='lines+markers',
                                                     line=dict(width=2, color=color_p),
                                                     marker=dict(size=3.5, symbol='circle'),
@@ -5588,7 +5594,7 @@ elif tab_activa == "sectores":
                                     es_lunes = (d.dayofweek == 0)
                                     fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
-                    except Exception:
+                    except Exception as e:
                         pass
 
                 fig_vrp.update_layout(
