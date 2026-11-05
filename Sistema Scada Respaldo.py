@@ -5399,7 +5399,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (EXCLUYENDO Volt_bateria)
+            # FILA INFERIOR: PUNTOS CRÍTICOS (SIN CAUDAL Y SIN Volt_bateria) Y VRPs
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5423,6 +5423,7 @@ elif tab_activa == "sectores":
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_pc_in}')
                                   AND VARIABLE != 'Volt_bateria'
+                                  AND VARIABLE NOT LIKE '%CAUDAL%'
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
                             """
                             df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
