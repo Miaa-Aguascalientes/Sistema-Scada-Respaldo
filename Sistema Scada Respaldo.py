@@ -5199,25 +5199,40 @@ elif tab_activa == "sectores":
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
+                # ==============================================================================
+                # LÓGICA DE POZOS EN EL MAPA (CONSULTANDO ESTADO DE BOMBA Y "Sin telemetria")
+                # ==============================================================================
+                tags_bomba_mapa = []
+                for id_p in ids_p:
+                    if id_p in mapa_pozos_dict:
+                        p_info = mapa_pozos_dict[id_p]
+                        t_bomba = p_info.get('bomba')
+                        if t_bomba and str(t_bomba).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                            if str(t_bomba).strip().lower() != 'sin telemetria':
+                                if str(t_bomba) not in tags_bomba_mapa:
+                                    tags_bomba_mapa.append(str(t_bomba))
+
+                scada_res_bombas = cargar_datos_scada([str(t) for t in set(tags_bomba_mapa) if t]) if tags_bomba_mapa else {}
+
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
                         p_info = mapa_pozos_dict[id_p]
                         coord_pz = p_info.get('coord')
                         if coord_pz:
+                            val_bomba_str = str(p_info.get('bomba', '')).strip()
                             t_pz_q = p_info.get('caudal')
-                            tiene_telemetria = p_info.get('tiene_telemetria', True)
-                            
-                            if not tiene_telemetria or not t_pz_q or str(t_pz_q).strip().lower() in ['0', 'none', 'n/a', 'null']:
+                            val_q_pz, _ = scada_res_reg.get(str(t_pz_q), (0.0, "N/A")) if t_pz_q else (0.0, "N/A")
+
+                            if val_bomba_str.lower() == 'sin telemetria' or not val_bomba_str or val_bomba_str.lower() in ['none', 'n/a', 'null', '0']:
                                 color_pz = "#808080"
-                                estado_txt = "Sin Telemetría / Sensores Inactivos"
-                                val_q_pz = 0.0
+                                estado_txt = "Sin Telemetría"
                             else:
-                                val_q_pz, _ = scada_res_reg.get(str(t_pz_q), (0.0, "N/A"))
-                                es_encendido = val_q_pz > 0.1 or str(id_p) == "P037"
+                                val_bomba_scada, _ = scada_res_bombas.get(val_bomba_str, (0.0, "N/A"))
+                                es_encendido = val_bomba_scada > 0.5
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p}</b><br>Estado: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
+                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
                             folium.Marker(location=coord_pz, icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz), popup=folium.Popup(html_popup_pz, max_width=250)).add_to(capa_pozos)
                             folium.Marker(location=coord_pz, icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 15), html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">P{id_p}</div>')).add_to(capa_pozos)
@@ -5284,7 +5299,6 @@ elif tab_activa == "sectores":
 
                                 if not df_temp_s.empty:
                                     for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
-                                        # FILTRO: Solo agregar si la variable tiene registros válidos y no es totalmente ceros
                                         if df_v_group['VALOR'].notna().any():
                                             is_caudal = 'CAUDAL' in str(var_name).upper()
                                             
