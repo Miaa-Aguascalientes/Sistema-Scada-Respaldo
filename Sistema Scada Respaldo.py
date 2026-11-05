@@ -5257,7 +5257,7 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (REGISTRADORES - EXCLUYENDO CERO ABSOLUTO Y Volt_bateria)
+                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (REGISTRADORES - EXCLUYENDO Volt_bateria)
                 # ==============================================================================
                 series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 if series_puntos_control:
@@ -5292,8 +5292,7 @@ elif tab_activa == "sectores":
                                 if not df_temp_s.empty:
                                     col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
                                     for cq in col_q_cands:
-                                        # FILTRO: Solo agregar si la serie tiene al menos un valor diferente de cero en el histórico
-                                        if df_temp_s[cq].notna().any() and (df_temp_s[cq].abs() > 0.0001).any():
+                                        if df_temp_s[cq].notna().any():
                                             color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
                                             idx_q += 1
                                             fig.add_trace(go.Scatter(
@@ -5309,8 +5308,7 @@ elif tab_activa == "sectores":
 
                                     col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper() or 'PRESIÓN' in str(c).upper()]
                                     for cp in col_p_cands:
-                                        # FILTRO: Solo agregar si la serie tiene al menos un valor diferente de cero
-                                        if df_temp_s[cp].notna().any() and (df_temp_s[cp].abs() > 0.0001).any():
+                                        if df_temp_s[cp].notna().any():
                                             color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                             idx_p += 1
                                             fig.add_trace(go.Scatter(
@@ -5356,8 +5354,7 @@ elif tab_activa == "sectores":
                                 df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                                 for tag_name in tags_pozos_visualizar:
                                     df_tag = df_h[df_h['TAG'] == tag_name]
-                                    # FILTRO: Solo agregar si la serie no es totalmente ceros
-                                    if not df_tag.empty and (df_tag['VALUE'].abs() > 0.0001).any():
+                                    if not df_tag.empty:
                                         cfg = mapeo_pozos_config[tag_name]
                                         es_caudal = not cfg['sec']
                                         label_u = cfg['label'].upper()
@@ -5402,7 +5399,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (EXCLUYENDO CERO ABSOLUTO Y Volt_bateria)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (EXCLUYENDO Volt_bateria)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5455,8 +5452,7 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            # FILTRO: Omitir si la variable es totalmente cero en todo el periodo consultado
-                                            if (df_v_group['VALOR'].abs() > 0.0001).any():
+                                            if df_v_group['VALOR'].notna().any():
                                                 color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                                 idx_pc_c += 1
 
@@ -5545,8 +5541,7 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_vrp[df_madre_vrp['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            # FILTRO: Omitir si la variable es totalmente cero en todo el periodo consultado
-                                            if (df_v_group['VALOR'].abs() > 0.0001).any():
+                                            if df_v_group['VALOR'].notna().any():
                                                 color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                                 idx_vrp_c += 1
 
@@ -5579,7 +5574,7 @@ elif tab_activa == "sectores":
                         xanchor="center", 
                         font=dict(color="white", size=9)
                     ),
-                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_pc' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
                     yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Valor")
                 )
                 st.plotly_chart(fig_vrp, use_container_width=True)
