@@ -4894,7 +4894,6 @@ elif tab_activa == "sectores":
             else:
                 f_ini_h = medianoche - timedelta(days=7)
 
-            # Función auxiliar segura para evaluar el campo 'Sector' o 'sector' en los diccionarios
             def coincide_sector(item_dict):
                 val_sec = str(item_dict.get('Sector') or item_dict.get('sector') or '').strip()
                 return val_sec == str(sec_id).strip() or (sec_id_clean and sec_id_clean in val_sec)
@@ -5116,7 +5115,6 @@ elif tab_activa == "sectores":
                     except: 
                         pass
 
-                # Marcadores de Puntos de Control con los últimos valores en el popup
                 for r_k, r in dict_reg.items():
                     serie_reg = str(r.get('Serie', r_k)).strip()
                     vals_dev = ultimos_valores_mapa.get(serie_reg, {})
@@ -5259,7 +5257,7 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (REGISTRADORES)
+                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (REGISTRADORES - EXCLUYENDO CERO ABSOLUTO Y Volt_bateria)
                 # ==============================================================================
                 series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 if series_puntos_control:
@@ -5270,6 +5268,7 @@ elif tab_activa == "sectores":
                             SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                             FROM BD_MADRE 
                             WHERE DISPOSITIVO IN ('{series_in_sql}')
+                              AND VARIABLE != 'Volt_bateria'
                               AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                         """
                         df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
@@ -5293,7 +5292,8 @@ elif tab_activa == "sectores":
                                 if not df_temp_s.empty:
                                     col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
                                     for cq in col_q_cands:
-                                        if df_temp_s[cq].notna().any():
+                                        # FILTRO: Solo agregar si la serie tiene al menos un valor diferente de cero en el histórico
+                                        if df_temp_s[cq].notna().any() and (df_temp_s[cq].abs() > 0.0001).any():
                                             color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
                                             idx_q += 1
                                             fig.add_trace(go.Scatter(
@@ -5309,7 +5309,8 @@ elif tab_activa == "sectores":
 
                                     col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper() or 'PRESIÓN' in str(c).upper()]
                                     for cp in col_p_cands:
-                                        if df_temp_s[cp].notna().any():
+                                        # FILTRO: Solo agregar si la serie tiene al menos un valor diferente de cero
+                                        if df_temp_s[cp].notna().any() and (df_temp_s[cp].abs() > 0.0001).any():
                                             color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                             idx_p += 1
                                             fig.add_trace(go.Scatter(
@@ -5355,7 +5356,8 @@ elif tab_activa == "sectores":
                                 df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                                 for tag_name in tags_pozos_visualizar:
                                     df_tag = df_h[df_h['TAG'] == tag_name]
-                                    if not df_tag.empty:
+                                    # FILTRO: Solo agregar si la serie no es totalmente ceros
+                                    if not df_tag.empty and (df_tag['VALUE'].abs() > 0.0001).any():
                                         cfg = mapeo_pozos_config[tag_name]
                                         es_caudal = not cfg['sec']
                                         label_u = cfg['label'].upper()
@@ -5400,7 +5402,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CONSULTA DESDE LOS DICCIONARIOS FILTRADOS)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (EXCLUYENDO CERO ABSOLUTO Y Volt_bateria)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5423,6 +5425,7 @@ elif tab_activa == "sectores":
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_pc_in}')
+                                  AND VARIABLE != 'Volt_bateria'
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
                             """
                             df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
@@ -5452,18 +5455,20 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
-                                            idx_pc_c += 1
+                                            # FILTRO: Omitir si la variable es totalmente cero en todo el periodo consultado
+                                            if (df_v_group['VALOR'].abs() > 0.0001).any():
+                                                color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                                idx_pc_c += 1
 
-                                            fig_pc.add_trace(go.Scatter(
-                                                x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
-                                                name=f"{domicilio_nombre} - {var_name}", 
-                                                mode='lines+markers',
-                                                showlegend=True,
-                                                marker=dict(size=3.5, symbol='circle'), 
-                                                line=dict(width=2, color=color_trace_pc),
-                                                hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
-                                            ))
+                                                fig_pc.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
+                                                    name=f"{domicilio_nombre} - {var_name}", 
+                                                    mode='lines+markers',
+                                                    showlegend=True,
+                                                    marker=dict(size=3.5, symbol='circle'), 
+                                                    line=dict(width=2, color=color_trace_pc),
+                                                    hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                                ))
 
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_pc:
@@ -5509,6 +5514,7 @@ elif tab_activa == "sectores":
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                                  AND VARIABLE != 'Volt_bateria'
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
                             """
                             df_madre_vrp = pd.read_sql(q_madre_vrp, engine_tel)
@@ -5539,18 +5545,20 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_vrp[df_madre_vrp['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
-                                            idx_vrp_c += 1
+                                            # FILTRO: Omitir si la variable es totalmente cero en todo el periodo consultado
+                                            if (df_v_group['VALOR'].abs() > 0.0001).any():
+                                                color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
+                                                idx_vrp_c += 1
 
-                                            fig_vrp.add_trace(go.Scatter(
-                                                x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
-                                                name=f"{nombre_vrp} - {var_name}", 
-                                                mode='lines+markers',
-                                                showlegend=True,
-                                                marker=dict(size=3.5, symbol='circle'), 
-                                                line=dict(width=2, color=color_trace_vrp),
-                                                hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
-                                            ))
+                                                fig_vrp.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
+                                                    name=f"{nombre_vrp} - {var_name}", 
+                                                    mode='lines+markers',
+                                                    showlegend=True,
+                                                    marker=dict(size=3.5, symbol='circle'), 
+                                                    line=dict(width=2, color=color_trace_vrp),
+                                                    hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                                ))
 
                                 delta_h = pd.Timedelta(hours=1)
                                 for d in fechas_lineas_vrp:
@@ -5571,7 +5579,7 @@ elif tab_activa == "sectores":
                         xanchor="center", 
                         font=dict(color="white", size=9)
                     ),
-                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_pc' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
                     yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Valor")
                 )
                 st.plotly_chart(fig_vrp, use_container_width=True)
