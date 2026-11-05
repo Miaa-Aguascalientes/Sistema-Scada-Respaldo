@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (INTEGRACIÓN UNIFICADA DE BD_MADRE PARA POZOS, VRPs Y PUNTOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (SCADA PARA POZOS + BD_MADRE PARA DISPOSITIVOS/REGISTRADORES)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4916,37 +4916,6 @@ elif tab_activa == "sectores":
             }
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
-
-            # ==============================================================================
-            # RECOLECCIÓN GLOBAL DE SERIES PARA BD_MADRE (INCLUYENDO POZOS, PUNTOS Y VRPs)
-            # ==============================================================================
-            mapa_series_nombres = {}
-            
-            # 1. Puntos de control / medidores
-            for k, r in dict_reg.items():
-                s_val = r.get('Serie') or r.get('dispositivo') or k
-                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
-                    s_str = str(s_val).strip()
-                    mapa_series_nombres[s_str] = r.get('nombre', f"Punto Control ({s_str})")
-
-            # 2. Pozos del sector (Asegurando que si tienen número de serie o ID en BD_MADRE se consulte)
-            for id_p in ids_p:
-                if id_p in mapa_pozos_dict:
-                    p_inf = mapa_pozos_dict[id_p]
-                    s_val = p_inf.get('Serie') or p_inf.get('dispositivo') or id_p
-                    if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
-                        s_str = str(s_val).strip()
-                        mapa_series_nombres[s_str] = f"Pozo {id_p}"
-                else:
-                    # Por si el pozo viene directamente como string en ids_p
-                    mapa_series_nombres[str(id_p).strip()] = f"Pozo {id_p}"
-
-            # 3. Válvulas VRP
-            for k, v in dict_vrp_sec.items():
-                s_val = v.get('Serie') or v.get('dispositivo') or k
-                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
-                    s_str = str(s_val).strip()
-                    mapa_series_nombres[s_str] = v.get('nombre', f"VRP ({s_str})")
 
             tags_para_scada = []
             tags_caudal_pozos = []
@@ -5214,70 +5183,127 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # CONSULTA MAESTRA DE BD_MADRE USANDO TODAS LAS SERIES RECOPILADAS (POZOS, VRPs, PUNTOS)
+                # 1. CARGAR DATOS DESDE BD_MADRE PARA LOS DISPOSITIVOS (REGISTRADORES / PUNTOS DE CONTROL)
                 # ==============================================================================
-                if mapa_series_nombres:
+                series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
+                if series_puntos_control:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        lista_series_clean = list(mapa_series_nombres.keys())
-                        series_in_sql = "', '".join(lista_series_clean)
+                        series_in_sql = "', '".join(series_puntos_control)
+                        q_madre_sector = f"""
+                            SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                            FROM BD_MADRE 
+                            WHERE DISPOSITIVO IN ('{series_in_sql}')
+                              AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                        """
+                        df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
                         
-                        if series_in_sql:
-                            q_madre_sector = f"""
-                                SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
-                                FROM BD_MADRE 
-                                WHERE DISPOSITIVO IN ('{series_in_sql}')
-                                  AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                            """
-                            df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
+                        if not df_madre_sector.empty:
+                            df_pivot_sector = df_madre_sector.pivot_table(
+                                index=['Fecha', 'Serie'],
+                                columns='VARIABLE',
+                                values='VALOR',
+                                aggfunc='mean'
+                            ).reset_index()
                             
-                            if not df_madre_sector.empty:
-                                df_pivot_sector = df_madre_sector.pivot_table(
-                                    index=['Fecha', 'Serie'],
-                                    columns='VARIABLE',
-                                    values='VALOR',
-                                    aggfunc='mean'
-                                ).reset_index()
-                                
-                                df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
-                                df_pivot_sector['Serie_str'] = df_pivot_sector['Serie'].astype(str).str.strip()
+                            df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
+                            df_pivot_sector['Serie_str'] = df_pivot_sector['Serie'].astype(str).str.strip()
 
-                                # Graficar cada dispositivo/serie encontrado en BD_MADRE
-                                for s_str, etiqueta_nombre in mapa_series_nombres.items():
-                                    df_temp_s = df_pivot_sector[df_pivot_sector['Serie_str'] == s_str]
+                            for r_k, r_info in dict_reg.items():
+                                serie_raw = str(r_info.get('Serie', r_k)).strip()
+                                nombre_reg = r_info.get('nombre', f"SN:{serie_raw}")
+                                df_temp_s = df_pivot_sector[df_pivot_sector['Serie_str'] == serie_raw]
 
-                                    if not df_temp_s.empty:
-                                        # Procesar variables de Caudal (eje y izquierdo)
-                                        col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
-                                        for cq in col_q_cands:
-                                            if df_temp_s[cq].notna().any():
-                                                color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                                                idx_q += 1
-                                                fig.add_trace(go.Scatter(
-                                                    x=df_temp_s['FECHA'], y=df_temp_s[cq],
-                                                    name=f"{etiqueta_nombre} - {cq}",
-                                                    yaxis="y1", mode='lines+markers',
-                                                    line=dict(width=2, color=color_q),
-                                                    marker=dict(size=3, symbol='circle'),
-                                                    fill='tozeroy',
-                                                    fillcolor="rgba(138, 203, 245, 0.15)",
-                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
-                                                ))
+                                if not df_temp_s.empty:
+                                    col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
+                                    for cq in col_q_cands:
+                                        if df_temp_s[cq].notna().any():
+                                            color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                            idx_q += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_temp_s['FECHA'], y=df_temp_s[cq],
+                                                name=f"{nombre_reg} - {cq}",
+                                                yaxis="y1", mode='lines+markers',
+                                                line=dict(width=2, color=color_q),
+                                                marker=dict(size=3, symbol='circle'),
+                                                fill='tozeroy',
+                                                fillcolor="rgba(138, 203, 245, 0.15)",
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                            ))
 
-                                        # Procesar variables de Presión (Presion1, Presion2, etc. - eje y derecho)
-                                        col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
-                                        for cp in col_p_cands:
-                                            if df_temp_s[cp].notna().any():
-                                                color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                                                idx_p += 1
-                                                fig.add_trace(go.Scatter(
-                                                    x=df_temp_s['FECHA'], y=df_temp_s[cp],
-                                                    name=f"{etiqueta_nombre} - {cp}",
-                                                    yaxis="y2", mode='lines+markers',
-                                                    line=dict(width=2, color=color_p),
-                                                    marker=dict(size=3, symbol='circle'),
-                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
-                                                ))
+                                    col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
+                                    for cp in col_p_cands:
+                                        if df_temp_s[cp].notna().any():
+                                            color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                            idx_p += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_temp_s['FECHA'], y=df_temp_s[cp],
+                                                name=f"{nombre_reg} - {cp}",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p),
+                                                marker=dict(size=3, symbol='circle'),
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                            ))
+                    except Exception:
+                        pass
+
+                # ==============================================================================
+                # 2. CARGAR DATOS DESDE EL SCADA TRADICIONAL PARA LOS POZOS Y NIVELES (Vfitagnumhistory)
+                # ==============================================================================
+                tags_pozos_visualizar = []
+                mapeo_pozos_config = {}
+                for id_p in ids_p:
+                    if id_p in mapa_pozos_dict:
+                        p_info = mapa_pozos_dict[id_p]
+                        conf_pz = [
+                            ('caudal', f"Pozo {id_p} - Q", False),
+                            ('presion', f"Pozo {id_p} - P", True),
+                            ('nivel_tanque', "Nivel TQ", True)
+                        ]
+                        for key_t, lb, sec in conf_pz:
+                            tag_v = p_info.get(key_t)
+                            if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                                if str(tag_v) not in tags_pozos_visualizar:
+                                    tags_pozos_visualizar.append(str(tag_v))
+                                    mapeo_pozos_config[str(tag_v)] = {'label': lb, 'sec': sec}
+
+                if tags_pozos_visualizar:
+                    try:
+                        engine_h = get_mysql_scada_engine()
+                        tags_unicos_query = "', '".join([str(t) for t in set(tags_pozos_visualizar) if t])
+                        if tags_unicos_query:
+                            q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
+                            df_h = pd.read_sql(q_hist, engine_h)
+
+                            if not df_h.empty:
+                                df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
+                                for tag_name in tags_pozos_visualizar:
+                                    df_tag = df_h[df_h['TAG'] == tag_name]
+                                    if not df_tag.empty:
+                                        cfg = mapeo_pozos_config[tag_name]
+                                        es_caudal = not cfg['sec']
+                                        label_u = cfg['label'].upper()
+
+                                        if es_caudal: unidad_pc = "L/s"
+                                        elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                        else: unidad_pc = "Kg/cm²"
+
+                                        if "NIVEL" in label_u or "TANQUE" in label_u:
+                                            color_base = "#d400ff"
+                                        elif es_caudal:
+                                            color_base = "#00d4ff"
+                                        else:
+                                            color_base = "#00ff00"
+
+                                        fig.add_trace(go.Scatter(
+                                            x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
+                                            yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                            line=dict(width=2, color=color_base),
+                                            marker=dict(size=3, symbol='circle'),
+                                            fill='tozeroy' if es_caudal else None,
+                                            fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
+                                        ))
                     except Exception:
                         pass
 
