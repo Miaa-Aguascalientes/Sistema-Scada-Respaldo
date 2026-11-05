@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (COMPORTAMIENTO HIDRÁULICO CON BD_MADRE + SCADA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (INTEGRACIÓN TOTAL DE BD_MADRE POR NÚMERO DE SERIE)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4904,17 +4904,26 @@ elif tab_activa == "sectores":
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
+            # Recopilar todas las series de los equipos del sector para consultar BD_MADRE
+            series_sector_set = set()
+            for r in dict_reg.values():
+                s_val = r.get('Serie')
+                if s_val: series_sector_set.add(str(s_val).strip())
+            for id_p in ids_p:
+                if id_p in mapa_pozos_dict:
+                    p_inf = mapa_pozos_dict[id_p]
+                    s_val = p_inf.get('Serie', id_p)
+                    if s_val: series_sector_set.add(str(s_val).strip())
+            for v in dict_vrp_sec.values():
+                s_val = v.get('Serie')
+                if s_val: series_sector_set.add(str(s_val).strip())
+
             tags_para_scada = []
             tags_caudal_pozos = []
             tags_agregados_set = set()
             
             for r in dict_reg.values():
-                t_q = r.get('tag_q')
-                if t_q and str(t_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                    if str(t_q) not in tags_agregados_set:
-                        tags_para_scada.append(str(t_q))
-                        tags_agregados_set.add(str(t_q))
-                for k in ['tag_p1', 'tag_p2', 'tag_vbat']:
+                for k in ['tag_q', 'tag_p1', 'tag_p2', 'tag_vbat']:
                     t_val = r.get(k)
                     if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                         if str(t_val) not in tags_agregados_set:
@@ -5175,72 +5184,73 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE BD_MADRE (USANDO EL NÚMERO DE SERIE)
+                # CARGAR DATOS DESDE BD_MADRE USANDO LOS NÚMEROS DE SERIE DE TODOS LOS EQUIPOS
                 # ==============================================================================
-                if dict_reg:
+                if series_sector_set:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        series_list = [str(v.get('Serie', k)) for k, v in dict_reg.items() if v.get('Serie') or k]
-                        if series_list:
-                            series_in = "', '".join(series_list)
-                            q_madre = f"""
+                        series_in_sql = "', '".join([str(s) for s in series_sector_set if s])
+                        if series_in_sql:
+                            q_madre_sector = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
-                                WHERE DISPOSITIVO IN ('{series_in}')
+                                WHERE DISPOSITIVO IN ('{series_in_sql}')
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
-                            df_madre_raw = pd.read_sql(q_madre, engine_tel)
-                            if not df_madre_raw.empty:
-                                df_pivot = df_madre_raw.pivot_table(
+                            df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
+                            if not df_madre_sector.empty:
+                                df_pivot_sector = df_madre_sector.pivot_table(
                                     index=['Fecha', 'Serie'],
                                     columns='VARIABLE',
                                     values='VALOR',
                                     aggfunc='mean'
                                 ).reset_index()
                                 
-                                df_pivot['FECHA'] = pd.to_datetime(df_pivot['Fecha'])
-                                df_pivot['serie_norm'] = df_pivot['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                                df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
+                                df_pivot_sector['serie_norm'] = df_pivot_sector['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
 
-                                for s_id_reg, r_info in dict_reg.items():
-                                    serie_raw = str(r_info.get('Serie', s_id_reg))
-                                    serie_norm = re.sub(r'\D', '', serie_raw)
-                                    df_temp_reg = df_pivot[df_pivot['serie_norm'] == serie_norm]
+                                # Graficar cada serie y sus variables (Presion1, Presion2, Caudal, etc.)
+                                for serie_val in series_sector_set:
+                                    s_norm = re.sub(r'\D', '', str(serie_val))
+                                    df_temp_s = df_pivot_sector[df_pivot_sector['serie_norm'] == s_norm]
 
-                                    if not df_temp_reg.empty:
-                                        col_q_candidatas = [c for c in df_temp_reg.columns if 'CAUDAL' in str(c).upper()]
-                                        for cq in col_q_candidatas:
-                                            if df_temp_reg[cq].notna().any():
+                                    if not df_temp_s.empty:
+                                        # Identificar variables de caudal
+                                        col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
+                                        for cq in col_q_cands:
+                                            if df_temp_s[cq].notna().any():
                                                 color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
                                                 idx_q += 1
                                                 fig.add_trace(go.Scatter(
-                                                    x=df_temp_reg['FECHA'], y=df_temp_reg[cq],
-                                                    name=f"S:{serie_raw} - {cq}",
+                                                    x=df_temp_s['FECHA'], y=df_temp_s[cq],
+                                                    name=f"SN:{serie_val} - {cq}",
                                                     yaxis="y1", mode='lines+markers',
                                                     line=dict(width=2, color=color_q),
                                                     marker=dict(size=3, symbol='circle'),
                                                     fill='tozeroy',
                                                     fillcolor="rgba(138, 203, 245, 0.15)",
-                                                    hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                                    hovertemplate='<b>SN:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                                 ))
 
-                                        col_p_candidatas = [c for c in df_temp_reg.columns if 'PRESION' in str(c).upper()]
-                                        for cp in col_p_candidatas:
-                                            if df_temp_reg[cp].notna().any():
+                                        # Identificar variables de presión (Presion1, Presion2, etc.)
+                                        col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
+                                        for cp in col_p_cands:
+                                            if df_temp_s[cp].notna().any():
                                                 color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                                 idx_p += 1
                                                 fig.add_trace(go.Scatter(
-                                                    x=df_temp_reg['FECHA'], y=df_temp_reg[cp],
-                                                    name=f"S:{serie_raw} - {cp}",
+                                                    x=df_temp_s['FECHA'], y=df_temp_s[cp],
+                                                    name=f"SN:{serie_val} - {cp}",
                                                     yaxis="y2", mode='lines+markers',
                                                     line=dict(width=2, color=color_p),
                                                     marker=dict(size=3, symbol='circle'),
-                                                    hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                                    hovertemplate='<b>SN:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
                                                 ))
                     except Exception:
                         pass
 
                 # ==============================================================================
-                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA)
+                # ADICIONALMENTE: POZOS DESDE SCADA (SI APLICA)
                 # ==============================================================================
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
