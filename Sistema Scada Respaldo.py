@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (ACTUALIZADA CON GESTIÓN DE POZOS SIN TELEMETRÍA Y ESTADOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (COMPORTAMIENTO HIDRÁULICO CON BD_MADRE + SCADA)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5121,15 +5121,14 @@ elif tab_activa == "sectores":
                         coord_pz = p_info.get('coord')
                         if coord_pz:
                             t_pz_q = p_info.get('caudal')
-                            tiene_telemetria = p_info.get('tiene_telemetria', True)  # Verificamos si cuenta con telemetría en el diccionario
+                            tiene_telemetria = p_info.get('tiene_telemetria', True)
                             
                             if not tiene_telemetria or not t_pz_q or str(t_pz_q).strip().lower() in ['0', 'none', 'n/a', 'null']:
-                                color_pz = "#808080"  # Gris si no tiene telemetria o sensores
+                                color_pz = "#808080"  # Gris si no tiene telemetría
                                 estado_txt = "Sin Telemetría / Sensores Inactivos"
                                 val_q_pz = 0.0
                             else:
                                 val_q_pz, _ = scada_res_reg.get(str(t_pz_q), (0.0, "N/A"))
-                                # Si el usuario indica que está encendido (ej. P037) o el caudal supera el umbral
                                 es_encendido = val_q_pz > 0.1 or str(id_p) == "P037"
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
@@ -5175,7 +5174,9 @@ elif tab_activa == "sectores":
                 colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-                # 1. PUNTOS DE CONTROL DESDE BD_MADRE
+                # ==============================================================================
+                # 1. CARGAR Y GRAFICAR PUNTOS DE CONTROL DESDE BD_MADRE (USANDO EL NÚMERO DE SERIE)
+                # ==============================================================================
                 if dict_reg:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
@@ -5236,10 +5237,11 @@ elif tab_activa == "sectores":
                                                     hovertemplate='<b>S:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
                                                 ))
                     except Exception:
-                        # Silenciado para evitar mostrar "Error de consulta" en la interfaz
                         pass
 
-                # 2. POZOS DESDE SCADA
+                # ==============================================================================
+                # 2. CARGAR Y GRAFICAR POZOS (DESDE SCADA)
+                # ==============================================================================
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5295,7 +5297,6 @@ elif tab_activa == "sectores":
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                         ))
                     except Exception:
-                        # Silenciado para evitar mostrar "Error de consulta"
                         pass
 
                 delta = pd.Timedelta(hours=1)
@@ -5315,7 +5316,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (DESDE BD_MADRE)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
