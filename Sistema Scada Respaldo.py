@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (INTEGRACIÓN TOTAL DE BD_MADRE POR NÚMERO DE SERIE)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CORRECCIÓN DE BÚSQUEDA DE SERIE EN BD_MADRE)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4821,7 +4821,7 @@ elif tab_activa == "sectores":
     
     indice_por_defecto = 0
     for idx, nombre_sec in enumerate(lista_nombres_sectores):
-        if "DS08B" in str(nombre_sec).upper() or "S-023" in str(nombre_sec).upper():
+        if "DS08B" in str(nombre_sec).upper() or "S-023" in str(nombre_sec).upper() or "DN06" in str(nombre_sec).upper():
             indice_por_defecto = idx + 1
             break
 
@@ -4862,6 +4862,7 @@ elif tab_activa == "sectores":
 
     if sector_elegido and sector_elegido != "":
         sec_id = str(sector_elegido).split('.')[0].strip()
+        sec_id_clean = re.sub(r'^[^\d]*', '', sec_id) # limpia prefijos si los hay
         datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
         if datos_s:
@@ -4894,29 +4895,53 @@ elif tab_activa == "sectores":
                 f_ini_h = medianoche - timedelta(days=7)
 
             dict_reg_all = cargar_puntos_de_control_desde_db() 
-            dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            # Filtrado flexible comparando sector completo o subcadena
+            dict_reg = {
+                k: v for k, v in dict_reg_all.items() 
+                if str(v.get('sector')).strip() == str(sec_id).strip() or 
+                   (sec_id_clean and sec_id_clean in str(v.get('sector')))
+            }
             
             dict_vrp_all = cargar_vrp_desde_db()
-            dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            dict_vrp_sec = {
+                k: v for k, v in dict_vrp_all.items() 
+                if str(v.get('sector')).strip() == str(sec_id).strip() or 
+                   (sec_id_clean and sec_id_clean in str(v.get('sector')))
+            }
 
             mapa_pc_all = cargar_puntos_criticos_desde_db()
-            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
+            dict_pc_sec = {
+                k: v for k, v in mapa_pc_all.items() 
+                if str(v.get('sector')).strip() == str(sec_id).strip() or 
+                   (sec_id_clean and sec_id_clean in str(v.get('sector')))
+            }
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilar todas las series de los equipos del sector para consultar BD_MADRE
-            series_sector_set = set()
-            for r in dict_reg.values():
-                s_val = r.get('Serie')
-                if s_val: series_sector_set.add(str(s_val).strip())
+            # ==============================================================================
+            # RECOLECCIÓN RIGUROSA DE NÚMEROS DE SERIE (DISPOSITIVO) DESDE TODOS LOS DICCS
+            # ==============================================================================
+            mapa_series_nombres = {} # Para dar etiquetas descriptivas a la gráfica
+            
+            for k, r in dict_reg.items():
+                s_val = r.get('Serie') or r.get('dispositivo') or k
+                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                    s_str = str(s_val).strip()
+                    mapa_series_nombres[s_str] = r.get('nombre', f"Punto Control ({s_str})")
+
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_inf = mapa_pozos_dict[id_p]
-                    s_val = p_inf.get('Serie', id_p)
-                    if s_val: series_sector_set.add(str(s_val).strip())
-            for v in dict_vrp_sec.values():
-                s_val = v.get('Serie')
-                if s_val: series_sector_set.add(str(s_val).strip())
+                    s_val = p_inf.get('Serie') or p_inf.get('dispositivo') or id_p
+                    if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                        s_str = str(s_val).strip()
+                        mapa_series_nombres[s_str] = f"Pozo {id_p}"
+
+            for k, v in dict_vrp_sec.items():
+                s_val = v.get('Serie') or v.get('dispositivo') or k
+                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                    s_str = str(s_val).strip()
+                    mapa_series_nombres[s_str] = v.get('nombre', f"VRP ({s_str})")
 
             tags_para_scada = []
             tags_caudal_pozos = []
@@ -5133,7 +5158,7 @@ elif tab_activa == "sectores":
                             tiene_telemetria = p_info.get('tiene_telemetria', True)
                             
                             if not tiene_telemetria or not t_pz_q or str(t_pz_q).strip().lower() in ['0', 'none', 'n/a', 'null']:
-                                color_pz = "#808080"  # Gris si no tiene telemetría
+                                color_pz = "#808080"
                                 estado_txt = "Sin Telemetría / Sensores Inactivos"
                                 val_q_pz = 0.0
                             else:
@@ -5184,12 +5209,14 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # CARGAR DATOS DESDE BD_MADRE USANDO LOS NÚMEROS DE SERIE DE TODOS LOS EQUIPOS
+                # CONSULTA DIRECTA Y PIVOTEADA DE BD_MADRE POR DISPOSITIVO (SERIES EXTRAÍDAS)
                 # ==============================================================================
-                if series_sector_set:
+                if mapa_series_nombres:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
-                        series_in_sql = "', '".join([str(s) for s in series_sector_set if s])
+                        lista_series_clean = list(mapa_series_nombres.keys())
+                        series_in_sql = "', '".join(lista_series_clean)
+                        
                         if series_in_sql:
                             q_madre_sector = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
@@ -5198,6 +5225,7 @@ elif tab_activa == "sectores":
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
                             df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
+                            
                             if not df_madre_sector.empty:
                                 df_pivot_sector = df_madre_sector.pivot_table(
                                     index=['Fecha', 'Serie'],
@@ -5207,15 +5235,14 @@ elif tab_activa == "sectores":
                                 ).reset_index()
                                 
                                 df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
-                                df_pivot_sector['serie_norm'] = df_pivot_sector['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                                df_pivot_sector['Serie_str'] = df_pivot_sector['Serie'].astype(str).str.strip()
 
-                                # Graficar cada serie y sus variables (Presion1, Presion2, Caudal, etc.)
-                                for serie_val in series_sector_set:
-                                    s_norm = re.sub(r'\D', '', str(serie_val))
-                                    df_temp_s = df_pivot_sector[df_pivot_sector['serie_norm'] == s_norm]
+                                # Graficar cada dispositivo hallado en BD_MADRE
+                                for s_str, etiqueta_nombre in mapa_series_nombres.items():
+                                    df_temp_s = df_pivot_sector[df_pivot_sector['Serie_str'] == s_str]
 
                                     if not df_temp_s.empty:
-                                        # Identificar variables de caudal
+                                        # Procesar variables de Caudal
                                         col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
                                         for cq in col_q_cands:
                                             if df_temp_s[cq].notna().any():
@@ -5223,16 +5250,16 @@ elif tab_activa == "sectores":
                                                 idx_q += 1
                                                 fig.add_trace(go.Scatter(
                                                     x=df_temp_s['FECHA'], y=df_temp_s[cq],
-                                                    name=f"SN:{serie_val} - {cq}",
+                                                    name=f"{etiqueta_nombre} - {cq}",
                                                     yaxis="y1", mode='lines+markers',
                                                     line=dict(width=2, color=color_q),
                                                     marker=dict(size=3, symbol='circle'),
                                                     fill='tozeroy',
                                                     fillcolor="rgba(138, 203, 245, 0.15)",
-                                                    hovertemplate='<b>SN:%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                                 ))
 
-                                        # Identificar variables de presión (Presion1, Presion2, etc.)
+                                        # Procesar variables de Presión (Presion1, Presion2, etc.)
                                         col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
                                         for cp in col_p_cands:
                                             if df_temp_s[cp].notna().any():
@@ -5240,17 +5267,17 @@ elif tab_activa == "sectores":
                                                 idx_p += 1
                                                 fig.add_trace(go.Scatter(
                                                     x=df_temp_s['FECHA'], y=df_temp_s[cp],
-                                                    name=f"SN:{serie_val} - {cp}",
+                                                    name=f"{etiqueta_nombre} - {cp}",
                                                     yaxis="y2", mode='lines+markers',
                                                     line=dict(width=2, color=color_p),
                                                     marker=dict(size=3, symbol='circle'),
-                                                    hovertemplate='<b>SN:%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
                                                 ))
                     except Exception:
                         pass
 
                 # ==============================================================================
-                # ADICIONALMENTE: POZOS DESDE SCADA (SI APLICA)
+                # ADICIONALMENTE: DATOS DE POZOS DESDE EL SCADA TRADICIONAL
                 # ==============================================================================
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
@@ -5357,7 +5384,7 @@ elif tab_activa == "sectores":
 
                             if not df_madre_pc.empty:
                                 df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
-                                df_madre_pc['serie_norm'] = df_madre_pc['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                                df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
 
                                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                                 meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -5375,11 +5402,10 @@ elif tab_activa == "sectores":
                                 idx_pc_c = 0
 
                                 for pc_key, pc_info in dict_pc_sec.items():
-                                    serie_raw = str(pc_info.get('Serie', pc_key))
-                                    serie_norm = re.sub(r'\D', '', serie_raw)
+                                    serie_raw = str(pc_info.get('Serie', pc_key)).strip()
                                     domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
 
-                                    df_temp = df_madre_pc[df_madre_pc['serie_norm'] == serie_norm]
+                                    df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                             color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
@@ -5447,10 +5473,10 @@ elif tab_activa == "sectores":
 
                             if not df_vrp_madre.empty:
                                 df_vrp_madre['FECHA'] = pd.to_datetime(df_vrp_madre['Fecha'])
-                                df_vrp_madre['serie_norm'] = df_vrp_madre['Serie'].astype(str).apply(lambda x: re.sub(r'\D', '', x))
+                                df_vrp_madre['Serie_str'] = df_vrp_madre['Serie'].astype(str).str.strip()
 
                                 df_pivot_vrp = df_vrp_madre.pivot_table(
-                                    index=['FECHA', 'serie_norm'],
+                                    index=['FECHA', 'Serie_str'],
                                     columns='VARIABLE',
                                     values='VALOR',
                                     aggfunc='mean'
@@ -5474,10 +5500,9 @@ elif tab_activa == "sectores":
                                 idx_p_v = 0
 
                                 for v_key, v_info in dict_vrp_sec.items():
-                                    serie_raw = str(v_info.get('Serie', v_key))
-                                    serie_norm = re.sub(r'\D', '', serie_raw)
+                                    serie_raw = str(v_info.get('Serie', v_key)).strip()
 
-                                    df_temp_vrp = df_pivot_vrp[df_pivot_vrp['serie_norm'] == serie_norm]
+                                    df_temp_vrp = df_pivot_vrp[df_pivot_vrp['Serie_str'] == serie_raw]
                                     if not df_temp_vrp.empty:
                                         col_q_cands = [c for c in df_temp_vrp.columns if 'CAUDAL' in str(c).upper()]
                                         for cq in col_q_cands:
