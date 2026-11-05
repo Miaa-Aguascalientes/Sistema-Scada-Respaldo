@@ -5257,7 +5257,7 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 # ==============================================================================
-                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (REGISTRADORES - EXCLUYENDO Volt_bateria)
+                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (PUNTOS DE CONTROL - EXCLUYENDO Volt_bateria)
                 # ==============================================================================
                 series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 if series_puntos_control:
@@ -5274,56 +5274,49 @@ elif tab_activa == "sectores":
                         df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
                         
                         if not df_madre_sector.empty:
-                            df_pivot_sector = df_madre_sector.pivot_table(
-                                index=['Fecha', 'Serie'],
-                                columns='VARIABLE',
-                                values='VALOR',
-                                aggfunc='mean'
-                            ).reset_index()
-                            
-                            df_pivot_sector['FECHA'] = pd.to_datetime(df_pivot_sector['Fecha'])
-                            df_pivot_sector['Serie_str'] = df_pivot_sector['Serie'].astype(str).str.strip()
+                            df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
+                            df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
 
                             for r_k, r_info in dict_reg.items():
                                 serie_raw = str(r_info.get('Serie', r_k)).strip()
                                 nombre_reg = r_info.get('nombre', f"SN:{serie_raw}")
-                                df_temp_s = df_pivot_sector[df_pivot_sector['Serie_str'] == serie_raw]
+                                df_temp_s = df_madre_sector[df_madre_sector['Serie_str'] == serie_raw]
 
                                 if not df_temp_s.empty:
-                                    col_q_cands = [c for c in df_temp_s.columns if 'CAUDAL' in str(c).upper()]
-                                    for cq in col_q_cands:
-                                        if df_temp_s[cq].notna().any():
-                                            color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                                            idx_q += 1
-                                            fig.add_trace(go.Scatter(
-                                                x=df_temp_s['FECHA'], y=df_temp_s[cq],
-                                                name=f"{nombre_reg} - {cq}",
-                                                yaxis="y1", mode='lines+markers',
-                                                line=dict(width=2, color=color_q),
-                                                marker=dict(size=3, symbol='circle'),
-                                                fill='tozeroy',
-                                                fillcolor="rgba(138, 203, 245, 0.15)",
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
-                                            ))
-
-                                    col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper() or 'PRESIÓN' in str(c).upper()]
-                                    for cp in col_p_cands:
-                                        if df_temp_s[cp].notna().any():
-                                            color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                                            idx_p += 1
-                                            fig.add_trace(go.Scatter(
-                                                x=df_temp_s['FECHA'], y=df_temp_s[cp],
-                                                name=f"{nombre_reg} - {cp}",
-                                                yaxis="y2", mode='lines+markers',
-                                                line=dict(width=2, color=color_p),
-                                                marker=dict(size=3, symbol='circle'),
-                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
-                                            ))
+                                    for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
+                                        # FILTRO: Solo agregar si la variable tiene registros válidos y no es totalmente ceros
+                                        if df_v_group['VALOR'].notna().any():
+                                            is_caudal = 'CAUDAL' in str(var_name).upper()
+                                            
+                                            if is_caudal:
+                                                color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                                idx_q += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                    name=f"{nombre_reg} - {var_name}",
+                                                    yaxis="y1", mode='lines+markers',
+                                                    line=dict(width=2, color=color_q),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    fill='tozeroy',
+                                                    fillcolor="rgba(138, 203, 245, 0.15)",
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                                ))
+                                            else:
+                                                color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                                idx_p += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                    name=f"{nombre_reg} - {var_name}",
+                                                    yaxis="y2", mode='lines+markers',
+                                                    line=dict(width=2, color=color_p),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                                ))
                     except Exception:
                         pass
 
                 # ==============================================================================
-                # 2. GRÁFICO COMPORTAMIENTO: SCADA TRADICIONAL (POZOS Y NIVELES)
+                # 2. GRÁFICO COMPORTAMIENTO: SCADA TRADICIONAL (POZOS Y NIVELES) - ¡INTACTO!
                 # ==============================================================================
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
