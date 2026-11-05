@@ -4917,25 +4917,27 @@ elif tab_activa == "sectores":
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Recopilar series para BD_MADRE
+            # Recopilar todas las series para consultar BD_MADRE (Puntos de control, VRPs y Puntos Críticos)
             mapa_series_nombres = {}
             for k, r in dict_reg.items():
                 s_val = r.get('Serie') or r.get('dispositivo') or k
                 if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
                     mapa_series_nombres[str(s_val).strip()] = r.get('nombre', f"Punto Control ({s_val})")
 
+            for k, v in dict_vrp_sec.items():
+                s_val = v.get('Serie') or k
+                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                    mapa_series_nombres[str(s_val).strip()] = v.get('nombre', f"VRP ({s_val})")
+
+            for k, pc in dict_pc_sec.items():
+                s_val = pc.get('Serie') or k
+                if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                    mapa_series_nombres[str(s_val).strip()] = pc.get('Domicilio', f"Punto Crítico ({s_val})")
+
             tags_para_scada = []
             tags_caudal_pozos = []
             tags_agregados_set = set()
             
-            for r in dict_reg.values():
-                for k in ['tag_q', 'tag_p1', 'tag_p2', 'tag_vbat']:
-                    t_val = r.get(k)
-                    if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if str(t_val) not in tags_agregados_set:
-                            tags_para_scada.append(str(t_val))
-                            tags_agregados_set.add(str(t_val))
-
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
@@ -4952,17 +4954,9 @@ elif tab_activa == "sectores":
                                 tags_para_scada.append(str(t_val))
                                 tags_agregados_set.add(str(t_val))
 
-            for v in dict_vrp_sec.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q']:
-                    t_vrp = v.get(k)
-                    if t_vrp and str(t_vrp).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if str(t_vrp) not in tags_agregados_set:
-                            tags_para_scada.append(str(t_vrp))
-                            tags_agregados_set.add(str(t_vrp))
-
             scada_res_reg = cargar_datos_scada([str(t) for t in set(tags_para_scada) if t])
 
-            # Cargar últimos valores para los popups del mapa
+            # Cargar últimos valores directamente desde BD_MADRE para los popups del mapa
             ultimos_valores_mapa = {}
             if mapa_series_nombres:
                 try:
@@ -5129,7 +5123,7 @@ elif tab_activa == "sectores":
                     except: 
                         pass
 
-                # Marcadores de Puntos de Control con los últimos valores en el popup (seguro contra nulos)
+                # Marcadores de Puntos de Control con los últimos valores en el popup
                 for r_k, r in dict_reg.items():
                     serie_reg = str(r.get('Serie', r_k)).strip()
                     vals_dev = ultimos_valores_mapa.get(serie_reg, {})
@@ -5161,16 +5155,56 @@ elif tab_activa == "sectores":
 
                 for id_pc, pc in dict_pc_sec.items():
                     domicilio_texto = pc.get('Domicilio', 'S/D')
-                    html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px;"><b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small></div>"""
+                    serie_pc = str(pc.get('Serie', id_pc)).strip()
+                    vals_pc = ultimos_valores_mapa.get(serie_pc, {})
+                    
+                    html_vars_pc = ""
+                    for var_name, info_v in vals_pc.items():
+                        val_bruto = info_v.get('valor')
+                        try:
+                            val_num = float(val_bruto) if val_bruto is not None else 0.0
+                        except (ValueError, TypeError):
+                            val_num = 0.0
+                        unidad_v = "Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else "")
+                        html_vars_pc += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                    
+                    if not html_vars_pc:
+                        html_vars_pc = "Sin registros recientes<br>"
+
+                    html_pc = f"""
+                        <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:200px;">
+                            <b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><hr style="border-color:#333; margin:6px 0;">
+                            {html_vars_pc}
+                        </div>
+                    """
                     icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
-                    folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc} • Punto critico</div>')).add_to(capa_criticos)
+                    folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {serie_pc} • Punto critico</div>')).add_to(capa_criticos)
 
+                # Marcadores de VRPs con los últimos valores directos de BD_MADRE en el popup
                 for id_vrp, vrp in dict_vrp_sec.items():
-                    val_p1, _ = scada_res_reg.get(str(vrp['tag_p1']), (0.0, "N/A"))
-                    val_p2, _ = scada_res_reg.get(str(vrp['tag_p2']), (0.0, "N/A"))
-                    serie_vrp = vrp.get('Serie', 'S/N')
-                    html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px;"><b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><br>P. Entrada: {val_p1:.2f} Kg/cm²<br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} Kg/cm²</b></div>"""
+                    serie_vrp = str(vrp.get('Serie', id_vrp)).strip()
+                    vals_vrp = ultimos_valores_mapa.get(serie_vrp, {})
+                    
+                    html_vars_vrp = ""
+                    for var_name, info_v in vals_vrp.items():
+                        val_bruto = info_v.get('valor')
+                        try:
+                            val_num = float(val_bruto) if val_bruto is not None else 0.0
+                        except (ValueError, TypeError):
+                            val_num = 0.0
+                        unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
+                        html_vars_vrp += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                    
+                    if not html_vars_vrp:
+                        html_vars_vrp = "Sin registros recientes<br>"
+
+                    html_vrp = f"""
+                        <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:220px;">
+                            <b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
+                            {html_vars_vrp}
+                        </div>
+                    """
                     icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
@@ -5281,7 +5315,7 @@ elif tab_activa == "sectores":
                                                 hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                             ))
 
-                                    col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper()]
+                                    col_p_cands = [c for c in df_temp_s.columns if 'PRESION' in str(c).upper() or 'PRESIÓN' in str(c).upper()]
                                     for cp in col_p_cands:
                                         if df_temp_s[cp].notna().any():
                                             color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
@@ -5374,7 +5408,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (DESDE BD_MADRE)
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (DESDE BD_MADRE USANDO LAS VARIABLES DIRECTAS)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5397,7 +5431,7 @@ elif tab_activa == "sectores":
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_pc_in}')
-                                  AND VARIABLE LIKE '%Presion%'
+                                  AND (VARIABLE LIKE '%Presion%' OR VARIABLE LIKE '%Presión%')
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
                             """
                             df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
@@ -5479,10 +5513,12 @@ elif tab_activa == "sectores":
                         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
                         if series_vrp_list:
                             series_vrp_in = "', '".join(series_vrp_list)
+                            # Consulta directa buscando las variables exactas Caudal1, Presion1, Presion2 de BD_MADRE
                             q_vrp_madre = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
                                 WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                                  AND VARIABLE IN ('Caudal1', 'Presion1', 'Presion2', 'Volt_bateria')
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
                             """
                             df_vrp_madre = pd.read_sql(q_vrp_madre, engine_tel)
@@ -5518,30 +5554,29 @@ elif tab_activa == "sectores":
                                     serie_raw = str(v_info.get('Serie', v_key)).strip()
                                     df_temp_vrp = df_pivot_vrp[df_pivot_vrp['Serie_str'] == serie_raw]
                                     if not df_temp_vrp.empty:
-                                        col_q_cands = [c for c in df_temp_vrp.columns if 'CAUDAL' in str(c).upper()]
-                                        for cq in col_q_cands:
-                                            if df_temp_vrp[cq].notna().any():
-                                                color_q = colores_caudal[idx_q_v % len(colores_caudal)]
-                                                idx_q_v += 1
-                                                fig_vrp.add_trace(go.Scatter(
-                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cq],
-                                                    name=f"VRP {serie_raw} - {cq}",
-                                                    yaxis="y1", mode='lines+markers',
-                                                    line=dict(width=2, color=color_q),
-                                                    marker=dict(size=3.5, symbol='circle'),
-                                                    fill='tozeroy',
-                                                    fillcolor="rgba(138, 203, 245, 0.15)",
-                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
-                                                ))
+                                        # Mapeo directo con Caudal1
+                                        if 'Caudal1' in df_temp_vrp.columns and df_temp_vrp['Caudal1'].notna().any():
+                                            color_q = colores_caudal[idx_q_v % len(colores_caudal)]
+                                            idx_q_v += 1
+                                            fig_vrp.add_trace(go.Scatter(
+                                                x=df_temp_vrp['FECHA'], y=df_temp_vrp['Caudal1'],
+                                                name=f"VRP {serie_raw} - Caudal1",
+                                                yaxis="y1", mode='lines+markers',
+                                                line=dict(width=2, color=color_q),
+                                                marker=dict(size=3.5, symbol='circle'),
+                                                fill='tozeroy',
+                                                fillcolor="rgba(138, 203, 245, 0.15)",
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Lps<extra></extra>'
+                                            ))
 
-                                        col_p_cands = [c for c in df_temp_vrp.columns if 'PRESION' in str(c).upper()]
-                                        for cp in col_p_cands:
-                                            if df_temp_vrp[cp].notna().any():
+                                        # Mapeo directo con Presion1 y Presion2
+                                        for p_var in ['Presion1', 'Presion2']:
+                                            if p_var in df_temp_vrp.columns and df_temp_vrp[p_var].notna().any():
                                                 color_p = colores_presion[idx_p_v % len(colores_presion)]
                                                 idx_p_v += 1
                                                 fig_vrp.add_trace(go.Scatter(
-                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[cp],
-                                                    name=f"VRP {serie_raw} - {cp}",
+                                                    x=df_temp_vrp['FECHA'], y=df_temp_vrp[p_var],
+                                                    name=f"VRP {serie_raw} - {p_var}",
                                                     yaxis="y2", mode='lines+markers',
                                                     line=dict(width=2, color=color_p),
                                                     marker=dict(size=3.5, symbol='circle'),
