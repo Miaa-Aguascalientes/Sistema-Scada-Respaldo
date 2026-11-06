@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO E INTEGRADO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON SOLUCIÓN DE LÍNEA ERRÓNEA)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5199,9 +5199,7 @@ elif tab_activa == "sectores":
                     folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
                     folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
-                # ==============================================================================
-                # LÓGICA DE POZOS EN EL MAPA (CONSULTANDO ESTADO DE BOMBA Y "Sin telemetria")
-                # ==============================================================================
+                # Pozos en el mapa
                 tags_bomba_mapa = []
                 for id_p in ids_p:
                     if id_p in mapa_pozos_dict:
@@ -5271,9 +5269,7 @@ elif tab_activa == "sectores":
                 colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-                # ==============================================================================
-                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (PUNTOS DE CONTROL - EXCLUYENDO Volt_bateria)
-                # ==============================================================================
+                # 1. GRÁFICO COMPORTAMIENTO: BD_MADRE (PUNTOS DE CONTROL)
                 series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 if series_puntos_control:
                     try:
@@ -5285,6 +5281,7 @@ elif tab_activa == "sectores":
                             WHERE DISPOSITIVO IN ('{series_in_sql}')
                               AND VARIABLE != 'Volt_bateria'
                               AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                            ORDER BY FECHA_HORA_LOGGER ASC
                         """
                         df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
                         
@@ -5299,6 +5296,7 @@ elif tab_activa == "sectores":
 
                                 if not df_temp_s.empty:
                                     for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
+                                        df_v_group = df_v_group.sort_values('FECHA') # ORDENAMIENTO TEMPORAL
                                         if df_v_group['VALOR'].notna().any():
                                             is_caudal = 'CAUDAL' in str(var_name).upper()
                                             
@@ -5329,9 +5327,7 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
-                # ==============================================================================
-                # 2. GRÁFICO COMPORTAMIENTO: SCADA TRADICIONAL (POZOS Y NIVELES) - ¡INTACTO!
-                # ==============================================================================
+                # 2. GRÁFICO COMPORTAMIENTO: SCADA TRADICIONAL (POZOS Y NIVELES)
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5360,7 +5356,7 @@ elif tab_activa == "sectores":
                             if not df_h.empty:
                                 df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                                 for tag_name in tags_pozos_visualizar:
-                                    df_tag = df_h[df_h['TAG'] == tag_name]
+                                    df_tag = df_h[df_h['TAG'] == tag_name].sort_values('FECHA') # ORDENAMIENTO TEMPORAL
                                     if not df_tag.empty:
                                         cfg = mapeo_pozos_config[tag_name]
                                         es_caudal = not cfg['sec']
@@ -5406,7 +5402,7 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: PUNTOS CRÍTICOS (SIN CAUDAL Y SIN Volt_bateria) Y VRPs
+            # FILA INFERIOR: PUNTOS CRÍTICOS Y VRPs (CORREGIDOS ORDENANDO FECHAS)
             # ==============================================================================
             col_pc, col_vrp_g = st.columns([1.0, 1.0])
             
@@ -5432,6 +5428,7 @@ elif tab_activa == "sectores":
                                   AND VARIABLE != 'Volt_bateria'
                                   AND VARIABLE NOT LIKE '%CAUDAL%'
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                                ORDER BY FECHA_HORA_LOGGER ASC
                             """
                             df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
                             if not df_madre_pc.empty:
@@ -5450,7 +5447,7 @@ elif tab_activa == "sectores":
                                     for d in ticks_pc
                                 ]
 
-                                colores_azules = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                                colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
                                 for pc_key, pc_info in dict_pc_sec.items():
@@ -5460,14 +5457,19 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            if df_v_group['VALOR'].notna().any():
+                                            # CORRECCIÓN PRINCIPAL AQUÍ: Ordenar por FECHA cronológicamente
+                                            df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                            
+                                            if not df_v_group.empty:
                                                 color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                                 idx_pc_c += 1
 
                                                 fig_pc.add_trace(go.Scatter(
-                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
+                                                    x=df_v_group['FECHA'], 
+                                                    y=df_v_group['VALOR'], 
                                                     name=f"{domicilio_nombre} - {var_name}", 
                                                     mode='lines+markers',
+                                                    connectgaps=False,  # EVITA RELLENAR HUECOS O CONECTAR CON LÍNEAS RECTAS DIAGONALES
                                                     showlegend=True,
                                                     marker=dict(size=3.5, symbol='circle'), 
                                                     line=dict(width=2, color=color_trace_pc),
@@ -5520,6 +5522,7 @@ elif tab_activa == "sectores":
                                 WHERE DISPOSITIVO IN ('{series_vrp_in}')
                                   AND VARIABLE != 'Volt_bateria'
                                   AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                                ORDER BY FECHA_HORA_LOGGER ASC
                             """
                             df_madre_vrp = pd.read_sql(q_madre_vrp, engine_tel)
                             
@@ -5549,14 +5552,19 @@ elif tab_activa == "sectores":
                                     df_temp = df_madre_vrp[df_madre_vrp['Serie_str'] == serie_raw]
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                            if df_v_group['VALOR'].notna().any():
+                                            # CORRECCIÓN PRINCIPAL AQUÍ: Ordenar por FECHA cronológicamente
+                                            df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                            
+                                            if not df_v_group.empty:
                                                 color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                                 idx_vrp_c += 1
 
                                                 fig_vrp.add_trace(go.Scatter(
-                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'], 
+                                                    x=df_v_group['FECHA'], 
+                                                    y=df_v_group['VALOR'], 
                                                     name=f"{nombre_vrp} - {var_name}", 
                                                     mode='lines+markers',
+                                                    connectgaps=False,  # EVITA RELLENAR HUECOS O CONECTAR CON LÍNEAS RECTAS DIAGONALES
                                                     showlegend=True,
                                                     marker=dict(size=3.5, symbol='circle'), 
                                                     line=dict(width=2, color=color_trace_vrp),
