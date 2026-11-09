@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON CARTO DARK MATTER)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON CARTO DARK_ALL SIN API KEY)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5085,7 +5085,7 @@ elif tab_activa == "sectores":
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Capa Satelital
+                # 1. Capa Satelital (Google Maps)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5094,7 +5094,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Oscura Minimalista (CartoDB Dark Matter limpia)
+                # 2. Capa Oscura CartoDB (Dark Matter estándar sin API Key)
                 folium.TileLayer(
                     tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     name='Vista Oscura',
@@ -5102,8 +5102,7 @@ elif tab_activa == "sectores":
                     subdomains='abcd',
                     max_zoom=20,
                     overlay=False,
-                    control=True,
-                    checked=True # Aparece seleccionada por defecto
+                    control=True
                 ).add_to(m_sec)
 
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
