@@ -5088,7 +5088,10 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 1. Vista Satélite (Google Maps)
+                # 1. Asegúrate de declarar el mapa antes de usarlo (.add_to(m_sec))
+                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
+                
+                # 2. Vista Satélite (Google Maps)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5097,7 +5100,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. OpenStreetMap Estándar (que al pasar por el filtro CSS de la sección 4 se convierte en tu mapa oscuro de la captura)
+                # 3. Capa Base OpenStreetMap (que el filtro CSS de tu CSS transformará en modo oscuro)
                 folium.TileLayer(
                     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
