@@ -4749,7 +4749,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO 100% LIBRE SIN APIS NI BLOQUEOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON VISTA NOCTURNA COMO CAPA PRINCIPAL)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4818,7 +4818,7 @@ elif tab_activa == "sectores":
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
 
-            /* --- FILTRO OSCURO NATIVO SOBRE OPENSTREETMAP (SIN APIS, SIN PAGAR) --- */
+            /* --- FILTRO OSCURO NATIVO PARA LA VISTA NOCTURNA Y OPENSTREETMAP --- */
             .mapa-seccion-4 iframe {
                 background-color: #050a10 !important;
                 filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(160%);
@@ -5094,12 +5094,27 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Contenedor exclusivo para forzar el mapa oscuro libre
+                # Contenedor para aplicar el filtro oscuro perfecto
                 st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
 
+                # Creamos el mapa con tiles=None para gestionar las capas base manualmente en orden exacto
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Vista Satélite (Google Maps) - Libre de APIs de pago
+                # ==============================================================================
+                # CAPAS DE FONDO (La 3ª capa "Vista Nocturna" se añade PRIMERO para ser la principal)
+                # ==============================================================================
+                
+                # 1. VISTA NOCTURNA (Capa Principal / Por defecto)
+                folium.TileLayer(
+                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    name='Vista Nocturna',
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    max_zoom=19,
+                    overlay=False,
+                    control=True
+                ).add_to(m_sec)
+
+                # 2. VISTA SATÉLITE (Google Maps)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5108,10 +5123,10 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. OpenStreetMap Estándar (100% libre, sin claves, transformado a modo oscuro mediante CSS)
+                # 3. OPENSTREETMAP ESTÁNDAR
                 folium.TileLayer(
                     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    name='World Navigation (Dark)',
+                    name='OpenStreetMap',
                     attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     max_zoom=19,
                     overlay=False,
