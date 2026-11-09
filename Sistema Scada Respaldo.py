@@ -5107,6 +5107,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
+                api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
                 # 2. Capa Esri World Dark Gray Canvas (se vuelve World Navigation Dark profundo con el filtro CSS)
                 folium.TileLayer(
                     tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
