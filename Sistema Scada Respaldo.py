@@ -5109,9 +5109,10 @@ elif tab_activa == "sectores":
                 
                 # 2. Capa Esri World Dark Gray Canvas (se vuelve World Navigation Dark profundo con el filtro CSS)
                 folium.TileLayer(
-                    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     name='World Navigation (Dark)',
-                    attr='Esri, DeLorme, NAVTEQ',
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains='abcd',
                     max_zoom=16,
                     overlay=False,
                     control=True
