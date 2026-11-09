@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CON EXPEDICIÓN CONDICIONAL DE VRPs)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON DISEÑO DINÁMICO CRUZADO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5397,30 +5397,73 @@ elif tab_activa == "sectores":
                 st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
-            # FILA INFERIOR: CONDICIONAL DINÁMICO (EXPANSIÓN DE PUNTOS CRÍTICOS SI NO HAY VRP)
+            # FILA INFERIOR: CONDICIONAL DINÁMICO CRUZADO (PUNTOS CRÍTICOS Y VRPs)
             # ==============================================================================
-            tiene_vrps_disponibles = bool(dict_vrp_sec)
+            
+            tiene_datos_pc = False
+            series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
+            
+            if dict_pc_sec and series_pc_list:
+                try:
+                    engine_tel = get_mysql_telemetria_engine()
+                    series_pc_in = "', '".join(series_pc_list)
+                    q_check_pc = f"""
+                        SELECT 1 FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_pc_in}')
+                          AND VARIABLE != 'Volt_bateria'
+                          AND VARIABLE NOT LIKE '%CAUDAL%'
+                          AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                        LIMIT 1
+                    """
+                    df_chk_pc = pd.read_sql(q_check_pc, engine_tel)
+                    if not df_chk_pc.empty:
+                        tiene_datos_pc = True
+                except Exception:
+                    pass
 
-            if tiene_vrps_disponibles:
-                col_pc, col_vrp_g = st.columns([1.0, 1.0])
+            tiene_vrps_disponibles = False
+            series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
+            
+            if dict_vrp_sec and series_vrp_list:
+                try:
+                    engine_tel = get_mysql_telemetria_engine()
+                    series_vrp_in = "', '".join(series_vrp_list)
+                    q_check_vrp = f"""
+                        SELECT 1 FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                          AND VARIABLE != 'Volt_bateria'
+                          AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                        LIMIT 1
+                    """
+                    df_chk_vrp = pd.read_sql(q_check_vrp, engine_tel)
+                    if not df_chk_vrp.empty:
+                        tiene_vrps_disponibles = True
+                except Exception:
+                    pass
+
+            if tiene_datos_pc and tiene_vrps_disponibles:
+                col_pc, col_vrp_g = st.columns([1.0, 1.0], gap="medium")
+            elif tiene_datos_pc and not tiene_vrps_disponibles:
+                col_pc = st.container()
+                col_vrp_g = None
+            elif not tiene_datos_pc and tiene_vrps_disponibles:
+                col_pc = None
+                col_vrp_g = st.container()
             else:
-                col_pc = st.container() # Ocupará el 100% del ancho disponible
+                col_pc, col_vrp_g = None, None
 
-            with col_pc:
-                st.markdown(f"""
-                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                fig_pc = go.Figure()
-                if dict_pc_sec:
-                    try:
-                        engine_tel = get_mysql_telemetria_engine()
-                        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
-                        if series_pc_list:
-                            series_pc_in = "', '".join(series_pc_list)
+            if col_pc is not None:
+                with col_pc:
+                    st.markdown(f"""
+                        <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                            <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
+                            <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    fig_pc = go.Figure()
+                    if tiene_datos_pc:
+                        try:
                             q_madre_pc = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
@@ -5480,20 +5523,19 @@ elif tab_activa == "sectores":
                                     es_lunes = (d.dayofweek == 0)
                                     fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
-                    except Exception:
-                        pass
+                        except Exception:
+                            pass
 
-                fig_pc.update_layout(
-                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
-                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Valor")
-                )
-                st.plotly_chart(fig_pc, use_container_width=True)
+                    fig_pc.update_layout(
+                        paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                        margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                        xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
+                        yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Valor")
+                    )
+                    st.plotly_chart(fig_pc, use_container_width=True)
 
-            # Solo renderizamos el bloque de VRPs si existen registros asociados al sector
-            if tiene_vrps_disponibles:
+            if col_vrp_g is not None:
                 with col_vrp_g:
                     st.markdown(f"""
                         <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
@@ -5503,12 +5545,9 @@ elif tab_activa == "sectores":
                     """, unsafe_allow_html=True)
 
                     fig_vrp = go.Figure()
-                    try:
-                        engine_tel = get_mysql_telemetria_engine()
-                        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
-                        if series_vrp_list:
+                    if tiene_vrps_disponibles:
+                        try:
                             series_vrp_in = "', '".join(series_vrp_list)
-                            
                             q_madre_vrp = f"""
                                 SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
                                 FROM BD_MADRE 
@@ -5568,8 +5607,8 @@ elif tab_activa == "sectores":
                                     es_lunes = (d.dayofweek == 0)
                                     fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                                     fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
-                    except Exception:
-                        pass
+                        except Exception:
+                            pass
 
                     fig_vrp.update_layout(
                         paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
