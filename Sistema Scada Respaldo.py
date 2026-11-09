@@ -5088,12 +5088,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Contenedor exclusivo para aplicar el filtro Dark Navigation sólo aquí
+                # 1. Abrimos el contenedor exclusivo para aplicar el estilo oscuro solo aquí
                 st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Vista Satélite (sin filtro)
+                # 2. Vista Satélite (sin filtro)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5102,10 +5102,10 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # Capa Esri World Dark Gray Canvas
+                # 3. Capa Esri World Dark Gray Canvas (que con el filtro CSS se vuelve el negro profundo exacto de tu captura)
                 folium.TileLayer(
                     tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-                    name='Esri Dark Gray',
+                    name='World Navigation (Dark)',
                     attr='Esri, DeLorme, NAVTEQ',
                     max_zoom=16,
                     overlay=False,
