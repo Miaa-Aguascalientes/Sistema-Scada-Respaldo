@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON CARTO DARK_ALL SIN API KEY)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5094,7 +5094,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Oscura CartoDB (Dark Matter estándar sin API Key)
+                # 2. Capa Oscura CartoDB (Dark Matter estándar totalmente libre y sin API Key)
                 folium.TileLayer(
                     tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     name='Vista Oscura',
@@ -5237,7 +5237,7 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Normalización correcta para pozos rurales (R...) y urbanos (P...)
+                            # Normalización corregida: Pozos rurales (R...) y urbanos (P...)
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
                                 id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
