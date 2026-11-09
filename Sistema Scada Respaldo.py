@@ -4749,7 +4749,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO DEFINITIVO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO 100% LIBRE SIN APIS NI BLOQUEOS)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4818,10 +4818,10 @@ elif tab_activa == "sectores":
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
 
-            /* --- MAPA OSCURO NATIVO LIBRE DE API KEYS --- */
+            /* --- FILTRO OSCURO NATIVO SOBRE OPENSTREETMAP (SIN APIS, SIN PAGAR) --- */
             .mapa-seccion-4 iframe {
                 background-color: #050a10 !important;
-                filter: invert(100%) hue-rotate(180deg) brightness(90%) contrast(160%);
+                filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(160%);
             }
         </style>
     """, unsafe_allow_html=True)
@@ -5094,12 +5094,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Contenedor con la clase que aplica el filtro oscuro definitivo sin API Key
+                # Contenedor exclusivo para forzar el mapa oscuro libre
                 st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Vista Satélite (Google Maps)
+                # 1. Vista Satélite (Google Maps) - Libre de APIs de pago
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5108,13 +5108,12 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa base CartoDB Positron (Libre, sin restricciones de API Key y adaptada para modo oscuro mediante CSS)
+                # 2. OpenStreetMap Estándar (100% libre, sin claves, transformado a modo oscuro mediante CSS)
                 folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
-                    attr='&copy; OpenStreetMap contributors &copy; CARTO',
-                    subdomains='abcd',
-                    max_zoom=20,
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    max_zoom=19,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
