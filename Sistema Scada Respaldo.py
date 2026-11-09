@@ -5102,13 +5102,12 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Mapa Base de Navegación Oscuro (World Navigation Dark / CartoDB Dark sin requerir tokens)
+                # Capa Esri World Dark Gray Canvas
                 folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                    name='World Navigation (Dark)',
-                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains='abcd',
-                    max_zoom=19,
+                    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                    name='Esri Dark Gray',
+                    attr='Esri, DeLorme, NAVTEQ',
+                    max_zoom=16,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
