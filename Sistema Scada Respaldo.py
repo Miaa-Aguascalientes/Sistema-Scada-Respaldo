@@ -5088,8 +5088,6 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
-                
                 # 1. Vista Satélite (Google Maps)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
@@ -5099,12 +5097,11 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Base Oscura Libre (CartoDB Dark Matter optimizada sin restricciones de API Key)
+                # 2. OpenStreetMap Estándar (que al pasar por el filtro CSS de la sección 4 se convierte en tu mapa oscuro de la captura)
                 folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
-                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains='abcd',
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     max_zoom=19,
                     overlay=False,
                     control=True
