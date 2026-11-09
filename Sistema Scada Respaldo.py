@@ -5227,15 +5227,17 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Limpiamos el identificador para asegurar una sola 'P'
+                            # Limpiamos el identificador: si empieza por 'PR', pasa a 'R'; si empieza por 'P', se queda limpia
                             id_p_limpio = str(id_p).strip()
-                            if id_p_limpio.upper().startswith('P'):
-                                id_p_limpio = id_p_limpio[1:]
+                            if id_p_limpio.upper().startswith('PR'):
+                                id_p_limpio = id_p_limpio[1:]  # Quita la primera P dejando 'R...'
+                            elif id_p_limpio.upper().startswith('P'):
+                                id_p_limpio = id_p_limpio[1:]  # Quita la P de pozos normales
 
-                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO P{id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
+                            html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
                             folium.Marker(location=coord_pz, icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz), popup=folium.Popup(html_popup_pz, max_width=250)).add_to(capa_pozos)
-                            folium.Marker(location=coord_pz, icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 15), html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">P{id_p_limpio}</div>')).add_to(capa_pozos)
+                            folium.Marker(location=coord_pz, icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 15), html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">{id_p_limpio}</div>')).add_to(capa_pozos)
 
                 folium.LayerControl(collapsed=True).add_to(m_sec)
                 Fullscreen(position='topleft').add_to(m_sec)
