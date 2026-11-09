@@ -2080,8 +2080,8 @@ st.markdown("""
             100% { opacity: 1; }
         }
 
-        /* --- FILTRO MÁGICO PARA MAPA DARK NAVIGATION --- */
-        .mapa-area iframe, .mapa-principal-ajuste iframe, iframe {
+        /* --- FILTRO EXCLUSIVO PARA LA PESTAÑA 4 (DARK NAVIGATION) --- */
+        .mapa-seccion-4 iframe {
             filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
         }
     </style>
@@ -5088,9 +5088,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Contenedor exclusivo para aplicar el filtro Dark Navigation sólo aquí
+                st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
+
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Vista Satélite (sin filtro si prefieres ver satélite real)
+                # 1. Vista Satélite (sin filtro)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5099,7 +5102,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Mapa Base de Navegación (Se convierte en Dark Navigation automáticamente por el CSS)
+                # 2. Mapa Base de Navegación (Se convierte en Dark Navigation exclusivamente por el CSS de esta sección)
                 folium.TileLayer(
                     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
