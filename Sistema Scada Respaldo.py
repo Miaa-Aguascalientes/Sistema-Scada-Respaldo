@@ -4749,7 +4749,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON API KEY CARTO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (ESTILO DARK NAVIGATION PROFUNDO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4817,6 +4817,11 @@ elif tab_activa == "sectores":
             .st-key-dma_operational table { width: 100%; }
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
+
+            /* --- ESTILO DE ALTO CONTRASTE EXCLUSIVO PARA EL MAPA DE LA PESTAÑA 4 --- */
+            .mapa-seccion-4 iframe {
+                filter: brightness(95%) contrast(125%);
+            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -5088,6 +5093,9 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
+                # Contenedor exclusivo para aplicar el diseño idéntico a tu segunda imagen
+                st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
+
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
                 # 1. Vista Satélite (Google Maps)
@@ -5099,14 +5107,13 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Oscura con tu API Key de Carto (Fondo negro y vialidades resaltadas)
-                api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+                # 2. Capa de Navegación Oscura Exacta (CartoDB Dark All con alta definición {r})
                 folium.TileLayer(
-                    tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-                    name="Vista Nocturna",
+                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    name='World Navigation (Dark)',
                     attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains="abcd",
-                    max_zoom=20,
+                    subdomains='abcd',
+                    max_zoom=19,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
@@ -5259,6 +5266,9 @@ elif tab_activa == "sectores":
                 folium.LayerControl(collapsed=True).add_to(m_sec)
                 Fullscreen(position='topleft').add_to(m_sec)
                 folium_static(m_sec, width=None, height=360)
+                
+                # Cierre del contenedor exclusivo
+                st.markdown('</div>', unsafe_allow_html=True)
                 
             with col_der:
                 st.markdown(f"""
