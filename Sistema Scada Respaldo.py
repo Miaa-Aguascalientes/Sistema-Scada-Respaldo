@@ -4817,6 +4817,11 @@ elif tab_activa == "sectores":
             .st-key-dma_operational table { width: 100%; }
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
+
+            /* --- FILTRO OSCURO EXCLUSIVO PARA LA PESTAÑA 4 --- */
+            .mapa-seccion-4 iframe {
+                filter: invert(100%) hue-rotate(180deg) brightness(50%) contrast(150%);
+            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -5088,10 +5093,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 1. Asegúrate de declarar el mapa antes de usarlo (.add_to(m_sec))
+                # Contenedor exclusivo con clase para el filtro oscuro
+                st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
+
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 2. Vista Satélite (Google Maps)
+                # 1. Vista Satélite (Google Maps)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5100,11 +5107,11 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 3. Capa Base OpenStreetMap (que el filtro CSS de tu CSS transformará en modo oscuro)
+                # 2. OpenStreetMap base que se convertirá en oscuro mediante CSS
                 folium.TileLayer(
                     tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
-                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    attr='&copy; OpenStreetMap contributors',
                     max_zoom=19,
                     overlay=False,
                     control=True
@@ -5258,6 +5265,9 @@ elif tab_activa == "sectores":
                 folium.LayerControl(collapsed=True).add_to(m_sec)
                 Fullscreen(position='topleft').add_to(m_sec)
                 folium_static(m_sec, width=None, height=360)
+                
+                # Cierre del contenedor exclusivo
+                st.markdown('</div>', unsafe_allow_html=True)
                 
             with col_der:
                 st.markdown(f"""
