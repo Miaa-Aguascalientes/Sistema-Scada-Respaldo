@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y CORREGIDO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON CARTO DARK MATTER)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5085,7 +5085,7 @@ elif tab_activa == "sectores":
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # Capa Satelital
+                # 1. Capa Satelital
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5094,13 +5094,16 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # Capa Oscura CartoDB
-                api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+                # 2. Capa Oscura Minimalista (CartoDB Dark Matter limpia)
                 folium.TileLayer(
-                    tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-                    name="Vista Oscura",
-                    attr='&copy; CARTO',
-                    subdomains="abcd", max_zoom=20, overlay=False, control=True
+                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    name='Vista Oscura',
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains='abcd',
+                    max_zoom=20,
+                    overlay=False,
+                    control=True,
+                    checked=True # Aparece seleccionada por defecto
                 ).add_to(m_sec)
 
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
@@ -5235,7 +5238,7 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Normalización corregida para pozos rurales (R...) y urbanos (P...)
+                            # Normalización correcta para pozos rurales (R...) y urbanos (P...)
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
                                 id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
