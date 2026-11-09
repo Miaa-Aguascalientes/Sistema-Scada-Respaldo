@@ -5094,12 +5094,12 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa World Navigation Map (Dark) - Estilo exacto de navegación nocturna de ArcGIS
+                # Alternativa estable de respaldo con idéntica estética (fondo negro y vialidades resaltadas)
                 folium.TileLayer(
-                    tiles='https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Navigation_Dark/MapServer/tile/{z}/{y}/{x}',
+                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     name='World Navigation (Dark)',
-                    attr='Esri, HERE, Garmin, OpenStreetMap contributors',
-                    max_zoom=16,
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    max_zoom=19,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
