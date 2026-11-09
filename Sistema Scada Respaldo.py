@@ -5227,12 +5227,14 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Limpiamos el identificador: si empieza por 'PR', pasa a 'R'; si empieza por 'P', se queda limpia
+                            # Normalización correcta:
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
-                                id_p_limpio = id_p_limpio[1:]  # Quita la primera P dejando 'R...'
-                            elif id_p_limpio.upper().startswith('P'):
-                                id_p_limpio = id_p_limpio[1:]  # Quita la P de pozos normales
+                                id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
+                            elif id_p_limpio.upper().startswith('PP'):
+                                id_p_limpio = id_p_limpio[1:]       # PP097A -> P097A
+                            elif not id_p_limpio.upper().startswith('P') and not id_p_limpio.upper().startswith('R'):
+                                id_p_limpio = 'P' + id_p_limpio      # Si no tiene letra, se la agregamos
 
                             html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
