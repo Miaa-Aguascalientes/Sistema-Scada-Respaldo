@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO DEFINITIVO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5094,13 +5094,12 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Oscura CartoDB (Dark Matter estándar totalmente libre y sin API Key)
+                # 2. Capa Esri World Dark Gray Canvas (100% libre, sin API Key y idéntica a tu imagen)
                 folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
                     name='Vista Oscura',
-                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains='abcd',
-                    max_zoom=20,
+                    attr='Esri, DeLorme, NAVTEQ',
+                    max_zoom=16,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
@@ -5237,7 +5236,7 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Normalización corregida: Pozos rurales (R...) y urbanos (P...)
+                            # Normalización correcta: Pozos rurales (R...) y urbanos (P...)
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
                                 id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
