@@ -5094,9 +5094,9 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Esri World Dark Gray Canvas (100% libre, sin API Key y idéntica a tu imagen)
+                # 2. Capa Esri Navigation Dark / Dark Gray Canvas (Estilo exacto ArcGIS Navigation Dark)
                 folium.TileLayer(
-                    tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                    tiles='https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
                     name='Vista Oscura',
                     attr='Esri, DeLorme, NAVTEQ',
                     max_zoom=16,
