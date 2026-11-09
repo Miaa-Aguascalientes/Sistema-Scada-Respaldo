@@ -4817,6 +4817,11 @@ elif tab_activa == "sectores":
             .st-key-dma_operational table { width: 100%; }
             .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
+
+            /* --- FILTRO EXCLUSIVO PARA EL MAPA DE LA PESTAÑA 4 (NIGHT MODE) --- */
+            .mapa-seccion-4 iframe {
+                filter: invert(100%) hue-rotate(180deg) brightness(50%) contrast(150%);
+            }
         </style>
     """, unsafe_allow_html=True)
 
@@ -5088,12 +5093,12 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # 1. Abrimos el contenedor exclusivo para aplicar el estilo oscuro solo aquí
+                # Contenedor exclusivo para aplicar el filtro de navegación oscura profundo solo a este mapa
                 st.markdown('<div class="mapa-seccion-4">', unsafe_allow_html=True)
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 2. Vista Satélite (sin filtro)
+                # 1. Vista Satélite (sin filtro)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5102,7 +5107,7 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 3. Capa Esri World Dark Gray Canvas (que con el filtro CSS se vuelve el negro profundo exacto de tu captura)
+                # 2. Capa Esri World Dark Gray Canvas (se vuelve World Navigation Dark profundo con el filtro CSS)
                 folium.TileLayer(
                     tiles='https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
                     name='World Navigation (Dark)',
@@ -5111,8 +5116,6 @@ elif tab_activa == "sectores":
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
-    
-                
 
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
@@ -5246,14 +5249,13 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Normalización correcta: Pozos rurales (R...) y urbanos (P...)
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
-                                id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
+                                id_p_limpio = 'R' + id_p_limpio[2:]
                             elif id_p_limpio.upper().startswith('PP'):
-                                id_p_limpio = id_p_limpio[1:]       # PP097A -> P097A
+                                id_p_limpio = id_p_limpio[1:]
                             elif not id_p_limpio.upper().startswith('P') and not id_p_limpio.upper().startswith('R'):
-                                id_p_limpio = 'P' + id_p_limpio      # Si no tiene letra, se la agregamos
+                                id_p_limpio = 'P' + id_p_limpio
 
                             html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
@@ -5263,6 +5265,9 @@ elif tab_activa == "sectores":
                 folium.LayerControl(collapsed=True).add_to(m_sec)
                 Fullscreen(position='topleft').add_to(m_sec)
                 folium_static(m_sec, width=None, height=360)
+                
+                # Cierre del contenedor exclusivo del mapa de la sección 4
+                st.markdown('</div>', unsafe_allow_html=True)
                 
             with col_der:
                 st.markdown(f"""
@@ -5424,10 +5429,6 @@ elif tab_activa == "sectores":
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
-            # ==============================================================================
-            # FILA INFERIOR: CONDICIONAL DINÁMICO CRUZADO (PUNTOS CRÍTICOS Y VRPs)
-            # ==============================================================================
-            
             tiene_datos_pc = False
             series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
             
