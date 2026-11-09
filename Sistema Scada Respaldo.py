@@ -5102,15 +5102,18 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Mapa Base de Navegación (Se convierte en Dark Navigation exclusivamente por el CSS de esta sección)
+                # 2. Mapa Base de Navegación Oscuro (World Navigation Dark / CartoDB Dark sin requerir tokens)
                 folium.TileLayer(
-                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                     name='World Navigation (Dark)',
-                    attr='&copy; OpenStreetMap contributors',
+                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains='abcd',
                     max_zoom=19,
                     overlay=False,
                     control=True
                 ).add_to(m_sec)
+    
+                
 
                 capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
                 capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
