@@ -5094,11 +5094,11 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa Esri Navigation Dark / Dark Gray Canvas (Estilo exacto ArcGIS Navigation Dark)
+                # 2. Capa World Navigation Map (Dark) de ArcGIS (Estilo exacto de navegación nocturna)
                 folium.TileLayer(
                     tiles='https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-                    name='Vista Oscura',
-                    attr='Esri, DeLorme, NAVTEQ',
+                    name='World Navigation (Dark)',
+                    attr='Esri, HERE, Garmin, © OpenStreetMap contributors',
                     max_zoom=16,
                     overlay=False,
                     control=True
