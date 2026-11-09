@@ -5085,7 +5085,7 @@ elif tab_activa == "sectores":
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Capa Satelital opcional
+                # 1. Vista Satélite (sin filtro si prefieres ver satélite real)
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5094,11 +5094,11 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # Alternativa estable de respaldo con idéntica estética (fondo negro y vialidades resaltadas)
+                # 2. Mapa Base de Navegación (Se convierte en Dark Navigation automáticamente por el CSS)
                 folium.TileLayer(
-                    tiles='https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                    tiles='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                     name='World Navigation (Dark)',
-                    attr='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    attr='&copy; OpenStreetMap contributors',
                     max_zoom=19,
                     overlay=False,
                     control=True
