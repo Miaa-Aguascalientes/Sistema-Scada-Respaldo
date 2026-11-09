@@ -2079,6 +2079,11 @@ st.markdown("""
             50% { opacity: 0.1; }
             100% { opacity: 1; }
         }
+
+        /* --- FILTRO MÁGICO PARA MAPA DARK NAVIGATION --- */
+        .mapa-area iframe, .mapa-principal-ajuste iframe, iframe {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
     </style>
 """, unsafe_allow_html=True)
 
