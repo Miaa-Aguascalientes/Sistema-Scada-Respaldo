@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON DISEÑO DINÁMICO CRUZADO)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO Y CORREGIDO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5085,12 +5085,20 @@ elif tab_activa == "sectores":
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
+                # Capa Satelital
+                folium.TileLayer(
+                    tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
+                    attr='Google', 
+                    name='Vista Satélite', 
+                    overlay=False, 
+                    control=True
+                ).add_to(m_sec)
                 
+                # Capa Oscura CartoDB
                 api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
                 folium.TileLayer(
                     tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-                    name="Vista Nocturna",
+                    name="Vista Oscura",
                     attr='&copy; CARTO',
                     subdomains="abcd", max_zoom=20, overlay=False, control=True
                 ).add_to(m_sec)
@@ -5227,7 +5235,7 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
-                            # Normalización correcta:
+                            # Normalización corregida para pozos rurales (R...) y urbanos (P...)
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
                                 id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
