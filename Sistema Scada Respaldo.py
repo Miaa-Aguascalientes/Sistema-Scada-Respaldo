@@ -5085,7 +5085,7 @@ elif tab_activa == "sectores":
 
                 m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
                 
-                # 1. Capa Satelital (Google Maps)
+                # 1. Capa Satelital opcional
                 folium.TileLayer(
                     tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
                     attr='Google', 
@@ -5094,11 +5094,11 @@ elif tab_activa == "sectores":
                     control=True
                 ).add_to(m_sec)
                 
-                # 2. Capa World Navigation Map (Dark) de ArcGIS (Estilo exacto de navegación nocturna)
+                # 2. Capa World Navigation Map (Dark) - Estilo exacto de navegación nocturna de ArcGIS
                 folium.TileLayer(
-                    tiles='https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                    tiles='https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Navigation_Dark/MapServer/tile/{z}/{y}/{x}',
                     name='World Navigation (Dark)',
-                    attr='Esri, HERE, Garmin, © OpenStreetMap contributors',
+                    attr='Esri, HERE, Garmin, OpenStreetMap contributors',
                     max_zoom=16,
                     overlay=False,
                     control=True
