@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (OPTIMIZADA - LEYENDA INTERACTIVA NATIVA DE PLOTLY)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CON LEYENDA LATERAL IZQUIERDA ESTILO SCADA)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5250,7 +5250,7 @@ elif tab_activa == "sectores":
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento de Sector y Puntos Críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Gráfica Hidráulica con Leyenda Interactiva Nativa (Haz clic en la leyenda para ocultar/mostrar trazas)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Controles de Visibilidad y Gráfica con Leyenda Lateral Estilo SCADA</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -5389,18 +5389,22 @@ elif tab_activa == "sectores":
                     fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
                     fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
+                # Configuración de leyenda vertical a la izquierda dentro del área del gráfico (estilo imagen de referencia)
                 fig.update_layout(
-                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=420, 
-                    margin=dict(l=40, r=40, t=20, b=10), hovermode="x unified", 
+                    paper_bgcolor='rgba(11,26,41,1)', 
+                    plot_bgcolor='rgba(11,26,41,1)', 
+                    height=450, 
+                    margin=dict(l=220, r=40, t=20, b=10), # Margen izquierdo amplio (l=220) para alojar la leyenda lateral
+                    hovermode="x unified", 
                     showlegend=True,
                     legend=dict(
-                        orientation="h", 
-                        yanchor="bottom", 
-                        y=1.02, 
-                        x=0.5, 
-                        xanchor="center", 
+                        orientation="v", 
+                        yanchor="middle", 
+                        y=0.5, 
+                        xanchor="left", 
+                        x=-0.38, # Posiciona la leyenda exactamente a la izquierda del área de trazos
                         font=dict(color="white", size=10),
-                        bgcolor="rgba(11,26,41,0.8)",
+                        bgcolor="rgba(8,20,33,0.9)",
                         bordercolor="#27445e",
                         borderwidth=1
                     ),
@@ -5626,7 +5630,7 @@ elif tab_activa == "sectores":
                         paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
                         margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
                         legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                        xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
+                        xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
                         yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Valor")
                     )
                     st.plotly_chart(fig_vrp, use_container_width=True)
