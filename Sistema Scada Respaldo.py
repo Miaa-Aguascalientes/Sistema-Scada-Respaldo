@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON ACTIVADORES ON/OFF DE VARIABLES)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON LEYENDA INTERACTIVA ESTILO IMAGEN)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4908,6 +4908,9 @@ elif tab_activa == "sectores":
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if coincide_sector(v)}
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
+
+            # Declaración temprana de series para evitar NameError
+            series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
 
             mapa_series_nombres = {}
             for k, r in dict_reg.items():
@@ -5247,8 +5250,8 @@ elif tab_activa == "sectores":
             with col_der:
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Controles de Visibilidad de Leyenda y Gráfica Dinámica</p>
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento de Sector y Puntos Críticos</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Controles de Visibilidad de Leyenda y Gráfica Estilo SCADA</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -5333,6 +5336,7 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
+                # Estructura idéntica a la imagen de referencia para los controles de visibilidad
                 with st.expander("🎛️ Controles de Visibilidad de Leyenda", expanded=True):
                     estados_trazas = {}
                     if trazas_disponibles:
@@ -5357,7 +5361,7 @@ elif tab_activa == "sectores":
                 ticks_filtrados = fechas_lineas[::paso]
 
                 etiquetas_filtradas = [
-                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
                     for d in ticks_filtrados
                 ]
 
@@ -5396,13 +5400,13 @@ elif tab_activa == "sectores":
                 delta = pd.Timedelta(hours=1)
                 for d in fechas_lineas:
                     es_lunes = (d.dayofweek == 0)
-                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                 fig.update_layout(
                     paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
                     margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                    showlegend=False,
                     xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
                     yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
                     yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
