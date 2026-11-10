@@ -2239,45 +2239,24 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
+    # 🎯 TÍTULO CENTRADO A LA MITAD DEL TABLERO
     st.markdown(f"""
-        <div style="margin-bottom: 15px;">
-            <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px; text-align: center;">
+            <h1 style="margin: 0; color: #00d4ff; font-size: 2.1rem; border-bottom: 2px solid #1f4068; padding-bottom: 8px; width: 100%;">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
         </div>
     """, unsafe_allow_html=True)
 
-    # 🎛️ SELECTORES EN DOS COLUMNAS (Sector y Periodo)
-    col_sel_1, col_sel_2 = st.columns([1.0, 1.0])
+    # 🎛️ SOLO SELECTOR DE PERIDO (Alineado a la derecha o con ancho controlado)
+    col_espacio_izq, col_selector_periodo = st.columns([1.5, 1.0])
 
-    with col_sel_1:
-        # Construir lista de nombres de sectores disponibles
-        lista_nombres_sectores = [str(s.get('sector', '')) for s in sectores if s.get('sector')]
-        if not lista_nombres_sectores:
-            lista_nombres_sectores = [sec_val_actual]
-            
-        # Encontrar índice actual de forma segura
-        try:
-            idx_actual = lista_nombres_sectores.index(sec_val_actual)
-        except ValueError:
-            idx_actual = 0
-
-        sector_elegido_tab = st.selectbox(
-            "Sector",
-            lista_nombres_sectores,
-            index=idx_actual,
-            key="f_sector_selector_detalle"
-        )
-        if sector_elegido_tab != sector_seleccionado:
-            st.session_state['sector_seleccionado'] = sector_elegido_tab
-            st.rerun()
-
-    with col_sel_2:
+    with col_selector_periodo:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
             "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
         ]
         opcion_periodo_tab = st.selectbox(
-            "Periodo",
+            "Periodo de análisis:",
             opciones_periodo,
             index=2,
             key="f_sector_periodo_tab_detalle"
