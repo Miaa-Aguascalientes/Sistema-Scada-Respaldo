@@ -2163,8 +2163,9 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
-            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
+            /* Se reduce drásticamente el espacio superior para aprovechar la pantalla */
+            .block-container { padding: 0.5rem 2rem 1.4rem !important; max-width: 1920px; }
+            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
@@ -2258,9 +2259,9 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO Y SIN BOTÓN ---
+    # --- TÍTULO CENTRADO Y AJUSTADO HACIA ARRIBA ---
     st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px;">
+        <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
             <h1 style="margin: 0; color: #00d4ff; text-align: center;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
         </div>
     """, unsafe_allow_html=True)
