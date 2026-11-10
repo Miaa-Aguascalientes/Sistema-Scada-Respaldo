@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (GRÁFICA PROFESIONAL CON LEYENDA INTEGRADA SCADA)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (PANEL SCADA DE ACTIVADORES LATERALES INTEGRADOS)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -5247,10 +5247,11 @@ elif tab_activa == "sectores":
                 folium_static(m_sec, width=None, height=360)
                 
             with col_der:
+                # Contenedor principal con estilo panel SCADA integrado idéntico a la imagen
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento de Sector y Puntos Críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Gráfica Hidráulica con Panel SCADA de Leyenda Integrada</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Panel SCADA con Controles de Visibilidad y Gráfica Hidráulica Sincronizada</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -5335,85 +5336,96 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
-                fig = go.Figure()
-
-                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
-                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                num_dias = len(fechas_lineas)
-                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                ticks_filtrados = fechas_lineas[::paso]
-
-                etiquetas_filtradas = [
-                    f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                    for d in ticks_filtrados
-                ]
-
-                idx_q = 0
-                idx_p = 0
-                colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
-                colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
-
-                for traza in trazas_disponibles:
-                    df_t_sub = traza['df']
-                    is_caudal = traza['es_caudal']
+                if trazas_disponibles:
+                    # Contenedor interno unificado para que el panel SCADA y la gráfica compartan un solo fondo integrado
+                    st.markdown('<div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px;">', unsafe_allow_html=True)
                     
-                    if is_caudal:
-                        color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                        idx_q += 1
-                    else:
-                        color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                        idx_p += 1
+                    panel_scada_izq, grafica_scada_der = st.columns([0.32, 0.68], gap="medium")
+                    
+                    with panel_scada_izq:
+                        st.markdown("""
+                            <div style="font-size: 11.5px; font-weight: bold; color: #9ab0c7; margin-bottom: 8px; border-bottom: 1px solid #1f4068; padding-bottom: 4px;">
+                                Controles de Visibilidad de Leyenda
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        estados_trazas = {}
+                        for idx_t, traza in enumerate(trazas_disponibles):
+                            estados_trazas[traza['nombre']] = st.toggle(
+                                f"{traza['nombre']}", 
+                                value=True, 
+                                key=f"tgl_scada_int_{sector_elegido}_{idx_t}"
+                            )
+                    
+                    with grafica_scada_der:
+                        fig = go.Figure()
 
-                    if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
-                        color_trace = "#d400ff"
+                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                    fig.add_trace(go.Scatter(
-                        x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
-                        name=traza['nombre'], 
-                        yaxis="y1" if is_caudal else "y2", 
-                        mode='lines+markers',
-                        line=dict(width=2, color=color_trace),
-                        marker=dict(size=3, symbol='circle'),
-                        fill='tozeroy' if is_caudal else None,
-                        fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
-                        hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
-                    ))
+                        f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                        f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                        fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                        num_dias = len(fechas_lineas)
+                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                        ticks_filtrados = fechas_lineas[::paso]
 
-                delta = pd.Timedelta(hours=1)
-                for d in fechas_lineas:
-                    es_lunes = (d.dayofweek == 0)
-                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
-                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+                        etiquetas_filtradas = [
+                            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                            for d in ticks_filtrados
+                        ]
 
-                # Leyenda integrada dentro del gráfico en la esquina superior izquierda (estilo SCADA profesional)
-                fig.update_layout(
-                    paper_bgcolor='rgba(11,26,41,1)', 
-                    plot_bgcolor='rgba(11,26,41,1)', 
-                    height=450, 
-                    margin=dict(l=40, r=40, t=20, b=10), 
-                    hovermode="x unified", 
-                    showlegend=True,
-                    legend=dict(
-                        orientation="v", 
-                        yanchor="top", 
-                        y=0.98, 
-                        xanchor="left", 
-                        x=0.02, # Leyenda flotando dentro del gráfico (esquina superior izquierda)
-                        font=dict(color="white", size=10),
-                        bgcolor="rgba(8,20,33,0.85)",
-                        bordercolor="#27445e",
-                        borderwidth=1,
-                        title=dict(text="Controles de Visibilidad", font=dict(color="#9ab0c7", size=11))
-                    ),
-                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-                    yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                    yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
-                )
-                st.plotly_chart(fig, use_container_width=True)
+                        idx_q = 0
+                        idx_p = 0
+                        colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                        colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+
+                        for traza in trazas_disponibles:
+                            if estados_trazas.get(traza['nombre'], True):
+                                df_t_sub = traza['df']
+                                is_caudal = traza['es_caudal']
+                                
+                                if is_caudal:
+                                    color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                    idx_q += 1
+                                else:
+                                    color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                    idx_p += 1
+
+                                if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
+                                    color_trace = "#d400ff"
+
+                                fig.add_trace(go.Scatter(
+                                    x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
+                                    name=traza['nombre'], 
+                                    yaxis="y1" if is_caudal else "y2", 
+                                    mode='lines+markers',
+                                    line=dict(width=2, color=color_trace),
+                                    marker=dict(size=3, symbol='circle'),
+                                    fill='tozeroy' if is_caudal else None,
+                                    fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
+                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
+                                ))
+
+                        delta = pd.Timedelta(hours=1)
+                        for d in fechas_lineas:
+                            es_lunes = (d.dayofweek == 0)
+                            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+
+                        fig.update_layout(
+                            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=420, 
+                            margin=dict(l=20, r=40, t=10, b=10), hovermode="x unified", 
+                            showlegend=False,
+                            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                            yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                        )
+                        st.plotly_chart(fig, use_container_width=True)
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    st.info("No hay variables temporales activas para este sector en el periodo.")
 
             # ==============================================================================
             # FILA INFERIOR: CONDICIONAL DINÁMICO CRUZADO (PUNTOS CRÍTICOS Y VRPs)
