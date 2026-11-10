@@ -3067,20 +3067,19 @@ if sector_seleccionado:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA LIBRE Y SIN CUADROS (FLOTANTE A LA IZQUIERDA) ---
+    # --- MARCA DE AGUA NO FIJA (UBICADA ESTÁTICAMENTE AL FINAL DE LA PÁGINA) ---
     st.markdown("""
         <div style="
-            position: fixed;
-            bottom: 15px;
-            left: 24px;
-            z-index: 99999;
-            pointer-events: none;
+            position: relative;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            padding-left: 5px;
             text-align: left;
             line-height: 1.25;
             opacity: 0.85;
         ">
-            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block; text-shadow: 1px 1px 2px #000;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block; text-shadow: 1px 1px 2px #000;">Subdirección de Tecnología e Innovación</span>
+            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
         </div>
     """, unsafe_allow_html=True)
 
