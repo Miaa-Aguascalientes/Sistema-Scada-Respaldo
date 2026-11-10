@@ -2163,8 +2163,9 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
-            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
+            /* 🛡️ Reducido el espacio superior (padding-top) para eliminar el espacio muerto */
+            .block-container { padding: 1.2rem 2rem 1.4rem; max-width: 1920px; }
+            h1 { font-size: 1.8rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0 !important; margin: 0 !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
@@ -2239,17 +2240,10 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # 🎯 TÍTULO CENTRADO A LA MITAD DEL TABLERO
-    st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 20px; text-align: center;">
-            <h1 style="margin: 0; color: #00d4ff; font-size: 2.1rem; border-bottom: 2px solid #1f4068; padding-bottom: 8px; width: 100%;">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
-        </div>
-    """, unsafe_allow_html=True)
+    # 🎛️ FILA SUPERIOR: Selector de Periodo a la izquierda y Título centrado a la derecha de este
+    col_per, col_tit = st.columns([1.0, 2.2])
 
-    # 🎛️ SOLO SELECTOR DE PERIDO (Alineado a la derecha o con ancho controlado)
-    col_espacio_izq, col_selector_periodo = st.columns([1.5, 1.0])
-
-    with col_selector_periodo:
+    with col_per:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
@@ -2261,6 +2255,13 @@ if sector_seleccionado:
             index=2,
             key="f_sector_periodo_tab_detalle"
         )
+
+    with col_tit:
+        st.markdown(f"""
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding-top: 15px;">
+                <h1 style="color: #00d4ff; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
+            </div>
+        """, unsafe_allow_html=True)
 
     st.write("")
 
