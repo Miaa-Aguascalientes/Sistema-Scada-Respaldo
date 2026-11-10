@@ -4478,8 +4478,8 @@ elif tab_activa == "tanques":
         for col, (title, value, caption, key_name) in zip(cols, kpis):
             with col:
                 with st.container(border=True, key=key_name):
-                    st.html(f'<div class="tq-eyebrow">{escape(title)}</div>')
-                    st.html(f'<div class="tq-kpi-value">{escape(value)}</div>')
+                    st.markdown(f'<div class="tq-eyebrow">{escape(title)}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="tq-kpi-value">{escape(value)}</div>', unsafe_allow_html=True)
                     st.caption(caption)
 
         st.caption(f"Corte de información: {end:%d/%m/%Y %H:%M}")
@@ -4541,7 +4541,7 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
+        st.markdown(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>', unsafe_allow_html=True)
 
         metrics_html = f"""
         <div class="tm-card-metrics">
@@ -4551,7 +4551,7 @@ elif tab_activa == "tanques":
             <div class="tm-metric"><span>% Alm.</span><strong>{escape(_number(tank['storage_pct'], ' %', 0))}</strong></div>
         </div>
         """
-        st.html(metrics_html)
+        st.markdown(metrics_html, unsafe_allow_html=True)
 
         if data["level_m"].notna().any():
             figure = _build_level_chart(data, tank, start, end, gap_minutes, tank_name=display_name)
@@ -4707,7 +4707,6 @@ elif tab_activa == "tanques":
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
     renderizar_pestana_tanques()
-
 
 
 # ==============================================================================
