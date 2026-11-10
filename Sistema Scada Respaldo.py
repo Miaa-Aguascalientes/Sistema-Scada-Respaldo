@@ -2238,48 +2238,41 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # 🏛️ CABECERA UNIFICADA MODERNA CON LOGOTIPO
-    st.markdown("""
-        <div style="background: linear-gradient(135deg, #0b1a29 0%, #081421 100%); 
-                    border: 1px solid #1f4068; 
-                    border-radius: 10px; 
-                    padding: 10px 20px; 
-                    margin-bottom: 18px; 
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-    """, unsafe_allow_html=True)
+    # 🏛️ ENCABEZADO LIMPIO SIN RECUADRO: LOGOTIPO Y TÍTULO AL MISMO NIVEL
+    col_logo, col_titulo, col_vacio = st.columns([1.2, 2.5, 0.8])
 
-    col_logo_per, col_tit_sec = st.columns([1.3, 1.9])
-
-    with col_logo_per:
-        # Sub-columnas internas para colocar el logo y el selector lado a lado en la izquierda
-        col_img, col_sel = st.columns([0.35, 0.65])
-        with col_img:
-            st.markdown("""
-                <div style="display: flex; align-items: center; height: 100%; padding-top: 22px;">
-                    <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" style="height: 42px; width: auto; filter: drop-shadow(0 0 4px rgba(0,212,255,0.3);">
-                </div>
-            """, unsafe_allow_html=True)
-        with col_sel:
-            opciones_periodo = [
-                "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
-                "Esta semana", "Últimos 7 días", "Este Mes", 
-                "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
-            ]
-            opcion_periodo_tab = st.selectbox(
-                "⏱️ Periodo de análisis",
-                opciones_periodo,
-                index=2,
-                key="f_sector_periodo_tab_detalle"
-            )
-
-    with col_tit_sec:
-        st.markdown(f"""
-            <div style="text-align: center; padding-top: 10px;">
-                <h2 style="color: #00d4ff; font-size: 1.65rem; margin: 0; font-weight: 700; text-shadow: 0 0 10px rgba(0,212,255,0.3);">SECTOR: {sec_val_actual}</h2>
+    with col_logo:
+        st.markdown("""
+            <div style="display: flex; align-items: center; padding-top: 4px;">
+                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" style="height: 38px; width: auto;">
             </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+    with col_titulo:
+        st.markdown("""
+            <div style="text-align: center;">
+                <h1 style="color: #ffffff; font-size: 1.7rem; margin: 0; font-weight: 700; letter-spacing: 0.5px;">Monitoreo de sectores</h1>
+                <h3 style="color: #00d4ff; font-size: 1.15rem; margin: 2px 0 0 0; font-weight: 600;">SECTOR: {}</h3>
+            </div>
+        """.format(sec_val_actual), unsafe_allow_html=True)
+
+    st.write("")
+
+    # 🎛️ SELECTOR DE PERIODO
+    col_sel_p, _ = st.columns([1.2, 2.8])
+    with col_sel_p:
+        opciones_periodo = [
+            "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+            "Esta semana", "Últimos 7 días", "Este Mes", 
+            "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+        ]
+        opcion_periodo_tab = st.selectbox(
+            "⏱️ Periodo de análisis",
+            opciones_periodo,
+            index=2,
+            key="f_sector_periodo_tab_detalle"
+        )
+
     st.write("")
 
     hoy_dt = datetime.now()
