@@ -3066,25 +3066,20 @@ if sector_seleccionado:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA INSTITUCIONAL DESPEGADA (MARGEN INFERIOR AUMENTADO) ---
+    # --- MARCA DE AGUA LIBRE Y SIN CUADROS (FLOTANTE A LA IZQUIERDA) ---
     st.markdown("""
         <div style="
             position: fixed;
             bottom: 15px;
             left: 24px;
             z-index: 99999;
-            background: rgba(8, 20, 33, 0.95);
-            border: 1px solid rgba(0, 212, 255, 0.4);
-            padding: 8px 14px;
-            border-radius: 6px;
             pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             text-align: left;
-            line-height: 1.2;
-            margin-top: 30px;
+            line-height: 1.25;
+            opacity: 0.85;
         ">
-            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
+            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block; text-shadow: 1px 1px 2px #000;">Dirección de Planeación</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block; text-shadow: 1px 1px 2px #000;">Subdirección de Tecnología e Innovación</span>
         </div>
     """, unsafe_allow_html=True)
 
