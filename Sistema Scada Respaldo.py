@@ -2163,9 +2163,7 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            /* 🛡️ Reducido el espacio superior (padding-top) para eliminar el espacio muerto */
-            .block-container { padding: 1.2rem 2rem 1.4rem; max-width: 1920px; }
-            h1 { font-size: 1.8rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0 !important; margin: 0 !important; }
+            .block-container { padding: 1.0rem 2rem 1.4rem; max-width: 1920px; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
@@ -2240,29 +2238,49 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # 🎛️ FILA SUPERIOR: Selector de Periodo a la izquierda y Título centrado a la derecha de este
-    col_per, col_tit = st.columns([1.0, 2.2])
+    # 🏛️ CABECERA UNIFICADA MODERNA
+    st.markdown("""
+        <div style="background: linear-gradient(135deg, #0b1a29 0%, #081421 100%); 
+                    border: 1px solid #1f4068; 
+                    border-radius: 10px; 
+                    padding: 12px 20px; 
+                    margin-bottom: 18px; 
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+    """, unsafe_allow_html=True)
 
-    with col_per:
+    col_h1, col_h2, col_h3 = st.columns([1.1, 1.8, 1.1])
+
+    with col_h1:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
             "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
         ]
         opcion_periodo_tab = st.selectbox(
-            "Periodo de análisis:",
+            "⏱️ Periodo de análisis",
             opciones_periodo,
             index=2,
             key="f_sector_periodo_tab_detalle"
         )
 
-    with col_tit:
+    with col_h2:
         st.markdown(f"""
-            <div style="display: flex; justify-content: center; align-items: center; height: 100%; padding-top: 15px;">
-                <h1 style="color: #00d4ff; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
+            <div style="text-align: center; padding-top: 8px;">
+                <span style="font-size: 0.75rem; color: #73b3d8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Monitoreo Hidráulico en Tiempo Real</span>
+                <h2 style="color: #00d4ff; font-size: 1.5rem; margin: 0; font-weight: 700; text-shadow: 0 0 10px rgba(0,212,255,0.3);">SECTOR: {sec_val_actual}</h2>
             </div>
         """, unsafe_allow_html=True)
 
+    with col_h3:
+        st.markdown(f"""
+            <div style="text-align: right; padding-top: 12px;">
+                <span style="font-size: 0.8rem; color: #9ab0c7; background: #122c42; padding: 6px 12px; border: 1px solid #27445e; border-radius: 6px;">
+                    🏢 Distrito: <b>{datos_s.get('Distrito', 'Oriente')}</b>
+                </span>
+            </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
     st.write("")
 
     hoy_dt = datetime.now()
