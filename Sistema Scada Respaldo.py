@@ -2163,7 +2163,6 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            /* Espacio superior ajustado y área inferior para evitar solapes con la marca de agua */
             .block-container { padding: 0.5rem 2rem 2.5rem !important; max-width: 1920px; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
@@ -2259,10 +2258,10 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO Y AJUSTADO HACIA ARRIBA ---
+    # --- TÍTULO CENTRADO: "Monitoreo de sector:" en blanco y sector en azul ---
     st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
-            <h1 style="margin: 0; color: #00d4ff; text-align: center;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
+            <h1 style="margin: 0; color: #ffffff; text-align: center;">Monitoreo de sector: <span style="color: #00d4ff;">{sector_seleccionado}</span></h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -3069,24 +3068,24 @@ if sector_seleccionado:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA INSTITUCIONAL ---
+    # --- MARCA DE AGUA INSTITUCIONAL A LA IZQUIERDA Y VISIBLE ---
     st.markdown("""
         <div style="
             position: fixed;
             bottom: 12px;
-            right: 24px;
+            left: 24px;
             z-index: 99999;
-            background: rgba(11, 26, 41, 0.75);
-            border: 1px solid rgba(0, 212, 255, 0.2);
+            background: rgba(8, 20, 33, 0.95);
+            border: 1px solid rgba(0, 212, 255, 0.4);
             padding: 8px 14px;
             border-radius: 6px;
             pointer-events: none;
-            backdrop-filter: blur(4px);
-            text-align: right;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            text-align: left;
             line-height: 1.2;
         ">
             <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #91a8bf; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
         </div>
     """, unsafe_allow_html=True)
 
