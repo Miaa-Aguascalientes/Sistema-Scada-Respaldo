@@ -2224,18 +2224,27 @@ if sector_seleccionado:
         </style>
     """, unsafe_allow_html=True)
 
-    sec_id = str(sector_seleccionado).split('.')[0].strip()
+    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO PARA EVITAR EL CRASH
+    if 'sector_seleccionado' not in locals() and 'sector_seleccionado' in st.session_state:
+        sector_seleccionado = st.session_state['sector_seleccionado']
+    if 'sector_elegido' not in locals():
+        sector_elegido = globals().get('sector_seleccionado', 'Sector Desconocido')
+
+    sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else sector_elegido
+    sec_id = str(sec_val_actual).split('.')[0].strip()
     sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     
-    # 🛡️ Búsqueda segura del sector con respaldo por defecto
+    # Búsqueda segura en la lista de sectores
     datos_s = next((s for s in sectores if str(s.get('sector', '')).strip() == sec_id), None)
+    
+    # Respaldo de emergencia para que .get() nunca falle
     if datos_s is None:
         datos_s = {
-            'sector': sector_seleccionado,
+            'sector': sec_val_actual,
             'Distrito': 'Oriente',
             'Poblacion': 0,
             'Superficie': 0.0,
-            'Long_Red': 0.0,
+            'Long_Red': 42.6,
             'Vol_Prod': 0,
             'U_Domesticos': 0,
             'U_NoDom': 0,
