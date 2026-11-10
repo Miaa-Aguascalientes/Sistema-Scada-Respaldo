@@ -2157,469 +2157,898 @@ for id_rb, info in mapa_rebombeos_dict.items():
 # 7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
 
 if sector_seleccionado:
-    st.markdown(
-        f"""
+    st.markdown("""
         <style>
-            [data-testid="column"] {{ margin-top: -105px !important; }}
-            [data-testid="stSidebar"] {{display: none;}}
-            header {{visibility: hidden;}}
-            .stAppDeployButton {{display:none;}}
-            #MainMenu {{visibility: hidden;}}
-            footer {{visibility: hidden;}}
-            .block-container {{ padding-top: 0px !important; padding-bottom: 0px !important; margin-top: -100px !important; }}
-            .contenedor-centrado {{ text-align: center; margin-bottom: 0px; }}
-            .titulo-sector {{ margin-top: 10px !important; font-size: 1.8rem; font-weight: 800; color: #00d4ff; margin: 10px; text-transform: uppercase; }}
-            .col-mapa-offset {{ margin-top: 0px !important; }}
-            .stFolium {{ margin-top: -10px !important; }}            
-            hr {{ margin-top: 2px !important; margin-bottom: 5px !important; border: 0; border-top: 1px solid #1f4068; }}
-            .card-indicador {{ background: rgba(16, 33, 54, 0.8); padding: 10px; border-radius: 8px; border: 1px solid #1f4068; text-align: center; margin-bottom: 5px; }}
-            .label-indicador {{ color: #ffffff; font-size: 0.8rem; margin: 0; text-transform: uppercase; letter-spacing: 0.5px; }}
-            .value-indicador {{ color: #00ffcc; font-size: 1.1rem; font-weight: bold; margin: 0; }}
-            [data-testid="column"]:nth-child(2) {{ margin-top: 0px !important; }}
-            .js-plotly-plot {{ margin-bottom: 10px !important; }}
+            :root { color-scheme: dark; }
+            .stApp { background: #081421; color: #e4edf7; }
+            header[data-testid="stHeader"] { background: #081421; }
+            [data-testid="stSidebar"] { display: none !important; }
+            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
+            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
+            h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
+            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
+            [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
+            
+            @keyframes pulse-glow {
+                0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
+                50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
+                100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
+            }
+            @keyframes radar-spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            @keyframes water-flow {
+                0% { stroke-dashoffset: 24; }
+                100% { stroke-dashoffset: 0; }
+            }
+            @keyframes float-up {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-3px); }
+            }
+            .anim-pulse { animation: pulse-glow 2.5s infinite ease-in-out; transform-origin: center; }
+            .anim-spin { animation: radar-spin 8s infinite linear; transform-origin: center; }
+            .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
+            .anim-float { animation: float-up 3s infinite ease-in-out; }
+
+            .label-inline {
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: #c1d3e5;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                height: 100%;
+                padding-top: 0.5rem;
+                padding-right: 8px;
+            }
+
+            .card-indicador {
+                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
+                border: 1px solid #27445e;
+                border-top: 2px solid #47afd0;
+                border-radius: 10px;
+                padding: 14px 16px;
+                min-height: 115px;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+            .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
+            .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
+            .sub-indicador { font-size: 1.12rem; color: #73b3d8; margin: 0; }
+
+            .st-key-dma_operational table { width: 100%; }
+            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
+            iframe { border-radius: 8px; }
         </style>
-        <div class="contenedor-centrado">
-            <h1 class="titulo-sector">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
-        </div>
-        """, unsafe_allow_html=True
-    )
-    
+    """, unsafe_allow_html=True)
+
     sec_id = str(sector_seleccionado).split('.')[0].strip()
+    sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     datos_s = next((s for s in sectores if str(s['sector']).strip() == sec_id), None)
 
     if datos_s:
-        sel_r_id = None
-        sel_v_id = None
-        f_ini_h = datetime.now().date()
-        f_fin_h = datetime.now().date()
+        # Botón para regresar al mapa principal o limpiar parámetro si se desea
+        rol_actual = st.session_state.get('rol', 'usuario')
+        base_url_regreso = f"?access=granted&role={rol_actual}&nav=mapa"
+        st.markdown(f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
+                <a href="{base_url_regreso}" target="_self" style="background: #1f4068; color: #00d4ff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #00d4ff;">⬅️ Volver al Mapa Principal</a>
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown('<div class="metrics-row">', unsafe_allow_html=True)
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        with c1: st.markdown(f'<div class="card-indicador"><p class="label-indicador">Población</p><p class="value-indicador">{datos_s.get("Poblacion", 0):,.0f}</p></div>', unsafe_allow_html=True)
-        with c2: st.markdown(f'<div class="card-indicador"><p class="label-indicador">U. Totales</p><p class="value-indicador">{datos_s.get("U_Tot", 0):,.0f}</p></div>', unsafe_allow_html=True)
-        with c3: st.markdown(f'<div class="card-indicador"><p class="label-indicador">U. Domésticos</p><p class="value-indicador">{datos_s.get("U_Domesticos", 0):,.0f}</p></div>', unsafe_allow_html=True)
-        with c4: st.markdown(f'<div class="card-indicador"><p class="label-indicador">Consumo m³</p><p class="value-indicador">{datos_s.get("Cons_m3", 0):,.1f}</p></div>', unsafe_allow_html=True) 
-        with c5: st.markdown(f'<div class="card-indicador"><p class="label-indicador">Dotación</p><p class="value-indicador">{datos_s.get("Dotacion", 0):,.1f}</p></div>', unsafe_allow_html=True)
-        with c6: st.markdown(f'<div class="card-indicador"><p class="label-indicador">Balance</p><p class="value-indicador">{datos_s.get("Balance_Estimado", 0):,.1f}%</p></div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.divider()
+        # Selector de periodo idéntico al de la pestaña 4
+        col_bloque_per = st.columns([1])[0]
+        with col_bloque_per:
+            opciones_periodo = [
+                "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+                "Esta semana", "Últimos 7 días", "Este Mes", 
+                "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+            ]
+            opcion_periodo_tab = st.selectbox(
+                "Periodo de análisis:",
+                opciones_periodo,
+                index=2,
+                key="f_sector_periodo_tab_detalle"
+            )
+
+        st.write("")
+
+        hoy_dt = datetime.now()
+        medianoche = hoy_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+        f_fin_h = hoy_dt
+
+        if opcion_periodo_tab == "Hoy":
+            f_ini_h = medianoche
+        elif opcion_periodo_tab == "Ayer":
+            f_ini_h = medianoche - timedelta(days=1)
+            f_fin_h = medianoche - timedelta(seconds=1)
+        elif opcion_periodo_tab == "Últimas 24 horas":
+            f_ini_h = hoy_dt - timedelta(hours=24)
+        elif opcion_periodo_tab == "Últimas 48 horas":
+            f_ini_h = hoy_dt - timedelta(hours=48)
+        elif opcion_periodo_tab == "Esta semana":
+            f_ini_h = medianoche - timedelta(days=medianoche.weekday())
+        elif opcion_periodo_tab == "Últimos 7 días":
+            f_ini_h = medianoche - timedelta(days=7)
+        elif opcion_periodo_tab == "Este Mes":
+            f_ini_h = hoy_dt.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif opcion_periodo_tab == "Último mes":
+            f_ini_h = medianoche - timedelta(days=30)
+        elif opcion_periodo_tab == "Últimos 3 meses":
+            f_ini_h = medianoche - timedelta(days=90)
+        elif opcion_periodo_tab == "Últimos 6 meses":
+            f_ini_h = medianoche - timedelta(days=180)
+        else:
+            f_ini_h = medianoche - timedelta(days=7)
+
+        def coincide_sector(item_dict):
+            val_sec = str(item_dict.get('Sector') or item_dict.get('sector') or '').strip()
+            return val_sec == str(sec_id).strip() or (sec_id_clean and sec_id_clean in val_sec)
 
         dict_reg_all = cargar_puntos_de_control_desde_db() 
-        dict_reg = {k: v for k, v in dict_reg_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-        reg_nombres = {v['nombre']: k for k, v in dict_reg.items()}
-        opciones_equipo = list(reg_nombres.keys())
+        dict_reg = {k: v for k, v in dict_reg_all.items() if coincide_sector(v)}
         
         dict_vrp_all = cargar_vrp_desde_db()
-        dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-        vrp_nombres = {v['nombre']: k for k, v in dict_vrp_sec.items()}
-        opciones_vrp = list(vrp_nombres.keys())
+        dict_vrp_sec = {k: v for k, v in dict_vrp_all.items() if coincide_sector(v)}
 
-        c_sel_f, c_fecha_ext = st.columns([1, 1])
-        with c_sel_f:
-            opcion_fecha = st.selectbox(
-                "Rango de fechas:",
-                ["Hoy", "Esta Semana", "Últimos 14 días", "Este Mes", "Personalizado"],
-                index=3,
-                key="f_sector_full",
-                label_visibility="collapsed"
-        )
-        hoy = datetime.now().date()
-        f_ini_h, f_fin_h = hoy, hoy
+        mapa_pc_all = cargar_puntos_criticos_desde_db()
+        dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if coincide_sector(v)}
 
-        if opcion_fecha == "Hoy":
-            f_ini_h, f_fin_h = hoy, hoy
-        elif opcion_fecha == "Esta Semana":
-            f_ini_h, f_fin_h = hoy - timedelta(days=hoy.weekday()), hoy
-        elif opcion_fecha == "Últimos 14 días":
-            f_ini_h, f_fin_h = hoy - timedelta(days=14), hoy
-        elif opcion_fecha == "Este Mes":
-            f_ini_h, f_fin_h = hoy.replace(day=1), hoy
-        elif opcion_fecha == "Personalizado":
-            with c_fecha_ext:
-                rango_p = st.date_input(
-                    "Periodo:",
-                    value=(hoy - timedelta(days=7), hoy),
-                    max_value=hoy,
-                    key="f_sector_custom_global",
-                    label_visibility="collapsed"
-                )
-                if isinstance(rango_p, tuple) and len(rango_p) == 2:
-                    f_ini_h, f_fin_h = rango_p
-                else:
-                    f_ini_h, f_fin_h = hoy, hoy    
+        ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
+        mapa_series_nombres = {}
+        for k, r in dict_reg.items():
+            s_val = r.get('Serie') or r.get('dispositivo') or k
+            if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                mapa_series_nombres[str(s_val).strip()] = r.get('nombre', f"Punto Control ({s_val})")
+
+        for k, v in dict_vrp_sec.items():
+            s_val = v.get('Serie') or k
+            if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                mapa_series_nombres[str(s_val).strip()] = v.get('nombre', f"VRP ({s_val})")
+
+        for k, pc in dict_pc_sec.items():
+            s_val = pc.get('Serie') or k
+            if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
+                mapa_series_nombres[str(s_val).strip()] = pc.get('Domicilio', f"Punto Crítico ({s_val})")
+
+        tags_para_scada = []
+        tags_caudal_pozos = []
+        tags_agregados_set = set()
+        
+        for id_p in ids_p:
+            if id_p in mapa_pozos_dict:
+                p_info = mapa_pozos_dict[id_p]
+                t_pz_q = p_info.get('caudal')
+                if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                    if str(t_pz_q) not in tags_agregados_set:
+                        tags_para_scada.append(str(t_pz_q))
+                        tags_agregados_set.add(str(t_pz_q))
+                    tags_caudal_pozos.append(str(t_pz_q))
+                for kt in ['presion', 'nivel_tanque']:
+                    t_val = p_info.get(kt)
+                    if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                        if str(t_val) not in tags_agregados_set:
+                            tags_para_scada.append(str(t_val))
+                            tags_agregados_set.add(str(t_val))
+
+        scada_res_reg = cargar_datos_scada([str(t) for t in set(tags_para_scada) if t])
+
+        ultimos_valores_mapa = {}
+        if mapa_series_nombres:
+            try:
+                engine_tel = get_mysql_telemetria_engine()
+                series_in_sql = "', '".join(list(mapa_series_nombres.keys()))
+                q_ultimos_directo = f"""
+                    SELECT DISPOSITIVO, VARIABLE, VALOR, FECHA_HORA_LOGGER 
+                    FROM BD_MADRE 
+                    WHERE (DISPOSITIVO, FECHA_HORA_LOGGER) IN (
+                        SELECT DISPOSITIVO, MAX(FECHA_HORA_LOGGER) 
+                        FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_in_sql}') 
+                        GROUP BY DISPOSITIVO, VARIABLE
+                    )
+                """
+                df_ultimos = pd.read_sql(q_ultimos_directo, engine_tel)
+                if not df_ultimos.empty:
+                    for _, row in df_ultimos.iterrows():
+                        dev = str(row['DISPOSITIVO']).strip()
+                        var = str(row['VARIABLE']).strip()
+                        if dev not in ultimos_valores_mapa:
+                            ultimos_valores_mapa[dev] = {}
+                        ultimos_valores_mapa[dev][var] = {'valor': row['VALOR'], 'fecha': row['FECHA_HORA_LOGGER']}
+            except Exception:
+                pass
+
+        caudal_promedio_pozos = 0.0
+        if tags_caudal_pozos:
+            try:
+                engine_h = get_mysql_scada_engine()
+                tags_q_pozos_in = "', '".join([str(t) for t in set(tags_caudal_pozos) if t])
+                if tags_q_pozos_in:
+                    q_prom_pozos_query = f"""
+                        SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
+                            SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
+                            FROM vfitagnumhistory h 
+                            JOIN VfiTagRef r ON h.GATEID = r.GATEID 
+                            WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                            GROUP BY h.FECHA
+                        ) t
+                    """
+                    df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
+                    if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
+                        caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
+            except Exception:
+                caudal_promedio_pozos = 0.0
+
+        volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
+        demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
+
+        def fmt_miles(val):
+            try:
+                return f"{float(val):,.0f}".replace(",", ", ")
+            except:
+                return "0"
+
+        demanda_fmt = fmt_miles(demanda_estimada_val)
+
+        texto_nivel_tq = "Sin registro de nivel TQ"
+        for id_p in ids_p:
+            if id_p in mapa_pozos_dict:
+                p_info = mapa_pozos_dict[id_p]
+                t_niv = p_info.get('nivel_tanque')
+                if t_niv and str(t_niv).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                    val_niv, fec_niv = scada_res_reg.get(str(t_niv), (0.0, "N/A"))
+                    fec_str = fec_niv.strftime('%d/%m %H:%M') if hasattr(fec_niv, 'strftime') else str(fec_niv)
+                    texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
+                    break
+
+        # Tarjetas de indicadores superiores (idénticas a pestaña 4)
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        with c1:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-flow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Caudal de ingreso</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{caudal_promedio_pozos:,.1f} <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo (Pozos)</p>
+            </div>''', unsafe_allow_html=True)
+        with c2:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Volumen medido</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:0.8rem; font-weight:normal;">m³</span></p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Vol_Medid)</p>
+            </div>''', unsafe_allow_html=True)
+        with c3:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Demanda estimada</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{demanda_fmt} <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Cons_m3)</p>
+            </div>''', unsafe_allow_html=True)
+        with c4:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Población estimada</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{datos_s.get("Poblacion", 28450):,.0f}</p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Referencia del catálogo</p>
+            </div>''', unsafe_allow_html=True)
+        with c5:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Mínimo nocturno</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">32,5 <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Mín. observado • 02:00 - 04:00</p>
+            </div>''', unsafe_allow_html=True)
+        with c6:
+            st.markdown(f'''<div class="card-indicador">
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+                    <p class="label-indicador" style="font-size: 13px; margin:0;">Presión de ingreso</p>
+                </div>
+                <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">2.35 <span style="font-size:0.8rem; font-weight:normal;">Kg/cm²</span></p>
+                <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo</p>
+            </div>''', unsafe_allow_html=True)
+        st.write("")
+
+        # Mapa interactivo y gráfica principal en paralelo
         col_izq, col_der = st.columns([1.0, 1.0])
+        
         with col_izq:
-            st.markdown('<div class="col-mapa-offset">', unsafe_allow_html=True)
-            if "ultimo_clic_sv" not in st.session_state:
-                st.session_state.ultimo_clic_sv = None
+            st.markdown(f"""
+                <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Sector y puntos de medición</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sector_elegido} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
             
-            m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=350)
             folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
-            folium.TileLayer(tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr='Esri', name='Satélite (Esri)', overlay=False).add_to(m_sec)
+            
             api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
             folium.TileLayer(
                 tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
                 name="Vista Nocturna",
-                attr='&copy; OpenStreetMap contributors &copy; CARTO',
+                attr='&copy; CARTO',
                 subdomains="abcd", max_zoom=20, overlay=False, control=True
             ).add_to(m_sec)
+
+            capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
+            capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
+            capa_criticos = folium.FeatureGroup(name="Puntos críticos", overlay=True, control=True).add_to(m_sec)
+            capa_vrp = folium.FeatureGroup(name="VRP", overlay=True, control=True).add_to(m_sec)
+            capa_pozos = folium.FeatureGroup(name="Pozos", overlay=True, control=True).add_to(m_sec)
 
             if datos_s and datos_s.get('geo'):
                 try:
                     geo_data = json.loads(datos_s['geo'])
-                    folium_geo = folium.GeoJson(geo_data, style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15}, name="Límites del Sector").add_to(m_sec)
-                    m_sec.fit_bounds(folium_geo.get_bounds())
-                except: pass
+                    folium_geo = folium.GeoJson(
+                        geo_data, 
+                        style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 2, 'fillOpacity': 0.15},
+                        name="Límite del sector"
+                    ).add_to(capa_sector)
+                    m_sec.fit_bounds(folium_geo.get_bounds(), padding=(30, 30), max_zoom=15)
+                except: 
+                    pass
 
-            tags_para_scada = []
-            for r in dict_reg.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q', 'tag_vbat']:
-                    if r.get(k): tags_para_scada.append(r.get(k))
-            
-            mapa_pc_all = cargar_puntos_criticos_desde_db()
-            dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if str(v.get('sector')).strip() == str(sec_id).strip()}
-            for pc in dict_pc_sec.values():
-                if pc.get('tag_p1'): tags_para_scada.append(pc.get('tag_p1'))
+            for r_k, r in dict_reg.items():
+                serie_reg = str(r.get('Serie', r_k)).strip()
+                vals_dev = ultimos_valores_mapa.get(serie_reg, {})
+                
+                html_vars_detalle = ""
+                for var_name, info_v in vals_dev.items():
+                    val_bruto = info_v.get('valor')
+                    try:
+                        val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    except (ValueError, TypeError):
+                        val_num = 0.0
 
-            for v in dict_vrp_sec.values():
-                for k in ['tag_p1', 'tag_p2', 'tag_q']:
-                    if v.get(k): tags_para_scada.append(v.get(k))
+                    unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
+                    html_vars_detalle += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                
+                if not html_vars_detalle:
+                    html_vars_detalle = "Sin registros recientes<br>"
 
-            scada_res_reg = cargar_datos_scada(list(set(tags_para_scada)))
-
-            for r in dict_reg.values():
-                def get_rv(tk):
-                    v, f = scada_res_reg.get(r.get(tk), (0.0, "N/A"))
-                    try: return float(v), f
-                    except: return 0.0, f
-                rp1, fp1 = get_rv('tag_p1'); rcau, fq = get_rv('tag_q'); rbat, fb = get_rv('tag_vbat')
-                id_reg = r.get('Serie', 'S/N') 
-                html_popup_reg = f"""<div style="background:#000; color:white; padding:12px; border-radius:10px; border:1px solid #00FFFF; width:250px; font-family:sans-serif;"><b style="color:#00FFFF; font-size:14px;">{r['nombre']}</b><hr style="opacity:0.2; margin:8px 0;"><div style="font-size:11px;">💧 Caudal: <b>{rcau:.2f} L/s</b><br><span style="color:#FFFF00;">{fq}</span><br><br>🚀 Presión: <b>{rp1:.2f} kg</b><br><span style="color:#FFFF00;">{fp1}</span><br><br>🔋 Bat: <b>{rbat:.2f} V</b><br><span style="color:#FFFF00;">{fb}</span></div></div>"""
-
-                from folium.features import DivIcon
-                icon_html = """
-                <div style="position: relative; width: 30px; height: 30px;">
-                    <div style="width: 20px; height: 20px; background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366); border-radius: 50%; box-shadow: 2px 4px 6px rgba(0,0,0,0.5); position: absolute; top: 0; left: 5px; z-index: 2;"></div>
-                    <div style="width: 2px; height: 15px; background: linear-gradient(to right, #e0e0e0, #808080); position: absolute; top: 18px; left: 14px; z-index: 1;"></div>
-                </div>
+                html_popup_reg = f"""
+                    <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFFF; width:230px;">
+                        <b style="color:#00FFFF;">{r.get('nombre', 'Punto de Control')}</b><br>
+                        <small style="color:#aaa;">SN: {serie_reg}</small><hr style="border-color:#333; margin:6px 0;">
+                        {html_vars_detalle}
+                    </div>
                 """
-                folium.Marker(location=r['coord'], icon=DivIcon(icon_size=(30, 40), icon_anchor=(15, 33), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=300)).add_to(m_sec)
-                folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,36), icon_anchor=(-15, 35), html=f'<div style="font-size: 10pt; color: #00FFFF; font-weight: bold; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 4px; width: max-content; white-space: nowrap; border: 1px solid rgba(0,255,255,0.4);">SN: {id_reg}</div>')).add_to(m_sec)
+                icon_html = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #66ccff, #007bff, #003366); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
+                folium.Marker(location=r['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html), popup=folium.Popup(html_popup_reg, max_width=250)).add_to(capa_control)
+                folium.Marker(location=r['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFFF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,255,0.4);">SN: {serie_reg} • Registrador</div>')).add_to(capa_control)
 
             for id_pc, pc in dict_pc_sec.items():
                 domicilio_texto = pc.get('Domicilio', 'S/D')
-                val_p, fec_p = scada_res_reg.get(pc['tag_p1'], (0.0, "N/A"))
-                html_pc = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:180px; font-family:sans-serif;"><b style="color:#FF00FF; font-size:13px;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><hr style="opacity:0.2; margin:5px 0;">Presión: <b style="color:#FF00FF;">{val_p:.2f} kg</b><br><span style="color:#FFFF00; font-size:9px;">{fec_p}</span></div>"""
+                serie_pc = str(pc.get('Serie', id_pc)).strip()
+                vals_pc = ultimos_valores_mapa.get(serie_pc, {})
                 
-                folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(250,36), icon_anchor=(-15, 35), html=f'<div style="font-size: 10pt; color: #FF00FF; font-weight: bold; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 4px; width: max-content; white-space: nowrap; border: 1px solid rgba(255,0,255,0.4);">NS: {id_pc}</div>')).add_to(m_sec)
+                html_vars_pc = ""
+                for var_name, info_v in vals_pc.items():
+                    val_bruto = info_v.get('valor')
+                    try:
+                        val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    except (ValueError, TypeError):
+                        val_num = 0.0
+                    unidad_v = "Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else "")
+                    html_vars_pc += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
                 
-                icon_html = """
-                <div style="position: relative; width: 30px; height: 30px;">
-                    <div style="width: 20px; height: 20px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 4px 6px rgba(0,0,0,0.5); position: absolute; top: 0; left: 5px; z-index: 2;"></div>
-                    <div style="width: 2px; height: 15px; background: linear-gradient(to right, #e0e0e0, #808080); position: absolute; top: 18px; left: 14px; z-index: 1;"></div>
-                </div>
-                """
-                folium.Marker(location=pc['coord'], icon=DivIcon(icon_size=(30, 40), icon_anchor=(15, 33), html=icon_html), popup=folium.Popup(html_pc, max_width=250)).add_to(m_sec)
-                
-            for id_vrp, vrp in dict_vrp_sec.items():
-                val_p1, _ = scada_res_reg.get(vrp['tag_p1'], (0.0, "N/A"))
-                val_p2, _ = scada_res_reg.get(vrp['tag_p2'], (0.0, "N/A"))
-                serie_vrp = vrp.get('Serie', 'S/N')
-                html_vrp = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:200px; font-family:sans-serif;"><b style="color:#00FFCC; font-size:13px;">VALVULA VRP</b><br><small>{vrp['nombre']}</small><hr style="opacity:0.2; margin:5px 0;">P. Entrada: <b>{val_p1:.2f} kg</b><br>P. Salida: <b style="color:#00FFCC;">{val_p2:.2f} kg</b></div>"""
-                
-                icon_html = """
-                <div style="position: relative; width: 30px; height: 30px;">
-                    <div style="width: 20px; height: 20px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 4px 6px rgba(0,0,0,0.5); position: absolute; top: 0; left: 5px; z-index: 2;"></div>
-                    <div style="width: 2px; height: 15px; background: linear-gradient(to right, #e0e0e0, #808080); position: absolute; top: 18px; left: 14px; z-index: 1;"></div>
-                </div>
-                """
-                folium.Marker(location=vrp['coord'], icon=DivIcon(icon_size=(30, 40), icon_anchor=(15, 33), html=icon_html), popup=folium.Popup(html_vrp, max_width=250)).add_to(m_sec)
-                folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,36), icon_anchor=(-15, 35), html=f'<div style="font-size: 10pt; color: #00FFCC; font-weight: bold; text-shadow: 2px 2px 4px #000; background: rgba(0,0,0,0.6); padding: 2px 8px; border-radius: 4px; width: max-content; white-space: nowrap; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp}</div>')).add_to(m_sec)
+                if not html_vars_pc:
+                    html_vars_pc = "Sin registros recientes<br>"
 
-            ids_p = [p.strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
+                html_pc = f"""
+                    <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #FF00FF; width:200px;">
+                        <b style="color:#FF00FF;">PUNTO CRÍTICO</b><br><small>{domicilio_texto}</small><hr style="border-color:#333; margin:6px 0;">
+                        {html_vars_pc}
+                    </div>
+                """
+                icon_html_pc = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #ff4d4d, #ff0000, #800000); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
+                folium.Marker(location=pc['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_pc), popup=folium.Popup(html_pc, max_width=250)).add_to(capa_criticos)
+                folium.Marker(location=pc['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #FF00FF; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(255,0,255,0.4);">NS: {serie_pc} • Punto critico</div>')).add_to(capa_criticos)
+
+            for id_vrp, vrp in dict_vrp_sec.items():
+                serie_vrp = str(vrp.get('Serie', id_vrp)).strip()
+                vals_vrp = ultimos_valores_mapa.get(serie_vrp, {})
+                
+                html_vars_vrp = ""
+                for var_name, info_v in vals_vrp.items():
+                    val_bruto = info_v.get('valor')
+                    try:
+                        val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    except (ValueError, TypeError):
+                        val_num = 0.0
+                    unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
+                    html_vars_vrp += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                
+                if not html_vars_vrp:
+                    html_vars_vrp = "Sin registros recientes<br>"
+
+                html_vrp = f"""
+                    <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:220px;">
+                        <b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
+                        {html_vars_vrp}
+                    </div>
+                """
+                icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
+                folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
+                folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
+
+            tags_bomba_mapa = []
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
-                    info = mapa_pozos_dict[id_p]
-                    def ds(tag):
-                        val, fec = data_scada.get(tag, (0.0, "N/A"))
-                        try: return float(val), fec
-                        except: return 0.0, fec
-                            
-                    q, f_q = ds(info['caudal']); p, f_p = ds(info['presion'])
-                    v = [ds(info.get(f'v{i}')) for i in range(1, 4)]; a = [ds(info.get(f'a{i}')) for i in range(1, 4)]
-                    
-                    html_popup_sec = f"""<div style="background: #050505; color: white; padding: 15px; border-radius: 12px; width: 380px; border: 1px solid {info['color_final']}; font-family: sans-serif;"><div style="display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 8px; margin-bottom: 10px;"><b style="color: #00d4ff; font-size: 16px;">POZO {id_p}</b><span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span></div><div style="margin-bottom: 12px;"><div style="font-size: 10px; color: #888; margin-bottom: 4px;">HIDRÁULICA</div><div style="display: flex; align-items: baseline; font-size: 11px; margin-bottom: 3px;"><span>💧 Caudal: <b>{q:.2f} L/s</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_q}</span></div><div style="display: flex; align-items: baseline; font-size: 11px;"><span>🚀 Presión: <b>{p:.2f} kg</b></span><span style="color: #FFFF00; font-size: 8px; margin-left: auto;">{f_p}</span></div></div><div><div style="font-size: 10px; color: #888; margin-bottom: 4px;">ELÉCTRICO</div><table style="width: 100%; font-size: 10px; border-collapse: collapse;"><tr><td>L1-L2</td><td>{v[0][0]:.1f}V</td><td>{a[0][0]:.1f}A</td></tr></table></div></div>"""
+                    p_info = mapa_pozos_dict[id_p]
+                    t_bomba = p_info.get('bomba')
+                    if t_bomba and str(t_bomba).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                        if str(t_bomba).strip().lower() != 'sin telemetria':
+                            if str(t_bomba) not in tags_bomba_mapa:
+                                tags_bomba_mapa.append(str(t_bomba))
 
-                    folium.Marker(location=info['coord'], icon=folium.DivIcon(html=f'<div style="font-size: 11px; color: white; font-weight: bold; text-shadow: 1px 1px 2px black; width: 100px; position: relative; left: 17px; top: -3px;">{id_p}</div>')).add_to(m_sec)
-                    
-                    if info.get('blink'):
-                        folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_sec, max_width=400)).add_to(m_sec)
-                    else:
-                        folium.CircleMarker(location=info['coord'], radius=6, color=info['color_final'], fill=True, fill_opacity=1, popup=folium.Popup(html_popup_sec, max_width=400)).add_to(m_sec)
-
-            if st.session_state.get("ultimo_clic_sv"):
-                c_lat, c_lng = st.session_state.ultimo_clic_sv["lat"], st.session_state.ultimo_clic_sv["lng"]
-                sv_url = f"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={c_lat},{c_lng}"
-                html_popup_sv = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00d4ff; width:180px;"><b style="color:#00d4ff; font-size:12px;">COORDENADAS</b><br><code>{c_lat:.5f}, {c_lng:.5f}</code><br><br><a href="{sv_url}" target="_blank" style="display:block; text-align:center; background:#00d4ff; color:black; padding:8px; border-radius:5px; text-decoration:none; font-weight:bold; font-size:10px;">🚹 STREET VIEW</a></div>"""
-                folium.Marker(location=[c_lat, c_lng], popup=folium.Popup(html_popup_sv, max_width=200), icon=folium.Icon(color='blue', icon='map-marker')).add_to(m_sec)
-
-            folium.LayerControl(position='topright', collapsed=False).add_to(m_sec)
-            Fullscreen(position='topleft').add_to(m_sec)
-            salida = st_folium(m_sec, width="100%", height=330, key="mapa_miaa_interactivo_v4", returned_objects=["last_clicked"])
-            if salida and salida.get("last_clicked"):
-                nuevo_clic = salida["last_clicked"]
-                if st.session_state.get("ultimo_clic_sv") != nuevo_clic:
-                    st.session_state.ultimo_clic_sv = nuevo_clic
-                    st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        with col_der:
-            st.markdown(f"<h3 style='color:#00d4ff; font-size:18px; text-align: center; margin-bottom:0px;'>Histórico Puntos de control</h3>", unsafe_allow_html=True)
-            tags_visualizar = []
-            mapeo_config = {}
-
-            for s_id in list(dict_reg.keys()):
-                r_info = dict_reg[s_id]
-                conf_pc = [
-                    ('tag_q', f"S:{s_id} - Q", '#00d4ff', False),
-                    ('tag_p1', f"S:{s_id} - P1", '#00ff00', True),
-                    ('tag_p2', f"S:{s_id} - P2", '#ffff00', True)
-                ]
-                for key_t, lb, clr, sec in conf_pc:
-                    tag_v = r_info.get(key_t)
-                    if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        tags_visualizar.append(tag_v)
-                        mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+            scada_res_bombas = cargar_datos_scada([str(t) for t in set(tags_bomba_mapa) if t]) if tags_bomba_mapa else {}
 
             for id_p in ids_p:
                 if id_p in mapa_pozos_dict:
                     p_info = mapa_pozos_dict[id_p]
+                    coord_pz = p_info.get('coord')
+                    if coord_pz:
+                        val_bomba_str = str(p_info.get('bomba', '')).strip()
+                        t_pz_q = p_info.get('caudal')
+                        val_q_pz, _ = scada_res_reg.get(str(t_pz_q), (0.0, "N/A")) if t_pz_q else (0.0, "N/A")
+
+                        if val_bomba_str.lower() == 'sin telemetria' or not val_bomba_str or val_bomba_str.lower() in ['none', 'n/a', 'null', '0']:
+                            color_pz = "#808080"
+                            estado_txt = "Sin Telemetría"
+                        else:
+                            val_bomba_scada, _ = scada_res_bombas.get(val_bomba_str, (0.0, "N/A"))
+                            es_encendido = val_bomba_scada > 0.5
+                            color_pz = "#00ff00" if es_encendido else "#ff4d4d"
+                            estado_txt = 'Encendido' if es_encendido else 'Apagado'
+                        
+                        id_p_limpio = str(id_p).strip()
+                        if id_p_limpio.upper().startswith('PR'):
+                            id_p_limpio = 'R' + id_p_limpio[2:]
+                        elif id_p_limpio.upper().startswith('PP'):
+                            id_p_limpio = id_p_limpio[1:]
+                        elif not id_p_limpio.upper().startswith('P') and not id_p_limpio.upper().startswith('R'):
+                            id_p_limpio = 'P' + id_p_limpio
+
+                        html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
+                        icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
+                        folium.Marker(location=coord_pz, icon=folium.DivIcon(icon_size=(26, 26), icon_anchor=(13, 13), html=icon_html_pz), popup=folium.Popup(html_popup_pz, max_width=250)).add_to(capa_pozos)
+                        folium.Marker(location=coord_pz, icon=folium.features.DivIcon(icon_size=(200,30), icon_anchor=(-12, 15), html=f'<div style="font-size: 8.5pt; color: {color_pz}; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">{id_p_limpio}</div>')).add_to(capa_pozos)
+
+            folium.LayerControl(collapsed=True).add_to(m_sec)
+            Fullscreen(position='topleft').add_to(m_sec)
+            folium_static(m_sec, width=None, height=360)
+            
+        with col_der:
+            st.markdown(f"""
+                <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+            fig = go.Figure()
+
+            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+            fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+            num_dias = len(fechas_lineas)
+            paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+            ticks_filtrados = fechas_lineas[::paso]
+
+            etiquetas_filtradas = [
+                f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                for d in ticks_filtrados
+            ]
+
+            idx_q = 0
+            idx_p = 0
+            colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+            colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+
+            series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
+            if series_puntos_control:
+                try:
+                    engine_tel = get_mysql_telemetria_engine()
+                    series_in_sql = "', '".join(series_puntos_control)
+                    q_madre_sector = f"""
+                        SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                        FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_in_sql}')
+                          AND VARIABLE != 'Volt_bateria'
+                          AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                        ORDER BY FECHA_HORA_LOGGER ASC
+                    """
+                    df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
+                    
+                    if not df_madre_sector.empty:
+                        df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
+                        df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
+
+                        for r_k, r_info in dict_reg.items():
+                            serie_raw = str(r_info.get('Serie', r_k)).strip()
+                            nombre_reg = r_info.get('nombre', f"SN:{serie_raw}")
+                            df_temp_s = df_madre_sector[df_madre_sector['Serie_str'] == serie_raw]
+
+                            if not df_temp_s.empty:
+                                for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
+                                    df_v_group = df_v_group.sort_values('FECHA')
+                                    if df_v_group['VALOR'].notna().any():
+                                        is_caudal = 'CAUDAL' in str(var_name).upper()
+                                        
+                                        if is_caudal:
+                                            color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                            idx_q += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                name=f"{nombre_reg} - {var_name}",
+                                                yaxis="y1", mode='lines+markers',
+                                                line=dict(width=2, color=color_q),
+                                                marker=dict(size=3, symbol='circle'),
+                                                fill='tozeroy',
+                                                fillcolor="rgba(138, 203, 245, 0.15)",
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                            ))
+                                        else:
+                                            color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                            idx_p += 1
+                                            fig.add_trace(go.Scatter(
+                                                x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                name=f"{nombre_reg} - {var_name}",
+                                                yaxis="y2", mode='lines+markers',
+                                                line=dict(width=2, color=color_p),
+                                                marker=dict(size=3, symbol='circle'),
+                                                hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                            ))
+                except Exception:
+                    pass
+
+            tags_pozos_visualizar = []
+            mapeo_pozos_config = {}
+            for id_p in ids_p:
+                if id_p in mapa_pozos_dict:
+                    p_info = mapa_pozos_dict[id_p]
                     conf_pz = [
-                        ('caudal', f"Pozo {id_p} - Q", '#00d4ff', False),
-                        ('presion', f"Pozo {id_p} - P", '#00ff00', True),
-                        ('nivel_tanque', f"Pozo {id_p} - Nivel", '#0000FF', True)
+                        ('caudal', f"Pozo {id_p} - Q", False),
+                        ('presion', f"Pozo {id_p} - P", True),
+                        ('nivel_tanque', "Nivel TQ", True)
                     ]
-                    for key_t, lb, clr, sec in conf_pz:
+                    for key_t, lb, sec in conf_pz:
                         tag_v = p_info.get(key_t)
-                        if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a']:
-                            tags_visualizar.append(tag_v)
-                            mapeo_config[tag_v] = {'label': lb, 'color': clr, 'sec': sec}
+                        if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
+                            if str(tag_v) not in tags_pozos_visualizar:
+                                tags_pozos_visualizar.append(str(tag_v))
+                                mapeo_pozos_config[str(tag_v)] = {'label': lb, 'sec': sec}
 
-            if tags_visualizar:
+            if tags_pozos_visualizar:
                 try:
                     engine_h = get_mysql_scada_engine()
-                    tags_unicos_query = "', '".join(list(set(tags_visualizar)))
-                    q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
-                    df_h = pd.read_sql(q_hist, engine_h)
-                    
-                    if not df_h.empty:
-                        df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
-                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                    tags_unicos_query = "', '".join([str(t) for t in set(tags_pozos_visualizar) if t])
+                    if tags_unicos_query:
+                        q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
+                        df_h = pd.read_sql(q_hist, engine_h)
 
-                        fechas_lineas = pd.date_range(start=df_h['FECHA'].min().floor('D'), end=df_h['FECHA'].max().ceil('D'), freq='D')
-                        num_dias = len(fechas_lineas)
-                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                        ticks_filtrados = fechas_lineas[::paso]
+                        if not df_h.empty:
+                            df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
+                            for tag_name in tags_pozos_visualizar:
+                                df_tag = df_h[df_h['TAG'] == tag_name].sort_values('FECHA')
+                                if not df_tag.empty:
+                                    cfg = mapeo_pozos_config[tag_name]
+                                    es_caudal = not cfg['sec']
+                                    label_u = cfg['label'].upper()
 
-                        etiquetas_filtradas = [
-                            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                            for d in ticks_filtrados
-                        ]
-                    
-                        fig = go.Figure()
-                        idx_q = 0
-                        idx_p = 0
+                                    if es_caudal: unidad_pc = "L/s"
+                                    elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                    else: unidad_pc = "Kg/cm²"
 
-                        for tag_name in tags_visualizar:
-                            df_tag = df_h[df_h['TAG'] == tag_name]
-                            if not df_tag.empty:
-                                cfg = mapeo_config[tag_name]
-                                es_caudal = not cfg['sec']
-                                label_u = cfg['label'].upper()
+                                    if "NIVEL" in label_u or "TANQUE" in label_u:
+                                        color_base = "#d400ff"
+                                    elif es_caudal:
+                                        color_base = "#00d4ff"
+                                    else:
+                                        color_base = "#00ff00"
 
-                                if es_caudal: unidad_pc = "Lps"
-                                elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "Mts"
-                                else: unidad_pc = "kg/cm²"
-                                
-                                if es_caudal:
-                                    brillo = max(75 - (idx_q * 15), 35) 
-                                    color_base = f"hsl(200, 100%, {brillo}%)" 
-                                    idx_q += 1
-                                else:
-                                    brillo = max(80 - (idx_p * 20), 30)
-                                    color_base = f"hsl(145, 100%, {brillo}%)"
-                                    idx_p += 1
+                                    fig.add_trace(go.Scatter(
+                                        x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
+                                        yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                        line=dict(width=2, color=color_base),
+                                        marker=dict(size=3, symbol='circle'),
+                                        fill='tozeroy' if es_caudal else None,
+                                        fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
+                                        hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
+                                    ))
+                except Exception:
+                    pass
 
-                                fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
-                                    yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
-                                    line=dict(width=2, color=color_base),
-                                    marker=dict(size=3, symbol='circle'),
-                                    fill='tozeroy' if es_caudal else None,
-                                    fillcolor=color_base.replace("hsl", "hsla").replace(")", ", 0.15)"),
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
-                                ))
+            delta = pd.Timedelta(hours=1)
+            for d in fechas_lineas:
+                es_lunes = (d.dayofweek == 0)
+                fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-                        delta = pd.Timedelta(hours=1)
-                        for d in fechas_lineas:
-                            es_lunes = (d.dayofweek == 0)
-                            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-                        
-                        fig.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=350, 
-                            margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", 
-                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                            xaxis=dict(color="white", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
-                            yaxis=dict(title="Caudales (m³/h)", color="#00d4ff", tickformat=".2f"),
-                            yaxis2=dict(title="Presiones (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error Scada (Derecha): {e}")
+            fig.update_layout(
+                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
+                margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-        col_vrp, col_pc = st.columns([1.0, 1.0])
-        with col_vrp:
-            tags_vrp_global = []
-            mapeo_vrp_global = {}
-            for v_id, v_info in dict_vrp_sec.items():
-                identificador = f"VRP {v_id}" 
-                conf_vrp = [
-                    ('tag_q', f"{identificador} - Q", False),
-                    ('tag_p1', f"{identificador} - P1", True),
-                    ('tag_p2', f"{identificador} - P2", True)
-                ]
-                for key_t, lb, sec in conf_vrp:
-                    t_val = v_info.get(key_t)
-                    if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a']:
-                        tags_vrp_global.append(t_val)
-                        mapeo_vrp_global[t_val] = {'label': lb, 'sec': sec}
+        # Secciones inferiores dinámicas (Puntos críticos / VRPs)
+        tiene_datos_pc = False
+        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
+        
+        if dict_pc_sec and series_pc_list:
+            try:
+                engine_tel = get_mysql_telemetria_engine()
+                series_pc_in = "', '".join(series_pc_list)
+                q_check_pc = f"""
+                    SELECT 1 FROM BD_MADRE 
+                    WHERE DISPOSITIVO IN ('{series_pc_in}')
+                      AND VARIABLE != 'Volt_bateria'
+                      AND VARIABLE NOT LIKE '%CAUDAL%'
+                      AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                    LIMIT 1
+                """
+                df_chk_pc = pd.read_sql(q_check_pc, engine_tel)
+                if not df_chk_pc.empty:
+                    tiene_datos_pc = True
+            except Exception:
+                pass
 
-            if tags_vrp_global:
-                try:
-                    engine_h = get_mysql_scada_engine()
-                    tags_in_v = "', '".join(list(set(tags_vrp_global)))
-                    q_vrp = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_in_v}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC"
-                    df_v = pd.read_sql(q_vrp, engine_h)
-                    
-                    if not df_v.empty:
-                        st.markdown(f"<h3 style='color:#00ffcc; font-size:20px; margin-bottom:10px; text-align: center;'>Análisis Integral de VRPs del Sector</h3>", unsafe_allow_html=True)
+        tiene_vrps_disponibles = False
+        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
+        
+        if dict_vrp_sec and series_vrp_list:
+            try:
+                engine_tel = get_mysql_telemetria_engine()
+                series_vrp_in = "', '".join(series_vrp_list)
+                q_check_vrp = f"""
+                    SELECT 1 FROM BD_MADRE 
+                    WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                      AND VARIABLE != 'Volt_bateria'
+                      AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                    LIMIT 1
+                """
+                df_chk_vrp = pd.read_sql(q_check_vrp, engine_tel)
+                if not df_chk_vrp.empty:
+                    tiene_vrps_disponibles = True
+            except Exception:
+                pass
 
-                        df_v['FECHA'] = pd.to_datetime(df_v['FECHA'])
-                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-                        
-                        fechas_lineas = pd.date_range(start=df_v['FECHA'].min().floor('D'), end=df_v['FECHA'].max().ceil('D'), freq='D')
-                        num_dias = len(fechas_lineas)
-                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                        ticks_filtrados = fechas_lineas[::paso]
-                        etiquetas_filtradas = [
-                            f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                            for d in ticks_filtrados
-                        ]
-                        
-                        fig_v = go.Figure()
-                        delta = pd.Timedelta(hours=1)
-                        for d in fechas_lineas:
-                            es_lunes = (d.dayofweek == 0)
-                            fig_v.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                            fig_v.add_vline(x=d, line_width=0.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-                        
-                        idx_vq = 0
-                        idx_vp = 0
+        if tiene_datos_pc and tiene_vrps_disponibles:
+            col_pc, col_vrp_g = st.columns([1.0, 1.0], gap="medium")
+        elif tiene_datos_pc and not tiene_vrps_disponibles:
+            col_pc = st.container()
+            col_vrp_g = None
+        elif not tiene_datos_pc and tiene_vrps_disponibles:
+            col_pc = None
+            col_vrp_g = st.container()
+        else:
+            col_pc, col_vrp_g = None, None
 
-                        for t_name in tags_vrp_global:
-                            df_t = df_v[df_v['TAG'] == t_name]
-                            if not df_t.empty:
-                                c_vrp = mapeo_vrp_global[t_name]
-                                es_caudal_v = not c_vrp['sec']
-                                unidad_final = "kg/cm²" if "P1" in c_vrp['label'] or "P2" in c_vrp['label'] else "Lps"
-                                
-                                if es_caudal_v:
-                                    brillo = max(75 - (idx_vq * 15), 35)
-                                    color_v = f"hsl(200, 100%, {brillo}%)" 
-                                    idx_vq += 1
-                                else:
-                                    brillo = max(80 - (idx_vp * 15), 30)
-                                    color_v = f"hsl(150, 100%, {brillo}%)"
-                                    idx_vp += 1
-
-                                fig_v.add_trace(go.Scatter(
-                                    x=df_t['FECHA'], y=df_t['VALUE'], name=c_vrp['label'], 
-                                    yaxis="y2" if c_vrp['sec'] else "y1", mode='lines+markers',
-                                    line=dict(width=1.8, color=color_v),
-                                    marker=dict(size=3 if es_caudal_v else 4, symbol='circle'),
-                                    fill='tozeroy' if es_caudal_v else None,
-                                    fillcolor=color_v.replace("hsl", "hsla").replace(")", ", 0.12)"),
-                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {unidad_final}<extra></extra>'
-                                ))
-
-                        fig_v.update_layout(
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, 
-                            margin=dict(l=50, r=50, t=10, b=10), hovermode="x unified", 
-                            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-                            xaxis=dict(color="white", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
-                            yaxis=dict(title="Caudal (Lps)", color="#00d4ff", tickformat=".2f"),
-                            yaxis2=dict(title="Presión (kg)", side="right", overlaying="y", color="#00ff00", showgrid=False, tickformat=".2f")
-                        )
-                        st.plotly_chart(fig_v, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error Scada VRP: {e}")
-                    
-        with col_pc:
-            if dict_pc_sec:
-                tags_pc_list = [v['tag_p1'] for v in dict_pc_sec.values() if v.get('tag_p1')]
-                if tags_pc_list:
+        if col_pc is not None:
+            with col_pc:
+                st.markdown(f"""
+                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                fig_pc = go.Figure()
+                if tiene_datos_pc:
                     try:
-                        tags_pc_in = "', '".join(tags_pc_list)
-                        df_pc_h = pd.read_sql(f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_pc_in}') AND h.FECHA BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59' ORDER BY h.FECHA ASC", engine_h)
+                        q_madre_pc = f"""
+                            SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                            FROM BD_MADRE 
+                            WHERE DISPOSITIVO IN ('{series_pc_in}')
+                              AND VARIABLE != 'Volt_bateria'
+                              AND VARIABLE NOT LIKE '%CAUDAL%'
+                              AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                            ORDER BY FECHA_HORA_LOGGER ASC
+                        """
+                        df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
+                        if not df_madre_pc.empty:
+                            df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
+                            df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
 
-                        if not df_pc_h.empty:
-                            st.markdown(f"<h3 style='color:#ff0000; font-size:18px; margin-bottom:10px; text-align: center;'>Puntos críticos del sector:</h3>", unsafe_allow_html=True)
-                            
-                            df_pc_h['FECHA'] = pd.to_datetime(df_pc_h['FECHA'])
                             dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                             meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-                            
-                            fechas_lineas = pd.date_range(start=df_pc_h['FECHA'].min().floor('D'), end=df_pc_h['FECHA'].max().ceil('D'), freq='D')
-                            num_dias = len(fechas_lineas)
-                            paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                            ticks_filtrados = fechas_lineas[::paso]
-                            etiquetas_filtradas = [f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}" for d in ticks_filtrados]
 
-                            fig_pc = go.Figure()
-                            delta = pd.Timedelta(hours=1)
-                            for d in fechas_lineas:
-                                es_lunes = (d.dayofweek == 0)
-                                fig_pc.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                                fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                            fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                            ticks_pc = fechas_lineas_pc[::1]
+                            etiquetas_pc = [
+                                f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                for d in ticks_pc
+                            ]
 
-                            tag_to_name = {v['tag_p1']: v.get('Domicilio', v.get('nombre', 'S/D')) for v in dict_pc_sec.values()}
+                            colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
+                            idx_pc_c = 0
 
-                            for tag in tags_pc_list:
-                                df_temp = df_pc_h[df_pc_h['TAG'] == tag]
+                            for pc_key, pc_info in dict_pc_sec.items():
+                                serie_raw = str(pc_info.get('Serie', pc_key)).strip()
+                                domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
+
+                                df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
                                 if not df_temp.empty:
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_temp['FECHA'], y=df_temp['VALUE'], 
-                                        name=tag_to_name.get(tag, tag), mode='lines+markers',
-                                        marker=dict(size=4, symbol='circle'), line=dict(width=2),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} kg<extra></extra>'
-                                    ))
+                                    for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                        df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                        
+                                        if not df_v_group.empty:
+                                            color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                            idx_pc_c += 1
 
-                            fig_pc.update_layout(
-                                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=300, 
-                                margin=dict(l=50, r=50, t=40, b=10), hovermode="x unified",
-                                xaxis=dict(color="white", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0, tickformat="%d-%b-%Y %H:%M"),
-                                yaxis=dict(tickformat=".2f", color="white"),
-                                legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=10))
-                            )
-                            st.plotly_chart(fig_pc, use_container_width=True)
-                    except Exception as e:
-                        st.error(f"Error PC: {e}")
+                                            fig_pc.add_trace(go.Scatter(
+                                                x=df_v_group['FECHA'], 
+                                                y=df_v_group['VALOR'], 
+                                                name=f"{domicilio_nombre} - {var_name}", 
+                                                mode='lines+markers',
+                                                connectgaps=False,
+                                                showlegend=True,
+                                                marker=dict(size=3.5, symbol='circle'), 
+                                                line=dict(width=2, color=color_trace_pc),
+                                                hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                            ))
 
-        st.stop()
+                            delta_h = pd.Timedelta(hours=1)
+                            for d in fechas_lineas_pc:
+                                es_lunes = (d.dayofweek == 0)
+                                fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+                    except Exception:
+                        pass
+
+                fig_pc.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
+                    yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Valor")
+                )
+                st.plotly_chart(fig_pc, use_container_width=True)
+
+        if col_vrp_g is not None:
+            with col_vrp_g:
+                st.markdown(f"""
+                    <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Válvulas reductoras de presión (VRP)</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Variables registradas en BD_MADRE (Diccionario_vrp del sector)</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                fig_vrp = go.Figure()
+                if tiene_vrps_disponibles:
+                    try:
+                        series_vrp_in = "', '".join(series_vrp_list)
+                        q_madre_vrp = f"""
+                            SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                            FROM BD_MADRE 
+                            WHERE DISPOSITIVO IN ('{series_vrp_in}')
+                              AND VARIABLE != 'Volt_bateria'
+                              AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                            ORDER BY FECHA_HORA_LOGGER ASC
+                        """
+                        df_madre_vrp = pd.read_sql(q_madre_vrp, engine_tel)
+                        
+                        if not df_madre_vrp.empty:
+                            df_madre_vrp['FECHA'] = pd.to_datetime(df_madre_vrp['Fecha'])
+                            df_madre_vrp['Serie_str'] = df_madre_vrp['Serie'].astype(str).str.strip()
+
+                            dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                            meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                            f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                            f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                            fechas_lineas_vrp = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                            ticks_vrp = fechas_lineas_vrp[::1]
+                            etiquetas_vrp = [
+                                f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                                for d in ticks_vrp
+                            ]
+
+                            colores_vrp = ["#00ffcc", "#28a745", "#a1ffce", "#00cc66"]
+                            idx_vrp_c = 0
+
+                            for v_key, v_info in dict_vrp_sec.items():
+                                serie_raw = str(v_info.get('Serie', v_key)).strip()
+                                nombre_vrp = v_info.get('nombre', f'VRP {serie_raw}')
+
+                                df_temp = df_madre_vrp[df_madre_vrp['Serie_str'] == serie_raw]
+                                if not df_temp.empty:
+                                    for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                        df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                        
+                                        if not df_v_group.empty:
+                                            color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
+                                            idx_vrp_c += 1
+
+                                            fig_vrp.add_trace(go.Scatter(
+                                                x=df_v_group['FECHA'], 
+                                                y=df_v_group['VALOR'], 
+                                                name=f"{nombre_vrp} - {var_name}", 
+                                                mode='lines+markers',
+                                                connectgaps=False,
+                                                showlegend=True,
+                                                marker=dict(size=3.5, symbol='circle'), 
+                                                line=dict(width=2, color=color_trace_vrp),
+                                                hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                            ))
+
+                            delta_h = pd.Timedelta(hours=1)
+                            for d in fechas_lineas_vrp:
+                                es_lunes = (d.dayofweek == 0)
+                                fig_vrp.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                                fig_vrp.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+                    except Exception:
+                        pass
+
+                fig_vrp.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+                    margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
+                    yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Valor")
+                )
+                st.plotly_chart(fig_vrp, use_container_width=True)
+
+        st.write("")
+        st.markdown(f"""
+            <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
+                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
+            </div>
+            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
+                        <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
+                        <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
+                    </tr>
+                    <tr>
+                        <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
+                        <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
+                        <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
+                    </tr>
+                    <tr>
+                        <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
+                        <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
+                        <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
+                    </tr>
+                    <tr>
+                        <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
+                    </tr>
+                </table>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.warning(f"No se encontró información técnica para el sector '{sector_seleccionado}'.")
+
+    st.stop()
     
 # 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
