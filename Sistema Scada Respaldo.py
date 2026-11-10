@@ -2163,7 +2163,7 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            .block-container { padding: 0.5rem 2rem 2.5rem !important; max-width: 1920px; }
+            .block-container { padding: 0.5rem 2rem 3.5rem !important; max-width: 1920px; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
@@ -2234,10 +2234,8 @@ if sector_seleccionado:
     sec_id = str(sec_val_actual).split('.')[0].strip()
     sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     
-    # Búsqueda segura en la lista de sectores
     datos_s = next((s for s in sectores if str(s.get('sector', '')).strip() == sec_id), None)
     
-    # Respaldo de emergencia para que .get() nunca falle
     if datos_s is None:
         datos_s = {
             'sector': sec_val_actual,
@@ -2258,7 +2256,7 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO: "Monitoreo de sector:" en blanco y sector en azul ---
+    # --- TÍTULO CENTRADO ---
     st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
             <h1 style="margin: 0; color: #ffffff; text-align: center;">Monitoreo de sector: <span style="color: #00d4ff;">{sector_seleccionado}</span></h1>
@@ -3068,11 +3066,11 @@ if sector_seleccionado:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA INSTITUCIONAL A LA IZQUIERDA Y VISIBLE ---
+    # --- MARCA DE AGUA INSTITUCIONAL DESPEGADA (MARGEN INFERIOR AUMENTADO) ---
     st.markdown("""
         <div style="
             position: fixed;
-            bottom: 12px;
+            bottom: 15px;
             left: 24px;
             z-index: 99999;
             background: rgba(8, 20, 33, 0.95);
@@ -3083,6 +3081,7 @@ if sector_seleccionado:
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             text-align: left;
             line-height: 1.2;
+            margin-top: 30px;
         ">
             <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
             <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
