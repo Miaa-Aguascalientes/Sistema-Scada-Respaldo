@@ -2257,12 +2257,11 @@ if sector_seleccionado:
         }
 
     rol_actual = st.session_state.get('rol', 'usuario')
-    base_url_regreso = f"?access=granted&role={rol_actual}&nav=mapa"
     
+    # --- TÍTULO CENTRADO Y SIN BOTÓN ---
     st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
-            <a href="{base_url_regreso}" target="_self" style="background: #1f4068; color: #00d4ff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #00d4ff;">⬅️ Volver al Mapa Principal</a>
+        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; color: #00d4ff; text-align: center;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
         </div>
     """, unsafe_allow_html=True)
 
@@ -2605,7 +2604,7 @@ if sector_seleccionado:
 
             html_vrp = f"""
                 <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:220px;">
-                    <b style="color:#00FFCC;">VÁLVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
+                    <b style="color:#00FFCC;">VÁLVULA VRP</b><br><small>{vrp.get('nombre', 'S/N')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
                     {html_vars_vrp}
                 </div>
             """
