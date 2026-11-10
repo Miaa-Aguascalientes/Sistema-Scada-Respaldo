@@ -2163,8 +2163,8 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            /* Se reduce drásticamente el espacio superior para aprovechar la pantalla */
-            .block-container { padding: 0.5rem 2rem 1.4rem !important; max-width: 1920px; }
+            /* Espacio superior ajustado y área inferior para evitar solapes con la marca de agua */
+            .block-container { padding: 0.5rem 2rem 2.5rem !important; max-width: 1920px; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
@@ -3066,6 +3066,27 @@ if sector_seleccionado:
                     <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
                 </tr>
             </table>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # --- MARCA DE AGUA INSTITUCIONAL ---
+    st.markdown("""
+        <div style="
+            position: fixed;
+            bottom: 12px;
+            right: 24px;
+            z-index: 99999;
+            background: rgba(11, 26, 41, 0.75);
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 8px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            text-align: right;
+            line-height: 1.2;
+        ">
+            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
+            <span style="color: #91a8bf; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
         </div>
     """, unsafe_allow_html=True)
 
