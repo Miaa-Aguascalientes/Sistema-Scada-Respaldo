@@ -2191,18 +2191,6 @@ if sector_seleccionado:
             .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
             .anim-float { animation: float-up 3s infinite ease-in-out; }
 
-            .label-inline {
-                font-size: 0.95rem;
-                font-weight: 600;
-                color: #c1d3e5;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                height: 100%;
-                padding-top: 0.5rem;
-                padding-right: 8px;
-            }
-
             .card-indicador {
                 background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
                 border: 1px solid #27445e;
@@ -2224,20 +2212,15 @@ if sector_seleccionado:
         </style>
     """, unsafe_allow_html=True)
 
-    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO PARA EVITAR EL CRASH
+    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO
     if 'sector_seleccionado' not in locals() and 'sector_seleccionado' in st.session_state:
         sector_seleccionado = st.session_state['sector_seleccionado']
-    if 'sector_elegido' not in locals():
-        sector_elegido = globals().get('sector_seleccionado', 'Sector Desconocido')
-
-    sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else sector_elegido
+    
+    sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else "S-023 · Mirador"
     sec_id = str(sec_val_actual).split('.')[0].strip()
     sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     
-    # Búsqueda segura en la lista de sectores
     datos_s = next((s for s in sectores if str(s.get('sector', '')).strip() == sec_id), None)
-    
-    # Respaldo de emergencia para que .get() nunca falle
     if datos_s is None:
         datos_s = {
             'sector': sec_val_actual,
@@ -2256,25 +2239,45 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    rol_actual = st.session_state.get('rol', 'usuario')
-    base_url_regreso = f"?access=granted&role={rol_actual}&nav=mapa"
-    
     st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
-            <a href="{base_url_regreso}" target="_self" style="background: #1f4068; color: #00d4ff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #00d4ff;">⬅️ Volver al Mapa Principal</a>
+        <div style="margin-bottom: 15px;">
+            <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sec_val_actual}</h1>
         </div>
     """, unsafe_allow_html=True)
 
-    col_bloque_per = st.columns([1])[0]
-    with col_bloque_per:
+    # 🎛️ SELECTORES EN DOS COLUMNAS (Sector y Periodo)
+    col_sel_1, col_sel_2 = st.columns([1.0, 1.0])
+
+    with col_sel_1:
+        # Construir lista de nombres de sectores disponibles
+        lista_nombres_sectores = [str(s.get('sector', '')) for s in sectores if s.get('sector')]
+        if not lista_nombres_sectores:
+            lista_nombres_sectores = [sec_val_actual]
+            
+        # Encontrar índice actual de forma segura
+        try:
+            idx_actual = lista_nombres_sectores.index(sec_val_actual)
+        except ValueError:
+            idx_actual = 0
+
+        sector_elegido_tab = st.selectbox(
+            "Sector",
+            lista_nombres_sectores,
+            index=idx_actual,
+            key="f_sector_selector_detalle"
+        )
+        if sector_elegido_tab != sector_seleccionado:
+            st.session_state['sector_seleccionado'] = sector_elegido_tab
+            st.rerun()
+
+    with col_sel_2:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
             "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
         ]
         opcion_periodo_tab = st.selectbox(
-            "Periodo de análisis:",
+            "Periodo",
             opciones_periodo,
             index=2,
             key="f_sector_periodo_tab_detalle"
@@ -2495,7 +2498,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Sector y puntos de medición</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sector_elegido} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sec_val_actual} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
             </div>
         """, unsafe_allow_html=True)
 
