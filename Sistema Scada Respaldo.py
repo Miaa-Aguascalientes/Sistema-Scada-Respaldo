@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON LEYENDA INTERACTIVA ESTILO IMAGEN)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (OPTIMIZADA - LEYENDA INTERACTIVA NATIVA DE PLOTLY)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4909,7 +4909,6 @@ elif tab_activa == "sectores":
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
-            # Declaración temprana de series para evitar NameError
             series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
 
             mapa_series_nombres = {}
@@ -5251,7 +5250,7 @@ elif tab_activa == "sectores":
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento de Sector y Puntos Críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Controles de Visibilidad de Leyenda y Gráfica Estilo SCADA</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Gráfica Hidráulica con Leyenda Interactiva Nativa (Haz clic en la leyenda para ocultar/mostrar trazas)</p>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -5336,18 +5335,6 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
-                # Estructura idéntica a la imagen de referencia para los controles de visibilidad
-                with st.expander("🎛️ Controles de Visibilidad de Leyenda", expanded=True):
-                    estados_trazas = {}
-                    if trazas_disponibles:
-                        col_sw1, col_sw2 = st.columns(2)
-                        for idx_t, traza in enumerate(trazas_disponibles):
-                            target_col = col_sw1 if idx_t % 2 == 0 else col_sw2
-                            with target_col:
-                                estados_trazas[traza['nombre']] = st.toggle(f"{traza['nombre']}", value=True, key=f"tgl_hz_{sector_elegido}_{idx_t}")
-                    else:
-                        st.info("No hay variables temporales activas para este sector en el periodo.")
-
                 fig = go.Figure()
 
                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -5371,31 +5358,30 @@ elif tab_activa == "sectores":
                 colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
                 for traza in trazas_disponibles:
-                    if estados_trazas.get(traza['nombre'], True):
-                        df_t_sub = traza['df']
-                        is_caudal = traza['es_caudal']
-                        
-                        if is_caudal:
-                            color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                            idx_q += 1
-                        else:
-                            color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                            idx_p += 1
+                    df_t_sub = traza['df']
+                    is_caudal = traza['es_caudal']
+                    
+                    if is_caudal:
+                        color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                        idx_q += 1
+                    else:
+                        color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                        idx_p += 1
 
-                        if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
-                            color_trace = "#d400ff"
+                    if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
+                        color_trace = "#d400ff"
 
-                        fig.add_trace(go.Scatter(
-                            x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
-                            name=traza['nombre'], 
-                            yaxis="y1" if is_caudal else "y2", 
-                            mode='lines+markers',
-                            line=dict(width=2, color=color_trace),
-                            marker=dict(size=3, symbol='circle'),
-                            fill='tozeroy' if is_caudal else None,
-                            fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
-                            hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
-                        ))
+                    fig.add_trace(go.Scatter(
+                        x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
+                        name=traza['nombre'], 
+                        yaxis="y1" if is_caudal else "y2", 
+                        mode='lines+markers',
+                        line=dict(width=2, color=color_trace),
+                        marker=dict(size=3, symbol='circle'),
+                        fill='tozeroy' if is_caudal else None,
+                        fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
+                        hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
+                    ))
 
                 delta = pd.Timedelta(hours=1)
                 for d in fechas_lineas:
@@ -5404,9 +5390,20 @@ elif tab_activa == "sectores":
                     fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
 
                 fig.update_layout(
-                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
-                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-                    showlegend=False,
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=420, 
+                    margin=dict(l=40, r=40, t=20, b=10), hovermode="x unified", 
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="bottom", 
+                        y=1.02, 
+                        x=0.5, 
+                        xanchor="center", 
+                        font=dict(color="white", size=10),
+                        bgcolor="rgba(11,26,41,0.8)",
+                        bordercolor="#27445e",
+                        borderwidth=1
+                    ),
                     xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
                     yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
                     yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
