@@ -2163,7 +2163,8 @@ if sector_seleccionado:
             .stApp { background: #081421; color: #e4edf7; }
             header[data-testid="stHeader"] { background: #081421; }
             [data-testid="stSidebar"] { display: none !important; }
-            .block-container { padding: 1.0rem 2rem 1.4rem; max-width: 1920px; }
+            .block-container { padding: 3.5rem 2rem 1.4rem; max-width: 1920px; }
+            h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: .2rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
@@ -2190,6 +2191,18 @@ if sector_seleccionado:
             .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
             .anim-float { animation: float-up 3s infinite ease-in-out; }
 
+            .label-inline {
+                font-size: 0.95rem;
+                font-weight: 600;
+                color: #c1d3e5;
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                height: 100%;
+                padding-top: 0.5rem;
+                padding-right: 8px;
+            }
+
             .card-indicador {
                 background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
                 border: 1px solid #27445e;
@@ -2211,15 +2224,20 @@ if sector_seleccionado:
         </style>
     """, unsafe_allow_html=True)
 
-    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO
+    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO PARA EVITAR EL CRASH
     if 'sector_seleccionado' not in locals() and 'sector_seleccionado' in st.session_state:
         sector_seleccionado = st.session_state['sector_seleccionado']
-    
-    sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else "S-023 · Mirador"
+    if 'sector_elegido' not in locals():
+        sector_elegido = globals().get('sector_seleccionado', 'Sector Desconocido')
+
+    sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else sector_elegido
     sec_id = str(sec_val_actual).split('.')[0].strip()
     sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     
+    # Búsqueda segura en la lista de sectores
     datos_s = next((s for s in sectores if str(s.get('sector', '')).strip() == sec_id), None)
+    
+    # Respaldo de emergencia para que .get() nunca falle
     if datos_s is None:
         datos_s = {
             'sector': sec_val_actual,
@@ -2238,36 +2256,25 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # 🏛️ ENCABEZADO LIMPIO SIN RECUADRO: LOGOTIPO Y TÍTULO AL MISMO NIVEL
-    col_logo, col_titulo, col_vacio = st.columns([1.2, 2.5, 0.8])
+    rol_actual = st.session_state.get('rol', 'usuario')
+    base_url_regreso = f"?access=granted&role={rol_actual}&nav=mapa"
+    
+    st.markdown(f"""
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h1 style="margin: 0; color: #00d4ff;">ANÁLISIS DE SECTOR: {sector_seleccionado}</h1>
+            <a href="{base_url_regreso}" target="_self" style="background: #1f4068; color: #00d4ff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #00d4ff;">⬅️ Volver al Mapa Principal</a>
+        </div>
+    """, unsafe_allow_html=True)
 
-    with col_logo:
-        st.markdown("""
-            <div style="display: flex; align-items: center; padding-top: 4px;">
-                <img src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" style="height: 38px; width: auto;">
-            </div>
-        """, unsafe_allow_html=True)
-
-    with col_titulo:
-        st.markdown("""
-            <div style="text-align: center;">
-                <h1 style="color: #ffffff; font-size: 1.7rem; margin: 0; font-weight: 700; letter-spacing: 0.5px;">Monitoreo de sectores</h1>
-                <h3 style="color: #00d4ff; font-size: 1.15rem; margin: 2px 0 0 0; font-weight: 600;">SECTOR: {}</h3>
-            </div>
-        """.format(sec_val_actual), unsafe_allow_html=True)
-
-    st.write("")
-
-    # 🎛️ SELECTOR DE PERIODO
-    col_sel_p, _ = st.columns([1.2, 2.8])
-    with col_sel_p:
+    col_bloque_per = st.columns([1])[0]
+    with col_bloque_per:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
             "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
         ]
         opcion_periodo_tab = st.selectbox(
-            "⏱️ Periodo de análisis",
+            "Periodo de análisis:",
             opciones_periodo,
             index=2,
             key="f_sector_periodo_tab_detalle"
@@ -2488,7 +2495,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Sector y puntos de medición</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sec_val_actual} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">{sector_elegido} - Distrito {datos_s.get('Distrito', 'Oriente')}</p>
             </div>
         """, unsafe_allow_html=True)
 
