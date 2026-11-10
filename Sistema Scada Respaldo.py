@@ -2256,13 +2256,14 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO ---
+    # --- TÍTULO CENTRADO CON EL DISEÑO SOLICITADO ---
     st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
             <h1 style="margin: 0; color: #ffffff; text-align: center;">Monitoreo de sector: <span style="color: #00d4ff;">{sector_seleccionado}</span></h1>
         </div>
     """, unsafe_allow_html=True)
 
+    # --- ÚNICO SELECTOR (PERIODO DE ANÁLISIS) EN UN CONTENEDOR ANCHO ---
     col_bloque_per = st.columns([1])[0]
     with col_bloque_per:
         opciones_periodo = [
@@ -2271,7 +2272,7 @@ if sector_seleccionado:
             "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
         ]
         opcion_periodo_tab = st.selectbox(
-            "Periodo de análisis:",
+            "Periodo:",
             opciones_periodo,
             index=2,
             key="f_sector_periodo_tab_detalle"
