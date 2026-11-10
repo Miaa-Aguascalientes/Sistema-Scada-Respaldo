@@ -5245,9 +5245,6 @@ elif tab_activa == "sectores":
                 folium_static(m_sec, width=None, height=360)
                 
             with col_der:
-                # ==============================================================================
-                # IMPLEMENTACIÓN DE ACTIVADORES ON/OFF DE VARIABLES EN LEYENDA (TIPO IMAGEN)
-                # ==============================================================================
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
@@ -5255,9 +5252,6 @@ elif tab_activa == "sectores":
                     </div>
                 """, unsafe_allow_html=True)
 
-                # Recopilamos todas las trazas posibles para construir los switches On/Off dinámicos
-                # 1. Trazas de Puntos de Control / BD_MADRE
-                series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 trazas_disponibles = []
 
                 if series_puntos_control:
@@ -5297,7 +5291,6 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
-                # 2. Trazas de Pozos
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5340,7 +5333,6 @@ elif tab_activa == "sectores":
                     except Exception:
                         pass
 
-                # Renderizamos un panel expandible con los activadores On/Off para cada variable detectada
                 with st.expander("🎛️ Controles de Visibilidad de Leyenda", expanded=True):
                     estados_trazas = {}
                     if trazas_disponibles:
@@ -5352,7 +5344,6 @@ elif tab_activa == "sectores":
                     else:
                         st.info("No hay variables temporales activas para este sector en el periodo.")
 
-                # Construcción del gráfico interactivo aplicando el estado On/Off de los toggles
                 fig = go.Figure()
 
                 dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
@@ -5399,7 +5390,7 @@ elif tab_activa == "sectores":
                             marker=dict(size=3, symbol='circle'),
                             fill='tozeroy' if is_caudal else None,
                             fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
-                            hovertemplate=f'<b>%{fullData.name}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
+                            hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
                         ))
 
                 delta = pd.Timedelta(hours=1)
