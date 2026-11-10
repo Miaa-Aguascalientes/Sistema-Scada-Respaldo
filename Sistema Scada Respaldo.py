@@ -4325,26 +4325,31 @@ elif tab_activa == "incidencias":
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
 elif tab_activa == "tanques":
-    st.markdown('<div class="titulo-superior">SEGUIMIENTO Y MONITOREO A TANQUES PRINCIPALES</div>', unsafe_allow_html=True)
+    st.markdown('<div class="titulo-superior">SEGUIMIENTO Y MONITOREO A TANQUES PRINCIPALES </div>', unsafe_allow_html=True)
+    import numpy as np
+    import pandas as pd
+    import plotly.graph_objects as go
+    from html import escape
 
     TIMEZONE = "America/Mexico_City"
-    DEFAULT_LOAD_DAYS = 7
+    DEFAULT_LOAD_DAYS = 7  # Optimizado para carga rápida
     MAX_AGE_MINUTES = 120
     EXPECTED_INTERVAL_MINUTES = 5
     MIN_COMMUNICATION_PCT = 5
     CATEGORY_COLUMN = "Distrito"
 
+    # Estilos CSS específicos del tablero de tanques
     st.markdown(
         """
         <style>
         .tq-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; text-transform: uppercase; }
-        .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; white-space: nowrap; margin: 2px 0 4px; }
-        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; }
+        .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
+        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
         .tm-card-title b { margin-right: 8px; color: #63b9df; }
-        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 10px 0 4px; }
-        .tm-card-metrics .tm-metric { display: grid; grid-template-rows: auto auto; }
-        .tm-card-metrics .tm-metric span { color: #8fa9c2; font-size: .75rem; }
-        .tm-card-metrics .tm-metric strong { color: #f0f7ff; font-size: .88rem; font-weight: 600; }
+        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 8px; margin: 10px 0 4px; }
+        .tm-card-metrics .tm-metric { display: grid; grid-template-rows: auto auto; min-width: 0; }
+        .tm-card-metrics .tm-metric span { color: #8fa9c2; font-size: .75rem; line-height: 1.2; }
+        .tm-card-metrics .tm-metric strong { color: #f0f7ff; font-size: .88rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; }
         </style>
         """,
         unsafe_allow_html=True
@@ -4352,6 +4357,7 @@ elif tab_activa == "tanques":
 
     st.markdown("<h3 style='color: #00d4ff; margin-bottom: 15px;'>// MONITOREO DE TANQUES DE REGULACIÓN - MIAA</h3>", unsafe_allow_html=True)
 
+    # 1. Funciones auxiliares internas de soporte
     def _number(value: float, unit: str = "", decimals: int = 0) -> str:
         if pd.isna(value):
             return "—"
@@ -4392,26 +4398,51 @@ elif tab_activa == "tanques":
             state[category_key] = categories[0]
 
         with st.container(border=True):
-            date_column, quick_column, category_column = st.columns([2, 2, 4], gap="medium", vertical_alignment="bottom")
+            date_column, quick_column, category_column = st.columns(
+                [2, 2, 4], gap="medium", vertical_alignment="bottom"
+            )
             with date_column:
-                st.date_input("Periodo", min_value=first.date(), max_value=last.date(), format="DD/MM/YYYY", key=dates_key, on_change=use_custom_dates)
+                st.date_input(
+                    "Periodo",
+                    min_value=first.date(),
+                    max_value=last.date(),
+                    format="DD/MM/YYYY",
+                    key=dates_key,
+                    on_change=use_custom_dates,
+                )
             with quick_column:
-                st.segmented_control("Acceso rápido", options=list(periods), key=quick_key, width="stretch")
+                st.segmented_control(
+                    "Acceso rápido",
+                    options=list(periods),
+                    key=quick_key,
+                    width="stretch",
+                )
             with category_column:
-                st.segmented_control("Distrito", options=categories, selection_mode="single", required=True, key=category_key, width="stretch")
+                st.segmented_control(
+                    "Distrito",
+                    options=categories,
+                    selection_mode="single",
+                    required=True,
+                    key=category_key,
+                    width="stretch",
+                )
 
         dates = state[dates_key]
         if len(dates) != 2:
             return None
 
         start = pd.Timestamp(dates[0])
-        end = min(pd.Timestamp(dates[1]) + pd.Timedelta(days=1) - pd.Timedelta(nanoseconds=1), last)
+        end = min(
+            pd.Timestamp(dates[1]) + pd.Timedelta(days=1) - pd.Timedelta(nanoseconds=1),
+            last,
+        )
         return start, end, state[category_key]
 
     def _summarize(data, catalog, start, end, max_age_minutes, expected_interval_minutes=5, min_communication_pct=80):
         interval = pd.Timedelta(minutes=expected_interval_minutes)
         expected_readings = int((end - start) // interval)
-        if expected_readings < 1: expected_readings = 1
+        if expected_readings < 1:
+            expected_readings = 1
 
         valid = data.loc[data["level_m"].ge(0)]
         latest = valid.groupby("tank_id", sort=False).tail(1).set_index("tank_id")
@@ -4478,13 +4509,13 @@ elif tab_activa == "tanques":
         for col, (title, value, caption, key_name) in zip(cols, kpis):
             with col:
                 with st.container(border=True, key=key_name):
-                    st.markdown(f'<div class="tq-eyebrow">{escape(title)}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="tq-kpi-value">{escape(value)}</div>', unsafe_allow_html=True)
+                    st.html(f'<div class="tq-eyebrow">{escape(title)}</div>')
+                    st.html(f'<div class="tq-kpi-value">{escape(value)}</div>')
                     st.caption(caption)
 
         st.caption(f"Corte de información: {end:%d/%m/%Y %H:%M}")
 
-    def _build_level_chart(level_data, tank_info, start, end, gap_minutes=60, tank_name="Tanque"):
+    def _build_level_chart(level_data, tank_info, start, end, gap_minutes=60):
         level_data = level_data.sort_values("timestamp").copy()
         fig = go.Figure()
 
@@ -4507,8 +4538,8 @@ elif tab_activa == "tanques":
                     marker={"color": "#63b9df", "size": 4, "symbol": "circle", "opacity": 0.8},
                     fill="tozeroy" if multiple_points else None,
                     fillcolor="rgba(99, 185, 223, 0.2)",
-                    name=tank_name,
-                    hovertemplate="Valor: %{y:.2f}<extra></extra>",
+                    name="Nivel",
+                    hovertemplate="<b>%{y:.2f} m</b><br>%{x|%d/%m/%Y %H:%M}<extra></extra>",
                 )
             )
 
@@ -4528,7 +4559,7 @@ elif tab_activa == "tanques":
             paper_bgcolor="rgba(0,0,0,0)",
             font={"color": "#e4edf7", "size": 11},
             showlegend=False,
-            hovermode="x unified",
+            hovermode="closest",
         )
         fig.update_xaxes(range=[start, end], gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
         fig.update_yaxes(gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
@@ -4541,7 +4572,7 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        st.markdown(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>', unsafe_allow_html=True)
+        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
 
         metrics_html = f"""
         <div class="tm-card-metrics">
@@ -4551,10 +4582,10 @@ elif tab_activa == "tanques":
             <div class="tm-metric"><span>% Alm.</span><strong>{escape(_number(tank['storage_pct'], ' %', 0))}</strong></div>
         </div>
         """
-        st.markdown(metrics_html, unsafe_allow_html=True)
+        st.html(metrics_html)
 
         if data["level_m"].notna().any():
-            figure = _build_level_chart(data, tank, start, end, gap_minutes, tank_name=display_name)
+            figure = _build_level_chart(data, tank, start, end, gap_minutes)
             st.plotly_chart(figure, use_container_width=True, theme=None, key=key, config={"displaylogo": False, "displayModeBar": "hover"})
         else:
             st.info("Sin niveles disponibles.")
@@ -4574,6 +4605,7 @@ elif tab_activa == "tanques":
 
         st.caption(f"Antigüedad de lectura: {elapsed_text}")
 
+    # 2. Capa de datos optimizada utilizando tus motores existentes
     @st.cache_data(ttl=300, show_spinner=False)
     def _cargar_datos_tanques_nativo(start_ts_ms, end_ts_ms):
         engine_telemetria = get_mysql_telemetria_engine()
@@ -4632,6 +4664,7 @@ elif tab_activa == "tanques":
             st.error(f"Error al consultar la base de datos de tanques: {e}")
             return pd.DataFrame(), pd.DataFrame()
 
+    # 3. Fragmento principal aislado para renderizado fluido
     @st.fragment
     def renderizar_pestana_tanques():
         now = pd.Timestamp.now(tz=TIMEZONE).tz_localize(None)
@@ -4707,6 +4740,7 @@ elif tab_activa == "tanques":
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
     renderizar_pestana_tanques()
+
 
 
 # ==============================================================================
