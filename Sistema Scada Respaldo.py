@@ -4744,7 +4744,7 @@ elif tab_activa == "tanques":
 
 
 # ==============================================================================
-# PESTAÑA 4: SECTORES HIDRÁULICOS (PANEL SCADA DE ACTIVADORES LATERALES INTEGRADOS)
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON DISEÑO DINÁMICO CRUZADO)
 # ==============================================================================
 
 elif tab_activa == "sectores":
@@ -4908,8 +4908,6 @@ elif tab_activa == "sectores":
             dict_pc_sec = {k: v for k, v in mapa_pc_all.items() if coincide_sector(v)}
 
             ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
-
-            series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
 
             mapa_series_nombres = {}
             for k, r in dict_reg.items():
@@ -5191,7 +5189,7 @@ elif tab_activa == "sectores":
 
                     html_vrp = f"""
                         <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:220px;">
-                            <b style="color:#00FFCC;">VÁLVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
+                            <b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
                             {html_vars_vrp}
                         </div>
                     """
@@ -5229,13 +5227,14 @@ elif tab_activa == "sectores":
                                 color_pz = "#00ff00" if es_encendido else "#ff4d4d"
                                 estado_txt = 'Encendido' if es_encendido else 'Apagado'
                             
+                            # Normalización correcta:
                             id_p_limpio = str(id_p).strip()
                             if id_p_limpio.upper().startswith('PR'):
-                                id_p_limpio = 'R' + id_p_limpio[2:]
+                                id_p_limpio = 'R' + id_p_limpio[2:]  # PR059A -> R059A
                             elif id_p_limpio.upper().startswith('PP'):
-                                id_p_limpio = id_p_limpio[1:]
+                                id_p_limpio = id_p_limpio[1:]       # PP097A -> P097A
                             elif not id_p_limpio.upper().startswith('P') and not id_p_limpio.upper().startswith('R'):
-                                id_p_limpio = 'P' + id_p_limpio
+                                id_p_limpio = 'P' + id_p_limpio      # Si no tiene letra, se la agregamos
 
                             html_popup_pz = f"""<div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid {color_pz}; width:200px;"><b style="color:{color_pz};">POZO {id_p_limpio}</b><br>Estado Bomba: {estado_txt}<br>Caudal: {val_q_pz:.2f} L/s</div>"""
                             icon_html_pz = f"""<div style="position: relative; width: 26px; height: 26px;"><div style="width: 16px; height: 16px; background: {color_pz}; border-radius: 50%; box-shadow: 0 0 8px {color_pz}; position: absolute; top: 5px; left: 5px; z-index: 2;"></div></div>"""
@@ -5247,16 +5246,36 @@ elif tab_activa == "sectores":
                 folium_static(m_sec, width=None, height=360)
                 
             with col_der:
-                # Contenedor principal con estilo panel SCADA integrado idéntico a la imagen
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento de Sector y Puntos Críticos</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Panel SCADA con Controles de Visibilidad y Gráfica Hidráulica Sincronizada</p>
+                        <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
                     </div>
                 """, unsafe_allow_html=True)
 
-                trazas_disponibles = []
+                fig = go.Figure()
 
+                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                num_dias = len(fechas_lineas)
+                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                ticks_filtrados = fechas_lineas[::paso]
+
+                etiquetas_filtradas = [
+                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    for d in ticks_filtrados
+                ]
+
+                idx_q = 0
+                idx_p = 0
+                colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+
+                series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
                 if series_puntos_control:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
@@ -5270,6 +5289,7 @@ elif tab_activa == "sectores":
                             ORDER BY FECHA_HORA_LOGGER ASC
                         """
                         df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
+                        
                         if not df_madre_sector.empty:
                             df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
                             df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
@@ -5278,19 +5298,37 @@ elif tab_activa == "sectores":
                                 serie_raw = str(r_info.get('Serie', r_k)).strip()
                                 nombre_reg = r_info.get('nombre', f"SN:{serie_raw}")
                                 df_temp_s = df_madre_sector[df_madre_sector['Serie_str'] == serie_raw]
+
                                 if not df_temp_s.empty:
                                     for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
                                         df_v_group = df_v_group.sort_values('FECHA')
                                         if df_v_group['VALOR'].notna().any():
                                             is_caudal = 'CAUDAL' in str(var_name).upper()
-                                            trazas_disponibles.append({
-                                                'nombre': f"{nombre_reg} - {var_name}",
-                                                'df': df_v_group,
-                                                'y_col': 'VALOR',
-                                                'x_col': 'FECHA',
-                                                'es_caudal': is_caudal,
-                                                'unidad': 'L/s' if is_caudal else 'Kg/cm²'
-                                            })
+                                            
+                                            if is_caudal:
+                                                color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                                                idx_q += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                    name=f"{nombre_reg} - {var_name}",
+                                                    yaxis="y1", mode='lines+markers',
+                                                    line=dict(width=2, color=color_q),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    fill='tozeroy',
+                                                    fillcolor="rgba(138, 203, 245, 0.15)",
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                                ))
+                                            else:
+                                                color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                                                idx_p += 1
+                                                fig.add_trace(go.Scatter(
+                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                                    name=f"{nombre_reg} - {var_name}",
+                                                    yaxis="y2", mode='lines+markers',
+                                                    line=dict(width=2, color=color_p),
+                                                    marker=dict(size=3, symbol='circle'),
+                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                                ))
                     except Exception:
                         pass
 
@@ -5318,114 +5356,54 @@ elif tab_activa == "sectores":
                         if tags_unicos_query:
                             q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
                             df_h = pd.read_sql(q_hist, engine_h)
+
                             if not df_h.empty:
                                 df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                                 for tag_name in tags_pozos_visualizar:
                                     df_tag = df_h[df_h['TAG'] == tag_name].sort_values('FECHA')
                                     if not df_tag.empty:
                                         cfg = mapeo_pozos_config[tag_name]
-                                        is_caudal = not cfg['sec']
-                                        trazas_disponibles.append({
-                                            'nombre': cfg['label'],
-                                            'df': df_tag,
-                                            'y_col': 'VALUE',
-                                            'x_col': 'FECHA',
-                                            'es_caudal': is_caudal,
-                                            'unidad': 'L/s' if is_caudal else ('m' if 'NIVEL' in cfg['label'].upper() else 'Kg/cm²')
-                                        })
+                                        es_caudal = not cfg['sec']
+                                        label_u = cfg['label'].upper()
+
+                                        if es_caudal: unidad_pc = "L/s"
+                                        elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                        else: unidad_pc = "Kg/cm²"
+
+                                        if "NIVEL" in label_u or "TANQUE" in label_u:
+                                            color_base = "#d400ff"
+                                        elif es_caudal:
+                                            color_base = "#00d4ff"
+                                        else:
+                                            color_base = "#00ff00"
+
+                                        fig.add_trace(go.Scatter(
+                                            x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
+                                            yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                            line=dict(width=2, color=color_base),
+                                            marker=dict(size=3, symbol='circle'),
+                                            fill='tozeroy' if es_caudal else None,
+                                            fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
+                                        ))
                     except Exception:
                         pass
 
-                if trazas_disponibles:
-                    # Contenedor interno unificado para que el panel SCADA y la gráfica compartan un solo fondo integrado
-                    st.markdown('<div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px;">', unsafe_allow_html=True)
-                    
-                    panel_scada_izq, grafica_scada_der = st.columns([0.32, 0.68], gap="medium")
-                    
-                    with panel_scada_izq:
-                        st.markdown("""
-                            <div style="font-size: 11.5px; font-weight: bold; color: #9ab0c7; margin-bottom: 8px; border-bottom: 1px solid #1f4068; padding-bottom: 4px;">
-                                Controles de Visibilidad de Leyenda
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
-                        estados_trazas = {}
-                        for idx_t, traza in enumerate(trazas_disponibles):
-                            estados_trazas[traza['nombre']] = st.toggle(
-                                f"{traza['nombre']}", 
-                                value=True, 
-                                key=f"tgl_scada_int_{sector_elegido}_{idx_t}"
-                            )
-                    
-                    with grafica_scada_der:
-                        fig = go.Figure()
+                delta = pd.Timedelta(hours=1)
+                for d in fechas_lineas:
+                    es_lunes = (d.dayofweek == 0)
+                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
-                        f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                        f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                        fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                        num_dias = len(fechas_lineas)
-                        paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                        ticks_filtrados = fechas_lineas[::paso]
-
-                        etiquetas_filtradas = [
-                            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                            for d in ticks_filtrados
-                        ]
-
-                        idx_q = 0
-                        idx_p = 0
-                        colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
-                        colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
-
-                        for traza in trazas_disponibles:
-                            if estados_trazas.get(traza['nombre'], True):
-                                df_t_sub = traza['df']
-                                is_caudal = traza['es_caudal']
-                                
-                                if is_caudal:
-                                    color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                                    idx_q += 1
-                                else:
-                                    color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
-                                    idx_p += 1
-
-                                if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
-                                    color_trace = "#d400ff"
-
-                                fig.add_trace(go.Scatter(
-                                    x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
-                                    name=traza['nombre'], 
-                                    yaxis="y1" if is_caudal else "y2", 
-                                    mode='lines+markers',
-                                    line=dict(width=2, color=color_trace),
-                                    marker=dict(size=3, symbol='circle'),
-                                    fill='tozeroy' if is_caudal else None,
-                                    fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
-                                    hovertemplate=f'<b>%{{fullData.name}}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
-                                ))
-
-                        delta = pd.Timedelta(hours=1)
-                        for d in fechas_lineas:
-                            es_lunes = (d.dayofweek == 0)
-                            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
-                            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
-
-                        fig.update_layout(
-                            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=420, 
-                            margin=dict(l=20, r=40, t=10, b=10), hovermode="x unified", 
-                            showlegend=False,
-                            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-                            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                            yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                else:
-                    st.info("No hay variables temporales activas para este sector en el periodo.")
+                fig.update_layout(
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
+                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                    yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                    yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
             # ==============================================================================
             # FILA INFERIOR: CONDICIONAL DINÁMICO CRUZADO (PUNTOS CRÍTICOS Y VRPs)
@@ -5532,6 +5510,7 @@ elif tab_activa == "sectores":
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                             df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                            
                                             if not df_v_group.empty:
                                                 color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                                 idx_pc_c += 1
@@ -5615,6 +5594,7 @@ elif tab_activa == "sectores":
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                             df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                            
                                             if not df_v_group.empty:
                                                 color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                                 idx_vrp_c += 1
