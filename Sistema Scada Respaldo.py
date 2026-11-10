@@ -4743,6 +4743,10 @@ elif tab_activa == "tanques":
 
 
 
+# ==============================================================================
+# PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON ACTIVADORES ON/OFF DE VARIABLES)
+# ==============================================================================
+
 elif tab_activa == "sectores":
     st.markdown("""
         <style>
@@ -5185,7 +5189,7 @@ elif tab_activa == "sectores":
 
                     html_vrp = f"""
                         <div style="background:#000; color:white; padding:10px; border-radius:8px; border:1px solid #00FFCC; width:220px;">
-                            <b style="color:#00FFCC;">VALVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
+                            <b style="color:#00FFCC;">VÁLVULA VRP</b><br><small>{vrp.get('nombre', 'VRP')}</small><br><small style="color:#aaa;">SN: {serie_vrp}</small><hr style="border-color:#333; margin:6px 0;">
                             {html_vars_vrp}
                         </div>
                     """
@@ -5241,39 +5245,21 @@ elif tab_activa == "sectores":
                 folium_static(m_sec, width=None, height=360)
                 
             with col_der:
+                # ==============================================================================
+                # IMPLEMENTACIÓN DE ACTIVADORES ON/OFF DE VARIABLES EN LEYENDA (TIPO IMAGEN)
+                # ==============================================================================
                 st.markdown(f"""
                     <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                         <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión a la derecha • Franja nocturna 02:00 - 04:00</p>
+                        <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Controles de Visibilidad de Leyenda y Gráfica Dinámica</p>
                     </div>
                 """, unsafe_allow_html=True)
 
-                fig = go.Figure()
-
-                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
-
-                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                num_dias = len(fechas_lineas)
-                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
-                ticks_filtrados = fechas_lineas[::paso]
-
-                etiquetas_filtradas = [
-                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                    for d in ticks_filtrados
-                ]
-
-                idx_q = 0
-                idx_p = 0
-                
-                # Paletas distintivas: Azules para caudales, y una gama variada de verdes para las presiones
-                colores_azules_pc = ["#00d4ff", "#3399ff", "#66b3ff"]
-                paleta_verdes_presion = ["#00ffaa", "#a1ffce", "#33ff99", "#2ecc71", "#1abc9c", "#58d68d", "#48c9b0"]
-
-                # 1. Trazas para Puntos de Control y Variables Generales
+                # Recopilamos todas las trazas posibles para construir los switches On/Off dinámicos
+                # 1. Trazas de Puntos de Control / BD_MADRE
                 series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
+                trazas_disponibles = []
+
                 if series_puntos_control:
                     try:
                         engine_tel = get_mysql_telemetria_engine()
@@ -5287,7 +5273,6 @@ elif tab_activa == "sectores":
                             ORDER BY FECHA_HORA_LOGGER ASC
                         """
                         df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
-                        
                         if not df_madre_sector.empty:
                             df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
                             df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
@@ -5296,42 +5281,23 @@ elif tab_activa == "sectores":
                                 serie_raw = str(r_info.get('Serie', r_k)).strip()
                                 nombre_reg = r_info.get('nombre', f"SN:{serie_raw}")
                                 df_temp_s = df_madre_sector[df_madre_sector['Serie_str'] == serie_raw]
-
                                 if not df_temp_s.empty:
                                     for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
                                         df_v_group = df_v_group.sort_values('FECHA')
                                         if df_v_group['VALOR'].notna().any():
                                             is_caudal = 'CAUDAL' in str(var_name).upper()
-                                            
-                                            if is_caudal:
-                                                color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
-                                                idx_q += 1
-                                                fig.add_trace(go.Scatter(
-                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                                    name=f"{nombre_reg} - {var_name}",
-                                                    yaxis="y1", mode='lines+markers',
-                                                    line=dict(width=2, color=color_q),
-                                                    marker=dict(size=3, symbol='circle'),
-                                                    fill='tozeroy',
-                                                    fillcolor="rgba(0, 212, 255, 0.12)",
-                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
-                                                ))
-                                            else:
-                                                # Presiones de Puntos de Control (No pozos): Verde con línea punteada gruesa estilo dash
-                                                color_p = paleta_verdes_presion[idx_p % len(paleta_verdes_presion)]
-                                                idx_p += 1
-                                                fig.add_trace(go.Scatter(
-                                                    x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                                    name=f"{nombre_reg} - {var_name}",
-                                                    yaxis="y2", mode='lines+markers',
-                                                    line=dict(width=2.5, dash='dash', color=color_p), 
-                                                    marker=dict(size=3, symbol='circle'),
-                                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
-                                                ))
+                                            trazas_disponibles.append({
+                                                'nombre': f"{nombre_reg} - {var_name}",
+                                                'df': df_v_group,
+                                                'y_col': 'VALOR',
+                                                'x_col': 'FECHA',
+                                                'es_caudal': is_caudal,
+                                                'unidad': 'L/s' if is_caudal else 'Kg/cm²'
+                                            })
                     except Exception:
                         pass
 
-                # 2. Trazas para Pozos del Sector
+                # 2. Trazas de Pozos
                 tags_pozos_visualizar = []
                 mapeo_pozos_config = {}
                 for id_p in ids_p:
@@ -5356,76 +5322,99 @@ elif tab_activa == "sectores":
                         if tags_unicos_query:
                             q_hist = f"SELECT h.FECHA, h.VALUE, r.NAME as TAG FROM vfitagnumhistory h JOIN VfiTagRef r ON h.GATEID = r.GATEID WHERE r.NAME IN ('{tags_unicos_query}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}' ORDER BY h.FECHA ASC"
                             df_h = pd.read_sql(q_hist, engine_h)
-
                             if not df_h.empty:
                                 df_h['FECHA'] = pd.to_datetime(df_h['FECHA'])
                                 for tag_name in tags_pozos_visualizar:
                                     df_tag = df_h[df_h['TAG'] == tag_name].sort_values('FECHA')
                                     if not df_tag.empty:
                                         cfg = mapeo_pozos_config[tag_name]
-                                        es_caudal = not cfg['sec']
-                                        label_u = cfg['label'].upper()
-
-                                        if es_caudal: 
-                                            unidad_pc = "L/s"
-                                            linea_estilo = dict(width=2, color="#00d4ff")
-                                        elif "NIVEL" in label_u or "TANQUE" in label_u: 
-                                            unidad_pc = "m"
-                                            linea_estilo = dict(width=2, color="#00ffaa") # Nivel continuo en verde claro
-                                        else: 
-                                            # Presiones de pozos: Verde único asignado sin repetir con tono distinto y línea CONTINUA (o punteada según prefieras, la referencia las usa continuas o distintas)
-                                            unidad_pc = "Kg/cm²"
-                                            color_p_pozo = paleta_verdes_presion[idx_p % len(paleta_verdes_presion)]
-                                            idx_p += 1
-                                            linea_estilo = dict(width=2.2, color=color_p_pozo)
-
-                                        fig.add_trace(go.Scatter(
-                                            x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
-                                            yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
-                                            line=linea_estilo,
-                                            marker=dict(size=3, symbol='circle'),
-                                            fill='tozeroy' if es_caudal else None,
-                                            fillcolor="rgba(0, 212, 255, 0.12)" if es_caudal else None,
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
-                                        ))
+                                        is_caudal = not cfg['sec']
+                                        trazas_disponibles.append({
+                                            'nombre': cfg['label'],
+                                            'df': df_tag,
+                                            'y_col': 'VALUE',
+                                            'x_col': 'FECHA',
+                                            'es_caudal': is_caudal,
+                                            'unidad': 'L/s' if is_caudal else ('m' if 'NIVEL' in cfg['label'].upper() else 'Kg/cm²')
+                                        })
                     except Exception:
                         pass
+
+                # Renderizamos un panel expandible con los activadores On/Off para cada variable detectada
+                with st.expander("🎛️ Controles de Visibilidad de Leyenda", expanded=True):
+                    estados_trazas = {}
+                    if trazas_disponibles:
+                        col_sw1, col_sw2 = st.columns(2)
+                        for idx_t, traza in enumerate(trazas_disponibles):
+                            target_col = col_sw1 if idx_t % 2 == 0 else col_sw2
+                            with target_col:
+                                estados_trazas[traza['nombre']] = st.toggle(f"{traza['nombre']}", value=True, key=f"tgl_hz_{sector_elegido}_{idx_t}")
+                    else:
+                        st.info("No hay variables temporales activas para este sector en el periodo.")
+
+                # Construcción del gráfico interactivo aplicando el estado On/Off de los toggles
+                fig = go.Figure()
+
+                dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+                f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                fechas_lineas = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                num_dias = len(fechas_lineas)
+                paso = 1 if num_dias <= 15 else (2 if num_dias <= 30 else 5)
+                ticks_filtrados = fechas_lineas[::paso]
+
+                etiquetas_filtradas = [
+                    f"{d.strftime('%H:%M')}<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                    for d in ticks_filtrados
+                ]
+
+                idx_q = 0
+                idx_p = 0
+                colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
+                colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
+
+                for traza in trazas_disponibles:
+                    if estados_trazas.get(traza['nombre'], True):
+                        df_t_sub = traza['df']
+                        is_caudal = traza['es_caudal']
+                        
+                        if is_caudal:
+                            color_trace = colores_azules_pc[idx_q % len(colores_azules_pc)]
+                            idx_q += 1
+                        else:
+                            color_trace = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
+                            idx_p += 1
+
+                        if "NIVEL" in traza['nombre'].upper() or "TANQUE" in traza['nombre'].upper():
+                            color_trace = "#d400ff"
+
+                        fig.add_trace(go.Scatter(
+                            x=df_t_sub[traza['x_col']], y=df_t_sub[traza['y_col']],
+                            name=traza['nombre'], 
+                            yaxis="y1" if is_caudal else "y2", 
+                            mode='lines+markers',
+                            line=dict(width=2, color=color_trace),
+                            marker=dict(size=3, symbol='circle'),
+                            fill='tozeroy' if is_caudal else None,
+                            fillcolor="rgba(138, 203, 245, 0.15)" if is_caudal else None,
+                            hovertemplate=f'<b>%{fullData.name}</b>: %{{y:.2f}} {traza["unidad"]}<extra></extra>'
+                        ))
 
                 delta = pd.Timedelta(hours=1)
                 for d in fechas_lineas:
                     es_lunes = (d.dayofweek == 0)
-                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.15, layer="below", line_width=0)
-                    fig.add_vline(x=d, line_width=1.2, line_dash="dash", line_color="#fffb00" if es_lunes else "rgba(255,255,255,0.3)", opacity=0.5, layer="above")
+                    fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                    fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
                 fig.update_layout(
-                    paper_bgcolor='rgba(11,26,41,1)', 
-                    plot_bgcolor='rgba(11,26,41,1)', 
-                    height=380, 
-                    margin=dict(l=50, r=50, t=15, b=15), 
-                    hovermode="x unified", 
-                    legend=dict(orientation="h", yanchor="bottom", y=1.04, x=0.5, xanchor="center", font=dict(color="white", size=10)),
-                    xaxis=dict(
-                        range=[f_ini_h, f_fin_h], 
-                        color="#888888", 
-                        showgrid=True, 
-                        gridcolor="#16304a", 
-                        tickvals=ticks_filtrados, 
-                        ticktext=etiquetas_filtradas, 
-                        tickangle=0
-                    ),
-                    yaxis=dict(
-                        title="<b>Caudal (L/s)</b>", 
-                        color="#00d4ff", 
-                        showgrid=True, 
-                        gridcolor="#16304a"
-                    ),
-                    yaxis2=dict(
-                        title="<b>Presión (Kg/cm²)</b>", 
-                        side="right", 
-                        overlaying="y", 
-                        color="#00ffaa", 
-                        showgrid=False
-                    )
+                    paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
+                    margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+                    xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                    yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                    yaxis2=dict(title="Presión (Kg/cm²)", side="right", overlaying="y", color="#00ff00", showgrid=False)
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -5523,7 +5512,7 @@ elif tab_activa == "sectores":
                                     for d in ticks_pc
                                 ]
 
-                                paleta_verdes_pc = ["#00ffaa", "#a1ffce", "#33ff99", "#2ecc71"]
+                                colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
                                 idx_pc_c = 0
 
                                 for pc_key, pc_info in dict_pc_sec.items():
@@ -5534,12 +5523,10 @@ elif tab_activa == "sectores":
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                             df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
-                                            
                                             if not df_v_group.empty:
-                                                color_trace_pc = paleta_verdes_pc[idx_pc_c % len(paleta_verdes_pc)]
+                                                color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                                 idx_pc_c += 1
 
-                                                # Puntos críticos (no pozos): Verdes con línea punteada dash
                                                 fig_pc.add_trace(go.Scatter(
                                                     x=df_v_group['FECHA'], 
                                                     y=df_v_group['VALOR'], 
@@ -5548,7 +5535,7 @@ elif tab_activa == "sectores":
                                                     connectgaps=False,
                                                     showlegend=True,
                                                     marker=dict(size=3.5, symbol='circle'), 
-                                                    line=dict(width=2.5, dash='dash', color=color_trace_pc),
+                                                    line=dict(width=2, color=color_trace_pc),
                                                     hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
                                                 ))
 
@@ -5565,7 +5552,7 @@ elif tab_activa == "sectores":
                         margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
                         legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                         xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-                        yaxis=dict(tickformat=".2f", color="#00ffaa", showgrid=True, gridcolor="#16304a", title="Presión (Kg/cm²)")
+                        yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Valor")
                     )
                     st.plotly_chart(fig_pc, use_container_width=True)
 
@@ -5608,7 +5595,7 @@ elif tab_activa == "sectores":
                                     for d in ticks_vrp
                                 ]
 
-                                paleta_verdes_vrp = ["#1abc9c", "#2ecc71", "#58d68d", "#48c9b0"]
+                                colores_vrp = ["#00ffcc", "#28a745", "#a1ffce", "#00cc66"]
                                 idx_vrp_c = 0
 
                                 for v_key, v_info in dict_vrp_sec.items():
@@ -5619,12 +5606,10 @@ elif tab_activa == "sectores":
                                     if not df_temp.empty:
                                         for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                             df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
-                                            
                                             if not df_v_group.empty:
-                                                color_trace_vrp = paleta_verdes_vrp[idx_vrp_c % len(paleta_verdes_vrp)]
+                                                color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                                 idx_vrp_c += 1
 
-                                                # VRPs (no pozos): Verdes con línea punteada dash distintiva
                                                 fig_vrp.add_trace(go.Scatter(
                                                     x=df_v_group['FECHA'], 
                                                     y=df_v_group['VALOR'], 
@@ -5633,7 +5618,7 @@ elif tab_activa == "sectores":
                                                     connectgaps=False,
                                                     showlegend=True,
                                                     marker=dict(size=3.5, symbol='circle'), 
-                                                    line=dict(width=2.5, dash='dash', color=color_trace_vrp),
+                                                    line=dict(width=2, color=color_trace_vrp),
                                                     hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
                                                 ))
 
@@ -5650,7 +5635,7 @@ elif tab_activa == "sectores":
                         margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
                         legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
                         xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_vrp if 'ticks_vrp' in locals() else None, ticktext=etiquetas_vrp if 'etiquetas_vrp' in locals() else None, tickangle=0),
-                        yaxis=dict(tickformat=".2f", color="#1abc9c", showgrid=True, gridcolor="#16304a", title="Presión (Kg/cm²)")
+                        yaxis=dict(tickformat=".2f", color="#00ffcc", showgrid=True, gridcolor="#16304a", title="Valor")
                     )
                     st.plotly_chart(fig_vrp, use_container_width=True)
 
