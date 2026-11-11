@@ -2628,17 +2628,25 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
-        # MAPA CON CAPA INICIAL OSCURA (CARTO DARK)
-        api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+        # MAPA CON CAPA INICIAL OSCURA Y NOMBRE LIMPIO EN EL SELECTOR
         m_sec = folium.Map(
             location=[21.8820, -102.2800], 
             zoom_start=12, 
-            tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-            attr='&copy; CARTO',
-            name="Vista Nocturna",
+            tiles=None,
             height=360
         )
         
+        api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
+        folium.TileLayer(
+            tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
+            name="Capa obscura",
+            attr='&copy; CARTO',
+            subdomains="abcd", 
+            max_zoom=20, 
+            overlay=False, 
+            control=True
+        ).add_to(m_sec)
+
         folium.TileLayer(
             tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
             attr='Google', 
