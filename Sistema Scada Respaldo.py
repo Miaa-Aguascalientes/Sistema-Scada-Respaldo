@@ -2169,14 +2169,38 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* ESTILOS DE TABLA Y ALINEACIÓN DE TAMAÑOS */
-            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
+            /* CONTENEDORES Y TARJETAS SIMÉTRICAS */
+            .card-simetrica-wrapper {
+                background: #0b1a29;
+                border: 1px solid #1f4068;
+                border-radius: 10px;
+                height: 410px;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
+            .card-header-box {
+                padding: 10px 15px;
+                background: #0b1a29;
+                border-bottom: 1px solid #1f4068;
+                min-height: 58px;
+            }
+            .card-body-box {
+                padding: 12px 15px;
+                flex-grow: 1;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            /* ESTILOS DE TABLA DE DATOS OPERATIVOS */
+            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
             .st-key-dma_operational td { 
                 background: rgba(18, 44, 66, 0.4); 
                 border: 1px solid #1f4068; 
-                padding: 0.55rem 0.8rem; 
+                padding: 0.5rem 0.75rem; 
                 vertical-align: middle; 
-                font-size: 0.84rem; 
+                font-size: 0.82rem; 
                 width: 33.33%; 
                 color: #e4edf7; 
                 font-variant-numeric: tabular-nums;
@@ -2986,19 +3010,21 @@ if sector_seleccionado:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presión / Nivel (Kg/cm² / m)", side="right", overlaying="y", color="#d400ff", showgrid=False)
+            yaxis2=dict(title="Presion (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS EXACTAMENTE IGUALADOS EN TAMAÑO ---
+    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS SIMÉTRICOS Y EXACTAMENTE IGUALES ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
         st.markdown(f"""
-            <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
-            </div>
+            <div class="card-simetrica-wrapper">
+                <div class="card-header-box">
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
+                </div>
+                <div class="card-body-box" style="padding: 5px 10px 10px 10px;">
         """, unsafe_allow_html=True)
         
         fig_pc = go.Figure()
@@ -3067,43 +3093,48 @@ if sector_seleccionado:
         except Exception:
             pass
 
-        # Altura fija de 250px para el gráfico (coincide perfectamente con la altura interna de Datos operativos)
+        # Altura interna de 295px para que la tarjeta completa mida exactamente 410px
         fig_pc.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=250, 
-            margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
-            legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=295, 
+            margin=dict(l=35, r=35, t=10, b=5), hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
+            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Presion (mca)")
         )
-        st.plotly_chart(fig_pc, use_container_width=True)
+        st.plotly_chart(fig_pc, use_container_width=True, config={"displayModeBar": False})
+        st.markdown("</div></div>", unsafe_allow_html=True)
 
     with col_op:
         st.markdown(f"""
-            <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
-            </div>
-            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 310px; display: flex; flex-direction: column; justify-content: center;">
-                <table style="width: 100%;">
-                    <tr>
-                        <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
-                        <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
-                        <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
-                    </tr>
-                    <tr>
-                        <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
-                        <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
-                        <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
-                    </tr>
-                    <tr>
-                        <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
-                        <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
-                        <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
-                    </tr>
-                </table>
+            <div class="card-simetrica-wrapper">
+                <div class="card-header-box">
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
+                </div>
+                <div class="card-body-box">
+                    <div class="st-key-dma_operational">
+                        <table style="width: 100%;">
+                            <tr>
+                                <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
+                                <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
+                                <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
+                            </tr>
+                            <tr>
+                                <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
+                                <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
+                                <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
+                            </tr>
+                            <tr>
+                                <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
+                                <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
+                                <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
+                            </tr>
+                            <tr>
+                                <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
