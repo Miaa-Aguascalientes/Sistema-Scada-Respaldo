@@ -2167,8 +2167,14 @@ if sector_seleccionado:
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             
-            /* ESTILO DE LA TARJETA CONTENEDORA DEL ENCABEZADO */
-            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 12px !important; background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+            /* FONDO AZUL OBSCURO Y BORDE NEÓN PARA LA TARJETA DEL ENCABEZADO */
+            [data-testid="stVerticalBlockBorderWrapper"] > div { 
+                border-color: #1f4068 !important; 
+                border-top: 2px solid #00d4ff !important;
+                border-radius: 12px !important; 
+                background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; 
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); 
+            }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
@@ -2293,7 +2299,7 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE (TARJETA) ---
+    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE Y FONDO AZUL OBSCURO ---
     with st.container(border=True):
         head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
         
