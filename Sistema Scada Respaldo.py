@@ -2169,6 +2169,40 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
+            /* ESTILIZACIÓN PROFESIONAL DEL SELECTOR DE PERIODO */
+            [data-baseweb="select"] > div {
+                background-color: #0b1d30 !important;
+                border: 1px solid #1f4068 !important;
+                border-radius: 8px !important;
+                color: #e4edf7 !important;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            }
+            [data-baseweb="select"] span {
+                color: #e4edf7 !important;
+            }
+            [data-baseweb="popover"] div {
+                background-color: #0b1d30 !important;
+                color: #e4edf7 !important;
+            }
+
+            /* ESTILIZACIÓN PROFESIONAL DEL BOTÓN DE ACTUALIZAR */
+            div.stButton > button {
+                width: 100%;
+                background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%) !important;
+                color: #030d17 !important;
+                font-weight: 700 !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 0.6rem 1rem !important;
+                box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3) !important;
+                transition: all 0.3s ease !important;
+            }
+            div.stButton > button:hover {
+                background: linear-gradient(135deg, #00b3ff 0%, #33e1ff 100%) !important;
+                box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5) !important;
+                transform: translateY(-1px);
+            }
+
             @keyframes water-shimmer {
                 0% { background-position: -200% 0; }
                 100% { background-position: 200% 0; }
@@ -2364,7 +2398,7 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # ENCABEZADO CON LOGO SVG DE GITHUB Y ESPACIADO HOLGADO
+    # ENCABEZADO CON LOGO SVG DE GITHUB
     html_banner = f"""
         <div class="miaa-header-banner">
             <div class="miaa-logo-container">
@@ -2385,7 +2419,7 @@ if sector_seleccionado:
     """
     st.markdown(html_banner, unsafe_allow_html=True)
 
-    # --- FILA SUPERIOR: SELECTOR DE PERIODO Y BOTÓN DE ACTUALIZAR DESDE BD ---
+    # --- FILA SUPERIOR: SELECTOR DE PERIODO Y BOTÓN DE ACTUALIZAR ESTILIZADO ---
     col_sel, col_btn = st.columns([3.5, 1.0], gap="medium")
     
     with col_sel:
@@ -2597,7 +2631,7 @@ if sector_seleccionado:
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{datos_s.get("Poblacion", 28450):,.0f}</p>
             <p class="sub-indicador" style="font-size: 11px; text-align: center;">Referencia del catálogo</p>
-        </div>'' substitute''', unsafe_allow_html=True)
+        </div>''', unsafe_allow_html=True)
     with c5:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -2628,21 +2662,23 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
-        # MAPA CON CAPA INICIAL OSCURA Y NOMBRE LIMPIO EN EL SELECTOR
+        # MAPA CON CAPA OBSCURA ACTIVADA POR DEFECTO
         m_sec = folium.Map(
             location=[21.8820, -102.2800], 
             zoom_start=12, 
             tiles=None,
             height=360
         )
-
+        
+        # 1. Agregamos primero la vista satélite (fondo secundario)
         folium.TileLayer(
             tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
             attr='Google', 
             name='Vista Satélite', 
             overlay=False
         ).add_to(m_sec)
-        
+
+        # 2. Agregamos al final la capa obscura para que Leaflet la active por defecto
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
             tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
@@ -2653,8 +2689,6 @@ if sector_seleccionado:
             overlay=False, 
             control=True
         ).add_to(m_sec)
-
-        
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
         capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
