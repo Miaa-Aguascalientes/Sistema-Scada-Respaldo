@@ -3043,7 +3043,7 @@ if sector_seleccionado:
         st.plotly_chart(fig, use_container_width=True)
 
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS LADO A LADO SIN EXPANSIÓN DINÁMICA ---
-    series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie'] or pc_key]
+    series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
     
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
@@ -3159,24 +3159,6 @@ if sector_seleccionado:
                 </table>
             </div>
         """, unsafe_allow_html=True)
-
-    # --- MARCA DE AGUA NO FIJA ---
-    st.markdown("""
-        <div style="
-            position: relative;
-            margin-top: 35px;
-            margin-bottom: 20px;
-            padding-left: 5px;
-            text-align: left;
-            line-height: 1.25;
-            opacity: 0.85;
-        ">
-            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
-        </div>
-    """, unsafe_allow_html=True)
-
-    st.stop()
     
 # 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
