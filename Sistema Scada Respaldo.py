@@ -2166,6 +2166,15 @@ if sector_seleccionado:
             .block-container { padding: 0rem 2rem 3.5rem !important; max-width: 1920px; margin-top: -25px !important; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
+            
+            /* FONDO AZUL EXACTO DE LOS INDICADORES PARA EL CONTENEDOR DEL ENCABEZADO */
+            [data-testid="stVerticalBlockBorderWrapper"] > div { 
+                border-color: #27445e !important; 
+                border-top: 2px solid #47afd0 !important;
+                border-radius: 10px !important; 
+                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%) !important; 
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); 
+            }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
@@ -2192,7 +2201,7 @@ if sector_seleccionado:
                 font-variant-numeric: tabular-nums;
             }
 
-            /* ADAPTACIÓN DEL SELECTOR DE FECHAS PARA QUE COINCIDA CON EL FONDO AZUL */
+            /* ADAPTACIÓN DEL SELECTOR DE FECHAS */
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
                 background-color: #0b1c2d !important;
                 background: #0b1c2d !important;
@@ -2221,36 +2230,14 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            /* TARJETA UNIFICADA DEL ENCABEZADO CON FONDO AZUL IDÉNTICO A LOS INDICADORES */
-            .miaa-header-box {
-                position: relative;
-                width: 100%;
-                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
-                border: 1px solid #27445e;
-                border-top: 2px solid #47afd0;
-                border-radius: 10px;
-                padding: 16px 24px;
-                margin-top: 0px;
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-                box-sizing: border-box;
-            }
-
-            .miaa-logo-wrap { display: flex; align-items: center; min-width: 150px; z-index: 2; }
-            .miaa-logo-img { height: 40px; width: auto; max-width: 150px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); }
-            
-            .miaa-title-wrap { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 600px; z-index: 2; pointer-events: none; }
+            .miaa-logo-img { height: 40px; width: auto; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 4px; }
+            .miaa-center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
             .miaa-title-main { color: #ffffff; font-size: 1.55rem; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
             .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
             .miaa-lines-row { display: flex; align-items: center; width: 100%; justify-content: center; gap: 14px; }
             .miaa-neon-bar { flex-grow: 1; height: 2px; background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%); box-shadow: 0 0 8px #00d4ff; animation: line-glow 3s infinite ease-in-out; }
             .miaa-neon-bar.right-side { background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%); }
             .miaa-animated-water-drop { width: 22px; height: 22px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
-            
-            .miaa-selector-wrap { z-index: 3; min-width: 220px; display: flex; flex-direction: column; align-items: flex-end; }
 
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
@@ -2312,45 +2299,43 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO LIMPIO EN UNA SOLA TARJETA CON FONDO AZUL ---
-    st.markdown('<div class="miaa-header-box">', unsafe_allow_html=True)
-    
-    # 1. Logo izquierdo
-    st.markdown(
-        '<div class="miaa-logo-wrap"><img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA"></div>',
-        unsafe_allow_html=True
-    )
+    # --- ENCABEZADO PERFECTO EN UNA SOLA TARJETA CON CONTENEDOR NATIVO Y COLUMNAS ---
+    with st.container(border=True):
+        head_col1, head_col2, head_col3 = st.columns([1.5, 6.0, 2.2], gap="medium")
+        
+        with head_col1:
+            st.markdown(
+                '<img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">',
+                unsafe_allow_html=True
+            )
 
-    # 2. Título centrado con animación
-    st.markdown(f"""
-        <div class="miaa-title-wrap">
-            <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
-            <div class="miaa-lines-row">
-                <div class="miaa-neon-bar"></div>
-                <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                </svg>
-                <div class="miaa-neon-bar right-side"></div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+        with head_col2:
+            st.markdown(f"""
+                <div class="miaa-center-content">
+                    <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
+                    <div class="miaa-lines-row">
+                        <div class="miaa-neon-bar"></div>
+                        <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                        </svg>
+                        <div class="miaa-neon-bar right-side"></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # 3. Selector de fechas derecho (contenedor temporal para alinear)
-    st.markdown('<div class="miaa-selector-wrap">', unsafe_allow_html=True)
-    opciones_periodo = [
-        "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
-        "Esta semana", "Últimos 7 días", "Este Mes", 
-        "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
-    ]
-    opcion_periodo_tab = st.selectbox(
-        "Periodo:",
-        opciones_periodo,
-        index=4,  # "Esta semana" por defecto
-        key="f_sector_periodo_tab_detalle"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        with head_col3:
+            opciones_periodo = [
+                "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+                "Esta semana", "Últimos 7 días", "Este Mes", 
+                "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+            ]
+            opcion_periodo_tab = st.selectbox(
+                "Periodo:",
+                opciones_periodo,
+                index=4,  # "Esta semana" por defecto
+                key="f_sector_periodo_tab_detalle"
+            )
+
     st.write("")
 
     hoy_dt = datetime.now()
