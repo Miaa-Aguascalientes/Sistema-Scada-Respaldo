@@ -2168,7 +2168,119 @@ if sector_seleccionado:
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
-            
+
+            /* --- ANIMACIONES DE ENCABEZADO --- */
+            @keyframes water-shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+            @keyframes drop-pulse {
+                0% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)); }
+                50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(0, 212, 255, 1)); }
+                100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)); }
+            }
+            @keyframes line-flow {
+                0% { background-position: 0% 50%; }
+                50% { background-position: 100% 50%; }
+                100% { background-position: 0% 50%; }
+            }
+
+            /* CONTAINER DEL ENCABEZADO */
+            .header-banner {
+                position: relative;
+                width: 100%;
+                background: linear-gradient(135deg, #051424 0%, #082038 50%, #051424 100%);
+                border: 1px solid #1f4068;
+                border-top: 2px solid #00d4ff;
+                border-radius: 12px;
+                padding: 16px 24px;
+                margin-top: -10px;
+                margin-bottom: 20px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                overflow: hidden;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            }
+
+            /* EFECTO DE MOVIMIENTO DE AGUA EN EL FONDO */
+            .header-banner::before {
+                content: "";
+                position: absolute;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: linear-gradient(90deg, 
+                    rgba(0, 212, 255, 0) 0%, 
+                    rgba(0, 212, 255, 0.08) 50%, 
+                    rgba(0, 212, 255, 0) 100%);
+                background-size: 200% 100%;
+                animation: water-shimmer 6s infinite linear;
+                pointer-events: none;
+            }
+
+            .header-left {
+                display: flex;
+                align-items: center;
+                gap: 18px;
+                z-index: 2;
+            }
+
+            .header-logo {
+                height: 48px;
+                width: auto;
+                filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+            }
+
+            .header-title-container {
+                display: flex;
+                flex-direction: column;
+                z-index: 2;
+            }
+
+            .header-title {
+                color: #ffffff;
+                font-size: 1.75rem;
+                font-weight: 700;
+                margin: 0;
+                letter-spacing: -0.02rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .header-sector-name {
+                color: #00d4ff;
+                text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            }
+
+            /* LÍNEA DE SEPARACIÓN FLUIDA */
+            .header-divider-line {
+                width: 100%;
+                height: 2px;
+                margin-top: 6px;
+                background: linear-gradient(90deg, #00d4ff, #005580, #00d4ff);
+                background-size: 200% 200%;
+                animation: line-flow 4s ease infinite;
+                border-radius: 2px;
+            }
+
+            /* GOTA ANIMADA CENTRAL */
+            .header-center-icon {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .animated-drop {
+                width: 26px;
+                height: 26px;
+                animation: drop-pulse 2.5s infinite ease-in-out;
+            }
+
+            /* ANIMACIONES GENERALES DE CARDS */
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
                 50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
@@ -2190,18 +2302,6 @@ if sector_seleccionado:
             .anim-spin { animation: radar-spin 8s infinite linear; transform-origin: center; }
             .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
             .anim-float { animation: float-up 3s infinite ease-in-out; }
-
-            .label-inline {
-                font-size: 0.95rem;
-                font-weight: 600;
-                color: #c1d3e5;
-                display: flex;
-                align-items: center;
-                justify-content: flex-end;
-                height: 100%;
-                padding-top: 0.5rem;
-                padding-right: 8px;
-            }
 
             .card-indicador {
                 background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
@@ -2256,10 +2356,21 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO ---
+    # --- ENCABEZADO ANIMADO DINÁMICO CON LOGO MIAA ---
     st.markdown(f"""
-        <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
-            <h1 style="margin: 0; color: #ffffff; text-align: center;">Monitoreo de sector: <span style="color: #00d4ff;">{sector_seleccionado}</span></h1>
+        <div class="header-banner">
+            <div class="header-left">
+                <img class="header-logo" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
+                <div class="header-title-container">
+                    <h1 class="header-title">Monitoreo de sector: <span class="header-sector-name">{sector_seleccionado}</span></h1>
+                    <div class="header-divider-line"></div>
+                </div>
+            </div>
+            <div class="header-center-icon">
+                <svg class="animated-drop" viewBox="0 0 24 24" fill="#00d4ff">
+                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                </svg>
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -2280,10 +2391,9 @@ if sector_seleccionado:
         )
 
     with col_btn:
-        st.write("") # Alineación visual con el selectbox
+        st.write("") 
         st.write("") 
         if st.button("Actualizar datos", use_container_width=True, key="btn_refrescar_db_sector"):
-            # Limpia la caché de Streamlit para forzar nuevas consultas a las bases de datos
             st.cache_data.clear()
             st.toast("¡Datos sincronizados con éxito desde las bases de datos!", icon="🔄")
             st.rerun()
