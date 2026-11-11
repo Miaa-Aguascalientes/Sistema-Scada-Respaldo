@@ -2157,14 +2157,13 @@ for id_rb, info in mapa_rebombeos_dict.items():
 # 7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
 
 if sector_seleccionado:
-    # 1. Inyectamos los estilos CSS globales una sola vez de forma limpia
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
             .stApp { background: #081421; color: #e4edf7; }
-            header[data-testid="stHeader"] { background: #081421; }
+            header[data-testid="stHeader"] { background: #081421; display: none !important; }
             [data-testid="stSidebar"] { display: none !important; }
-            .block-container { padding: 0.5rem 2rem 3.5rem !important; max-width: 1920px; }
+            .block-container { padding: 0rem 2rem 3.5rem !important; max-width: 1920px; margin-top: -25px !important; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
@@ -2193,7 +2192,7 @@ if sector_seleccionado:
                 border-top: 2px solid #00d4ff;
                 border-radius: 12px;
                 padding: 16px 24px;
-                margin-top: -10px;
+                margin-top: 0px;
                 margin-bottom: 20px;
                 display: flex;
                 align-items: center;
@@ -2215,11 +2214,11 @@ if sector_seleccionado:
                 pointer-events: none;
             }
 
-            .miaa-logo-img {
-                height: 48px;
-                width: auto;
-                filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
+            .miaa-logo-container {
+                display: flex;
+                align-items: center;
                 z-index: 2;
+                filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.5));
             }
 
             .miaa-center-content {
@@ -2278,7 +2277,7 @@ if sector_seleccionado:
             }
 
             .miaa-spacer-right {
-                width: 48px;
+                width: 120px;
                 z-index: 2;
             }
 
@@ -2355,10 +2354,16 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # 2. Renderizado limpio del banner con HTML puro para evitar que Streamlit lo imprima como texto
+    # LOGOTIPO VECTORIAL INCORPORADO PARA EVITAR QUE SE ROMPA
     html_banner = f"""
         <div class="miaa-header-banner">
-            <img class="miaa-logo-img" src="[https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg](https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg)" alt="Logo MIAA">
+            <div class="miaa-logo-container">
+                <svg width="115" height="42" viewBox="0 0 200 75" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 55 C 30 20, 50 60, 70 25 C 90 60, 110 20, 130 55" stroke="#00d4ff" stroke-width="7" fill="none" stroke-linecap="round"/>
+                    <text x="138" y="48" fill="#ffffff" font-family="Arial, sans-serif" font-weight="bold" font-size="34">miaa</text>
+                    <text x="139" y="65" fill="#8acbf5" font-family="Arial, sans-serif" font-size="9">Modelo Integral de Aguas de Aguascalientes</text>
+                </svg>
+            </div>
             <div class="miaa-center-content">
                 <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
                 <div class="miaa-lines-row">
@@ -2619,15 +2624,16 @@ if sector_seleccionado:
 
         m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
         
-        folium.TileLayer(tiles='[https://mt1.google.com/vt/lyrs=y&x=](https://mt1.google.com/vt/lyrs=y&x=){x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
-        
+        # RESTAURADA LA CAPA OSCURA DE CARTO (CAPA NEGRA) Y SATÉLITE
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
-            tiles=f"https://{{s}}[.basemaps.cartocdn.com/rastertiles/dark_all/](https://.basemaps.cartocdn.com/rastertiles/dark_all/){{z}}/{{x}}/{{y}}.png?key={api_key}",
+            tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
             name="Vista Nocturna",
             attr='&copy; CARTO',
             subdomains="abcd", max_zoom=20, overlay=False, control=True
         ).add_to(m_sec)
+
+        folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
         capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
