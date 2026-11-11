@@ -2932,7 +2932,7 @@ if sector_seleccionado:
                 pass
 
         # --- 2. VRP (Presión/Caudal a y1 - Izquierda) ---
-        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie'] or v_key]
+        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
                 series_vrp_in = "', '".join(series_vrp_list)
