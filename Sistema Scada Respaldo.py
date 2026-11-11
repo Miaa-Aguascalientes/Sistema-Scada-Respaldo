@@ -2846,7 +2846,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión, VRP y Puntos Críticos a la derecha • Franja nocturna 02:00 - 04:00</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal y Presiones a la izquierda • Nivel de Tanque a la derecha • Franja nocturna 02:00 - 04:00</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2872,6 +2872,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
+        # --- 1. PUNTOS DE CONTROL (Caudal a y1, Presión a y1) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2916,12 +2917,13 @@ if sector_seleccionado:
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                         ))
                                     else:
+                                        # Presión a la izquierda (y1)
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_name}",
-                                            yaxis="y2", mode='lines+markers',
+                                            yaxis="y1", mode='lines+markers',
                                             line=dict(width=2, color=color_p),
                                             marker=dict(size=3, symbol='circle'),
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
@@ -2929,8 +2931,8 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- INTEGRACIÓN DE VRP EN COMPORTAMIENTO HIDRÁULICO ---
-        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
+        # --- 2. VRP (Presión/Caudal a y1 - Izquierda) ---
+        series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie'] or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
                 series_vrp_in = "', '".join(series_vrp_list)
@@ -2961,7 +2963,7 @@ if sector_seleccionado:
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"{nombre_vrp} - {var_name}",
-                                        yaxis="y2", mode='lines+markers',
+                                        yaxis="y1", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
@@ -2969,7 +2971,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- INTEGRACIÓN DE PUNTOS CRÍTICOS EN COMPORTAMIENTO HIDRÁULICO ---
+        # --- 3. PUNTOS CRÍTICOS (Presión a y1 - Izquierda) ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3002,7 +3004,7 @@ if sector_seleccionado:
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_name}",
-                                        yaxis="y2", mode='lines+markers',
+                                        yaxis="y1", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_pc_hc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
@@ -3010,6 +3012,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
+        # --- 4. POZOS (Caudal a y1, Nivel de tanque a y2 - Derecha) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3017,8 +3020,8 @@ if sector_seleccionado:
                 p_info = mapa_pozos_dict[id_p]
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", False),
-                    ('presion', f"Pozo {id_p} - P", True),
-                    ('nivel_tanque', "Nivel TQ", True)
+                    ('presion', f"Pozo {id_p} - P", False), # Presión de pozos también a la izquierda (y1)
+                    ('nivel_tanque', "Nivel TQ", True)    # Nivel de tanque a la derecha (y2)
                 ]
                 for key_t, lb, sec in conf_pz:
                     tag_v = p_info.get(key_t)
@@ -3060,8 +3063,8 @@ if sector_seleccionado:
                                     yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=3, symbol='circle'),
-                                    fill='tozeroy' if es_caudal else None,
-                                    fillcolor="rgba(0, 212, 255, 0.15)" if es_caudal else None,
+                                    fill='tozeroy' if (es_caudal and "NIVEL" not in label_u) else None,
+                                    fillcolor="rgba(0, 212, 255, 0.15)" if (es_caudal and "NIVEL" not in label_u) else None,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
             except Exception:
@@ -3078,8 +3081,8 @@ if sector_seleccionado:
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            yaxis=dict(title="L/s", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Kg/cm²", side="right", overlaying="y", color="#00ff00", showgrid=False)
+            yaxis=dict(title="Caudal / Presión", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+            yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#d400ff", showgrid=False)
         )
         st.plotly_chart(fig, use_container_width=True)
 
