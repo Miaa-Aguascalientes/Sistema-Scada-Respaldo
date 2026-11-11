@@ -2169,10 +2169,22 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* FORZADO TOTAL DEL COLOR AZUL OSCURO EN EL SELECTOR DE PERIODO */
-            div[data-baseweb="select"],
-            div[data-baseweb="select"] > div,
-            div[data-baseweb="select"] div {
+            /* ESTILOS DE TABLA Y ALINEACIÓN DE TAMAÑOS */
+            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+            .st-key-dma_operational td { 
+                background: rgba(18, 44, 66, 0.4); 
+                border: 1px solid #1f4068; 
+                padding: 0.65rem 0.8rem; 
+                vertical-align: middle; 
+                font-size: 0.85rem; 
+                width: 33.33%; 
+                color: #e4edf7; 
+                font-variant-numeric: tabular-nums;
+                border-radius: 6px;
+            }
+            .st-key-dma_operational td:hover { border-color: #00d4ff; background: rgba(0, 212, 255, 0.05); }
+
+            div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
                 background-color: #0b1a29 !important;
                 background: #0b1a29 !important;
             }
@@ -2182,15 +2194,9 @@ if sector_seleccionado:
                 color: #e4edf7 !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
             }
-            div[data-baseweb="select"] span {
-                color: #e4edf7 !important;
-            }
-            div[data-baseweb="popover"] div {
-                background-color: #0b1a29 !important;
-                color: #e4edf7 !important;
-            }
+            div[data-baseweb="select"] span { color: #e4edf7 !important; }
+            div[data-baseweb="popover"] div { background-color: #0b1a29 !important; color: #e4edf7 !important; }
 
-            /* ESTILIZACIÓN PROFESIONAL DEL BOTÓN DE ACTUALIZAR */
             div.stButton > button {
                 width: 100%;
                 background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%) !important;
@@ -2245,108 +2251,31 @@ if sector_seleccionado:
                 content: "";
                 position: absolute;
                 top: 0; left: 0; right: 0; bottom: 0;
-                background: linear-gradient(90deg, 
-                    rgba(0, 212, 255, 0) 0%, 
-                    rgba(0, 212, 255, 0.06) 50%, 
-                    rgba(0, 212, 255, 0) 100%);
+                background: linear-gradient(90deg, rgba(0, 212, 255, 0) 0%, rgba(0, 212, 255, 0.06) 50%, rgba(0, 212, 255, 0) 100%);
                 background-size: 200% 100%;
                 animation: water-shimmer 6s infinite linear;
                 pointer-events: none;
             }
 
-            .miaa-logo-container {
-                display: flex;
-                align-items: center;
-                z-index: 2;
-                min-width: 180px;
-            }
-
-            .miaa-logo-img {
-                height: 44px;
-                width: auto;
-                max-width: 180px;
-                object-fit: contain;
-                filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
-            }
-
-            .miaa-center-content {
-                position: absolute;
-                left: 50%;
-                transform: translateX(-50%);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                width: 100%;
-                max-width: 650px;
-                z-index: 2;
-                pointer-events: none;
-            }
-
-            .miaa-title-main {
-                color: #ffffff;
-                font-size: 1.7rem;
-                font-weight: 700;
-                margin: 0 0 10px 0;
-                letter-spacing: -0.02rem;
-                white-space: nowrap;
-                text-align: center;
-                line-height: 1.2;
-            }
-
-            .miaa-sector-highlight {
-                color: #00d4ff;
-                text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
-            }
-
-            .miaa-lines-row {
-                display: flex;
-                align-items: center;
-                width: 100%;
-                justify-content: center;
-                gap: 14px;
-            }
-
-            .miaa-neon-bar {
-                flex-grow: 1;
-                height: 2px;
-                background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%);
-                box-shadow: 0 0 8px #00d4ff;
-                animation: line-glow 3s infinite ease-in-out;
-            }
-
-            .miaa-neon-bar.right-side {
-                background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%);
-            }
-
-            .miaa-animated-water-drop {
-                width: 26px;
-                height: 26px;
-                animation: drop-pulse 2.5s infinite ease-in-out;
-                flex-shrink: 0;
-            }
-
-            .miaa-spacer-right {
-                min-width: 180px;
-                z-index: 2;
-            }
+            .miaa-logo-container { display: flex; align-items: center; z-index: 2; min-width: 180px; }
+            .miaa-logo-img { height: 44px; width: auto; max-width: 180px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); }
+            .miaa-center-content { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 650px; z-index: 2; pointer-events: none; }
+            .miaa-title-main { color: #ffffff; font-size: 1.7rem; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
+            .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
+            .miaa-lines-row { display: flex; align-items: center; width: 100%; justify-content: center; gap: 14px; }
+            .miaa-neon-bar { flex-grow: 1; height: 2px; background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%); box-shadow: 0 0 8px #00d4ff; animation: line-glow 3s infinite ease-in-out; }
+            .miaa-neon-bar.right-side { background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%); }
+            .miaa-animated-water-drop { width: 26px; height: 26px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
+            .miaa-spacer-right { min-width: 180px; z-index: 2; }
 
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
                 50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
                 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
             }
-            @keyframes radar-spin {
-                from { transform: rotate(0deg); }
-                to { transform: rotate(360deg); }
-            }
-            @keyframes water-flow {
-                0% { stroke-dashoffset: 24; }
-                100% { stroke-dashoffset: 0; }
-            }
-            @keyframes float-up {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-3px); }
-            }
+            @keyframes radar-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+            @keyframes water-flow { 0% { stroke-dashoffset: 24; } 100% { stroke-dashoffset: 0; } }
+            @keyframes float-up { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
             .anim-pulse { animation: pulse-glow 2.5s infinite ease-in-out; transform-origin: center; }
             .anim-spin { animation: radar-spin 8s infinite linear; transform-origin: center; }
             .anim-flow { stroke-dasharray: 6; animation: water-flow 1.5s infinite linear; }
@@ -2366,14 +2295,10 @@ if sector_seleccionado:
             .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
             .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
             .sub-indicador { font-size: 1.12rem; color: #73b3d8; margin: 0; }
-
-            .st-key-dma_operational table { width: 100%; }
-            .st-key-dma_operational td { border-bottom: 1px solid #23374a; padding: .52rem .5rem; vertical-align: middle; font-size: .8rem; width: 33.33%; color: #c1d3e5; font-variant-numeric: tabular-nums; }
             iframe { border-radius: 8px; }
         </style>
     """, unsafe_allow_html=True)
 
-    # 🛡️ ASEGURAR SECTOR VÁLIDO
     if 'sector_seleccionado' not in locals() and 'sector_seleccionado' in st.session_state:
         sector_seleccionado = st.session_state['sector_seleccionado']
     if 'sector_elegido' not in locals():
@@ -2403,7 +2328,6 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # ENCABEZADO CON LOGO SVG DE GITHUB
     html_banner = f"""
         <div class="miaa-header-banner">
             <div class="miaa-logo-container">
@@ -2424,7 +2348,6 @@ if sector_seleccionado:
     """
     st.markdown(html_banner, unsafe_allow_html=True)
 
-    # --- FILA SUPERIOR: SELECTOR DE PERIODO Y BOTÓN DE ACTUALIZAR ---
     col_sel, col_btn = st.columns([3.5, 1.0], gap="medium")
     
     with col_sel:
@@ -2667,30 +2590,14 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
-        # MAPA CON CAPA OBSCURA ACTIVADA POR DEFECTO
-        m_sec = folium.Map(
-            location=[21.8820, -102.2800], 
-            zoom_start=12, 
-            tiles=None,
-            height=360
-        )
+        m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
         
-        folium.TileLayer(
-            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
-            attr='Google', 
-            name='Vista Satélite', 
-            overlay=False
-        ).add_to(m_sec)
+        folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
 
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
             tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-            name="Capa obscura",
-            attr='&copy; CARTO',
-            subdomains="abcd", 
-            max_zoom=20, 
-            overlay=False, 
-            control=True
+            name="Capa obscura", attr='&copy; CARTO', subdomains="abcd", max_zoom=20, overlay=False, control=True
         ).add_to(m_sec)
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
@@ -2872,7 +2779,6 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. PUNTOS DE CONTROL (Caudal a y1, Presión a y1) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2917,7 +2823,6 @@ if sector_seleccionado:
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                         ))
                                     else:
-                                        # Presión a la izquierda (y1)
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
                                         fig.add_trace(go.Scatter(
@@ -2931,7 +2836,6 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 2. VRP (Presión/Caudal a y1 - Izquierda) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2971,7 +2875,6 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 3. PUNTOS CRÍTICOS (Presión a y1 - Izquierda) ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3012,7 +2915,6 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. POZOS (Caudal a y1, Nivel de tanque a y2 - Derecha) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3020,8 +2922,8 @@ if sector_seleccionado:
                 p_info = mapa_pozos_dict[id_p]
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", False),
-                    ('presion', f"Pozo {id_p} - P", False), # Presión de pozos también a la izquierda (y1)
-                    ('nivel_tanque', "Nivel TQ", True)    # Nivel de tanque a la derecha (y2)
+                    ('presion', f"Pozo {id_p} - P", False),
+                    ('nivel_tanque', "Nivel TQ", True)
                 ]
                 for key_t, lb, sec in conf_pz:
                     tag_v = p_info.get(key_t)
@@ -3086,7 +2988,7 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: GRÁFICO INDEPENDIENTE DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS LADO A LADO ---
+    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS ALINEADOS EN TAMAÑO ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3163,6 +3065,7 @@ if sector_seleccionado:
         except Exception:
             pass
 
+        # Altura fija de 290px para igualar exactamente la tarjeta derecha
         fig_pc.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
             margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
@@ -3178,7 +3081,7 @@ if sector_seleccionado:
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
             </div>
-            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 337px; display: flex; flex-direction: column; justify-content: center;">
+            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 350px; display: flex; flex-direction: column; justify-content: center;">
                 <table style="width: 100%;">
                     <tr>
                         <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
