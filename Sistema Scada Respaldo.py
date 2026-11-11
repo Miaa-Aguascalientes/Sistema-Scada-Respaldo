@@ -2169,7 +2169,7 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* ESTILOS DE LISTA PARA DATOS OPERATIVOS (ESTILO REFERENCIA) */
+            /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
             .dma-op-row {
                 display: flex;
                 justify-content: space-between;
@@ -2483,9 +2483,12 @@ if sector_seleccionado:
                 for _, row in df_ultimos.iterrows():
                     dev = str(row['DISPOSITIVO']).strip()
                     var = str(row['VARIABLE']).strip()
+                    val_db = row['VALOR']
+                    if 'PRESION' in var.upper() and val_db is not None:
+                        val_db = float(val_db) * 10.0  # Conversión a mca
                     if dev not in ultimos_valores_mapa:
                         ultimos_valores_mapa[dev] = {}
-                    ultimos_valores_mapa[dev][var] = {'valor': row['VALOR'], 'fecha': row['FECHA_HORA_LOGGER']}
+                    ultimos_valores_mapa[dev][var] = {'valor': val_db, 'fecha': row['FECHA_HORA_LOGGER']}
         except Exception:
             pass
 
@@ -2586,7 +2589,7 @@ if sector_seleccionado:
                 <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Presión de ingreso</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">2.35 <span style="font-size:0.8rem; font-weight:normal;">Kg/cm²</span></p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">23.5 <span style="font-size:0.8rem; font-weight:normal;">mca</span></p>
             <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo</p>
         </div>''', unsafe_allow_html=True)
     st.write("")
@@ -2635,13 +2638,13 @@ if sector_seleccionado:
             
             html_vars_detalle = ""
             for var_name, info_v in vals_dev.items():
-                val_bruto = info_v.get('valor')
+                val_num = info_v.get('valor', 0.0)
                 try:
-                    val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    val_num = float(val_num) if val_num is not None else 0.0
                 except (ValueError, TypeError):
                     val_num = 0.0
 
-                unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
+                unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
                 html_vars_detalle += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_detalle:
@@ -2665,12 +2668,12 @@ if sector_seleccionado:
             
             html_vars_pc = ""
             for var_name, info_v in vals_pc.items():
-                val_bruto = info_v.get('valor')
+                val_num = info_v.get('valor', 0.0)
                 try:
-                    val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    val_num = float(val_num) if val_num is not None else 0.0
                 except (ValueError, TypeError):
                     val_num = 0.0
-                unidad_v = "Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else "")
+                unidad_v = "mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else "")
                 html_vars_pc += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_pc:
@@ -2692,12 +2695,12 @@ if sector_seleccionado:
             
             html_vars_vrp = ""
             for var_name, info_v in vals_vrp.items():
-                val_bruto = info_v.get('valor')
+                val_num = info_v.get('valor', 0.0)
                 try:
-                    val_num = float(val_bruto) if val_bruto is not None else 0.0
+                    val_num = float(val_num) if val_num is not None else 0.0
                 except (ValueError, TypeError):
                     val_num = 0.0
-                unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("Kg/cm²" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
+                unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
                 html_vars_vrp += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_vrp:
@@ -2764,7 +2767,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presiones y Nivel de Tanque a la derecha • Franja nocturna 02:00 - 04:00</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presiones (mca) y Nivel a la derecha • Franja nocturna 02:00 - 04:00</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2808,6 +2811,9 @@ if sector_seleccionado:
                 if not df_madre_sector.empty:
                     df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
                     df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
+                    
+                    # Multiplicar por 10 los valores de presión para pasarlos a mca
+                    df_madre_sector.loc[~df_madre_sector['VARIABLE'].str.upper().str.contains('CAUDAL', na=False), 'VALOR'] *= 10.0
 
                     for r_k, r_info in dict_reg.items():
                         serie_raw = str(r_info.get('Serie', r_k)).strip()
@@ -2842,7 +2848,7 @@ if sector_seleccionado:
                                             yaxis="y2", mode='lines+markers',
                                             line=dict(width=2, color=color_p),
                                             marker=dict(size=3, symbol='circle'),
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
+                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} mca<extra></extra>'
                                         ))
             except Exception:
                 pass
@@ -2863,6 +2869,8 @@ if sector_seleccionado:
                 if not df_madre_vrp.empty:
                     df_madre_vrp['FECHA'] = pd.to_datetime(df_madre_vrp['Fecha'])
                     df_madre_vrp['Serie_str'] = df_madre_vrp['Serie'].astype(str).str.strip()
+                    df_madre_vrp.loc[~df_madre_vrp['VARIABLE'].str.upper().str.contains('CAUDAL', na=False), 'VALOR'] *= 10.0
+                    
                     colores_vrp = ["#00ffcc", "#28a745", "#a1ffce", "#00cc66"]
                     idx_vrp_c = 0
                     for v_key, v_info in dict_vrp_sec.items():
@@ -2904,6 +2912,8 @@ if sector_seleccionado:
                 if not df_madre_pc_hc.empty:
                     df_madre_pc_hc['FECHA'] = pd.to_datetime(df_madre_pc_hc['Fecha'])
                     df_madre_pc_hc['Serie_str'] = df_madre_pc_hc['Serie'].astype(str).str.strip()
+                    df_madre_pc_hc['VALOR'] *= 10.0  # Conversión a mca
+                    
                     colores_pc_hc = ["#ff4d4d", "#ff8080", "#ffb3b3", "#ff1a1a"]
                     idx_pc_hc = 0
                     for pc_key, pc_info in dict_pc_sec.items():
@@ -2922,7 +2932,7 @@ if sector_seleccionado:
                                         yaxis="y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_pc_hc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
                                     ))
             except Exception:
                 pass
@@ -2963,7 +2973,12 @@ if sector_seleccionado:
 
                                 if es_caudal: unidad_pc = "L/s"
                                 elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
-                                else: unidad_pc = "Kg/cm²"
+                                else: unidad_pc = "mca"
+
+                                # Si es presión de pozo, multiplicar por 10 para mca
+                                val_y_series = df_tag['VALUE']
+                                if not es_caudal and "NIVEL" not in label_u and "TANQUE" not in label_u:
+                                    val_y_series = val_y_series * 10.0
 
                                 if "NIVEL" in label_u or "TANQUE" in label_u:
                                     color_base = "#d400ff"
@@ -2973,7 +2988,7 @@ if sector_seleccionado:
                                     color_base = "#00ff00"
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=df_tag['VALUE'], name=cfg['label'], 
+                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
                                     yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=3, symbol='circle'),
@@ -2996,11 +3011,11 @@ if sector_seleccionado:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presion (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
+            yaxis2=dict(title="Presión (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: CONTENEDORES SIMÉTRICOS CON LÍNEAS MÁX/MÍN EN PUNTOS CRÍTICOS Y FORMATO LISTA ---
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS (CON LÍNEAS MÁX/MÍN Y BARRA HABILITADA) Y DATOS OPERATIVOS ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3029,6 +3044,7 @@ if sector_seleccionado:
                 if not df_madre_pc.empty:
                     df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
                     df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
+                    df_madre_pc['VALOR'] *= 10.0  # Conversión a mca
 
                     dias_es_pc = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                     meses_es_pc = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -3070,7 +3086,7 @@ if sector_seleccionado:
                                         showlegend=True,
                                         marker=dict(size=3.5, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
                                     ))
 
                     delta_h = pd.Timedelta(hours=1)
@@ -3098,8 +3114,9 @@ if sector_seleccionado:
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presion (mca)")
+            yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
+        # Se remueve config={"displayModeBar": False} para que aparezca la barra de herramientas flotante
         st.plotly_chart(fig_pc, use_container_width=True)
 
     with col_op:
@@ -3168,7 +3185,6 @@ if sector_seleccionado:
     """, unsafe_allow_html=True)
 
     st.stop()
-
 
     
 # 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
