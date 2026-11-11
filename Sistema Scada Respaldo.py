@@ -2846,7 +2846,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión y VRP a la derecha • Franja nocturna 02:00 - 04:00</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presión, VRP y Puntos Críticos a la derecha • Franja nocturna 02:00 - 04:00</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2929,7 +2929,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- INTEGRACIÓN DE DATOS VRP EN LA GRÁFICA DE COMPORTAMIENTO HIDRÁULICO ---
+        # --- INTEGRACIÓN DE VRP EN COMPORTAMIENTO HIDRÁULICO ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2964,6 +2964,47 @@ if sector_seleccionado:
                                         yaxis="y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
+                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                    ))
+            except Exception:
+                pass
+
+        # --- INTEGRACIÓN DE PUNTOS CRÍTICOS EN COMPORTAMIENTO HIDRÁULICO ---
+        series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
+        if dict_pc_sec and series_pc_list:
+            try:
+                series_pc_in = "', '".join(series_pc_list)
+                q_madre_pc_hc = f"""
+                    SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                    FROM BD_MADRE 
+                    WHERE DISPOSITIVO IN ('{series_pc_in}')
+                      AND VARIABLE != 'Volt_bateria'
+                      AND VARIABLE NOT LIKE '%CAUDAL%'
+                      AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                    ORDER BY FECHA_HORA_LOGGER ASC
+                """
+                df_madre_pc_hc = pd.read_sql(q_madre_pc_hc, engine_tel)
+                if not df_madre_pc_hc.empty:
+                    df_madre_pc_hc['FECHA'] = pd.to_datetime(df_madre_pc_hc['Fecha'])
+                    df_madre_pc_hc['Serie_str'] = df_madre_pc_hc['Serie'].astype(str).str.strip()
+                    colores_pc_hc = ["#ff4d4d", "#ff8080", "#ffb3b3", "#ff1a1a"]
+                    idx_pc_hc = 0
+                    for pc_key, pc_info in dict_pc_sec.items():
+                        serie_raw = str(pc_info.get('Serie', pc_key)).strip()
+                        domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'PC {serie_raw}'))
+                        df_temp = df_madre_pc_hc[df_madre_pc_hc['Serie_str'] == serie_raw]
+                        if not df_temp.empty:
+                            for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                if not df_v_group.empty:
+                                    color_trace_pc_hc = colores_pc_hc[idx_pc_hc % len(colores_pc_hc)]
+                                    idx_pc_hc += 1
+                                    fig.add_trace(go.Scatter(
+                                        x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                        name=f"PC: {domicilio_nombre} - {var_name}",
+                                        yaxis="y2", mode='lines+markers',
+                                        marker=dict(size=3.5, symbol='circle'),
+                                        line=dict(width=2, color=color_trace_pc_hc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
                                     ))
             except Exception:
@@ -3042,9 +3083,7 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS LADO A LADO SIN EXPANSIÓN DINÁMICA ---
-    series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
-    
+    # --- FILA INFERIOR: GRÁFICO INDEPENDIENTE DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS LADO A LADO ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3159,8 +3198,8 @@ if sector_seleccionado:
                 </table>
             </div>
         """, unsafe_allow_html=True)
-        
-        # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
+
+    # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
     st.markdown("""
         <div style="
             position: relative;
