@@ -2166,15 +2166,6 @@ if sector_seleccionado:
             .block-container { padding: 0rem 2rem 3.5rem !important; max-width: 1920px; margin-top: -25px !important; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
-            
-            /* FONDO AZUL OBSCURO Y BORDE NEÓN PARA LA TARJETA DEL ENCABEZADO */
-            [data-testid="stVerticalBlockBorderWrapper"] > div { 
-                border-color: #1f4068 !important; 
-                border-top: 2px solid #00d4ff !important;
-                border-radius: 12px !important; 
-                background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; 
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); 
-            }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
@@ -2203,11 +2194,11 @@ if sector_seleccionado:
 
             /* ADAPTACIÓN DEL SELECTOR DE FECHAS */
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
-                background-color: #030d17 !important;
-                background: #030d17 !important;
+                background-color: #0b1c2d !important;
+                background: #0b1c2d !important;
             }
             div[data-baseweb="select"] > div {
-                border: 1px solid #1f4068 !important;
+                border: 1px solid #27445e !important;
                 border-radius: 8px !important;
                 color: #e4edf7 !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
@@ -2230,7 +2221,20 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            .miaa-logo-img { height: 42px; width: auto; max-width: 170px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 6px; }
+            /* ENCABEZADO CON EL MISMO FONDO AZUL DE LOS INDICADORES */
+            .miaa-header-custom-card {
+                position: relative;
+                width: 100%;
+                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%);
+                border: 1px solid #27445e;
+                border-top: 2px solid #47afd0;
+                border-radius: 10px;
+                padding: 16px 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            }
+
+            .miaa-logo-img { height: 42px; width: auto; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 6px; }
             .miaa-center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
             .miaa-title-main { color: #ffffff; font-size: 1.55rem; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
             .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
@@ -2299,42 +2303,43 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE Y FONDO AZUL OBSCURO ---
-    with st.container(border=True):
-        head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
-        
-        with head_col1:
-            st.markdown(
-                '<img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">',
-                unsafe_allow_html=True
-            )
+    # --- ENCABEZADO CON FONDO AZUL IDÉNTICO A LOS INDICADORES ---
+    st.markdown('<div class="miaa-header-custom-card">', unsafe_allow_html=True)
+    head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
+    
+    with head_col1:
+        st.markdown(
+            '<img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">',
+            unsafe_allow_html=True
+        )
 
-        with head_col2:
-            st.markdown(f"""
-                <div class="miaa-center-content">
-                    <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
-                    <div class="miaa-lines-row">
-                        <div class="miaa-neon-bar"></div>
-                        <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
-                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                        </svg>
-                        <div class="miaa-neon-bar right-side"></div>
-                    </div>
+    with head_col2:
+        st.markdown(f"""
+            <div class="miaa-center-content">
+                <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
+                <div class="miaa-lines-row">
+                    <div class="miaa-neon-bar"></div>
+                    <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                    </svg>
+                    <div class="miaa-neon-bar right-side"></div>
                 </div>
-            """, unsafe_allow_html=True)
+            </div>
+        """, unsafe_allow_html=True)
 
-        with head_col3:
-            opciones_periodo = [
-                "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
-                "Esta semana", "Últimos 7 días", "Este Mes", 
-                "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
-            ]
-            opcion_periodo_tab = st.selectbox(
-                "Periodo:",
-                opciones_periodo,
-                index=4,  # "Esta semana" por defecto
-                key="f_sector_periodo_tab_detalle"
-            )
+    with head_col3:
+        opciones_periodo = [
+            "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+            "Esta semana", "Últimos 7 días", "Este Mes", 
+            "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+        ]
+        opcion_periodo_tab = st.selectbox(
+            "Periodo:",
+            opciones_periodo,
+            index=4,  # "Esta semana" por defecto
+            key="f_sector_periodo_tab_detalle"
+        )
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.write("")
 
