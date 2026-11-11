@@ -2169,7 +2169,7 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* --- ANIMACIONES DE ENCABEZADO --- */
+            /* --- ESTILOS DEL ENCABEZADO SCADA --- */
             @keyframes water-shimmer {
                 0% { background-position: -200% 0; }
                 100% { background-position: 200% 0; }
@@ -2179,105 +2179,108 @@ if sector_seleccionado:
                 50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(0, 212, 255, 1)); }
                 100% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)); }
             }
-            @keyframes line-flow {
-                0% { background-position: 0% 50%; }
-                50% { background-position: 100% 50%; }
-                100% { background-position: 0% 50%; }
+            @keyframes line-glow {
+                0% { opacity: 0.7; }
+                50% { opacity: 1; filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.9)); }
+                100% { opacity: 0.7; }
             }
 
-            /* CONTAINER DEL ENCABEZADO */
             .header-banner {
                 position: relative;
                 width: 100%;
-                background: linear-gradient(135deg, #051424 0%, #082038 50%, #051424 100%);
+                background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%);
                 border: 1px solid #1f4068;
                 border-top: 2px solid #00d4ff;
                 border-radius: 12px;
-                padding: 16px 24px;
+                padding: 18px 24px;
                 margin-top: -10px;
                 margin-bottom: 20px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 overflow: hidden;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             }
 
-            /* EFECTO DE MOVIMIENTO DE AGUA EN EL FONDO */
             .header-banner::before {
                 content: "";
                 position: absolute;
                 top: 0; left: 0; right: 0; bottom: 0;
                 background: linear-gradient(90deg, 
                     rgba(0, 212, 255, 0) 0%, 
-                    rgba(0, 212, 255, 0.08) 50%, 
+                    rgba(0, 212, 255, 0.06) 50%, 
                     rgba(0, 212, 255, 0) 100%);
                 background-size: 200% 100%;
                 animation: water-shimmer 6s infinite linear;
                 pointer-events: none;
             }
 
-            .header-left {
-                display: flex;
-                align-items: center;
-                gap: 18px;
-                z-index: 2;
-            }
-
             .header-logo {
                 height: 48px;
                 width: auto;
                 filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
-            }
-
-            .header-title-container {
-                display: flex;
-                flex-direction: column;
                 z-index: 2;
             }
 
-            .header-title {
-                color: #ffffff;
-                font-size: 1.75rem;
-                font-weight: 700;
-                margin: 0;
-                letter-spacing: -0.02rem;
+            .header-center-box {
+                position: absolute;
+                left: 50%;
+                transform: translateX(-50%);
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                gap: 10px;
+                width: 100%;
+                max-width: 650px;
+                z-index: 2;
+                pointer-events: none;
             }
 
-            .header-sector-name {
+            .header-title-text {
+                color: #ffffff;
+                font-size: 1.7rem;
+                font-weight: 700;
+                margin: 0 0 8px 0;
+                letter-spacing: -0.02rem;
+                white-space: nowrap;
+                text-align: center;
+            }
+
+            .header-sector-val {
                 color: #00d4ff;
                 text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
             }
 
-            /* LÍNEA DE SEPARACIÓN FLUIDA */
-            .header-divider-line {
-                width: 100%;
-                height: 2px;
-                margin-top: 6px;
-                background: linear-gradient(90deg, #00d4ff, #005580, #00d4ff);
-                background-size: 200% 200%;
-                animation: line-flow 4s ease infinite;
-                border-radius: 2px;
-            }
-
-            /* GOTA ANIMADA CENTRAL */
-            .header-center-icon {
-                position: absolute;
-                left: 50%;
-                transform: translateX(-50%);
-                z-index: 2;
+            .header-line-container {
                 display: flex;
                 align-items: center;
+                width: 100%;
                 justify-content: center;
+                gap: 12px;
+            }
+
+            .header-neon-line {
+                flex-grow: 1;
+                height: 2px;
+                background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%);
+                box-shadow: 0 0 8px #00d4ff;
+                animation: line-glow 3s infinite ease-in-out;
+            }
+
+            .header-neon-line.right {
+                background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%);
             }
 
             .animated-drop {
-                width: 26px;
-                height: 26px;
+                width: 28px;
+                height: 28px;
                 animation: drop-pulse 2.5s infinite ease-in-out;
+                flex-shrink: 0;
+            }
+
+            /* ESPACIADOR DERECHO PARA EQUILIBRAR EL FLEXBOX */
+            .header-right-spacer {
+                width: 48px;
+                z-index: 2;
             }
 
             /* ANIMACIONES GENERALES DE CARDS */
@@ -2356,21 +2359,23 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- ENCABEZADO ANIMADO DINÁMICO CON LOGO MIAA ---
+    # --- ENCABEZADO CON LOGO A LA IZQUIERDA Y DISEÑO CENTRAL EXACTO ---
     st.markdown(f"""
         <div class="header-banner">
-            <div class="header-left">
-                <img class="header-logo" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
-                <div class="header-title-container">
-                    <h1 class="header-title">Monitoreo de sector: <span class="header-sector-name">{sector_seleccionado}</span></h1>
-                    <div class="header-divider-line"></div>
+            <img class="header-logo" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
+            
+            <div class="header-center-box">
+                <h1 class="header-title-text">Monitoreo de sector: <span class="header-sector-val">{sector_seleccionado}</span></h1>
+                <div class="header-line-container">
+                    <div class="header-neon-line"></div>
+                    <svg class="animated-drop" viewBox="0 0 24 24" fill="#00d4ff">
+                        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                    </svg>
+                    <div class="header-neon-line right"></div>
                 </div>
             </div>
-            <div class="header-center-icon">
-                <svg class="animated-drop" viewBox="0 0 24 24" fill="#00d4ff">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                </svg>
-            </div>
+
+            <div class="header-right-spacer"></div>
         </div>
     """, unsafe_allow_html=True)
 
