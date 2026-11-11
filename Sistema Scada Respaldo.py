@@ -2166,7 +2166,9 @@ if sector_seleccionado:
             .block-container { padding: 0rem 2rem 3.5rem !important; max-width: 1920px; margin-top: -25px !important; }
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
-            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
+            
+            /* ESTILO DE LA TARJETA CONTENEDORA DEL ENCABEZADO */
+            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 12px !important; background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
@@ -2193,7 +2195,7 @@ if sector_seleccionado:
                 font-variant-numeric: tabular-nums;
             }
 
-            /* ADAPTACIÓN DEL SELECTOR DE FECHAS DENTRO DEL ENCABEZADO */
+            /* ADAPTACIÓN DEL SELECTOR DE FECHAS */
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
                 background-color: #030d17 !important;
                 background: #030d17 !important;
@@ -2222,47 +2224,14 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            /* TARJETA CONTENEDORA DEL ENCABEZADO */
-            .miaa-header-banner {
-                position: relative;
-                width: 100%;
-                background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%);
-                border: 1px solid #1f4068;
-                border-top: 2px solid #00d4ff;
-                border-radius: 12px;
-                padding: 18px 26px;
-                margin-top: 0px;
-                margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                overflow: hidden;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-                min-height: 90px;
-            }
-
-            .miaa-header-banner::before {
-                content: "";
-                position: absolute;
-                top: 0; left: 0; right: 0; bottom: 0;
-                background: linear-gradient(90deg, rgba(0, 212, 255, 0) 0%, rgba(0, 212, 255, 0.06) 50%, rgba(0, 212, 255, 0) 100%);
-                background-size: 200% 100%;
-                animation: water-shimmer 6s infinite linear;
-                pointer-events: none;
-            }
-
-            .miaa-logo-container { display: flex; align-items: center; z-index: 2; min-width: 160px; }
-            .miaa-logo-img { height: 42px; width: auto; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); }
-            
-            .miaa-center-content { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 600px; z-index: 2; pointer-events: none; }
-            .miaa-title-main { color: #ffffff; font-size: 1.65rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
+            .miaa-logo-img { height: 42px; width: auto; max-width: 170px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 6px; }
+            .miaa-center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
+            .miaa-title-main { color: #ffffff; font-size: 1.55rem; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
             .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
             .miaa-lines-row { display: flex; align-items: center; width: 100%; justify-content: center; gap: 14px; }
             .miaa-neon-bar { flex-grow: 1; height: 2px; background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%); box-shadow: 0 0 8px #00d4ff; animation: line-glow 3s infinite ease-in-out; }
             .miaa-neon-bar.right-side { background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%); }
-            .miaa-animated-water-drop { width: 24px; height: 24px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
-            
-            .miaa-right-selector { z-index: 3; min-width: 220px; display: flex; flex-direction: column; align-items: flex-end; }
+            .miaa-animated-water-drop { width: 22px; height: 22px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
 
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
@@ -2324,48 +2293,43 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- RENDERIZADO DEL ENCABEZADO INTEGRADO EN UNA SOLA TARJETA ---
-    # Usamos contenedores de columnas nativos de Streamlit pero inyectados visualmente dentro de la misma estructura
-    
-    st.markdown('<div class="miaa-header-banner">', unsafe_allow_html=True)
-    
-    # 1. Logo a la izquierda
-    st.markdown(
-        '<div class="miaa-logo-container"><img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA"></div>',
-        unsafe_allow_html=True
-    )
+    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE (TARJETA) ---
+    with st.container(border=True):
+        head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
+        
+        with head_col1:
+            st.markdown(
+                '<img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">',
+                unsafe_allow_html=True
+            )
 
-    # 2. Título centrado con animación
-    st.markdown(f"""
-        <div class="miaa-center-content">
-            <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
-            <div class="miaa-lines-row">
-                <div class="miaa-neon-bar"></div>
-                <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
-                    <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
-                </svg>
-                <div class="miaa-neon-bar right-side"></div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+        with head_col2:
+            st.markdown(f"""
+                <div class="miaa-center-content">
+                    <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
+                    <div class="miaa-lines-row">
+                        <div class="miaa-neon-bar"></div>
+                        <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
+                            <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                        </svg>
+                        <div class="miaa-neon-bar right-side"></div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
 
-    # 3. Selector de fechas a la derecha
-    # Para mantener el widget interactivo funcional de Streamlit alineado a la derecha sin romper el flexbox, lo envolvemos
-    st.markdown('<div class="miaa-right-selector">', unsafe_allow_html=True)
-    opciones_periodo = [
-        "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
-        "Esta semana", "Últimos 7 días", "Este Mes", 
-        "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
-    ]
-    opcion_periodo_tab = st.selectbox(
-        "Periodo:",
-        opciones_periodo,
-        index=4,  # "Esta semana" por defecto
-        key="f_sector_periodo_tab_detalle"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        with head_col3:
+            opciones_periodo = [
+                "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
+                "Esta semana", "Últimos 7 días", "Este Mes", 
+                "Último mes", "Últimos 3 meses", "Últimos 6 meses", "Personalizado"
+            ]
+            opcion_periodo_tab = st.selectbox(
+                "Periodo:",
+                opciones_periodo,
+                index=4,  # "Esta semana" por defecto
+                key="f_sector_periodo_tab_detalle"
+            )
 
-    st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
 
     hoy_dt = datetime.now()
@@ -3180,7 +3144,6 @@ if sector_seleccionado:
     """, unsafe_allow_html=True)
 
     st.stop()
-
     
 # 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
