@@ -2157,6 +2157,7 @@ for id_rb, info in mapa_rebombeos_dict.items():
 # 7. DETALLE DE SECTOR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
 
 if sector_seleccionado:
+    # 1. Inyectamos los estilos CSS globales una sola vez de forma limpia
     st.markdown("""
         <style>
             :root { color-scheme: dark; }
@@ -2354,11 +2355,10 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO SCADA RENDERIZADO CORRECTAMENTE ---
-    st.markdown(f"""
+    # 2. Renderizado limpio del banner con HTML puro para evitar que Streamlit lo imprima como texto
+    html_banner = f"""
         <div class="miaa-header-banner">
-            <img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
-            
+            <img class="miaa-logo-img" src="[https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg](https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg)" alt="Logo MIAA">
             <div class="miaa-center-content">
                 <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
                 <div class="miaa-lines-row">
@@ -2369,10 +2369,10 @@ if sector_seleccionado:
                     <div class="miaa-neon-bar right-side"></div>
                 </div>
             </div>
-
             <div class="miaa-spacer-right"></div>
         </div>
-    """, unsafe_allow_html=True)
+    """
+    st.markdown(html_banner, unsafe_allow_html=True)
 
     # --- FILA SUPERIOR: SELECTOR DE PERIODO Y BOTÓN DE ACTUALIZAR DESDE BD ---
     col_sel, col_btn = st.columns([3.5, 1.0], gap="medium")
@@ -2619,11 +2619,11 @@ if sector_seleccionado:
 
         m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
         
-        folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
+        folium.TileLayer(tiles='[https://mt1.google.com/vt/lyrs=y&x=](https://mt1.google.com/vt/lyrs=y&x=){x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
         
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
-            tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
+            tiles=f"https://{{s}}[.basemaps.cartocdn.com/rastertiles/dark_all/](https://.basemaps.cartocdn.com/rastertiles/dark_all/){{z}}/{{x}}/{{y}}.png?key={api_key}",
             name="Vista Nocturna",
             attr='&copy; CARTO',
             subdomains="abcd", max_zoom=20, overlay=False, control=True
