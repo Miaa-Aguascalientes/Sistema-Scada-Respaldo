@@ -2194,8 +2194,8 @@ if sector_seleccionado:
             }
 
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
-                background-color: #0b1a29 !important;
-                background: #0b1a29 !important;
+                background-color: #030d17 !important;
+                background: #030d17 !important;
             }
             div[data-baseweb="select"] > div {
                 border: 1px solid #1f4068 !important;
@@ -2205,23 +2205,6 @@ if sector_seleccionado:
             }
             div[data-baseweb="select"] span { color: #e4edf7 !important; }
             div[data-baseweb="popover"] div { background-color: #0b1a29 !important; color: #e4edf7 !important; }
-
-            div.stButton > button {
-                width: 100%;
-                background: linear-gradient(135deg, #0099ff 0%, #00d4ff 100%) !important;
-                color: #030d17 !important;
-                font-weight: 700 !important;
-                border: none !important;
-                border-radius: 8px !important;
-                padding: 0.6rem 1rem !important;
-                box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3) !important;
-                transition: all 0.3s ease !important;
-            }
-            div.stButton > button:hover {
-                background: linear-gradient(135deg, #00b3ff 0%, #33e1ff 100%) !important;
-                box-shadow: 0 6px 20px rgba(0, 212, 255, 0.5) !important;
-                transform: translateY(-1px);
-            }
 
             @keyframes water-shimmer {
                 0% { background-position: -200% 0; }
@@ -2238,25 +2221,22 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            .miaa-header-banner {
+            /* CONTENEDOR CONTROLLER BANNER ESTILO UNIFICADO */
+            .miaa-header-banner-wrapper {
                 position: relative;
                 width: 100%;
                 background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%);
                 border: 1px solid #1f4068;
                 border-top: 2px solid #00d4ff;
                 border-radius: 12px;
-                padding: 22px 30px;
+                padding: 16px 24px;
                 margin-top: 0px;
                 margin-bottom: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
                 overflow: hidden;
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-                min-height: 85px;
             }
 
-            .miaa-header-banner::before {
+            .miaa-header-banner-wrapper::before {
                 content: "";
                 position: absolute;
                 top: 0; left: 0; right: 0; bottom: 0;
@@ -2266,16 +2246,14 @@ if sector_seleccionado:
                 pointer-events: none;
             }
 
-            .miaa-logo-container { display: flex; align-items: center; z-index: 2; min-width: 180px; }
-            .miaa-logo-img { height: 44px; width: auto; max-width: 180px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); }
-            .miaa-center-content { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 650px; z-index: 2; pointer-events: none; }
-            .miaa-title-main { color: #ffffff; font-size: 1.7rem; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
+            .miaa-logo-img { height: 42px; width: auto; max-width: 170px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); }
+            .miaa-center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; z-index: 2; }
+            .miaa-title-main { color: #ffffff; font-size: 1.6rem; font-weight: 700; margin: 0 0 8px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
             .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
             .miaa-lines-row { display: flex; align-items: center; width: 100%; justify-content: center; gap: 14px; }
             .miaa-neon-bar { flex-grow: 1; height: 2px; background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%); box-shadow: 0 0 8px #00d4ff; animation: line-glow 3s infinite ease-in-out; }
             .miaa-neon-bar.right-side { background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%); }
-            .miaa-animated-water-drop { width: 26px; height: 26px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
-            .miaa-spacer-right { min-width: 180px; z-index: 2; }
+            .miaa-animated-water-drop { width: 24px; height: 24px; animation: drop-pulse 2.5s infinite ease-in-out; flex-shrink: 0; }
 
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
@@ -2337,11 +2315,20 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    html_banner = f"""
-        <div class="miaa-header-banner">
-            <div class="miaa-logo-container">
-                <img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
-            </div>
+    # --- ENCABEZADO UNIFICADO CON COLUMNAS DE STREAMLIT PARA LOGO, TÍTULO Y SELECTOR DE FECHAS ---
+    st.markdown('<div class="miaa-header-banner-wrapper">', unsafe_allow_html=True)
+    
+    b_col1, b_col2, b_col3 = st.columns([1.5, 5.0, 2.2], gap="medium")
+    
+    with b_col1:
+        st.write("")
+        st.markdown(
+            '<img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">',
+            unsafe_allow_html=True
+        )
+
+    with b_col2:
+        st.markdown(f"""
             <div class="miaa-center-content">
                 <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
                 <div class="miaa-lines-row">
@@ -2352,14 +2339,9 @@ if sector_seleccionado:
                     <div class="miaa-neon-bar right-side"></div>
                 </div>
             </div>
-            <div class="miaa-spacer-right"></div>
-        </div>
-    """
-    st.markdown(html_banner, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    col_sel, col_btn = st.columns([3.5, 1.0], gap="medium")
-    
-    with col_sel:
+    with b_col3:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
@@ -2368,18 +2350,11 @@ if sector_seleccionado:
         opcion_periodo_tab = st.selectbox(
             "Periodo:",
             opciones_periodo,
-            index=4,  # <-- ESTABLECIDO EN "Esta semana" POR DEFECTO
+            index=4,  # "Esta semana" por defecto
             key="f_sector_periodo_tab_detalle"
         )
 
-    with col_btn:
-        st.write("") 
-        st.write("") 
-        if st.button("Actualizar datos", use_container_width=True, key="btn_refrescar_db_sector"):
-            st.cache_data.clear()
-            st.toast("¡Datos sincronizados con éxito desde las bases de datos!", icon="🔄")
-            st.rerun()
-
+    st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
 
     hoy_dt = datetime.now()
@@ -2933,7 +2908,6 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_pc_hc = colores_pc_hc[idx_pc_hc % len(colores_pc_hc)]
                                     idx_pc_hc += 1
-                                    # Desactivado por defecto en el gráfico de comportamiento hidráulico
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_name}",
@@ -2990,13 +2964,13 @@ if sector_seleccionado:
 
                                 if "NIVEL" in label_u or "TANQUE" in label_u:
                                     color_base = "#d400ff"
-                                    vis_estado = True  # Tanque visible por defecto
+                                    vis_estado = True
                                 elif es_caudal:
                                     color_base = "#00d4ff"
-                                    vis_estado = 'legendonly'  # Caudal de pozo desactivado por defecto
+                                    vis_estado = 'legendonly'
                                 else:
                                     color_base = "#00ff00"
-                                    vis_estado = 'legendonly'  # Presión de pozo desactivada por defecto
+                                    vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
@@ -3109,7 +3083,6 @@ if sector_seleccionado:
         except Exception:
             pass
 
-        # Adición de líneas de Máx. 30 mca y Mín. 5 mca punteadas en color amarillo
         fig_pc.add_hline(
             y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
             annotation_text="Máx. 30 mca", annotation_position="top right",
