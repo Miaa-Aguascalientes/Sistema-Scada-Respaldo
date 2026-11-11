@@ -2169,7 +2169,6 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* --- ESTILOS DEL ENCABEZADO SCADA --- */
             @keyframes water-shimmer {
                 0% { background-position: -200% 0; }
                 100% { background-position: 200% 0; }
@@ -2185,14 +2184,14 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            .header-banner {
+            .miaa-header-banner {
                 position: relative;
                 width: 100%;
                 background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%);
                 border: 1px solid #1f4068;
                 border-top: 2px solid #00d4ff;
                 border-radius: 12px;
-                padding: 18px 24px;
+                padding: 16px 24px;
                 margin-top: -10px;
                 margin-bottom: 20px;
                 display: flex;
@@ -2202,7 +2201,7 @@ if sector_seleccionado:
                 box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             }
 
-            .header-banner::before {
+            .miaa-header-banner::before {
                 content: "";
                 position: absolute;
                 top: 0; left: 0; right: 0; bottom: 0;
@@ -2215,14 +2214,14 @@ if sector_seleccionado:
                 pointer-events: none;
             }
 
-            .header-logo {
+            .miaa-logo-img {
                 height: 48px;
                 width: auto;
                 filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4));
                 z-index: 2;
             }
 
-            .header-center-box {
+            .miaa-center-content {
                 position: absolute;
                 left: 50%;
                 transform: translateX(-50%);
@@ -2235,7 +2234,7 @@ if sector_seleccionado:
                 pointer-events: none;
             }
 
-            .header-title-text {
+            .miaa-title-main {
                 color: #ffffff;
                 font-size: 1.7rem;
                 font-weight: 700;
@@ -2245,12 +2244,12 @@ if sector_seleccionado:
                 text-align: center;
             }
 
-            .header-sector-val {
+            .miaa-sector-highlight {
                 color: #00d4ff;
                 text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
             }
 
-            .header-line-container {
+            .miaa-lines-row {
                 display: flex;
                 align-items: center;
                 width: 100%;
@@ -2258,7 +2257,7 @@ if sector_seleccionado:
                 gap: 12px;
             }
 
-            .header-neon-line {
+            .miaa-neon-bar {
                 flex-grow: 1;
                 height: 2px;
                 background: linear-gradient(90deg, rgba(0,212,255,0) 0%, #00d4ff 100%);
@@ -2266,24 +2265,22 @@ if sector_seleccionado:
                 animation: line-glow 3s infinite ease-in-out;
             }
 
-            .header-neon-line.right {
+            .miaa-neon-bar.right-side {
                 background: linear-gradient(90deg, #00d4ff 0%, rgba(0,212,255,0) 100%);
             }
 
-            .animated-drop {
+            .miaa-animated-water-drop {
                 width: 28px;
                 height: 28px;
                 animation: drop-pulse 2.5s infinite ease-in-out;
                 flex-shrink: 0;
             }
 
-            /* ESPACIADOR DERECHO PARA EQUILIBRAR EL FLEXBOX */
-            .header-right-spacer {
+            .miaa-spacer-right {
                 width: 48px;
                 z-index: 2;
             }
 
-            /* ANIMACIONES GENERALES DE CARDS */
             @keyframes pulse-glow {
                 0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(71,175,208,0.4)); }
                 50% { transform: scale(1.12); filter: drop-shadow(0 0 8px rgba(71,175,208,0.9)); }
@@ -2327,7 +2324,7 @@ if sector_seleccionado:
         </style>
     """, unsafe_allow_html=True)
 
-    # 🛡️ ASEGURAR QUE TENEMOS UN SECTOR VÁLIDO PARA EVITAR EL CRASH
+    # 🛡️ ASEGURAR SECTOR VÁLIDO
     if 'sector_seleccionado' not in locals() and 'sector_seleccionado' in st.session_state:
         sector_seleccionado = st.session_state['sector_seleccionado']
     if 'sector_elegido' not in locals():
@@ -2357,25 +2354,23 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    rol_actual = st.session_state.get('rol', 'usuario')
-    
-    # --- ENCABEZADO CON LOGO A LA IZQUIERDA Y DISEÑO CENTRAL EXACTO ---
+    # --- ENCABEZADO SCADA RENDERIZADO CORRECTAMENTE ---
     st.markdown(f"""
-        <div class="header-banner">
-            <img class="header-logo" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
+        <div class="miaa-header-banner">
+            <img class="miaa-logo-img" src="https://raw.githubusercontent.com/Miaa-Aguascalientes/Logos/38504978c8f77a4dac38ad476f74dbdee6af2cad/LogoMIAA.svg" alt="Logo MIAA">
             
-            <div class="header-center-box">
-                <h1 class="header-title-text">Monitoreo de sector: <span class="header-sector-val">{sector_seleccionado}</span></h1>
-                <div class="header-line-container">
-                    <div class="header-neon-line"></div>
-                    <svg class="animated-drop" viewBox="0 0 24 24" fill="#00d4ff">
+            <div class="miaa-center-content">
+                <h1 class="miaa-title-main">Monitoreo de sector: <span class="miaa-sector-highlight">{sector_seleccionado}</span></h1>
+                <div class="miaa-lines-row">
+                    <div class="miaa-neon-bar"></div>
+                    <svg class="miaa-animated-water-drop" viewBox="0 0 24 24" fill="#00d4ff">
                         <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
                     </svg>
-                    <div class="header-neon-line right"></div>
+                    <div class="miaa-neon-bar right-side"></div>
                 </div>
             </div>
 
-            <div class="header-right-spacer"></div>
+            <div class="miaa-spacer-right"></div>
         </div>
     """, unsafe_allow_html=True)
 
@@ -3192,7 +3187,7 @@ if sector_seleccionado:
         </div>
     """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA NO FIJA (UBICADA ESTÁTICAMENTE AL FINAL DE LA PÁGINA) ---
+    # --- MARCA DE AGUA NO FIJA ---
     st.markdown("""
         <div style="
             position: relative;
