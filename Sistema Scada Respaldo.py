@@ -3125,7 +3125,6 @@ if sector_seleccionado:
     """, unsafe_allow_html=True)
 
     st.stop()
-        
 
 
     
