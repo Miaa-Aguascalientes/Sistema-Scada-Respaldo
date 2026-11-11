@@ -3160,8 +3160,8 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
         
-        # --- MARCA DE AGUA NO FIJA ---
-        st.markdown("""
+        # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
+    st.markdown("""
         <div style="
             position: relative;
             margin-top: 35px;
