@@ -2169,30 +2169,6 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* CONTENEDORES Y TARJETAS SIMÉTRICAS */
-            .card-simetrica-wrapper {
-                background: #0b1a29;
-                border: 1px solid #1f4068;
-                border-radius: 10px;
-                height: 410px;
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-            }
-            .card-header-box {
-                padding: 10px 15px;
-                background: #0b1a29;
-                border-bottom: 1px solid #1f4068;
-                min-height: 58px;
-            }
-            .card-body-box {
-                padding: 12px 15px;
-                flex-grow: 1;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-            }
-
             /* ESTILOS DE TABLA DE DATOS OPERATIVOS */
             .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
             .st-key-dma_operational td { 
@@ -2847,7 +2823,6 @@ if sector_seleccionado:
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                         ))
                                     else:
-                                        # Presiones de registrador al eje y2
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
                                         fig.add_trace(go.Scatter(
@@ -3014,129 +2989,124 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS SIMÉTRICOS Y EXACTAMENTE IGUALES ---
+    # --- FILA INFERIOR: CONTENEDORES NATIVOS SIMÉTRICOS Y EXACTAMENTE IGUALES ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
-        st.markdown(f"""
-            <div class="card-simetrica-wrapper">
-                <div class="card-header-box">
-                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
-                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
-                </div>
-                <div class="card-body-box" style="padding: 5px 10px 10px 10px;">
-        """, unsafe_allow_html=True)
-        
-        fig_pc = go.Figure()
-        try:
-            if dict_pc_sec and series_pc_list:
-                engine_tel = get_mysql_telemetria_engine()
-                series_pc_in = "', '".join(series_pc_list)
-                q_madre_pc = f"""
-                    SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
-                    FROM BD_MADRE 
-                    WHERE DISPOSITIVO IN ('{series_pc_in}')
-                      AND VARIABLE != 'Volt_bateria'
-                      AND VARIABLE NOT LIKE '%CAUDAL%'
-                      AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
-                    ORDER BY FECHA_HORA_LOGGER ASC
-                """
-                df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
-                if not df_madre_pc.empty:
-                    df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
-                    df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
+        with st.container(border=True):
+            st.markdown("""
+                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 10px 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
+            """, unsafe_allow_html=True)
+            
+            fig_pc = go.Figure()
+            try:
+                if dict_pc_sec and series_pc_list:
+                    engine_tel = get_mysql_telemetria_engine()
+                    series_pc_in = "', '".join(series_pc_list)
+                    q_madre_pc = f"""
+                        SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                        FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_pc_in}')
+                          AND VARIABLE != 'Volt_bateria'
+                          AND VARIABLE NOT LIKE '%CAUDAL%'
+                          AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                        ORDER BY FECHA_HORA_LOGGER ASC
+                    """
+                    df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
+                    if not df_madre_pc.empty:
+                        df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
+                        df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
 
-                    dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                    meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+                        dias_es = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
+                        meses_es = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
 
-                    f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                    f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                    fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
-                    ticks_pc = fechas_lineas_pc[::1]
-                    etiquetas_pc = [
-                        f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
-                        for d in ticks_pc
-                    ]
+                        f_ini_dia = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
+                        f_fin_dia = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
+                        fechas_lineas_pc = pd.date_range(start=f_ini_dia, end=f_fin_dia, freq='D')
+                        ticks_pc = fechas_lineas_pc[::1]
+                        etiquetas_pc = [
+                            f"00:00<br>{dias_es[d.dayofweek]} {d.day}-{meses_es[d.month]}-{d.year}"
+                            for d in ticks_pc
+                        ]
 
-                    colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
-                    idx_pc_c = 0
+                        colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
+                        idx_pc_c = 0
 
-                    for pc_key, pc_info in dict_pc_sec.items():
-                        serie_raw = str(pc_info.get('Serie', pc_key)).strip()
-                        domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
+                        for pc_key, pc_info in dict_pc_sec.items():
+                            serie_raw = str(pc_info.get('Serie', pc_key)).strip()
+                            domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
 
-                        df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
-                        if not df_temp.empty:
-                            for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
-                                if not df_v_group.empty:
-                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
-                                    idx_pc_c += 1
+                            df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
+                            if not df_temp.empty:
+                                for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                    df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                    if not df_v_group.empty:
+                                        color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                        idx_pc_c += 1
 
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_v_group['FECHA'], 
-                                        y=df_v_group['VALOR'], 
-                                        name=f"{domicilio_nombre} - {var_name}", 
-                                        mode='lines+markers',
-                                        connectgaps=False,
-                                        showlegend=True,
-                                        marker=dict(size=3.5, symbol='circle'), 
-                                        line=dict(width=2, color=color_trace_pc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
-                                    ))
+                                        fig_pc.add_trace(go.Scatter(
+                                            x=df_v_group['FECHA'], 
+                                            y=df_v_group['VALOR'], 
+                                            name=f"{domicilio_nombre} - {var_name}", 
+                                            mode='lines+markers',
+                                            connectgaps=False,
+                                            showlegend=True,
+                                            marker=dict(size=3.5, symbol='circle'), 
+                                            line=dict(width=2, color=color_trace_pc),
+                                            hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                        ))
 
-                    delta_h = pd.Timedelta(hours=1)
-                    for d in fechas_lineas_pc:
-                        es_lunes = (d.dayofweek == 0)
-                        fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
-                        fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
-        except Exception:
-            pass
+                        delta_h = pd.Timedelta(hours=1)
+                        for d in fechas_lineas_pc:
+                            es_lunes = (d.dayofweek == 0)
+                            fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.18, layer="below", line_width=0)
+                            fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4, layer="above")
+            except Exception:
+                pass
 
-        # Altura interna de 295px para que la tarjeta completa mida exactamente 410px
-        fig_pc.update_layout(
-            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', height=295, 
-            margin=dict(l=35, r=35, t=10, b=5), hovermode="x unified",
-            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
-            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Presion (mca)")
-        )
-        st.plotly_chart(fig_pc, use_container_width=True, config={"displayModeBar": False})
-        st.markdown("</div></div>", unsafe_allow_html=True)
+            # Altura fija de 295px exactamente igualada
+            fig_pc.update_layout(
+                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=295, 
+                margin=dict(l=35, r=35, t=10, b=5), hovermode="x unified",
+                legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
+                yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Presion (mca)")
+            )
+            st.plotly_chart(fig_pc, use_container_width=True, config={"displayModeBar": False})
 
     with col_op:
-        st.markdown(f"""
-            <div class="card-simetrica-wrapper">
-                <div class="card-header-box">
-                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
-                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
+        with st.container(border=True):
+            st.markdown("""
+                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 10px 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
+            """, unsafe_allow_html=True)
+            
+            # Div con altura exactamente calculada para igualar el espacio del gráfico de la izquierda
+            st.markdown(f"""
+                <div class="st-key-dma_operational" style="height: 295px; display: flex; flex-direction: column; justify-content: center;">
+                    <table style="width: 100%;">
+                        <tr>
+                            <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
+                            <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
+                            <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
+                        </tr>
+                        <tr>
+                            <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
+                            <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
+                            <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
+                        </tr>
+                        <tr>
+                            <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
+                            <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
+                            <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
+                        </tr>
+                    </table>
                 </div>
-                <div class="card-body-box">
-                    <div class="st-key-dma_operational">
-                        <table style="width: 100%;">
-                            <tr>
-                                <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
-                                <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
-                                <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
-                            </tr>
-                            <tr>
-                                <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
-                                <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
-                                <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
-                            </tr>
-                            <tr>
-                                <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
-                                <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
-                                <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
-                            </tr>
-                            <tr>
-                                <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
-                            </tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
     # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
     st.markdown("""
