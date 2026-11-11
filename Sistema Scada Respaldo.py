@@ -3100,7 +3100,7 @@ if sector_seleccionado:
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
             yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presion (mca)")
         )
-        st.plotly_chart(fig_pc, use_container_width=True, config={"displayModeBar": False})
+        st.plotly_chart(fig_pc, use_container_width=True)
 
     with col_op:
         st.markdown(f"""
