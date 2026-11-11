@@ -2635,6 +2635,13 @@ if sector_seleccionado:
             tiles=None,
             height=360
         )
+
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
+            attr='Google', 
+            name='Vista Satélite', 
+            overlay=False
+        ).add_to(m_sec)
         
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
@@ -2647,12 +2654,7 @@ if sector_seleccionado:
             control=True
         ).add_to(m_sec)
 
-        folium.TileLayer(
-            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
-            attr='Google', 
-            name='Vista Satélite', 
-            overlay=False
-        ).add_to(m_sec)
+        
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
         capa_control = folium.FeatureGroup(name="Puntos de control", overlay=True, control=True).add_to(m_sec)
