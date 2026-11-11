@@ -2368,7 +2368,7 @@ if sector_seleccionado:
         opcion_periodo_tab = st.selectbox(
             "Periodo:",
             opciones_periodo,
-            index=2,
+            index=4,  # <-- ESTABLECIDO EN "Esta semana" POR DEFECTO
             key="f_sector_periodo_tab_detalle"
         )
 
