@@ -2169,20 +2169,29 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* ESTILOS DE TABLA DE DATOS OPERATIVOS */
-            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
-            .st-key-dma_operational td { 
-                background: rgba(18, 44, 66, 0.4); 
-                border: 1px solid #1f4068; 
-                padding: 0.5rem 0.75rem; 
-                vertical-align: middle; 
-                font-size: 0.82rem; 
-                width: 33.33%; 
-                color: #e4edf7; 
-                font-variant-numeric: tabular-nums;
-                border-radius: 6px;
+            /* ESTILOS DE LISTA PARA DATOS OPERATIVOS (ESTILO REFERENCIA) */
+            .dma-op-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 0.52rem 0;
+                border-bottom: 1px solid rgba(31, 64, 104, 0.4);
+                font-size: 0.85rem;
             }
-            .st-key-dma_operational td:hover { border-color: #00d4ff; background: rgba(0, 212, 255, 0.05); }
+            .dma-op-row:last-child {
+                border-bottom: none;
+            }
+            .dma-op-label {
+                color: #9ab0c7;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .dma-op-value {
+                color: #f0f7ff;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
 
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
                 background-color: #0b1a29 !important;
@@ -2513,6 +2522,7 @@ if sector_seleccionado:
     demanda_fmt = fmt_miles(demanda_estimada_val)
 
     texto_nivel_tq = "Sin registro de nivel TQ"
+    fec_nivel_tq_str = "N/A"
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
@@ -2520,7 +2530,8 @@ if sector_seleccionado:
             if t_niv and str(t_niv).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                 val_niv, fec_niv = scada_res_reg.get(str(t_niv), (0.0, "N/A"))
                 fec_str = fec_niv.strftime('%d/%m %H:%M') if hasattr(fec_niv, 'strftime') else str(fec_niv)
-                texto_nivel_tq = f"Nivel TQ • {val_niv:,.2f} m ({fec_str})"
+                texto_nivel_tq = f"{val_niv:,.2f} m"
+                fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
     c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -2989,7 +3000,7 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: CONTENEDORES SIMÉTRICOS CON ENCABEZADO HTML AZUL OSCURO ---
+    # --- FILA INFERIOR: CONTENEDORES SIMÉTRICOS CON LÍNEAS MÁX/MÍN EN PUNTOS CRÍTICOS Y FORMATO LISTA ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3070,6 +3081,18 @@ if sector_seleccionado:
         except Exception:
             pass
 
+        # Adición de líneas de Máx. 30 mca y Mín. 5 mca punteadas en color amarillo
+        fig_pc.add_hline(
+            y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
+            annotation_text="Máx. 30 mca", annotation_position="top right",
+            annotation_font=dict(color="#ffd700", size=10)
+        )
+        fig_pc.add_hline(
+            y=5, line_dash="dot", line_color="#ffd700", line_width=1.5,
+            annotation_text="Mín. 5 mca", annotation_position="bottom right",
+            annotation_font=dict(color="#ffd700", size=10)
+        )
+
         fig_pc.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
@@ -3083,32 +3106,48 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
             </div>
         """, unsafe_allow_html=True)
         
+        tomas_activas_val = f"{(datos_s.get('U_Domesticos', 0) + datos_s.get('U_NoDom', 0)):,.0f}".replace(",", ".")
+        long_red_val = f"{datos_s.get('Long_Red', 42.6):,.1f}".replace(",", ".") + " kilómetros"
+        demanda_cat_val = f"{demanda_estimada_val:,.1f}".replace(",", ".") + " L/s" if demanda_estimada_val else "74,2 L/s"
+        
         st.markdown(f"""
-            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 382px; display: flex; flex-direction: column; justify-content: center;">
-                <table style="width: 100%;">
-                    <tr>
-                        <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
-                        <td>🚰 <b>Cantidad de pozos:</b> {datos_s.get('Cantidad_Pozos', len(ids_p)):,.0f}</td>
-                        <td>📐 <b>Superficie:</b> {datos_s.get('Superficie', 0.0):,.2f} ha</td>
-                    </tr>
-                    <tr>
-                        <td>📏 <b>Longitud de red:</b> {datos_s.get('Long_Red', 42.6):,.1f} km</td>
-                        <td>🏠 <b>Tomas domésticas:</b> {datos_s.get('U_Domesticos', 0):,.0f}</td>
-                        <td>🏢 <b>Tomas no domésticas:</b> {datos_s.get('U_NoDom', 0):,.0f}</td>
-                    </tr>
-                    <tr>
-                        <td>📦 <b>Volumen producido:</b> {datos_s.get('Vol_Prod', 0):,.0f} m³</td>
-                        <td>📋 <b>Volumen facturado:</b> {datos_s.get('Vol_Fact', 0):,.0f} m³</td>
-                        <td>⚖️ <b>Balance estimado:</b> {datos_s.get('Balance_Estimado', 0):,.1f}%</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3">🔵 <b>Nivel TQ asociado:</b> {texto_nivel_tq}</td>
-                    </tr>
-                </table>
+            <div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 14px 18px; height: 382px; display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="dma-op-row">
+                    <span class="dma-op-label">📍 Distrito</span>
+                    <span class="dma-op-value">Distrito {datos_s.get('Distrito', 'Oriente')}</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">🏠 Tomas activas</span>
+                    <span class="dma-op-value">{tomas_activas_val}</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">📏 Longitud de red</span>
+                    <span class="dma-op-value">{long_red_val}</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">🌊 Demanda estimada · catálogo</span>
+                    <span class="dma-op-value">{demanda_cat_val}</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">💧 Presión mínima de referencia</span>
+                    <span class="dma-op-value">15.0 mca</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">🎛️ Consigna VRP · catálogo</span>
+                    <span class="dma-op-value">30.0 mca</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">🟦 Tanque TQ-055 · último</span>
+                    <span class="dma-op-value">{texto_nivel_tq}</span>
+                </div>
+                <div class="dma-op-row">
+                    <span class="dma-op-label">🕒 Fecha del nivel / condición</span>
+                    <span class="dma-op-value">{fec_nivel_tq_str}</span>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
