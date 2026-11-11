@@ -2170,13 +2170,13 @@ if sector_seleccionado:
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE TABLA Y ALINEACIÓN DE TAMAÑOS */
-            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+            .st-key-dma_operational table { width: 100%; border-collapse: separate; border-spacing: 0 6px; }
             .st-key-dma_operational td { 
                 background: rgba(18, 44, 66, 0.4); 
                 border: 1px solid #1f4068; 
-                padding: 0.65rem 0.8rem; 
+                padding: 0.55rem 0.8rem; 
                 vertical-align: middle; 
-                font-size: 0.85rem; 
+                font-size: 0.84rem; 
                 width: 33.33%; 
                 color: #e4edf7; 
                 font-variant-numeric: tabular-nums;
@@ -2753,7 +2753,7 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal y Presiones a la izquierda • Nivel de Tanque a la derecha • Franja nocturna 02:00 - 04:00</p>
+                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presiones y Nivel de Tanque a la derecha • Franja nocturna 02:00 - 04:00</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2823,12 +2823,13 @@ if sector_seleccionado:
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
                                         ))
                                     else:
+                                        # Presiones de registrador al eje y2
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_name}",
-                                            yaxis="y1", mode='lines+markers',
+                                            yaxis="y2", mode='lines+markers',
                                             line=dict(width=2, color=color_p),
                                             marker=dict(size=3, symbol='circle'),
                                             hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} Kg/cm²<extra></extra>'
@@ -2864,10 +2865,11 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
+                                    is_q_vrp = 'CAUDAL' in str(var_name).upper()
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"{nombre_vrp} - {var_name}",
-                                        yaxis="y1", mode='lines+markers',
+                                        yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
@@ -2907,7 +2909,7 @@ if sector_seleccionado:
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_name}",
-                                        yaxis="y1", mode='lines+markers',
+                                        yaxis="y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_pc_hc),
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
@@ -2922,7 +2924,7 @@ if sector_seleccionado:
                 p_info = mapa_pozos_dict[id_p]
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", False),
-                    ('presion', f"Pozo {id_p} - P", False),
+                    ('presion', f"Pozo {id_p} - P", True),
                     ('nivel_tanque', "Nivel TQ", True)
                 ]
                 for key_t, lb, sec in conf_pz:
@@ -2983,12 +2985,12 @@ if sector_seleccionado:
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            yaxis=dict(title="Caudal / Presión", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#d400ff", showgrid=False)
+            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+            yaxis2=dict(title="Presión / Nivel (Kg/cm² / m)", side="right", overlaying="y", color="#d400ff", showgrid=False)
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS ALINEADOS EN TAMAÑO ---
+    # --- FILA INFERIOR: GRÁFICO DE PUNTOS CRÍTICOS Y DATOS OPERATIVOS EXACTAMENTE IGUALADOS EN TAMAÑO ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3065,13 +3067,13 @@ if sector_seleccionado:
         except Exception:
             pass
 
-        # Altura fija de 290px para igualar exactamente la tarjeta derecha
+        # Altura fija de 250px para el gráfico (coincide perfectamente con la altura interna de Datos operativos)
         fig_pc.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=290, 
+            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=250, 
             margin=dict(l=40, r=40, t=35, b=10), hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=1.12, x=0.5, xanchor="center", font=dict(color="white", size=9)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Valor")
+            yaxis=dict(tickformat=".2f", color="#8acbf5", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
         st.plotly_chart(fig_pc, use_container_width=True)
 
@@ -3081,7 +3083,7 @@ if sector_seleccionado:
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha técnica del sector y métricas operativas del catálogo</p>
             </div>
-            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 350px; display: flex; flex-direction: column; justify-content: center;">
+            <div class="st-key-dma_operational" style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 15px; height: 310px; display: flex; flex-direction: column; justify-content: center;">
                 <table style="width: 100%;">
                     <tr>
                         <td>🏢 <b>Distrito:</b> Distrito {datos_s.get('Distrito', 'Oriente')}</td>
