@@ -2169,20 +2169,20 @@ if sector_seleccionado:
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 10px !important; background: #0b1a29; }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* CORRECCIÓN ABSOLUTA PARA EL COLOR DEL SELECTOR DE PERIODO */
-            div[data-baseweb="select"] {
-                background-color: #0b1a29 !important;
-            }
-            div[data-baseweb="select"] > div {
+            /* FORZADO TOTAL DEL COLOR AZUL OSCURO EN EL SELECTOR DE PERIODO */
+            div[data-baseweb="select"],
+            div[data-baseweb="select"] > div,
+            div[data-baseweb="select"] div {
                 background-color: #0b1a29 !important;
                 background: #0b1a29 !important;
+            }
+            div[data-baseweb="select"] > div {
                 border: 1px solid #1f4068 !important;
                 border-radius: 8px !important;
                 color: #e4edf7 !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
             }
-            div[data-baseweb="select"] * {
-                background-color: transparent !important;
+            div[data-baseweb="select"] span {
                 color: #e4edf7 !important;
             }
             div[data-baseweb="popover"] div {
