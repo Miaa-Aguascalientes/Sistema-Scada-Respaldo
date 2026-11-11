@@ -2485,7 +2485,10 @@ if sector_seleccionado:
                     var = str(row['VARIABLE']).strip()
                     val_db = row['VALOR']
                     if 'PRESION' in var.upper() and val_db is not None:
-                        val_db = float(val_db) * 10.0  # Conversión a mca
+                        try:
+                            val_db = float(val_db) * 10.0
+                        except (ValueError, TypeError):
+                            pass
                     if dev not in ultimos_valores_mapa:
                         ultimos_valores_mapa[dev] = {}
                     ultimos_valores_mapa[dev][var] = {'valor': val_db, 'fecha': row['FECHA_HORA_LOGGER']}
@@ -2714,7 +2717,7 @@ if sector_seleccionado:
             """
             icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
             folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
-            folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: 1px solid rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
+            folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
         tags_bomba_mapa = []
         for id_p in ids_p:
@@ -2809,11 +2812,13 @@ if sector_seleccionado:
                 df_madre_sector = pd.read_sql(q_madre_sector, engine_tel)
                 
                 if not df_madre_sector.empty:
-                    df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'])
+                    df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'], errors='coerce')
                     df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
                     
-                    # Multiplicar por 10 los valores de presión para pasarlos a mca
-                    df_madre_sector.loc[~df_madre_sector['VARIABLE'].str.upper().str.contains('CAUDAL', na=False), 'VALOR'] *= 10.0
+                    # Convertir VALOR a numérico y multiplicar por 10 las presiones
+                    is_not_caudal = ~df_madre_sector['VARIABLE'].str.upper().str.contains('CAUDAL', na=False)
+                    df_madre_sector['VALOR'] = pd.to_numeric(df_madre_sector['VALOR'], errors='coerce')
+                    df_madre_sector.loc[is_not_caudal, 'VALOR'] *= 10.0
 
                     for r_k, r_info in dict_reg.items():
                         serie_raw = str(r_info.get('Serie', r_k)).strip()
@@ -2867,9 +2872,12 @@ if sector_seleccionado:
                 """
                 df_madre_vrp = pd.read_sql(q_madre_vrp, engine_tel)
                 if not df_madre_vrp.empty:
-                    df_madre_vrp['FECHA'] = pd.to_datetime(df_madre_vrp['Fecha'])
+                    df_madre_vrp['FECHA'] = pd.to_datetime(df_madre_vrp['Fecha'], errors='coerce')
                     df_madre_vrp['Serie_str'] = df_madre_vrp['Serie'].astype(str).str.strip()
-                    df_madre_vrp.loc[~df_madre_vrp['VARIABLE'].str.upper().str.contains('CAUDAL', na=False), 'VALOR'] *= 10.0
+                    
+                    is_not_caudal_vrp = ~df_madre_vrp['VARIABLE'].str.upper().str.contains('CAUDAL', na=False)
+                    df_madre_vrp['VALOR'] = pd.to_numeric(df_madre_vrp['VALOR'], errors='coerce')
+                    df_madre_vrp.loc[is_not_caudal_vrp, 'VALOR'] *= 10.0
                     
                     colores_vrp = ["#00ffcc", "#28a745", "#a1ffce", "#00cc66"]
                     idx_vrp_c = 0
@@ -2910,9 +2918,9 @@ if sector_seleccionado:
                 """
                 df_madre_pc_hc = pd.read_sql(q_madre_pc_hc, engine_tel)
                 if not df_madre_pc_hc.empty:
-                    df_madre_pc_hc['FECHA'] = pd.to_datetime(df_madre_pc_hc['Fecha'])
+                    df_madre_pc_hc['FECHA'] = pd.to_datetime(df_madre_pc_hc['Fecha'], errors='coerce')
                     df_madre_pc_hc['Serie_str'] = df_madre_pc_hc['Serie'].astype(str).str.strip()
-                    df_madre_pc_hc['VALOR'] *= 10.0  # Conversión a mca
+                    df_madre_pc_hc['VALOR'] = pd.to_numeric(df_madre_pc_hc['VALOR'], errors='coerce') * 10.0
                     
                     colores_pc_hc = ["#ff4d4d", "#ff8080", "#ffb3b3", "#ff1a1a"]
                     idx_pc_hc = 0
@@ -2975,8 +2983,7 @@ if sector_seleccionado:
                                 elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
                                 else: unidad_pc = "mca"
 
-                                # Si es presión de pozo, multiplicar por 10 para mca
-                                val_y_series = df_tag['VALUE']
+                                val_y_series = pd.to_numeric(df_tag['VALUE'], errors='coerce')
                                 if not es_caudal and "NIVEL" not in label_u and "TANQUE" not in label_u:
                                     val_y_series = val_y_series * 10.0
 
@@ -3015,7 +3022,7 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS (CON LÍNEAS MÁX/MÍN Y BARRA HABILITADA) Y DATOS OPERATIVOS ---
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3042,9 +3049,9 @@ if sector_seleccionado:
                 """
                 df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
                 if not df_madre_pc.empty:
-                    df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'])
+                    df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'], errors='coerce')
                     df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
-                    df_madre_pc['VALOR'] *= 10.0  # Conversión a mca
+                    df_madre_pc['VALOR'] = pd.to_numeric(df_madre_pc['VALOR'], errors='coerce') * 10.0
 
                     dias_es_pc = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
                     meses_es_pc = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
@@ -3116,7 +3123,7 @@ if sector_seleccionado:
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
             yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
-        # Se remueve config={"displayModeBar": False} para que aparezca la barra de herramientas flotante
+        # Barra de herramientas visible habilitada
         st.plotly_chart(fig_pc, use_container_width=True)
 
     with col_op:
