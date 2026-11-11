@@ -2717,7 +2717,7 @@ if sector_seleccionado:
             """
             icon_html_vrp = """<div style="position: relative; width: 26px; height: 26px;"><div style="width: 18px; height: 18px; background: radial-gradient(circle at 30% 30%, #a1ffce, #28a745, #004d1a); border-radius: 50%; box-shadow: 2px 3px 5px rgba(0,0,0,0.6); position: absolute; top: 0; left: 4px; z-index: 2;"></div></div>"""
             folium.Marker(location=vrp['coord'], icon=folium.DivIcon(icon_size=(26, 30), icon_anchor=(13, 25), html=icon_html_vrp), popup=folium.Popup(html_vrp, max_width=250)).add_to(capa_vrp)
-            folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: {color_pz};">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
+            folium.Marker(location=vrp['coord'], icon=folium.features.DivIcon(icon_size=(250,30), icon_anchor=(-12, 30), html=f'<div style="font-size: 8.5pt; color: #00FFCC; font-weight: bold; text-shadow: 1px 1px 3px #000; background: rgba(0,0,0,0.65); padding: 1px 6px; border-radius: 4px; border: rgba(0,255,204,0.4);">SN: {serie_vrp} • Vrp</div>')).add_to(capa_vrp)
 
         tags_bomba_mapa = []
         for id_p in ids_p:
@@ -2815,7 +2815,6 @@ if sector_seleccionado:
                     df_madre_sector['FECHA'] = pd.to_datetime(df_madre_sector['Fecha'], errors='coerce')
                     df_madre_sector['Serie_str'] = df_madre_sector['Serie'].astype(str).str.strip()
                     
-                    # Convertir VALOR a numérico y multiplicar por 10 las presiones
                     is_not_caudal = ~df_madre_sector['VARIABLE'].str.upper().str.contains('CAUDAL', na=False)
                     df_madre_sector['VALOR'] = pd.to_numeric(df_madre_sector['VALOR'], errors='coerce')
                     df_madre_sector.loc[is_not_caudal, 'VALOR'] *= 10.0
@@ -2934,12 +2933,14 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_pc_hc = colores_pc_hc[idx_pc_hc % len(colores_pc_hc)]
                                     idx_pc_hc += 1
+                                    # Desactivado por defecto en el gráfico de comportamiento hidráulico
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_name}",
                                         yaxis="y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_pc_hc),
+                                        visible='legendonly',
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
                                     ))
             except Exception:
@@ -2989,10 +2990,13 @@ if sector_seleccionado:
 
                                 if "NIVEL" in label_u or "TANQUE" in label_u:
                                     color_base = "#d400ff"
+                                    vis_estado = True  # Tanque visible por defecto
                                 elif es_caudal:
                                     color_base = "#00d4ff"
+                                    vis_estado = 'legendonly'  # Caudal de pozo desactivado por defecto
                                 else:
                                     color_base = "#00ff00"
+                                    vis_estado = 'legendonly'  # Presión de pozo desactivada por defecto
 
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
@@ -3001,6 +3005,7 @@ if sector_seleccionado:
                                     marker=dict(size=3, symbol='circle'),
                                     fill='tozeroy' if (es_caudal and "NIVEL" not in label_u) else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (es_caudal and "NIVEL" not in label_u) else None,
+                                    visible=vis_estado,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
             except Exception:
@@ -3015,7 +3020,7 @@ if sector_seleccionado:
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=10)),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=12)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(title="Presión (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
@@ -3108,22 +3113,21 @@ if sector_seleccionado:
         fig_pc.add_hline(
             y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
             annotation_text="Máx. 30 mca", annotation_position="top right",
-            annotation_font=dict(color="#ffd700", size=10)
+            annotation_font=dict(color="#ffd700", size=11)
         )
         fig_pc.add_hline(
             y=5, line_dash="dot", line_color="#ffd700", line_width=1.5,
             annotation_text="Mín. 5 mca", annotation_position="bottom right",
-            annotation_font=dict(color="#ffd700", size=10)
+            annotation_font=dict(color="#ffd700", size=11)
         )
 
         fig_pc.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
-            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=9)),
+            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=12)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
             yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
-        # Barra de herramientas visible habilitada
         st.plotly_chart(fig_pc, use_container_width=True)
 
     with col_op:
