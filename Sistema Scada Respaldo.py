@@ -3159,6 +3159,27 @@ if sector_seleccionado:
                 </table>
             </div>
         """, unsafe_allow_html=True)
+        
+        # --- MARCA DE AGUA NO FIJA ---
+        st.markdown("""
+        <div style="
+            position: relative;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            padding-left: 5px;
+            text-align: left;
+            line-height: 1.25;
+            opacity: 0.85;
+        ">
+            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+    st.stop()
+        
+
+
     
 # 8. SIDEBAR -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
