@@ -2256,16 +2256,17 @@ if sector_seleccionado:
 
     rol_actual = st.session_state.get('rol', 'usuario')
     
-    # --- TÍTULO CENTRADO CON EL DISEÑO SOLICITADO ---
+    # --- TÍTULO CENTRADO ---
     st.markdown(f"""
         <div style="display: flex; justify-content: center; align-items: center; margin-top: -10px; margin-bottom: 10px;">
             <h1 style="margin: 0; color: #ffffff; text-align: center;">Monitoreo de sector: <span style="color: #00d4ff;">{sector_seleccionado}</span></h1>
         </div>
     """, unsafe_allow_html=True)
 
-    # --- ÚNICO SELECTOR (PERIODO DE ANÁLISIS) EN UN CONTENEDOR ANCHO ---
-    col_bloque_per = st.columns([1])[0]
-    with col_bloque_per:
+    # --- FILA SUPERIOR: SELECTOR DE PERIODO Y BOTÓN DE ACTUALIZAR DESDE BD ---
+    col_sel, col_btn = st.columns([3.5, 1.0], gap="medium")
+    
+    with col_sel:
         opciones_periodo = [
             "Hoy", "Ayer", "Últimas 24 horas", "Últimas 48 horas", 
             "Esta semana", "Últimos 7 días", "Este Mes", 
@@ -2277,6 +2278,15 @@ if sector_seleccionado:
             index=2,
             key="f_sector_periodo_tab_detalle"
         )
+
+    with col_btn:
+        st.write("") # Alineación visual con el selectbox
+        st.write("") 
+        if st.button("Actualizar datos", use_container_width=True, key="btn_refrescar_db_sector"):
+            # Limpia la caché de Streamlit para forzar nuevas consultas a las bases de datos
+            st.cache_data.clear()
+            st.toast("¡Datos sincronizados con éxito desde las bases de datos!", icon="🔄")
+            st.rerun()
 
     st.write("")
 
