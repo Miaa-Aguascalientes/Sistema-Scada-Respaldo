@@ -2697,50 +2697,52 @@ if sector_seleccionado:
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
 
-        # --- LEYENDA INCORPORADA DIRECTAMENTE DENTRO DEL CONTENEDOR LEAFLET ---
-        legend_control = folium.MacroElement()
-        legend_control._template = branca.element.Template(u"""
-        {% macro script(this, kwargs) %}
-            var div = L.DomUtil.create('div', 'info legend');
-            div.style.position = 'absolute';
-            div.style.bottom = '20px';
-            div.style.left = '10px';
-            div.style.zIndex = '999999';
-            div.style.background = 'rgba(8, 20, 33, 0.9)';
-            div.style.border = '1px solid #1f4068';
-            div.style.borderRadius = '6px';
-            div.style.padding = '8px 10px';
-            div.style.fontFamily = 'sans-serif';
-            div.style.fontSize = '11px';
-            div.style.color = '#e4edf7';
-            div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
-            div.style.backdropFilter = 'blur(4px)';
-
-            div.innerHTML = '<div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff; border-bottom: 1px solid rgba(31,64,104,0.5); padding-bottom: 2px;">Leyenda</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                    '<span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #ff4d4d;"></span>' +
-                    '<span>Punto crítico</span>' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                    '<span style="width: 10px; height: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #00ff00;"></span>' +
-                    '<span>Pozos</span>' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                    '<span style="width: 10px; height: 10px; background-color: #007bff; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #007bff;"></span>' +
-                    '<span>Punto de control</span>' +
-                '</div>' +
-                '<div style="display: flex; align-items: center; gap: 6px;">' +
-                    '<span style="width: 10px; height: 10px; background-color: #a1ffce; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #a1ffce;"></span>' +
-                    '<span>VRP</span>' +
-                '</div>';
-
-            document.getElementById('{{this._parent.get_name()}}').appendChild(div);
-        {% endmacro %}
-        """)
-        m_sec.get_root().add_child(legend_control)
+        # --- LEYENDA NATIVA INSERTADA EN EL MAPA MEDIANTE CONTROL DE LEAFLET ---
+        map_var_name = m_sec.get_name()
+        legend_script = f"""
+        <script>
+            setTimeout(function() {{
+                var legend = L.control({{position: 'bottomleft'}});
+                legend.onAdd = function (map) {{
+                    var div = L.DomUtil.create('div', 'info legend');
+                    div.style.background = 'rgba(8, 20, 33, 0.9)';
+                    div.style.border = '1px solid #1f4068';
+                    div.style.borderRadius = '6px';
+                    div.style.padding = '8px 10px';
+                    div.style.fontFamily = 'sans-serif';
+                    div.style.fontSize = '11px';
+                    div.style.color = '#e4edf7';
+                    div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
+                    div.style.backdropFilter = 'blur(4px)';
+                    div.innerHTML = '<div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff; border-bottom: 1px solid rgba(31,64,104,0.5); padding-bottom: 2px;">Leyenda</div>' +
+                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
+                            '<span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #ff4d4d;"></span>' +
+                            '<span>Punto crítico</span>' +
+                        '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
+                            '<span style="width: 10px; height: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #00ff00;"></span>' +
+                            '<span>Pozos</span>' +
+                        '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
+                            '<span style="width: 10px; height: 10px; background-color: #007bff; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #007bff;"></span>' +
+                            '<span>Punto de control</span>' +
+                        '</div>' +
+                        '<div style="display: flex; align-items: center; gap: 6px;">' +
+                            '<span style="width: 10px; height: 10px; background-color: #a1ffce; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #a1ffce;"></span>' +
+                            '<span>VRP</span>' +
+                        '</div>';
+                    return div;
+                }};
+                legend.addTo({map_var_name});
+            }, 500);
+        </script>
+        """
+        m_sec.get_root().html.add_child(folium.Element(legend_script))
 
         folium_static(m_sec, width=None, height=360)
-        
+
+# ==================================================================================== columna derecha ==================================================================================================
+    
     with col_der:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
