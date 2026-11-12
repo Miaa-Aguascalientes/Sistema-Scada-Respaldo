@@ -3053,7 +3053,7 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.95,  # Ubicamos el eje de presión más a la derecha
+                position=0.93,  # Ubicamos el eje de presión más a la derecha
                 color="#00ff00", 
                 showgrid=False
             ),
