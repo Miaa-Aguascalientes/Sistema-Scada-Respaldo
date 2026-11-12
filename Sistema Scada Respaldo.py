@@ -2699,11 +2699,11 @@ if sector_seleccionado:
 
         # --- LEYENDA NATIVA INSERTADA EN EL MAPA MEDIANTE CONTROL DE LEAFLET ---
         map_var_name = m_sec.get_name()
-        legend_script = f"""
+        legend_script = """
         <script>
-            setTimeout(function() {{
-                var legend = L.control({{position: 'bottomleft'}});
-                legend.onAdd = function (map) {{
+            setTimeout(function() {
+                var legend = L.control({position: 'bottomleft'});
+                legend.onAdd = function (map) {
                     var div = L.DomUtil.create('div', 'info legend');
                     div.style.background = 'rgba(8, 20, 33, 0.9)';
                     div.style.border = '1px solid #1f4068';
@@ -2732,11 +2732,12 @@ if sector_seleccionado:
                             '<span>VRP</span>' +
                         '</div>';
                     return div;
-                }};
-                legend.addTo({map_var_name});
+                };
+                legend.addTo(MAP_VAR_PLACEHOLDER);
             }, 500);
         </script>
-        """
+        """.replace("MAP_VAR_PLACEHOLDER", map_var_name)
+        
         m_sec.get_root().html.add_child(folium.Element(legend_script))
 
         folium_static(m_sec, width=None, height=360)
