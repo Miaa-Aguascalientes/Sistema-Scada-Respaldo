@@ -3035,7 +3035,7 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=40, t=25, b=10), hovermode="x unified", 
+            margin=dict(l=40, r=20, t=25, b=10), hovermode="x unified", 
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3045,23 +3045,24 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            xaxis=dict(domain=[0, 0.82], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            # Ampliamos el dominio horizontal para que la cuadrícula ocupe el 92% del ancho
+            xaxis=dict(domain=[0, 0.92], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(
-                title=dict(text="Presión (mca)", standoff=15),  # Aleja el título de los números
+                title=dict(text="Presión (mca)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.93, 
+                position=0.95,  # Ubicamos el eje de presión más a la derecha
                 color="#00ff00", 
                 showgrid=False
             ),
             yaxis3=dict(
-                title=dict(text="Niveles Pozo / Tq (m)", standoff=15),  # Aleja el título de los números
+                title=dict(text="Niveles Pozo / Tq (m)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=1.0, 
+                position=1.0,  # El eje final se queda en el borde exacto
                 color="#d400ff", 
                 showgrid=False
             )
