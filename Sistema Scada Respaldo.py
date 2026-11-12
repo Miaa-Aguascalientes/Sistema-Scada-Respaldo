@@ -3048,7 +3048,7 @@ if sector_seleccionado:
             xaxis=dict(domain=[0, 0.82], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(
-                title=dict(text="Presión (mca)", standoff=25),  # Aleja el título de los números
+                title=dict(text="Presión (mca)", standoff=20),  # Aleja el título de los números
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
@@ -3057,7 +3057,7 @@ if sector_seleccionado:
                 showgrid=False
             ),
             yaxis3=dict(
-                title=dict(text="Niveles Pozo / Tq (m)", standoff=25),  # Aleja el título de los números
+                title=dict(text="Niveles Pozo / Tq (m)", standoff=20),  # Aleja el título de los números
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
