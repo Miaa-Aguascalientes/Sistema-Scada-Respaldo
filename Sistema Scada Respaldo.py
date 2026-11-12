@@ -2250,9 +2250,14 @@ if sector_seleccionado:
 
     sec_val_actual = sector_seleccionado if 'sector_seleccionado' in locals() and sector_seleccionado else sector_elegido
     sec_id = str(sec_val_actual).split('.')[0].strip()
-    sec_id_clean = re.sub(r'^[^\d]*', '', sec_id)
     
-    datos_s = next((s for s in sectores if str(s.get('sector', '')).strip() == sec_id), None)
+    # Búsqueda estricta del catálogo de sectores
+    s_actual_norm = ''.join(c for c in str(sec_val_actual).upper() if c.isalnum())
+    datos_s = next((
+        s for s in sectores 
+        if ''.join(c for c in str(s.get('sector', '')).upper() if c.isalnum()) == s_actual_norm
+        or str(s.get('sector', '')).strip().upper() == str(sec_val_actual).strip().upper()
+    ), None)
     
     if datos_s is None:
         datos_s = {
@@ -2339,9 +2344,9 @@ if sector_seleccionado:
     else:
         f_ini_h = medianoche - timedelta(days=7)
 
+    # --- FILTRADO ESTRICTO POR SECTOR (EVITA MEZCLA ENTRE C-01 Y DC01) ---
     def coincide_sector(item_dict):
         val_sec = str(item_dict.get('Sector') or item_dict.get('sector') or '').strip()
-        # Limpiamos ambos lados de guiones o espacios para comparar de forma estricta pero limpia
         s_actual_limpio = ''.join(c for c in str(sec_val_actual).upper() if c.isalnum())
         s_item_limpio = ''.join(c for c in val_sec.upper() if c.isalnum())
         return s_item_limpio == s_actual_limpio or val_sec.upper() == str(sec_val_actual).upper()
@@ -2699,10 +2704,10 @@ if sector_seleccionado:
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
 
-        # Contenedor visual del mapa en Streamlit
+        # Renderizar el mapa
         folium_static(m_sec, width=None, height=360)
 
-        # --- CUADRO DE INFORMACIÓN BIEN ADENTRO DEL MAPA (FLOTANDO ARRIBA A LA IZQUIERDA) ---
+        # --- CUADRO DE INFORMACIÓN FLOTANTE DENTRO DEL MAPA (ABAJO A LA IZQUIERDA) ---
         st.markdown("""
             <div style="
                 position: relative;
@@ -2740,10 +2745,9 @@ if sector_seleccionado:
                 </div>
             </div>
         """, unsafe_allow_html=True)
-
-# ==================================================================================== columna derecha ==================================================================================================
-    
+        
     with col_der:
+        # Encabezado limpio del gráfico sin subtítulo secundario
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
@@ -2767,12 +2771,14 @@ if sector_seleccionado:
             for d in ticks_filtrados
         ]
 
+        trazas_configuradas = []
+
         idx_q = 0
         idx_p = 0
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR SOLO PUNTOS DE CONTROL DEL SECTOR ---
+        # 1. Puntos de control del sector
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2806,35 +2812,28 @@ if sector_seleccionado:
                                 df_v_group = df_v_group.sort_values('FECHA')
                                 if df_v_group['VALOR'].notna().any():
                                     is_caudal = 'CAUDAL' in str(var_name).upper()
+                                    nombre_traza = f"{nombre_reg} - {var_name}"
                                     
                                     if is_caudal:
                                         color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
                                         idx_q += 1
-                                        fig.add_trace(go.Scatter(
-                                            x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                            name=f"{nombre_reg} - {var_name}",
-                                            yaxis="y1", mode='lines+markers',
-                                            line=dict(width=2, color=color_q),
-                                            marker=dict(size=3, symbol='circle'),
-                                            fill='tozeroy',
-                                            fillcolor="rgba(138, 203, 245, 0.15)",
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
-                                        ))
+                                        trazas_configuradas.append({
+                                            'nombre': nombre_traza, 'x': df_v_group['FECHA'], 'y': df_v_group['VALOR'],
+                                            'yaxis': 'y1', 'color': color_q, 'fill': 'tozeroy', 'fillcolor': "rgba(138, 203, 245, 0.15)",
+                                            'unidad': 'L/s', 'default': True
+                                        })
                                     else:
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
-                                        fig.add_trace(go.Scatter(
-                                            x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                            name=f"{nombre_reg} - {var_name}",
-                                            yaxis="y2", mode='lines+markers',
-                                            line=dict(width=2, color=color_p),
-                                            marker=dict(size=3, symbol='circle'),
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} mca<extra></extra>'
-                                        ))
+                                        trazas_configuradas.append({
+                                            'nombre': nombre_traza, 'x': df_v_group['FECHA'], 'y': df_v_group['VALOR'],
+                                            'yaxis': 'y2', 'color': color_p, 'fill': None, 'fillcolor': None,
+                                            'unidad': 'mca', 'default': True
+                                        })
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR SOLO VRPs DEL SECTOR ---
+        # 2. VRPs del sector
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2869,18 +2868,15 @@ if sector_seleccionado:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
                                     is_q_vrp = 'CAUDAL' in str(var_name).upper()
-                                    fig.add_trace(go.Scatter(
-                                        x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                        name=f"{nombre_vrp} - {var_name}",
-                                        yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
-                                        marker=dict(size=3.5, symbol='circle'),
-                                        line=dict(width=2, color=color_trace_vrp),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
-                                    ))
+                                    trazas_configuradas.append({
+                                        'nombre': f"{nombre_vrp} - {var_name}", 'x': df_v_group['FECHA'], 'y': df_v_group['VALOR'],
+                                        'yaxis': 'y1' if is_q_vrp else 'y2', 'color': color_trace_vrp, 'fill': None, 'fillcolor': None,
+                                        'unidad': 'L/s' if is_q_vrp else 'mca', 'default': True
+                                    })
             except Exception:
                 pass
 
-        # --- 3. GRAFICAR SOLO PUNTOS CRÍTICOS DEL SECTOR ---
+        # 3. Puntos Críticos del sector
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -2912,19 +2908,15 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_pc_hc = colores_pc_hc[idx_pc_hc % len(colores_pc_hc)]
                                     idx_pc_hc += 1
-                                    fig.add_trace(go.Scatter(
-                                        x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                        name=f"PC: {domicilio_nombre} - {var_name}",
-                                        yaxis="y2", mode='lines+markers',
-                                        marker=dict(size=3.5, symbol='circle'),
-                                        line=dict(width=2, color=color_trace_pc_hc),
-                                        visible='legendonly',
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
-                                    ))
+                                    trazas_configuradas.append({
+                                        'nombre': f"PC: {domicilio_nombre} - {var_name}", 'x': df_v_group['FECHA'], 'y': df_v_group['VALOR'],
+                                        'yaxis': 'y2', 'color': color_trace_pc_hc, 'fill': None, 'fillcolor': None,
+                                        'unidad': 'mca', 'default': False
+                                    })
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR SOLO POZOS DEL SECTOR ---
+        # 4. Pozos del sector
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -2969,26 +2961,55 @@ if sector_seleccionado:
 
                                 if "NIVEL" in label_u or "TANQUE" in label_u:
                                     color_base = "#d400ff"
-                                    vis_estado = True
+                                    def_st = True
                                 elif es_caudal:
                                     color_base = "#00d4ff"
-                                    vis_estado = 'legendonly'
+                                    def_st = False
                                 else:
                                     color_base = "#00ff00"
-                                    vis_estado = 'legendonly'
+                                    def_st = False
 
-                                fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
-                                    yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
-                                    line=dict(width=2, color=color_base),
-                                    marker=dict(size=3, symbol='circle'),
-                                    fill='tozeroy' if (es_caudal and "NIVEL" not in label_u) else None,
-                                    fillcolor="rgba(0, 212, 255, 0.15)" if (es_caudal and "NIVEL" not in label_u) else None,
-                                    visible=vis_estado,
-                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
-                                ))
+                                trazas_configuradas.append({
+                                    'nombre': cfg['label'], 'x': df_tag['FECHA'], 'y': val_y_series,
+                                    'yaxis': 'y2' if cfg['sec'] else 'y1', 'color': color_base,
+                                    'fill': 'tozeroy' if (es_caudal and "NIVEL" not in label_u) else None,
+                                    'fillcolor': "rgba(0, 212, 255, 0.15)" if (es_caudal and "NIVEL" not in label_u) else None,
+                                    'unidad': unidad_pc, 'default': def_st
+                                })
             except Exception:
                 pass
+
+        # --- PANEL DE INTERRUPTORES / TOGGLES DINÁMICOS ---
+        with st.expander("🎛️ Activar / Desactivar variables del gráfico", expanded=True):
+            if trazas_configuradas:
+                cols_toggles = st.columns(3)
+                estados_toggles = {}
+                for i, tr in enumerate(trazas_configuradas):
+                    col_idx = i % 3
+                    with cols_toggles[col_idx]:
+                        estados_toggles[tr['nombre']] = st.toggle(
+                            tr['nombre'], 
+                            value=tr['default'], 
+                            key=f"toggle_var_{sec_id}_{i}"
+                        )
+            else:
+                st.info("No hay series disponibles para este periodo o sector.")
+                estados_toggles = {}
+
+        # --- CONSTRUCCIÓN DE TRAZAS ACTIVADAS EN PLOTLY ---
+        for tr in trazas_configuradas:
+            if estados_toggles.get(tr['nombre'], False):
+                fig.add_trace(go.Scatter(
+                    x=tr['x'], y=tr['y'],
+                    name=tr['nombre'],
+                    yaxis=tr['yaxis'],
+                    mode='lines+markers',
+                    line=dict(width=2, color=tr['color']),
+                    marker=dict(size=3, symbol='circle'),
+                    fill=tr['fill'],
+                    fillcolor=tr['fillcolor'],
+                    hovertemplate=f"<b>%{{fullData.name}}</b>: %{{y:.2f}} {tr['unidad']}<extra></extra>"
+                ))
 
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
@@ -2997,7 +3018,7 @@ if sector_seleccionado:
             fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
         fig.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
+            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=12)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
@@ -3006,138 +3027,119 @@ if sector_seleccionado:
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
-    col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
+    st.write("")
 
-    with col_pc:
-        st.markdown("""
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
+    col_inf_izq, col_inf_der = st.columns([1.0, 1.0])
+
+    with col_inf_izq:
+        st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Puntos críticos</p>
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Presión real en los puntos críticos del sector (Diccionario_puntos_criticos)</p>
             </div>
         """, unsafe_allow_html=True)
-        
+
         fig_pc = go.Figure()
-        try:
-            if dict_pc_sec and series_pc_list:
-                engine_tel = get_mysql_telemetria_engine()
-                series_pc_in = "', '".join(series_pc_list)
-                q_madre_pc = f"""
-                    SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
-                    FROM BD_MADRE 
-                    WHERE DISPOSITIVO IN ('{series_pc_in}')
-                      AND VARIABLE != 'Volt_bateria'
-                      AND VARIABLE NOT LIKE '%CAUDAL%'
-                      AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
-                    ORDER BY FECHA_HORA_LOGGER ASC
-                """
-                df_madre_pc = pd.read_sql(q_madre_pc, engine_tel)
-                if not df_madre_pc.empty:
-                    df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'], errors='coerce')
-                    df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
-                    df_madre_pc['VALOR'] = pd.to_numeric(df_madre_pc['VALOR'], errors='coerce') * 10.0
+        colores_pc = ["#00d4ff", "#ffb700", "#ff00ff", "#00ff88", "#ff4d4d"]
+        hay_datos_pc = False
 
-                    dias_es_pc = {0: 'Lun', 1: 'Mar', 2: 'Mié', 3: 'Jue', 4: 'Vie', 5: 'Sáb', 6: 'Dom'}
-                    meses_es_pc = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+        if dict_pc_sec:
+            series_pc = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
+            if series_pc:
+                try:
+                    engine_tel_pc = get_mysql_telemetria_engine()
+                    series_pc_in = "', '".join(series_pc)
+                    q_madre_pc = f"""
+                        SELECT FECHA_HORA_LOGGER AS Fecha, DISPOSITIVO AS Serie, VARIABLE, VALOR 
+                        FROM BD_MADRE 
+                        WHERE DISPOSITIVO IN ('{series_pc_in}')
+                          AND VARIABLE != 'Volt_bateria'
+                          AND VARIABLE NOT LIKE '%CAUDAL%'
+                          AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h} 00:00:00' AND '{f_fin_h} 23:59:59'
+                        ORDER BY FECHA_HORA_LOGGER ASC
+                    """
+                    df_madre_pc = pd.read_sql(q_madre_pc, engine_tel_pc)
+                    if not df_madre_pc.empty:
+                        df_madre_pc['FECHA'] = pd.to_datetime(df_madre_pc['Fecha'], errors='coerce')
+                        df_madre_pc['Serie_str'] = df_madre_pc['Serie'].astype(str).str.strip()
+                        df_madre_pc['VALOR'] = pd.to_numeric(df_madre_pc['VALOR'], errors='coerce') * 10.0
 
-                    f_ini_dia_pc = f_ini_h.replace(hour=0, minute=0, second=0, microsecond=0)
-                    f_fin_dia_pc = f_fin_h.replace(hour=23, minute=59, second=59, microsecond=0)
-                    fechas_lineas_pc = pd.date_range(start=f_ini_dia_pc, end=f_fin_dia_pc, freq='D')
-                    
-                    num_dias_pc = len(fechas_lineas_pc)
-                    paso_pc = 1 if num_dias_pc <= 15 else (2 if num_dias_pc <= 30 else 5)
-                    ticks_pc = fechas_lineas_pc[::paso_pc]
-                    
-                    etiquetas_pc = [
-                        f"{d.strftime('%H:%M')}<br>{dias_es_pc[d.dayofweek]} {d.day}-{meses_es_pc[d.month]}-{d.year}"
-                        for d in ticks_pc
-                    ]
+                        idx_c = 0
+                        for pc_key, pc_info in dict_pc_sec.items():
+                            serie_raw = str(pc_info.get('Serie', pc_key)).strip()
+                            domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'PC {serie_raw}'))
+                            df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
+                            if not df_temp.empty:
+                                for var_name, df_v_group in df_temp.groupby('VARIABLE'):
+                                    df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
+                                    if not df_v_group.empty:
+                                        hay_datos_pc = True
+                                        color_trace = colores_pc[idx_c % len(colores_pc)]
+                                        idx_c += 1
+                                        fig_pc.add_trace(go.Scatter(
+                                            x=df_v_group['FECHA'], y=df_v_group['VALOR'],
+                                            name=f"{serie_raw} - {domicilio_nombre} - {var_name}",
+                                            mode='lines+markers', marker=dict(size=3.5, symbol='circle'),
+                                            line=dict(width=2, color=color_trace),
+                                            hovertemplate='<b>%{fullData.name}</b><br>Presión: %{y:.2f} mca<extra></extra>'
+                                        ))
+                except Exception:
+                    pass
 
-                    colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
-                    idx_pc_c = 0
+        if not hay_datos_pc:
+            fig_pc.add_annotation(
+                text="Sin lecturas de presión en puntos críticos para este sector en el periodo",
+                xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(color="#888888", size=12)
+            )
 
-                    for pc_key, pc_info in dict_pc_sec.items():
-                        serie_raw = str(pc_info.get('Serie', pc_key)).strip()
-                        domicilio_nombre = pc_info.get('Domicilio', pc_info.get('nombre', f'Serie {serie_raw}'))
+        fig_pc.add_hline(y=30.0, line_dash="dot", line_color="#ffb700", annotation_text="Máx. 30 mca", annotation_position="top right", annotation_font=dict(color="#ffb700", size=11))
+        fig_pc.add_hline(y=5.0, line_dash="dot", line_color="#ffb700", annotation_text="Mín. 5 mca", annotation_position="bottom right", annotation_font=dict(color="#ffb700", size=11))
 
-                        df_temp = df_madre_pc[df_madre_pc['Serie_str'] == serie_raw]
-                        if not df_temp.empty:
-                            for var_name, df_v_group in df_temp.groupby('VARIABLE'):
-                                df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
-                                if not df_v_group.empty:
-                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
-                                    idx_pc_c += 1
-
-                                    fig_pc.add_trace(go.Scatter(
-                                        x=df_v_group['FECHA'], 
-                                        y=df_v_group['VALOR'], 
-                                        name=f"{domicilio_nombre} - {var_name}", 
-                                        mode='lines+markers',
-                                        connectgaps=False,
-                                        showlegend=True,
-                                        marker=dict(size=3.5, symbol='circle'), 
-                                        line=dict(width=2, color=color_trace_pc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
-                                    ))
-
-                    # Rango de 15 minutos totales (7.5 min antes y 7.5 min después)
-                    delta_h = pd.Timedelta(minutes=7.5)
-                    for d in fechas_lineas_pc:
-                        es_lunes = (d.dayofweek == 0)
-                        fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                        fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-        except Exception:
-            pass
-
-        fig_pc.add_hline(
-            y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
-            annotation_text="Máx. 30 mca", annotation_position="top right",
-            annotation_font=dict(color="#ffd700", size=11)
-        )
-        fig_pc.add_hline(
-            y=5, line_dash="dot", line_color="#ffd700", line_width=1.5,
-            annotation_text="Mín. 5 mca", annotation_position="bottom right",
-            annotation_font=dict(color="#ffd700", size=11)
-        )
+        for d in fechas_lineas:
+            es_lunes = (d.dayofweek == 0)
+            fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.4)
 
         fig_pc.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
-            margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
-            legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=12)),
-            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
+            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=280,
+            margin=dict(l=40, r=20, t=30, b=10), hovermode="x unified",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=11)),
+            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            yaxis=dict(title="Presión (mca)", color="#e4edf7", showgrid=True, gridcolor="#16304a", range=[0, 35], tickformat=".2f")
         )
         st.plotly_chart(fig_pc, use_container_width=True)
 
-    with col_op:
+    with col_inf_der:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
             </div>
         """, unsafe_allow_html=True)
-        
-        tomas_activas_val = f"{(datos_s.get('U_Domesticos', 0) + datos_s.get('U_NoDom', 0)):,.0f}".replace(",", ".")
-        long_red_val = f"{datos_s.get('Long_Red', 42.6):,.1f}".replace(",", ".") + " kilómetros"
-        demanda_cat_val = f"{demanda_estimada_val:,.1f}".replace(",", ".") + " L/s" if demanda_estimada_val else "74,2 L/s"
-        
+
+        distrito_val = datos_s.get('Distrito', 'Oriente')
+        tomas_val = datos_s.get('U_Domesticos', 0) + datos_s.get('U_NoDom', 0)
+        if tomas_val == 0:
+            tomas_val = 4812
+        long_red_val = datos_s.get('Long_Red', 42.6)
+
         st.markdown(f"""
-            <div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 14px 18px; height: 382px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 12px 18px; min-height: 280px;">
                 <div class="dma-op-row">
                     <span class="dma-op-label">📍 Distrito</span>
-                    <span class="dma-op-value">Distrito {datos_s.get('Distrito', 'Oriente')}</span>
+                    <span class="dma-op-value">Distrito {distrito_val}</span>
                 </div>
                 <div class="dma-op-row">
                     <span class="dma-op-label">🏠 Tomas activas</span>
-                    <span class="dma-op-value">{tomas_activas_val}</span>
+                    <span class="dma-op-value">{tomas_val:,.0f}</span>
                 </div>
                 <div class="dma-op-row">
                     <span class="dma-op-label">📏 Longitud de red</span>
-                    <span class="dma-op-value">{long_red_val}</span>
+                    <span class="dma-op-value">{long_red_val:,.1f} kilómetros</span>
                 </div>
                 <div class="dma-op-row">
-                    <span class="dma-op-label">🌊 Demanda estimada · catálogo</span>
-                    <span class="dma-op-value">{demanda_cat_val}</span>
+                    <span class="dma-op-label">📊 Demanda estimada · catálogo</span>
+                    <span class="dma-op-value">{demanda_estimada_val:,.1f} L/s</span>
                 </div>
                 <div class="dma-op-row">
                     <span class="dma-op-label">💧 Presión mínima de referencia</span>
@@ -3148,17 +3150,17 @@ if sector_seleccionado:
                     <span class="dma-op-value">30.0 mca</span>
                 </div>
                 <div class="dma-op-row">
-                    <span class="dma-op-label">🟦 Tanque TQ-055 · último</span>
+                    <span class="dma-op-label">📘 Tanque TQ-055 · último</span>
                     <span class="dma-op-value">{texto_nivel_tq}</span>
                 </div>
                 <div class="dma-op-row">
                     <span class="dma-op-label">🕒 Fecha del nivel / condición</span>
-                    <span class="dma-op-value">{fec_nivel_tq_str}</span>
+                    <span class="dma-op-value" style="color: #00d4ff;">{fec_nivel_tq_str}</span>
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
+# --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
     st.markdown("""
         <div style="
             position: relative;
