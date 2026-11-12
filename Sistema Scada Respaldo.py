@@ -2167,11 +2167,9 @@ if sector_seleccionado:
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             
-            /* ESTILO DE LA TARJETA CONTENEDORA DEL ENCABEZADO */
             [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 12px !important; background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
-            /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
             .dma-op-row {
                 display: flex;
                 justify-content: space-between;
@@ -2180,39 +2178,19 @@ if sector_seleccionado:
                 border-bottom: 1px solid rgba(31, 64, 104, 0.4);
                 font-size: 0.85rem;
             }
-            .dma-op-row:last-child {
-                border-bottom: none;
-            }
-            .dma-op-label {
-                color: #9ab0c7;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            .dma-op-value {
-                color: #f0f7ff;
-                font-weight: 600;
-                font-variant-numeric: tabular-nums;
-            }
+            .dma-op-row:last-child { border-bottom: none; }
+            .dma-op-label { color: #9ab0c7; display: flex; align-items: center; gap: 8px; }
+            .dma-op-value { color: #f0f7ff; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-            /* ADAPTACIÓN DEL SELECTOR DE FECHAS */
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
-                background-color: #030d17 !important;
-                background: #030d17 !important;
+                background-color: #030d17 !important; background: #030d17 !important;
             }
             div[data-baseweb="select"] > div {
-                border: 1px solid #1f4068 !important;
-                border-radius: 8px !important;
-                color: #e4edf7 !important;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+                border: 1px solid #1f4068 !important; border-radius: 8px !important; color: #e4edf7 !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
             }
             div[data-baseweb="select"] span { color: #e4edf7 !important; }
             div[data-baseweb="popover"] div { background-color: #0b1a29 !important; color: #e4edf7 !important; }
 
-            @keyframes water-shimmer {
-                0% { background-position: -200% 0; }
-                100% { background-position: 200% 0; }
-            }
             @keyframes drop-pulse {
                 0% { transform: scale(1); filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.6)); }
                 50% { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(0, 212, 255, 1)); }
@@ -2293,7 +2271,7 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE (TARJETA) ---
+    # --- ENCABEZADO INTEGRADO ---
     with st.container(border=True):
         head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
         
@@ -2326,7 +2304,7 @@ if sector_seleccionado:
             opcion_periodo_tab = st.selectbox(
                 "Periodo:",
                 opciones_periodo,
-                index=4,  # "Esta semana" por defecto
+                index=4,
                 key="f_sector_periodo_tab_detalle"
             )
 
@@ -2490,6 +2468,7 @@ if sector_seleccionado:
                 fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
+    # --- TARJETAS INDICADORAS ---
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(f'''<div class="card-indicador">
@@ -2547,9 +2526,7 @@ if sector_seleccionado:
         </div>''', unsafe_allow_html=True)
     st.write("")
 
-    col_izq, col_der = st.columns([0.7, 1.3])
-    
-    # Proporción de columnas: 0.7 para el mapa y 1.3 para el gráfico
+    # --- FILA SUPERIOR: MAPA Y GRÁFICO DE COMPORTAMIENTO HIDRÁULICO ---
     col_izq, col_der = st.columns([0.7, 1.3])
     
     with col_izq:
@@ -2717,46 +2694,41 @@ if sector_seleccionado:
 
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
-
-        # --- LEYENDA FLOTANTE DENTRO DEL MAPA (Esquina inferior izquierda) ---
-        legend_html = """
+        folium_static(m_sec, width=None, height=360)
+        
+        # --- LEYENDA PROFESIONAL Y LIMPIA DEBAJO DEL MAPA ---
+        st.markdown("""
             <div style="
-                position: absolute;
-                bottom: 25px;
-                left: 10px;
-                z-index: 999;
-                background: rgba(8, 20, 33, 0.85);
-                backdrop-filter: blur(4px);
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 20px;
+                background: #0b1a29;
                 border: 1px solid #1f4068;
-                border-radius: 6px;
-                padding: 8px 10px;
-                font-family: sans-serif;
-                font-size: 11px;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                padding: 10px 15px;
+                font-size: 0.82rem;
                 color: #e4edf7;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.5);
             ">
-                <div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff; border-bottom: 1px solid rgba(31,64,104,0.5); padding-bottom: 2px;">Leyenda</div>
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                    <span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #ff4d4d;"></span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 12px; height: 12px; background-color: #ff4d4d; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #ff4d4d;"></span>
                     <span>Punto crítico</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                    <span style="width: 10px; height: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #00ff00;"></span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 12px; height: 12px; background-color: #00ff00; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #00ff00;"></span>
                     <span>Pozos</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
-                    <span style="width: 10px; height: 10px; background-color: #007bff; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #007bff;"></span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 12px; height: 12px; background-color: #007bff; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #007bff;"></span>
                     <span>Punto de control</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="width: 10px; height: 10px; background-color: #a1ffce; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #a1ffce;"></span>
+                    <span style="width: 12px; height: 12px; background-color: #a1ffce; border-radius: 50%; display: inline-block; box-shadow: 0 0 5px #a1ffce;"></span>
                     <span>VRP</span>
                 </div>
             </div>
-        """
-        m_sec.get_root().html.add_child(folium.Element(legend_html))
-
-        folium_static(m_sec, width=None, height=360)
+        """, unsafe_allow_html=True)
         
     with col_der:
         st.markdown(f"""
@@ -2787,6 +2759,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
+        # --- 1. GRAFICAR SOLO PUNTOS DE CONTROL DEL SECTOR ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2848,6 +2821,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
+        # --- 2. GRAFICAR SOLO VRPs DEL SECTOR ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2893,6 +2867,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
+        # --- 3. GRAFICAR SOLO PUNTOS CRÍTICOS DEL SECTOR ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -2936,6 +2911,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
+        # --- 4. GRAFICAR SOLO POZOS DEL SECTOR ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
