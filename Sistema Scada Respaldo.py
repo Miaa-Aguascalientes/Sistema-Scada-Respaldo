@@ -2547,7 +2547,7 @@ if sector_seleccionado:
         </div>''', unsafe_allow_html=True)
     st.write("")
 
-    col_izq, col_der = st.columns([1.0, 1.0])
+    col_izq, col_der = st.columns([0.6, 1.4])
     
     with col_izq:
         st.markdown(f"""
