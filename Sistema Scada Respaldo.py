@@ -2699,26 +2699,26 @@ if sector_seleccionado:
         # Contenedor visual del mapa en Streamlit
         folium_static(m_sec, width=None, height=360)
 
-        # --- CUADRO DE INFORMACIÓN BIEN UBICADO DENTRO DEL MAPA (ABAJO A LA IZQUIERDA) ---
+        # --- CUADRO DE INFORMACIÓN BIEN ADENTRO DEL MAPA (FLOTANDO ARRIBA A LA IZQUIERDA) ---
         st.markdown("""
             <div style="
                 position: relative;
-                margin-top: -128px;
+                margin-top: -175px;
                 margin-left: 12px;
-                width: 195px;
-                background: rgba(11, 26, 41, 0.92);
+                width: 190px;
+                background: rgba(11, 26, 41, 0.95);
                 backdrop-filter: blur(4px);
                 border: 1px solid #1f4068;
                 border-radius: 6px;
-                padding: 8px 10px;
+                padding: 6px 9px;
                 font-family: sans-serif;
                 font-size: 11px;
                 color: #ffffff;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+                box-shadow: 0 4px 12px rgba(0,0,0,0.8);
                 z-index: 99;
                 pointer-events: none;
             ">
-                <div style="font-weight: bold; margin-bottom: 4px; color: #00d4ff; border-bottom: 1px solid #1f4068; padding-bottom: 2px;">Leyenda</div>
+                <div style="font-weight: bold; margin-bottom: 3px; color: #00d4ff; border-bottom: 1px solid #1f4068; padding-bottom: 2px;">Leyenda</div>
                 <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
                     <span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block;"></span>
                     <span>Punto crítico</span>
