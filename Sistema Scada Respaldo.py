@@ -2747,10 +2747,13 @@ if sector_seleccionado:
         """, unsafe_allow_html=True)
         
     with col_der:
-        # Encabezado del bloque de comportamiento hidráulico
+        # --- ENCABEZADO DE LA SECCIÓN HIDRÁULICA ---
         st.markdown(f"""
-            <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
-                <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
+            <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
+                    <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Análisis multivariable de telemetría en tiempo real</p>
+                </div>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2979,57 +2982,60 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- DISTRIBUCIÓN EN 2 COLUMNAS: TOGGLES A LA IZQUIERDA Y GRÁFICO A LA DERECHA ---
-        sub_col_toggles, sub_col_grafico = st.columns([0.24, 0.76])
+        # --- SELECTOR MULTISELECT SUPERIOR (LIMPIO Y ORDENADO) ---
+        nombres_trazas_disponibles = [tr['nombre'] for tr in trazas_configuradas]
+        trazas_por_defecto = [tr['nombre'] for tr in trazas_configuradas if tr['default']]
 
-        with sub_col_toggles:
-            st.markdown("""
-                <div style="padding-top: 10px;">
-                    <span style="font-size: 0.85rem; font-weight: bold; color: #00d4ff;">Variables</span>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            estados_toggles = {}
-            if trazas_configuradas:
-                for i, tr in enumerate(trazas_configuradas):
-                    estados_toggles[tr['nombre']] = st.toggle(
-                        tr['nombre'], 
-                        value=tr['default'], 
-                        key=f"toggle_var_{sec_id}_{i}"
-                    )
-            else:
-                st.info("Sin series")
+        selected_vars = st.multiselect(
+            "🎛️ Filtrar variables a visualizar en el gráfico:",
+            options=nombres_trazas_disponibles,
+            default=trazas_por_defecto,
+            key=f"multiselect_vars_{sec_id}"
+        )
 
-        with sub_col_grafico:
-            for tr in trazas_configuradas:
-                if estados_toggles.get(tr['nombre'], False):
-                    fig.add_trace(go.Scatter(
-                        x=tr['x'], y=tr['y'],
-                        name=tr['nombre'],
-                        yaxis=tr['yaxis'],
-                        mode='lines+markers',
-                        line=dict(width=2, color=tr['color']),
-                        marker=dict(size=3, symbol='circle'),
-                        fill=tr['fill'],
-                        fillcolor=tr['fillcolor'],
-                        hovertemplate=f"<b>%{{fullData.name}}</b>: %{{y:.2f}} {tr['unidad']}<extra></extra>"
-                    ))
+        # --- CONSTRUCCIÓN DEL GRÁFICO ---
+        for tr in trazas_configuradas:
+            if tr['nombre'] in selected_vars:
+                fig.add_trace(go.Scatter(
+                    x=tr['x'], y=tr['y'],
+                    name=tr['nombre'],
+                    yaxis=tr['yaxis'],
+                    mode='lines+markers',
+                    line=dict(width=2, color=tr['color']),
+                    marker=dict(size=3, symbol='circle'),
+                    fill=tr['fill'],
+                    fillcolor=tr['fillcolor'],
+                    hovertemplate=f"<b>%{{fullData.name}}</b>: %{{y:.2f}} {tr['unidad']}<extra></extra>"
+                ))
 
-            delta = pd.Timedelta(minutes=7.5)
-            for d in fechas_lineas:
-                es_lunes = (d.dayofweek == 0)
-                fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-                fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+        delta = pd.Timedelta(minutes=7.5)
+        for d in fechas_lineas:
+            es_lunes = (d.dayofweek == 0)
+            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-            fig.update_layout(
-                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-                margin=dict(l=20, r=20, t=10, b=10), hovermode="x unified", 
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=11)),
-                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-                yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-                yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="#d400ff", showgrid=False)
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            paper_bgcolor='rgba(11,26,41,1)', 
+            plot_bgcolor='rgba(11,26,41,1)', 
+            height=440, 
+            margin=dict(l=30, r=30, t=10, b=10), 
+            hovermode="x unified", 
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", 
+                y=1.02, 
+                x=0.5, 
+                xanchor="center", 
+                font=dict(color="white", size=11),
+                bgcolor="rgba(0,0,0,0.5)",
+                bordercolor="#1f4068",
+                borderwidth=1
+            ),
+            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+            yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="#d400ff", showgrid=False)
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
     st.write("")
 
