@@ -2968,16 +2968,16 @@ if sector_seleccionado:
             if id_p in mapa_pozos_dict:
                 p_info = mapa_pozos_dict[id_p]
                 conf_pz = [
-                    ('caudal', f"Pozo {id_p} - Q", False),
-                    ('presion', f"Pozo {id_p} - P", True),
-                    ('nivel_tanque', "Nivel TQ", True)
+                    ('caudal', f"Pozo {id_p} - Q", "y1"),
+                    ('presion', f"Pozo {id_p} - P", "y2"),
+                    ('nivel_tanque', "Nivel TQ", "y3")  # Asignado explícitamente al eje y3 (tercer eje)
                 ]
-                for key_t, lb, sec in conf_pz:
+                for key_t, lb, axis_target in conf_pz:
                     tag_v = p_info.get(key_t)
                     if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                         if str(tag_v) not in tags_pozos_visualizar:
                             tags_pozos_visualizar.append(str(tag_v))
-                            mapeo_pozos_config[str(tag_v)] = {'label': lb, 'sec': sec}
+                            mapeo_pozos_config[str(tag_v)] = {'label': lb, 'axis': axis_target}
 
         if tags_pozos_visualizar:
             try:
@@ -2993,21 +2993,21 @@ if sector_seleccionado:
                             df_tag = df_h[df_h['TAG'] == tag_name].sort_values('FECHA')
                             if not df_tag.empty:
                                 cfg = mapeo_pozos_config[tag_name]
-                                es_caudal = not cfg['sec']
+                                target_axis = cfg['axis']
                                 label_u = cfg['label'].upper()
 
-                                if es_caudal: unidad_pc = "L/s"
-                                elif "NIVEL" in label_u or "TANQUE" in label_u or "MTS" in label_u: unidad_pc = "m"
+                                if target_axis == "y1": unidad_pc = "L/s"
+                                elif target_axis == "y3": unidad_pc = "m"
                                 else: unidad_pc = "mca"
 
                                 val_y_series = pd.to_numeric(df_tag['VALUE'], errors='coerce')
-                                if not es_caudal and "NIVEL" not in label_u and "TANQUE" not in label_u:
+                                if target_axis == "y2":
                                     val_y_series = val_y_series * 10.0
 
-                                if "NIVEL" in label_u or "TANQUE" in label_u:
+                                if target_axis == "y3":
                                     color_base = "#d400ff"
                                     vis_estado = True
-                                elif es_caudal:
+                                elif target_axis == "y1":
                                     color_base = "#00d4ff"
                                     vis_estado = 'legendonly'
                                 else:
@@ -3016,11 +3016,11 @@ if sector_seleccionado:
 
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
-                                    yaxis="y2" if cfg['sec'] else "y1", mode='lines+markers',
+                                    yaxis=target_axis, mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=3, symbol='circle'),
-                                    fill='tozeroy' if (es_caudal and "NIVEL" not in label_u) else None,
-                                    fillcolor="rgba(0, 212, 255, 0.15)" if (es_caudal and "NIVEL" not in label_u) else None,
+                                    fill='tozeroy' if (target_axis == "y1") else None,
+                                    fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
@@ -3035,7 +3035,7 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=40, t=25, b=10), hovermode="x unified", 
+            margin=dict(l=40, r=80, t=25, b=10), hovermode="x unified",  # Margen derecho ampliado para dar espacio al tercer eje
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3047,7 +3047,16 @@ if sector_seleccionado:
             ),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presión (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
+            yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#00ff00", showgrid=False),
+            yaxis3=dict(
+                title="Niveles Pozo / Tq (m)", 
+                side="right", 
+                overlaying="y", 
+                anchor="free", 
+                position=1.0,  # Desplaza este eje completamente hacia el borde derecho exterior
+                color="#d400ff", 
+                showgrid=False
+            )
         )
         st.plotly_chart(fig, use_container_width=True)
 
