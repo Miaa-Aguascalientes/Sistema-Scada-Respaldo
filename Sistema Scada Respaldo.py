@@ -2982,20 +2982,9 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- SELECTOR MULTISELECT SUPERIOR (LIMPIO Y ORDENADO) ---
-        nombres_trazas_disponibles = [tr['nombre'] for tr in trazas_configuradas]
-        trazas_por_defecto = [tr['nombre'] for tr in trazas_configuradas if tr['default']]
-
-        selected_vars = st.multiselect(
-            "🎛️ Filtrar variables a visualizar en el gráfico:",
-            options=nombres_trazas_disponibles,
-            default=trazas_por_defecto,
-            key=f"multiselect_vars_{sec_id}"
-        )
-
-        # --- CONSTRUCCIÓN DEL GRÁFICO ---
+        # --- CONSTRUCCIÓN DEL GRÁFICO (CON TODAS LAS TRAZAS POR DEFECTO Y LEYENDA INTEGRADA) ---
         for tr in trazas_configuradas:
-            if tr['nombre'] in selected_vars:
+            if tr['default']:  # Se muestran por defecto las principales configuradas
                 fig.add_trace(go.Scatter(
                     x=tr['x'], y=tr['y'],
                     name=tr['nombre'],
@@ -3017,7 +3006,7 @@ if sector_seleccionado:
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', 
             plot_bgcolor='rgba(11,26,41,1)', 
-            height=440, 
+            height=460, 
             margin=dict(l=30, r=30, t=10, b=10), 
             hovermode="x unified", 
             legend=dict(
@@ -3027,7 +3016,7 @@ if sector_seleccionado:
                 x=0.5, 
                 xanchor="center", 
                 font=dict(color="white", size=11),
-                bgcolor="rgba(0,0,0,0.5)",
+                bgcolor="rgba(0,0,0,0.85)",
                 bordercolor="#1f4068",
                 borderwidth=1
             ),
