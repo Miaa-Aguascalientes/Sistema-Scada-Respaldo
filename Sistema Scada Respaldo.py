@@ -3045,24 +3045,23 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            # Reducimos el dominio en X para dejar espacio exclusivo a la derecha para los dos ejes
             xaxis=dict(domain=[0, 0.82], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(
-                title="Presión (mca)", 
+                title=dict(text="Presión (mca)", standoff=25),  # Aleja el título de los números
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.91,  # Eje de presión ubicado a 91% del ancho
+                position=0.90, 
                 color="#00ff00", 
                 showgrid=False
             ),
             yaxis3=dict(
-                title="Niveles Pozo / Tq (m)", 
+                title=dict(text="Niveles Pozo / Tq (m)", standoff=25),  # Aleja el título de los números
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=1.0,  # Eje de niveles ubicado exactamente en el borde derecho (100%)
+                position=1.0, 
                 color="#d400ff", 
                 showgrid=False
             )
