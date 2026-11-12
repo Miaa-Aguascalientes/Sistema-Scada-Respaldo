@@ -2341,7 +2341,6 @@ if sector_seleccionado:
 
     def coincide_sector(item_dict):
         val_sec = str(item_dict.get('Sector') or item_dict.get('sector') or '').strip()
-        # Limpiamos ambos lados de guiones o espacios para comparar de forma estricta pero limpia
         s_actual_limpio = ''.join(c for c in str(sec_val_actual).upper() if c.isalnum())
         s_item_limpio = ''.join(c for c in val_sec.upper() if c.isalnum())
         return s_item_limpio == s_actual_limpio or val_sec.upper() == str(sec_val_actual).upper()
@@ -2581,7 +2580,6 @@ if sector_seleccionado:
                 except (ValueError, TypeError):
                     val_num = 0.0
 
-                # Reemplazo de leyendas solicitadas
                 var_label_display = var_name
                 if var_label_display in ["Presion1", "Presion2"]:
                     var_label_display = "P1" if var_label_display == "Presion1" else "P2"
@@ -2720,10 +2718,8 @@ if sector_seleccionado:
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
 
-        # Contenedor visual del mapa en Streamlit
         folium_static(m_sec, width=None, height=360)
 
-        # --- CUADRO DE INFORMACIÓN BIEN ADENTRO DEL MAPA (FLOTANDO ARRIBA A LA IZQUIERDA) ---
         st.markdown("""
             <div style="
                 position: relative;
@@ -2828,7 +2824,6 @@ if sector_seleccionado:
                                 if df_v_group['VALOR'].notna().any():
                                     is_caudal = 'CAUDAL' in str(var_name).upper()
                                     
-                                    # Aplicar reemplazo de leyendas en trazas de gráfico
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
                                         var_label_display = "P1" if var_label_display == "Presion1" else "P2"
@@ -3039,9 +3034,17 @@ if sector_seleccionado:
             fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
         fig.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=360, 
-            margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=12)),
+            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
+            margin=dict(l=40, r=40, t=25, b=10), hovermode="x unified", 
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", 
+                y=1.04, 
+                x=0.5, 
+                xanchor="center", 
+                font=dict(color="white", size=11),
+                itemwidth=30
+            ),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(title="Presión (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
