@@ -2699,14 +2699,15 @@ if sector_seleccionado:
         # Contenedor visual del mapa en Streamlit
         folium_static(m_sec, width=None, height=360)
 
-        # --- CUADRO DE INFORMACIÓN CARTOGRÁFICA (SOBREPUESTO ABAJO A LA IZQUIERDA DEL CONTENEDOR) ---
+        # --- CUADRO DE INFORMACIÓN BIEN UBICADO DENTRO DEL MAPA (ABAJO A LA IZQUIERDA) ---
         st.markdown("""
             <div style="
                 position: relative;
-                margin-top: -95px;
+                margin-top: -128px;
                 margin-left: 12px;
-                width: 210px;
-                background: rgba(11, 26, 41, 0.95);
+                width: 195px;
+                background: rgba(11, 26, 41, 0.92);
+                backdrop-filter: blur(4px);
                 border: 1px solid #1f4068;
                 border-radius: 6px;
                 padding: 8px 10px;
