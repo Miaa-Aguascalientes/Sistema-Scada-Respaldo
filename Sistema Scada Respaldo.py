@@ -2960,7 +2960,8 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        delta = pd.Timedelta(hours=1)
+        # Rango de 15 minutos totales (7.5 min antes y 7.5 min después)
+        delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
             fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
@@ -3050,7 +3051,8 @@ if sector_seleccionado:
                                         hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
                                     ))
 
-                    delta_h = pd.Timedelta(hours=1)
+                    # Rango de 15 minutos totales (7.5 min antes y 7.5 min después)
+                    delta_h = pd.Timedelta(minutes=7.5)
                     for d in fechas_lineas_pc:
                         es_lunes = (d.dayofweek == 0)
                         fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
