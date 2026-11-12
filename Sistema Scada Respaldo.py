@@ -2341,7 +2341,10 @@ if sector_seleccionado:
 
     def coincide_sector(item_dict):
         val_sec = str(item_dict.get('Sector') or item_dict.get('sector') or '').strip()
-        return val_sec == str(sec_id).strip() or (sec_id_clean and sec_id_clean in val_sec)
+        # Limpiamos ambos lados de guiones o espacios para comparar de forma estricta pero limpia
+        s_actual_limpio = ''.join(c for c in str(sec_val_actual).upper() if c.isalnum())
+        s_item_limpio = ''.join(c for c in val_sec.upper() if c.isalnum())
+        return s_item_limpio == s_actual_limpio or val_sec.upper() == str(sec_val_actual).upper()
 
     dict_reg_all = cargar_puntos_de_control_desde_db() 
     dict_reg = {k: v for k, v in dict_reg_all.items() if coincide_sector(v)}
