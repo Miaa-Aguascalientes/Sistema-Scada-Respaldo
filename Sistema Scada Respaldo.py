@@ -2697,7 +2697,7 @@ if sector_seleccionado:
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
 
-        # --- LEYENDA NATIVA INSERTADA EN EL MAPA MEDIANTE CONTROL DE LEAFLET ---
+        # --- CUADRO DE INFORMACIÓN (LEYENDA ESTILO MAPA CARTOGRÁFICO) ---
         map_var_name = m_sec.get_name()
         legend_script = """
         <script>
@@ -2705,30 +2705,29 @@ if sector_seleccionado:
                 var legend = L.control({position: 'bottomleft'});
                 legend.onAdd = function (map) {
                     var div = L.DomUtil.create('div', 'info legend');
-                    div.style.background = 'rgba(8, 20, 33, 0.9)';
-                    div.style.border = '1px solid #1f4068';
+                    div.style.background = '#0b1a29';
+                    div.style.border = '2px solid #1f4068';
                     div.style.borderRadius = '6px';
-                    div.style.padding = '8px 10px';
+                    div.style.padding = '10px 12px';
                     div.style.fontFamily = 'sans-serif';
-                    div.style.fontSize = '11px';
-                    div.style.color = '#e4edf7';
-                    div.style.boxShadow = '0 4px 12px rgba(0,0,0,0.6)';
-                    div.style.backdropFilter = 'blur(4px)';
-                    div.innerHTML = '<div style="font-weight: bold; margin-bottom: 5px; color: #00d4ff; border-bottom: 1px solid rgba(31,64,104,0.5); padding-bottom: 2px;">Leyenda</div>' +
-                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                            '<span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #ff4d4d;"></span>' +
+                    div.style.fontSize = '11.5px';
+                    div.style.color = '#ffffff';
+                    div.style.boxShadow = '0 4px 16px rgba(0,0,0,0.7)';
+                    div.innerHTML = '<div style="font-weight: bold; margin-bottom: 6px; color: #00d4ff; border-bottom: 1px solid #1f4068; padding-bottom: 3px; font-size: 12px;">Puntos de medición</div>' +
+                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
+                            '<span style="width: 12px; height: 12px; background-color: #ff4d4d; border-radius: 50%; display: inline-block;"></span>' +
                             '<span>Punto crítico</span>' +
                         '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                            '<span style="width: 10px; height: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #00ff00;"></span>' +
+                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
+                            '<span style="width: 12px; height: 12px; background-color: #00ff00; border-radius: 50%; display: inline-block;"></span>' +
                             '<span>Pozos</span>' +
                         '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">' +
-                            '<span style="width: 10px; height: 10px; background-color: #007bff; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #007bff;"></span>' +
+                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
+                            '<span style="width: 12px; height: 12px; background-color: #007bff; border-radius: 50%; display: inline-block;"></span>' +
                             '<span>Punto de control</span>' +
                         '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 6px;">' +
-                            '<span style="width: 10px; height: 10px; background-color: #a1ffce; border-radius: 50%; display: inline-block; box-shadow: 0 0 4px #a1ffce;"></span>' +
+                        '<div style="display: flex; align-items: center; gap: 8px;">' +
+                            '<span style="width: 12px; height: 12px; background-color: #a1ffce; border-radius: 50%; display: inline-block;"></span>' +
                             '<span>VRP</span>' +
                         '</div>';
                     return div;
