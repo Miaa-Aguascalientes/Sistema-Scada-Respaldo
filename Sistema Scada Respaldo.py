@@ -2167,14 +2167,8 @@ if sector_seleccionado:
             h1 { font-size: 1.9rem !important; font-weight: 650 !important; letter-spacing: -0.045rem; padding-top: 0rem !important; margin-top: 0rem !important; }
             h3 { font-size: 1.03rem !important; font-weight: 600 !important; padding: .1rem 0 !important; }
             
-            /* FONDO AZUL EXACTO DE LOS INDICADORES PARA EL CONTENEDOR DEL ENCABEZADO */
-            [data-testid="stVerticalBlockBorderWrapper"] > div { 
-                border-color: #27445e !important; 
-                border-top: 2px solid #47afd0 !important;
-                border-radius: 10px !important; 
-                background: linear-gradient(135deg, #122c42 0%, #0b1c2d 100%) !important; 
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4); 
-            }
+            /* ESTILO DE LA TARJETA CONTENEDORA DEL ENCABEZADO */
+            [data-testid="stVerticalBlockBorderWrapper"] > div { border-color: #22384d !important; border-radius: 12px !important; background: linear-gradient(135deg, #030d17 0%, #081c30 50%, #030d17 100%) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
             [data-testid="stCaptionContainer"] { color: #91a8bf; font-size: .78rem; }
 
             /* ESTILOS DE LISTA PARA DATOS OPERATIVOS */
@@ -2203,11 +2197,11 @@ if sector_seleccionado:
 
             /* ADAPTACIÓN DEL SELECTOR DE FECHAS */
             div[data-baseweb="select"], div[data-baseweb="select"] > div, div[data-baseweb="select"] div {
-                background-color: #0b1c2d !important;
-                background: #0b1c2d !important;
+                background-color: #030d17 !important;
+                background: #030d17 !important;
             }
             div[data-baseweb="select"] > div {
-                border: 1px solid #27445e !important;
+                border: 1px solid #1f4068 !important;
                 border-radius: 8px !important;
                 color: #e4edf7 !important;
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
@@ -2230,7 +2224,7 @@ if sector_seleccionado:
                 100% { opacity: 0.7; }
             }
 
-            .miaa-logo-img { height: 40px; width: auto; max-width: 160px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 4px; }
+            .miaa-logo-img { height: 42px; width: auto; max-width: 170px; object-fit: contain; filter: drop-shadow(0 0 6px rgba(0, 212, 255, 0.4)); margin-top: 6px; }
             .miaa-center-content { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
             .miaa-title-main { color: #ffffff; font-size: 1.55rem; font-weight: 700; margin: 0 0 6px 0; letter-spacing: -0.02rem; white-space: nowrap; text-align: center; line-height: 1.2; }
             .miaa-sector-highlight { color: #00d4ff; text-shadow: 0 0 10px rgba(0, 212, 255, 0.5); }
@@ -2299,9 +2293,9 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    # --- ENCABEZADO PERFECTO EN UNA SOLA TARJETA CON CONTENEDOR NATIVO Y COLUMNAS ---
+    # --- ENCABEZADO INTEGRADO DENTRO DE UN CONTENEDOR CON BORDE (TARJETA) ---
     with st.container(border=True):
-        head_col1, head_col2, head_col3 = st.columns([1.5, 6.0, 2.2], gap="medium")
+        head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
         
         with head_col1:
             st.markdown(
