@@ -2581,8 +2581,15 @@ if sector_seleccionado:
                 except (ValueError, TypeError):
                     val_num = 0.0
 
+                # Reemplazo de leyendas solicitadas
+                var_label_display = var_name
+                if var_label_display in ["Presion1", "Presion2"]:
+                    var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                elif var_label_display == "Caudal1":
+                    var_label_display = "Q1"
+
                 unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
-                html_vars_detalle += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                html_vars_detalle += f"&bull; {var_label_display}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_detalle:
                 html_vars_detalle = "Sin registros recientes<br>"
@@ -2610,8 +2617,15 @@ if sector_seleccionado:
                     val_num = float(val_num) if val_num is not None else 0.0
                 except (ValueError, TypeError):
                     val_num = 0.0
+
+                var_label_display = var_name
+                if var_label_display in ["Presion1", "Presion2"]:
+                    var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                elif var_label_display == "Caudal1":
+                    var_label_display = "Q1"
+
                 unidad_v = "mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else "")
-                html_vars_pc += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                html_vars_pc += f"&bull; {var_label_display}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_pc:
                 html_vars_pc = "Sin registros recientes<br>"
@@ -2637,8 +2651,15 @@ if sector_seleccionado:
                     val_num = float(val_num) if val_num is not None else 0.0
                 except (ValueError, TypeError):
                     val_num = 0.0
+
+                var_label_display = var_name
+                if var_label_display in ["Presion1", "Presion2"]:
+                    var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                elif var_label_display == "Caudal1":
+                    var_label_display = "Q1"
+
                 unidad_v = "L/s" if "CAUDAL" in var_name.upper() else ("mca" if "PRESION" in var_name.upper() else ("V" if "VOLT" in var_name.upper() else ""))
-                html_vars_vrp += f"&bull; {var_name}: <b>{val_num:.2f} {unidad_v}</b><br>"
+                html_vars_vrp += f"&bull; {var_label_display}: <b>{val_num:.2f} {unidad_v}</b><br>"
             
             if not html_vars_vrp:
                 html_vars_vrp = "Sin registros recientes<br>"
@@ -2807,29 +2828,36 @@ if sector_seleccionado:
                                 if df_v_group['VALOR'].notna().any():
                                     is_caudal = 'CAUDAL' in str(var_name).upper()
                                     
+                                    # Aplicar reemplazo de leyendas en trazas de gráfico
+                                    var_label_display = str(var_name)
+                                    if var_label_display in ["Presion1", "Presion2"]:
+                                        var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                                    elif var_label_display == "Caudal1":
+                                        var_label_display = "Q1"
+
                                     if is_caudal:
                                         color_q = colores_azules_pc[idx_q % len(colores_azules_pc)]
                                         idx_q += 1
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                            name=f"{nombre_reg} - {var_name}",
+                                            name=f"{nombre_reg} - {var_label_display}",
                                             yaxis="y1", mode='lines+markers',
                                             line=dict(width=2, color=color_q),
                                             marker=dict(size=3, symbol='circle'),
                                             fill='tozeroy',
                                             fillcolor="rgba(138, 203, 245, 0.15)",
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} L/s<extra></extra>'
+                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} L/s<extra></extra>'
                                         ))
                                     else:
                                         color_p = colores_verdes_pc[idx_p % len(colores_verdes_pc)]
                                         idx_p += 1
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                            name=f"{nombre_reg} - {var_name}",
+                                            name=f"{nombre_reg} - {var_label_display}",
                                             yaxis="y2", mode='lines+markers',
                                             line=dict(width=2, color=color_p),
                                             marker=dict(size=3, symbol='circle'),
-                                            hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} mca<extra></extra>'
+                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} mca<extra></extra>'
                                         ))
             except Exception:
                 pass
@@ -2869,13 +2897,20 @@ if sector_seleccionado:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
                                     is_q_vrp = 'CAUDAL' in str(var_name).upper()
+
+                                    var_label_display = str(var_name)
+                                    if var_label_display in ["Presion1", "Presion2"]:
+                                        var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                                    elif var_label_display == "Caudal1":
+                                        var_label_display = "Q1"
+
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                        name=f"{nombre_vrp} - {var_name}",
+                                        name=f"{nombre_vrp} - {var_label_display}",
                                         yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f}<extra></extra>'
+                                        hovertemplate=f'<b>{nombre_vrp} - {var_label_display}</b><br>Valor: %{{y:.2f}}<extra></extra>'
                                     ))
             except Exception:
                 pass
@@ -2912,14 +2947,21 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_pc_hc = colores_pc_hc[idx_pc_hc % len(colores_pc_hc)]
                                     idx_pc_hc += 1
+
+                                    var_label_display = str(var_name)
+                                    if var_label_display in ["Presion1", "Presion2"]:
+                                        var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                                    elif var_label_display == "Caudal1":
+                                        var_label_display = "Q1"
+
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                        name=f"PC: {domicilio_nombre} - {var_name}",
+                                        name=f"PC: {domicilio_nombre} - {var_label_display}",
                                         yaxis="y2", mode='lines+markers',
                                         marker=dict(size=3.5, symbol='circle'),
                                         line=dict(width=2, color=color_trace_pc_hc),
                                         visible='legendonly',
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
+                                        hovertemplate=f'<b>PC: {domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
             except Exception:
                 pass
@@ -3068,19 +3110,24 @@ if sector_seleccionado:
                                     color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                     idx_pc_c += 1
 
+                                    var_label_display = str(var_name)
+                                    if var_label_display in ["Presion1", "Presion2"]:
+                                        var_label_display = "P1" if var_label_display == "Presion1" else "P2"
+                                    elif var_label_display == "Caudal1":
+                                        var_label_display = "Q1"
+
                                     fig_pc.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], 
                                         y=df_v_group['VALOR'], 
-                                        name=f"{domicilio_nombre} - {var_name}", 
+                                        name=f"{domicilio_nombre} - {var_label_display}", 
                                         mode='lines+markers',
                                         connectgaps=False,
                                         showlegend=True,
                                         marker=dict(size=3.5, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
-                                        hovertemplate='<b>%{fullData.name}</b><br>Valor: %{y:.2f} mca<extra></extra>'
+                                        hovertemplate=f'<b>{domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
 
-                    # Rango de 15 minutos totales (7.5 min antes y 7.5 min después)
                     delta_h = pd.Timedelta(minutes=7.5)
                     for d in fechas_lineas_pc:
                         es_lunes = (d.dayofweek == 0)
