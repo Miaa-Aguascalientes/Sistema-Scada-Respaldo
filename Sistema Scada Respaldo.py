@@ -2696,49 +2696,46 @@ if sector_seleccionado:
         folium.LayerControl(collapsed=True).add_to(m_sec)
         Fullscreen(position='topleft').add_to(m_sec)
 
-        # --- CUADRO DE INFORMACIÓN (LEYENDA ESTILO MAPA CARTOGRÁFICO) ---
-        map_var_name = m_sec.get_name()
-        legend_script = """
-        <script>
-            setTimeout(function() {
-                var legend = L.control({position: 'bottomleft'});
-                legend.onAdd = function (map) {
-                    var div = L.DomUtil.create('div', 'info legend');
-                    div.style.background = '#0b1a29';
-                    div.style.border = '2px solid #1f4068';
-                    div.style.borderRadius = '6px';
-                    div.style.padding = '10px 12px';
-                    div.style.fontFamily = 'sans-serif';
-                    div.style.fontSize = '11.5px';
-                    div.style.color = '#ffffff';
-                    div.style.boxShadow = '0 4px 16px rgba(0,0,0,0.7)';
-                    div.innerHTML = '<div style="font-weight: bold; margin-bottom: 6px; color: #00d4ff; border-bottom: 1px solid #1f4068; padding-bottom: 3px; font-size: 12px;">Puntos de medición</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
-                            '<span style="width: 12px; height: 12px; background-color: #ff4d4d; border-radius: 50%; display: inline-block;"></span>' +
-                            '<span>Punto crítico</span>' +
-                        '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
-                            '<span style="width: 12px; height: 12px; background-color: #00ff00; border-radius: 50%; display: inline-block;"></span>' +
-                            '<span>Pozos</span>' +
-                        '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">' +
-                            '<span style="width: 12px; height: 12px; background-color: #007bff; border-radius: 50%; display: inline-block;"></span>' +
-                            '<span>Punto de control</span>' +
-                        '</div>' +
-                        '<div style="display: flex; align-items: center; gap: 8px;">' +
-                            '<span style="width: 12px; height: 12px; background-color: #a1ffce; border-radius: 50%; display: inline-block;"></span>' +
-                            '<span>VRP</span>' +
-                        '</div>';
-                    return div;
-                };
-                legend.addTo(MAP_VAR_PLACEHOLDER);
-            }, 500);
-        </script>
-        """.replace("MAP_VAR_PLACEHOLDER", map_var_name)
-        
-        m_sec.get_root().html.add_child(folium.Element(legend_script))
-
+        # Contenedor visual del mapa en Streamlit
         folium_static(m_sec, width=None, height=360)
+
+        # --- CUADRO DE INFORMACIÓN CARTOGRÁFICA (SOBREPUESTO ABAJO A LA IZQUIERDA DEL CONTENEDOR) ---
+        st.markdown("""
+            <div style="
+                position: relative;
+                margin-top: -95px;
+                margin-left: 12px;
+                width: 210px;
+                background: rgba(11, 26, 41, 0.95);
+                border: 1px solid #1f4068;
+                border-radius: 6px;
+                padding: 8px 10px;
+                font-family: sans-serif;
+                font-size: 11px;
+                color: #ffffff;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+                z-index: 99;
+                pointer-events: none;
+            ">
+                <div style="font-weight: bold; margin-bottom: 4px; color: #00d4ff; border-bottom: 1px solid #1f4068; padding-bottom: 2px;">Leyenda</div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                    <span style="width: 10px; height: 10px; background-color: #ff4d4d; border-radius: 50%; display: inline-block;"></span>
+                    <span>Punto crítico</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                    <span style="width: 10px; height: 10px; background-color: #00ff00; border-radius: 50%; display: inline-block;"></span>
+                    <span>Pozos</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                    <span style="width: 10px; height: 10px; background-color: #007bff; border-radius: 50%; display: inline-block;"></span>
+                    <span>Punto de control</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 10px; height: 10px; background-color: #a1ffce; border-radius: 50%; display: inline-block;"></span>
+                    <span>Vrp</span>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
 # ==================================================================================== columna derecha ==================================================================================================
     
