@@ -3052,7 +3052,7 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="x", 
-                position=0.90,  # Eje de presión justo al borde del gráfico
+                position=0.50,  # Eje de presión justo al borde del gráfico
                 color="#00ff00", 
                 showgrid=False
             ),
