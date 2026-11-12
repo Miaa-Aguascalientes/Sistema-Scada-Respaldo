@@ -3035,7 +3035,7 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=130, t=25, b=10), hovermode="x unified",  # Margen derecho amplio para los dos ejes
+            margin=dict(l=40, r=40, t=25, b=10), hovermode="x unified", 
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3045,14 +3045,15 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            # Reducimos el dominio en X para dejar espacio exclusivo a la derecha para los dos ejes
+            xaxis=dict(domain=[0, 0.82], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
             yaxis2=dict(
                 title="Presión (mca)", 
                 side="right", 
                 overlaying="y", 
-                anchor="x", 
-                position=0.50,  # Eje de presión justo al borde del gráfico
+                anchor="free", 
+                position=0.91,  # Eje de presión ubicado a 91% del ancho
                 color="#00ff00", 
                 showgrid=False
             ),
@@ -3061,14 +3062,14 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=1.00,  # Tercer eje separado hacia afuera para que no se encime
+                position=1.0,  # Eje de niveles ubicado exactamente en el borde derecho (100%)
                 color="#d400ff", 
                 showgrid=False
             )
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS --------------------------------------------------------------------------------------------------------
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
