@@ -2747,7 +2747,7 @@ if sector_seleccionado:
         """, unsafe_allow_html=True)
         
     with col_der:
-        # Encabezado limpio del gráfico sin subtítulo secundario
+        # Encabezado del bloque de comportamiento hidráulico
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
@@ -2979,53 +2979,57 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- PANEL DE INTERRUPTORES / TOGGLES DINÁMICOS ---
-        with st.expander("🎛️ Activar / Desactivar variables del gráfico", expanded=True):
+        # --- DISTRIBUCIÓN EN 2 COLUMNAS: TOGGLES A LA IZQUIERDA Y GRÁFICO A LA DERECHA ---
+        sub_col_toggles, sub_col_grafico = st.columns([0.24, 0.76])
+
+        with sub_col_toggles:
+            st.markdown("""
+                <div style="padding-top: 10px;">
+                    <span style="font-size: 0.85rem; font-weight: bold; color: #00d4ff;">Variables</span>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            estados_toggles = {}
             if trazas_configuradas:
-                cols_toggles = st.columns(3)
-                estados_toggles = {}
                 for i, tr in enumerate(trazas_configuradas):
-                    col_idx = i % 3
-                    with cols_toggles[col_idx]:
-                        estados_toggles[tr['nombre']] = st.toggle(
-                            tr['nombre'], 
-                            value=tr['default'], 
-                            key=f"toggle_var_{sec_id}_{i}"
-                        )
+                    estados_toggles[tr['nombre']] = st.toggle(
+                        tr['nombre'], 
+                        value=tr['default'], 
+                        key=f"toggle_var_{sec_id}_{i}"
+                    )
             else:
-                st.info("No hay series disponibles para este periodo o sector.")
-                estados_toggles = {}
+                st.info("Sin series")
 
-        # --- CONSTRUCCIÓN DE TRAZAS ACTIVADAS EN PLOTLY ---
-        for tr in trazas_configuradas:
-            if estados_toggles.get(tr['nombre'], False):
-                fig.add_trace(go.Scatter(
-                    x=tr['x'], y=tr['y'],
-                    name=tr['nombre'],
-                    yaxis=tr['yaxis'],
-                    mode='lines+markers',
-                    line=dict(width=2, color=tr['color']),
-                    marker=dict(size=3, symbol='circle'),
-                    fill=tr['fill'],
-                    fillcolor=tr['fillcolor'],
-                    hovertemplate=f"<b>%{{fullData.name}}</b>: %{{y:.2f}} {tr['unidad']}<extra></extra>"
-                ))
+        with sub_col_grafico:
+            for tr in trazas_configuradas:
+                if estados_toggles.get(tr['nombre'], False):
+                    fig.add_trace(go.Scatter(
+                        x=tr['x'], y=tr['y'],
+                        name=tr['nombre'],
+                        yaxis=tr['yaxis'],
+                        mode='lines+markers',
+                        line=dict(width=2, color=tr['color']),
+                        marker=dict(size=3, symbol='circle'),
+                        fill=tr['fill'],
+                        fillcolor=tr['fillcolor'],
+                        hovertemplate=f"<b>%{{fullData.name}}</b>: %{{y:.2f}} {tr['unidad']}<extra></extra>"
+                    ))
 
-        delta = pd.Timedelta(minutes=7.5)
-        for d in fechas_lineas:
-            es_lunes = (d.dayofweek == 0)
-            fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
-            fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
+            delta = pd.Timedelta(minutes=7.5)
+            for d in fechas_lineas:
+                es_lunes = (d.dayofweek == 0)
+                fig.add_vrect(x0=d - delta, x1=d + delta, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
+                fig.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
 
-        fig.update_layout(
-            paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified", 
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=12)),
-            xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presión (mca) / Nivel Tq (mts)", side="right", overlaying="y", color="#d400ff", showgrid=False)
-        )
-        st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(
+                paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
+                margin=dict(l=20, r=20, t=10, b=10), hovermode="x unified", 
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center", font=dict(color="white", size=11)),
+                xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+                yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+                yaxis2=dict(title="Presión / Nivel", side="right", overlaying="y", color="#d400ff", showgrid=False)
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
     st.write("")
 
@@ -3160,7 +3164,7 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
-# --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
+    # --- MARCA DE AGUA ALINEADA A LA IZQUIERDA EN LA PARTE INFERIOR ---
     st.markdown("""
         <div style="
             position: relative;
