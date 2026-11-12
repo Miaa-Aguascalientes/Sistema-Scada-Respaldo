@@ -29,6 +29,8 @@ from datetime import datetime
 from sqlalchemy import create_engine, text
 from cryptography.fernet import Fernet
 import altair as alt
+import branca.element
+import branca
 
 st.set_page_config(
     page_title="Sistema Scada", 
