@@ -2549,6 +2549,9 @@ if sector_seleccionado:
 
     col_izq, col_der = st.columns([0.7, 1.3])
     
+    # Proporción de columnas: 0.7 para el mapa y 1.3 para el gráfico
+    col_izq, col_der = st.columns([0.7, 1.3])
+    
     with col_izq:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
@@ -2720,7 +2723,6 @@ if sector_seleccionado:
         st.markdown(f"""
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Comportamiento hidráulico</p>
-                <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Caudal a la izquierda • Presiones (mca) y Nivel a la derecha • Franja nocturna 02:00 - 04:00</p>
             </div>
         """, unsafe_allow_html=True)
 
@@ -2960,7 +2962,6 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # Rango de 15 minutos totales (7.5 min antes y 7.5 min después)
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
