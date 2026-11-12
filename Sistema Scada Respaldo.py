@@ -3026,7 +3026,7 @@ if sector_seleccionado:
                                 ))
             except Exception:
                 pass
-
+# ============================================================= diseño del grafico del comportamiento hidraulico ========================================================================
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
@@ -3035,7 +3035,7 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=80, t=25, b=10), hovermode="x unified",  # Margen derecho ampliado para dar espacio al tercer eje
+            margin=dict(l=40, r=130, t=25, b=10), hovermode="x unified",  # Margen derecho amplio para los dos ejes
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3047,13 +3047,21 @@ if sector_seleccionado:
             ),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
-            yaxis2=dict(title="Presión (mca)", side="right", overlaying="y", color="#00ff00", showgrid=False),
+            yaxis2=dict(
+                title="Presión (mca)", 
+                side="right", 
+                overlaying="y", 
+                anchor="x", 
+                position=1.0,  # Eje de presión justo al borde del gráfico
+                color="#00ff00", 
+                showgrid=False
+            ),
             yaxis3=dict(
                 title="Niveles Pozo / Tq (m)", 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=1.0,  # Desplaza este eje completamente hacia el borde derecho exterior
+                position=1.10,  # Tercer eje separado hacia afuera para que no se encime
                 color="#d400ff", 
                 showgrid=False
             )
