@@ -2293,7 +2293,6 @@ if sector_seleccionado:
     val_fugas_km = "N/D"
 
     if not df_ind_gs.empty and df_ind_gs.shape[1] >= 28:
-        # Buscamos el sector en la columna B (índice 1: SECTOR)
         sec_buscar = str(sec_val_actual).strip().upper()
         sec_buscar_limpio = ''.join(c for c in sec_buscar if c.isalnum())
         
@@ -2306,15 +2305,12 @@ if sector_seleccionado:
                 break
         
         if fila_encontrada is not None:
-            # Columna U (índice 20): EF
             raw_ef = fila_encontrada.iloc[20]
             val_ef = str(raw_ef).strip() if pd.notna(raw_ef) else "N/D"
             
-            # Columna V (índice 21): ANF
             raw_anf = fila_encontrada.iloc[21]
             val_anf = str(raw_anf).strip() if pd.notna(raw_anf) else "N/D"
             
-            # Columna S (índice 18): DOTACION
             raw_dot = fila_encontrada.iloc[18]
             if pd.notna(raw_dot):
                 try:
@@ -2322,7 +2318,6 @@ if sector_seleccionado:
                 except ValueError:
                     val_dotacion = str(raw_dot).strip()
             
-            # Columna X (índice 23): PERD_US-MES
             raw_perd = fila_encontrada.iloc[23]
             if pd.notna(raw_perd):
                 try:
@@ -2330,7 +2325,6 @@ if sector_seleccionado:
                 except ValueError:
                     val_perd_us_mes = str(raw_perd).strip()
             
-            # Columna AB (índice 27): FUGAS-KM
             raw_fugas = fila_encontrada.iloc[27]
             if pd.notna(raw_fugas):
                 try:
@@ -2423,15 +2417,23 @@ if sector_seleccionado:
     ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
     mapa_series_nombres = {}
+    series_caudal_sector = [] # Para almacenar las series que miden caudal en el sector
+
     for k, r in dict_reg.items():
         s_val = r.get('Serie') or r.get('dispositivo') or k
         if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
-            mapa_series_nombres[str(s_val).strip()] = r.get('nombre', f"Punto Control ({s_val})")
+            serie_str = str(s_val).strip()
+            mapa_series_nombres[serie_str] = r.get('nombre', f"Punto Control ({serie_str})")
+            # Verificamos si este punto de control registra caudal
+            if any('CAUDAL' in str(v).upper() for v in r.get('variables', [])) or 'CAUDAL' in str(k).upper():
+                series_caudal_sector.append(serie_str)
 
     for k, v in dict_vrp_sec.items():
         s_val = v.get('Serie') or k
         if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
-            mapa_series_nombres[str(s_val).strip()] = v.get('nombre', f"VRP ({s_val})")
+            serie_str = str(s_val).strip()
+            mapa_series_nombres[serie_str] = v.get('nombre', f"VRP ({serie_str})")
+            series_caudal_sector.append(serie_str)
 
     for k, pc in dict_pc_sec.items():
         s_val = pc.get('Serie') or k
@@ -2470,6 +2472,10 @@ if sector_seleccionado:
             """
             df_ultimos = pd.read_sql(q_ultimos_directo, engine_tel)
             if not df_ultimos.empty:
+                # Actualizar también la lista de series de caudal basándonos en BD_MADRE si tienen variable CAUDAL
+                caudales_detectados = df_ultimos[df_ultimos['VARIABLE'].str.upper().str.contains('CAUDAL', na=False)]['DISPOSITIVO'].astype(str).tolist()
+                series_caudal_sector = list(set(series_caudal_sector + caudales_detectados))
+
                 for _, row in df_ultimos.iterrows():
                     dev = str(row['DISPOSITIVO']).strip()
                     var = str(row['VARIABLE']).strip()
@@ -2482,6 +2488,45 @@ if sector_seleccionado:
                     if dev not in ultimos_valores_mapa:
                         ultimos_valores_mapa[dev] = {}
                     ultimos_valores_mapa[dev][var] = {'valor': val_db, 'fecha': row['FECHA_HORA_LOGGER']}
+        except Exception:
+            pass
+
+    # --- CÁLCULO DINÁMICO DEL MÍNIMO NOCTURNO (22:00 a 06:00 h) ---
+    min_nocturno_str = "-"
+    sub_nocturno_str = "Sin datos en horario nocturno"
+
+    if series_caudal_sector:
+        try:
+            series_q_in = "', '".join(series_caudal_sector)
+            # Consultamos los registros de caudal en BD_MADRE
+            q_nocturno = f"""
+                SELECT FECHA_HORA_LOGGER AS Fecha, VALOR 
+                FROM BD_MADRE 
+                WHERE DISPOSITIVO IN ('{series_q_in}')
+                  AND VARIABLE LIKE '%CAUDAL%'
+                  AND FECHA_HORA_LOGGER BETWEEN '{f_ini_h}' AND '{f_fin_h}'
+                ORDER BY FECHA_HORA_LOGGER ASC
+            """
+            df_noc = pd.read_sql(q_nocturno, engine_tel)
+            if not df_noc.empty:
+                df_noc['FECHA'] = pd.to_datetime(df_noc['Fecha'], errors='coerce')
+                df_noc['VALOR'] = pd.to_numeric(df_noc['VALOR'], errors='coerce')
+                
+                # Filtrar estrictamente horario nocturno de 22:00 a 06:00 horas
+                mask_nocturno = (df_noc['FECHA'].dt.hour >= 22) | (df_noc['FECHA'].dt.hour < 6)
+                df_noc_filtered = df_noc[mask_nocturno].dropna(subset=['VALOR'])
+
+                if not df_noc_filtered.empty:
+                    # Verificar si en algún momento hubo ceros exactos o negativos en el horario nocturno
+                    if (df_noc_filtered['VALOR'] == 0).any():
+                        min_nocturno_str = "-"
+                        sub_nocturno_str = "Cero detectado • 22:00 - 06:00"
+                    else:
+                        val_min = df_noc_filtered['VALOR'].min()
+                        fila_min = df_noc_filtered[df_noc_filtered['VALOR'] == val_min].iloc[0]
+                        hora_min = fila_min['FECHA'].strftime('%H:%M')
+                        min_nocturno_str = f"{val_min:,.1f} <span style='font-size:0.8rem; font-weight:normal;'>L/s</span>"
+                        sub_nocturno_str = f"Mín. observado • {hora_min} (22h-06h)"
         except Exception:
             pass
 
@@ -2500,7 +2545,7 @@ if sector_seleccionado:
                 fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
-    # --- TARJETAS INDICADORAS (1-5 DESDE GOOGLE SHEETS, 6 MÍNIMO NOCTURNO) ---
+    # --- TARJETAS INDICADORAS ---
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(f'''<div class="card-indicador">
@@ -2553,8 +2598,8 @@ if sector_seleccionado:
                 <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Mínimo nocturno</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">32,5 <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Mín. observado • 02:00 - 04:00</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{min_nocturno_str}</p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">{sub_nocturno_str}</p>
         </div>''', unsafe_allow_html=True)
     st.write("")
 
