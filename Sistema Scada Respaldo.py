@@ -3045,25 +3045,35 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            # Ampliamos el dominio horizontal para que la cuadrícula ocupe el 92% del ancho
             xaxis=dict(domain=[0, 0.92], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            yaxis=dict(title="Caudal (L/s)", color="#00d4ff", showgrid=True, gridcolor="#16304a"),
+            
+            # Eje izquierdo: Caudal (Azul)
+            yaxis=dict(
+                title="Caudal (L/s)", 
+                color="#00d4ff",  # Azul
+                showgrid=True, 
+                gridcolor="#16304a"
+            ),
+            
+            # Eje derecho 1: Presión (Verde)
             yaxis2=dict(
                 title=dict(text="Presión (mca)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.93,  # Ubicamos el eje de presión más a la derecha
-                color="#00ff00", 
+                position=0.95, 
+                color="#00ff00",  # Verde
                 showgrid=False
             ),
+            
+            # Eje derecho 2: Niveles Pozo / Tq (Morado / Fucsia igual a la línea)
             yaxis3=dict(
                 title=dict(text="Niveles Pozo / Tq (m)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=1.0,  # El eje final se queda en el borde exacto
-                color="#d400ff", 
+                position=1.0, 
+                color="#d400ff",  # Morado / Fucsia
                 showgrid=False
             )
         )
