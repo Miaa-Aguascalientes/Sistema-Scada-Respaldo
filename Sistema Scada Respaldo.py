@@ -3050,31 +3050,33 @@ if sector_seleccionado:
             # Eje izquierdo: Caudal (Azul)
             yaxis=dict(
                 title="Caudal (L/s)", 
-                color="#00d4ff",  # Azul
+                color="#00d4ff", 
                 showgrid=True, 
                 gridcolor="#16304a"
             ),
             
-            # Eje derecho 1: Presión (Verde)
+            # Eje derecho 1: Presión (Verde) - Forzado a iniciar en 0
             yaxis2=dict(
                 title=dict(text="Presión (mca)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
                 position=0.95, 
-                color="#00ff00",  # Verde
-                showgrid=False
+                color="#00ff00", 
+                showgrid=False,
+                rangemode="tozero"  # Fuerza el inicio del eje en 0
             ),
             
-            # Eje derecho 2: Niveles Pozo / Tq (Morado / Fucsia igual a la línea)
+            # Eje derecho 2: Niveles Pozo / Tq (Morado) - Forzado a iniciar en 0
             yaxis3=dict(
                 title=dict(text="Niveles Pozo / Tq (m)", standoff=15), 
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
                 position=1.0, 
-                color="#d400ff",  # Morado / Fucsia
-                showgrid=False
+                color="#d400ff", 
+                showgrid=False,
+                rangemode="tozero"  # Fuerza el inicio del eje en 0
             )
         )
         st.plotly_chart(fig, use_container_width=True)
