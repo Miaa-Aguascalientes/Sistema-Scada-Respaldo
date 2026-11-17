@@ -3101,6 +3101,8 @@ if sector_seleccionado:
             except Exception:
                 pass
 
+# ==================================================================================== grafico de puntos de medicion con dos ejes a la derecha ============================================================================        
+
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
@@ -3120,6 +3122,8 @@ if sector_seleccionado:
                 itemwidth=30
             ),
             xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            
+            # 1. Eje Caudal (Izquierda) -> Azul
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
                 tickfont=dict(color="#00d4ff"),
@@ -3127,6 +3131,8 @@ if sector_seleccionado:
                 showgrid=True, 
                 gridcolor="#16304a"
             ),
+            
+            # 2. Eje Presión (Derecha 1) -> Verde con línea vertical divisoria blanca
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3137,8 +3143,13 @@ if sector_seleccionado:
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero",
-                tickformat="d"
+                tickformat="d",
+                showline=True,
+                linecolor="#ffffff",
+                linewidth=2
             ),
+            
+            # 3. Eje Nivel Tq (Derecha 2) -> Morado con línea vertical divisoria blanca
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3149,12 +3160,15 @@ if sector_seleccionado:
                 color="#d400ff", 
                 showgrid=False,
                 rangemode="tozero",
-                tickformat="d"
+                tickformat="d",
+                showline=True,
+                linecolor="#ffffff",
+                linewidth=2
             )
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ------------------------------------------------------------------------------------------------------------------------------------------------------------
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
