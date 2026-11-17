@@ -3057,7 +3057,7 @@ if sector_seleccionado:
                 gridcolor="#16304a"
             ),
             
-            # 2. Eje Presión (Derecha 1) -> Verde (ubicado al 90%)
+            # 2. Eje Presión (Derecha 1) -> Verde (ubicado al 94%)
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3072,7 +3072,7 @@ if sector_seleccionado:
             
             # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado (ubicado al 100% en el extremo)
             yaxis3=dict(
-                title=dict(text="Nivele / Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
+                title=dict(text="Niveles Pozo / Tq (m)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
                 side="right", 
                 overlaying="y", 
@@ -3084,6 +3084,7 @@ if sector_seleccionado:
             )
         )
         st.plotly_chart(fig, use_container_width=True)
+        
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS --------------------------------------------------------------------------------------------------------
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
