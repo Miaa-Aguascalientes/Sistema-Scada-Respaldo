@@ -3064,7 +3064,7 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.90, 
+                position=0.94, 
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero"
@@ -3072,7 +3072,7 @@ if sector_seleccionado:
             
             # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado (ubicado al 100% en el extremo)
             yaxis3=dict(
-                title=dict(text="Niveles Pozo / Tq (m)", font=dict(color="#d400ff"), standoff=15), 
+                title=dict(text="Nivele / Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
                 side="right", 
                 overlaying="y", 
