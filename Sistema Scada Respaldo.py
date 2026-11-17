@@ -2586,7 +2586,7 @@ if sector_seleccionado:
         </div>''', unsafe_allow_html=True)
     st.write("")
 
-    # --- FILA SUPERIOR: MAPA Y GRÁFICO DE COMPORTAMIENTO HIDRÁULICO ---
+    # --- FILA SUPERIOR: MAPA Y GRÁFICO DE COMPORTAMIENTO HIDRÁULICO -----------------------------------------------------------------------------------------------------------------------------------------
     col_izq, col_der = st.columns([0.7, 1.3])
     
     with col_izq:
@@ -2599,12 +2599,30 @@ if sector_seleccionado:
 
         m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
         
-        folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
+        folium.TileLayer(
+            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
+            attr='Google', 
+            name='Vista Satélite', 
+            overlay=False
+        ).add_to(m_sec)
+        
+        folium.TileLayer(
+            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            attr='Esri',
+            name='Satélite (Esri)',
+            overlay=False,
+            control=True
+        ).add_to(m_sec)
 
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
             tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-            name="Capa obscura", attr='&copy; CARTO', subdomains="abcd", max_zoom=20, overlay=False, control=True
+            name="Vista Nocturna",
+            attr='&copy; OpenStreetMap contributors &copy; CARTO',
+            subdomains="abcd",
+            max_zoom=20,
+            overlay=False,
+            control=True
         ).add_to(m_sec)
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
