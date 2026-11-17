@@ -3047,36 +3047,39 @@ if sector_seleccionado:
             ),
             xaxis=dict(domain=[0, 0.92], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             
-            # Eje izquierdo: Caudal (Azul)
+            # 1. Eje Caudal (Izquierda) -> Azul
             yaxis=dict(
-                title="Caudal (L/s)", 
-                color="#00d4ff", 
+                title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
+                tickfont=dict(color="#00d4ff"),
+                color="#00d4ff",
                 showgrid=True, 
                 gridcolor="#16304a"
             ),
             
-            # Eje derecho 1: Presión (Verde) - Forzado a iniciar en 0
+            # 2. Eje Presión (Derecha 1) -> Verde
             yaxis2=dict(
-                title=dict(text="Presión (mca)", standoff=15), 
+                title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
+                tickfont=dict(color="#00ff00"),
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
                 position=0.95, 
                 color="#00ff00", 
                 showgrid=False,
-                rangemode="tozero"  # Fuerza el inicio del eje en 0
+                rangemode="tozero"
             ),
             
-            # Eje derecho 2: Niveles Pozo / Tq (Morado) - Forzado a iniciar en 0
+            # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado / Fucsia
             yaxis3=dict(
-                title=dict(text="Niveles Pozo / Tq (m)", standoff=15), 
+                title=dict(text="Niveles Pozo / Tq (m)", font=dict(color="#d400ff"), standoff=15), 
+                tickfont=dict(color="#d400ff"),
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
                 position=1.0, 
                 color="#d400ff", 
                 showgrid=False,
-                rangemode="tozero"  # Fuerza el inicio del eje en 0
+                rangemode="tozero"
             )
         )
         st.plotly_chart(fig, use_container_width=True)
