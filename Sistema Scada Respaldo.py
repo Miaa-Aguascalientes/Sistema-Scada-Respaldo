@@ -3045,7 +3045,8 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            xaxis=dict(domain=[0, 0.92], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            # Reducimos ligeramente el dominio en X para tener más espacio de holgura a la derecha
+            xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             
             # 1. Eje Caudal (Izquierda) -> Azul
             yaxis=dict(
@@ -3056,20 +3057,20 @@ if sector_seleccionado:
                 gridcolor="#16304a"
             ),
             
-            # 2. Eje Presión (Derecha 1) -> Verde
+            # 2. Eje Presión (Derecha 1) -> Verde (ubicado al 90%)
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.95, 
+                position=0.90, 
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero"
             ),
             
-            # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado / Fucsia
+            # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado (ubicado al 100% en el extremo)
             yaxis3=dict(
                 title=dict(text="Niveles Pozo / Tq (m)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3083,7 +3084,6 @@ if sector_seleccionado:
             )
         )
         st.plotly_chart(fig, use_container_width=True)
-
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS --------------------------------------------------------------------------------------------------------
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
