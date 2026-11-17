@@ -3057,7 +3057,7 @@ if sector_seleccionado:
                 gridcolor="#16304a"
             ),
             
-            # 2. Eje Presión (Derecha 1) -> Verde (ubicado al 94%)
+            # 2. Eje Presión (Derecha 1) -> Verde (números enteros sin decimales)
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3067,12 +3067,13 @@ if sector_seleccionado:
                 position=0.94, 
                 color="#00ff00", 
                 showgrid=False,
-                rangemode="tozero"
+                rangemode="tozero",
+                tickformat="d"  # Fuerza números enteros
             ),
             
-            # 3. Eje Nivel Pozo / Tq (Derecha 2) -> Morado (ubicado al 100% en el extremo)
+            # 3. Eje Nivel Tq (Derecha 2) -> Morado (números enteros sin decimales)
             yaxis3=dict(
-                title=dict(text="Niveles Pozo / Tq (m)", font=dict(color="#d400ff"), standoff=15), 
+                title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
                 side="right", 
                 overlaying="y", 
@@ -3080,7 +3081,8 @@ if sector_seleccionado:
                 position=1.0, 
                 color="#d400ff", 
                 showgrid=False,
-                rangemode="tozero"
+                rangemode="tozero",
+                tickformat="d"  # Fuerza números enteros
             )
         )
         st.plotly_chart(fig, use_container_width=True)
