@@ -2512,20 +2512,20 @@ if sector_seleccionado:
     with c5:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Mínimo nocturno</p>
-            </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">32,5 <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Mín. observado • 02:00 - 04:00</p>
-        </div>''', unsafe_allow_html=True)
-    with c6:
-        st.markdown(f'''<div class="card-indicador">
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Presión de ingreso</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">23.5 <span style="font-size:0.8rem; font-weight:normal;">mca</span></p>
             <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo</p>
+        </div>''', unsafe_allow_html=True)
+    with c6:
+        st.markdown(f'''<div class="card-indicador">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Mínimo nocturno</p>
+            </div>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">32,5 <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Mín. observado • 02:00 - 04:00</p>
         </div>''', unsafe_allow_html=True)
     st.write("")
 
