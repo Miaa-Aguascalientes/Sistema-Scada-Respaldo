@@ -3132,7 +3132,7 @@ if sector_seleccionado:
                 gridcolor="#16304a"
             ),
             
-            # 2. Eje Presión (Derecha 1) -> Verde con línea vertical divisoria blanca
+            # 2. Eje Presión (Derecha 1) -> Verde con línea divisoria en gris oscuro y delgada
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3145,11 +3145,11 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#ffffff",
-                linewidth=2
+                linecolor="#22384d",  # Gris oscuro elegante
+                linewidth=1           # Más delgada
             ),
             
-            # 3. Eje Nivel Tq (Derecha 2) -> Morado con línea vertical divisoria blanca
+            # 3. Eje Nivel Tq (Derecha 2) -> Morado con línea divisoria en gris oscuro y delgada
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3162,8 +3162,8 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#ffffff",
-                linewidth=2
+                linecolor="#22384d",  # Gris oscuro elegante
+                linewidth=1           # Más delgada
             )
         )
         st.plotly_chart(fig, use_container_width=True)
