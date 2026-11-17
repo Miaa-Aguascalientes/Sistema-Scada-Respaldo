@@ -2272,6 +2272,72 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
+    # --- CONSULTA DE INDICADORES DESDE GOOGLE SHEETS (HOJA: Indicadores) ---
+    @st.cache_data(ttl=300)
+    def cargar_indicadores_google_sheets():
+        sheet_id = "1Ovj2DZ19Y8H4BtamnVwB71c2dyHC3dyVmau-tMbWre8"
+        gid = "1820360811"
+        url_csv = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+        try:
+            df = pd.read_csv(url_csv)
+            return df
+        except Exception:
+            return pd.DataFrame()
+
+    df_ind_gs = cargar_indicadores_google_sheets()
+
+    val_ef = "N/D"
+    val_anf = "N/D"
+    val_dotacion = "N/D"
+    val_perd_us_mes = "N/D"
+    val_fugas_km = "N/D"
+
+    if not df_ind_gs.empty and df_ind_gs.shape[1] >= 28:
+        # Buscamos el sector en la columna B (índice 1: SECTOR)
+        sec_buscar = str(sec_val_actual).strip().upper()
+        sec_buscar_limpio = ''.join(c for c in sec_buscar if c.isalnum())
+        
+        fila_encontrada = None
+        for _, row in df_ind_gs.iterrows():
+            val_col_b = str(row.iloc[1]).strip().upper()
+            val_col_b_limpio = ''.join(c for c in val_col_b if c.isalnum())
+            if val_col_b == sec_buscar or val_col_b_limpio == sec_buscar_limpio or (sec_buscar in val_col_b and len(sec_buscar) >= 3):
+                fila_encontrada = row
+                break
+        
+        if fila_encontrada is not None:
+            # Columna U (índice 20): EF
+            raw_ef = fila_encontrada.iloc[20]
+            val_ef = str(raw_ef).strip() if pd.notna(raw_ef) else "N/D"
+            
+            # Columna V (índice 21): ANF
+            raw_anf = fila_encontrada.iloc[21]
+            val_anf = str(raw_anf).strip() if pd.notna(raw_anf) else "N/D"
+            
+            # Columna S (índice 18): DOTACION
+            raw_dot = fila_encontrada.iloc[18]
+            if pd.notna(raw_dot):
+                try:
+                    val_dotacion = f"{float(str(raw_dot).replace(',', '')):,.0f}"
+                except ValueError:
+                    val_dotacion = str(raw_dot).strip()
+            
+            # Columna X (índice 23): PERD_US-MES
+            raw_perd = fila_encontrada.iloc[23]
+            if pd.notna(raw_perd):
+                try:
+                    val_perd_us_mes = f"{float(str(raw_perd).replace(',', '')):,.2f}"
+                except ValueError:
+                    val_perd_us_mes = str(raw_perd).strip()
+            
+            # Columna AB (índice 27): FUGAS-KM
+            raw_fugas = fila_encontrada.iloc[27]
+            if pd.notna(raw_fugas):
+                try:
+                    val_fugas_km = f"{float(str(raw_fugas).replace(',', '')):,.2f}"
+                except ValueError:
+                    val_fugas_km = str(raw_fugas).strip()
+
     # --- ENCABEZADO INTEGRADO ---
     with st.container(border=True):
         head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
@@ -2373,19 +2439,12 @@ if sector_seleccionado:
             mapa_series_nombres[str(s_val).strip()] = pc.get('Domicilio', f"Punto Crítico ({s_val})")
 
     tags_para_scada = []
-    tags_caudal_pozos = []
     tags_agregados_set = set()
     
     for id_p in ids_p:
         if id_p in mapa_pozos_dict:
             p_info = mapa_pozos_dict[id_p]
-            t_pz_q = p_info.get('caudal')
-            if t_pz_q and str(t_pz_q).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                if str(t_pz_q) not in tags_agregados_set:
-                    tags_para_scada.append(str(t_pz_q))
-                    tags_agregados_set.add(str(t_pz_q))
-                tags_caudal_pozos.append(str(t_pz_q))
-            for kt in ['presion', 'nivel_tanque']:
+            for kt in ['caudal', 'presion', 'nivel_tanque']:
                 t_val = p_info.get(kt)
                 if t_val and str(t_val).strip().lower() not in ['0', 'none', 'n/a', 'null']:
                     if str(t_val) not in tags_agregados_set:
@@ -2426,37 +2485,7 @@ if sector_seleccionado:
         except Exception:
             pass
 
-    caudal_promedio_pozos = 0.0
-    if tags_caudal_pozos:
-        try:
-            engine_h = get_mysql_scada_engine()
-            tags_q_pozos_in = "', '".join([str(t) for t in set(tags_caudal_pozos) if t])
-            if tags_q_pozos_in:
-                q_prom_pozos_query = f"""
-                    SELECT AVG(suma_instante) as PROMEDIO_TOTAL FROM (
-                        SELECT h.FECHA, SUM(h.VALUE) as suma_instante 
-                        FROM vfitagnumhistory h 
-                        JOIN VfiTagRef r ON h.GATEID = r.GATEID 
-                        WHERE r.NAME IN ('{tags_q_pozos_in}') AND h.FECHA BETWEEN '{f_ini_h}' AND '{f_fin_h}'
-                        GROUP BY h.FECHA
-                    ) t
-                """
-                df_prom_p = pd.read_sql(q_prom_pozos_query, engine_h)
-                if not df_prom_p.empty and df_prom_p['PROMEDIO_TOTAL'].iloc[0] is not None:
-                    caudal_promedio_pozos = float(df_prom_p['PROMEDIO_TOTAL'].iloc[0])
-        except Exception:
-            caudal_promedio_pozos = 0.0
-
-    volumen_medido_val = datos_s.get('Vol_Medid', 0.0)
     demanda_estimada_val = datos_s.get('Cons_m3', 0.0)
-
-    def fmt_miles(val):
-        try:
-            return f"{float(val):,.0f}".replace(",", ", ")
-        except:
-            return "0"
-
-    demanda_fmt = fmt_miles(demanda_estimada_val)
 
     texto_nivel_tq = "Sin registro de nivel TQ"
     fec_nivel_tq_str = "N/A"
@@ -2471,52 +2500,52 @@ if sector_seleccionado:
                 fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
-    # --- TARJETAS INDICADORAS ---
+    # --- TARJETAS INDICADORAS (1-5 DESDE GOOGLE SHEETS, 6 MÍNIMO NOCTURNO) ---
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-flow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83"></path></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Caudal de ingreso</p>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Eficiencia Física (EF)</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{caudal_promedio_pozos:,.1f} <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo (Pozos)</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_ef}</p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. U)</p>
         </div>''', unsafe_allow_html=True)
     with c2:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Volumen medido</p>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Agua No Facturada (ANF)</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:0.8rem; font-weight:normal;">m³</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Vol_Medid)</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_anf}</p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. V)</p>
         </div>''', unsafe_allow_html=True)
     with c3:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-pulse" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Demanda estimada</p>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Dotación</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{demanda_fmt} <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Cons_m3)</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_dotacion} <span style="font-size:0.8rem; font-weight:normal;">L/hab/d</span></p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. S)</p>
         </div>''', unsafe_allow_html=True)
     with c4:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-float" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Población estimada</p>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Pérd. Usuario-Mes</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{datos_s.get("Poblacion", 28450):,.0f}</p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Referencia del catálogo</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_perd_us_mes} <span style="font-size:0.8rem; font-weight:normal;">m³</span></p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. X)</p>
         </div>''', unsafe_allow_html=True)
     with c5:
         st.markdown(f'''<div class="card-indicador">
             <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <svg class="anim-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#47afd0" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
-                <p class="label-indicador" style="font-size: 13px; margin:0;">Presión de ingreso</p>
+                <p class="label-indicador" style="font-size: 13px; margin:0;">Fugas por Km</p>
             </div>
-            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">23.5 <span style="font-size:0.8rem; font-weight:normal;">mca</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Promedio del periodo</p>
+            <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_fugas_km} <span style="font-size:0.8rem; font-weight:normal;">fugas/km</span></p>
+            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. AB)</p>
         </div>''', unsafe_allow_html=True)
     with c6:
         st.markdown(f'''<div class="card-indicador">
@@ -2970,7 +2999,7 @@ if sector_seleccionado:
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", "y1"),
                     ('presion', f"Pozo {id_p} - P", "y2"),
-                    ('nivel_tanque', "Nivel TQ", "y3")  # Asignado explícitamente al eje y3 (tercer eje)
+                    ('nivel_tanque', "Nivel TQ", "y3")
                 ]
                 for key_t, lb, axis_target in conf_pz:
                     tag_v = p_info.get(key_t)
@@ -2994,7 +3023,6 @@ if sector_seleccionado:
                             if not df_tag.empty:
                                 cfg = mapeo_pozos_config[tag_name]
                                 target_axis = cfg['axis']
-                                label_u = cfg['label'].upper()
 
                                 if target_axis == "y1": unidad_pc = "L/s"
                                 elif target_axis == "y3": unidad_pc = "m"
@@ -3026,7 +3054,7 @@ if sector_seleccionado:
                                 ))
             except Exception:
                 pass
-# ============================================================= diseño del grafico del comportamiento hidraulico ========================================================================
+
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
             es_lunes = (d.dayofweek == 0)
@@ -3045,10 +3073,7 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            # Reducimos ligeramente el dominio en X para tener más espacio de holgura a la derecha
             xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            
-            # 1. Eje Caudal (Izquierda) -> Azul
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
                 tickfont=dict(color="#00d4ff"),
@@ -3056,8 +3081,6 @@ if sector_seleccionado:
                 showgrid=True, 
                 gridcolor="#16304a"
             ),
-            
-            # 2. Eje Presión (Derecha 1) -> Verde (números enteros sin decimales)
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3068,10 +3091,8 @@ if sector_seleccionado:
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero",
-                tickformat="d"  # Fuerza números enteros
+                tickformat="d"
             ),
-            
-            # 3. Eje Nivel Tq (Derecha 2) -> Morado (números enteros sin decimales)
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3082,12 +3103,12 @@ if sector_seleccionado:
                 color="#d400ff", 
                 showgrid=False,
                 rangemode="tozero",
-                tickformat="d"  # Fuerza números enteros
+                tickformat="d"
             )
         )
         st.plotly_chart(fig, use_container_width=True)
-        
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS --------------------------------------------------------------------------------------------------------
+
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
