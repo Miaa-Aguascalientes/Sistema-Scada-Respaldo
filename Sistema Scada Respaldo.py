@@ -2231,14 +2231,13 @@ if sector_seleccionado:
                 border-top: 2px solid #47afd0;
                 border-radius: 10px;
                 padding: 14px 16px;
-                min-height: 115px;
+                min-height: 95px;
                 display: flex;
                 flex-direction: column;
-                justify-content: space-between;
+                justify-content: center;
             }
             .label-indicador { font-size: 0.82rem; color: #9ab0c7; margin: 0; font-weight: 500; }
             .value-indicador { font-size: 1.6rem; color: #f0f7ff; font-weight: 700; margin: 4px 0 0 0; font-variant-numeric: tabular-nums; }
-            .sub-indicador { font-size: 1.12rem; color: #73b3d8; margin: 0; }
             iframe { border-radius: 8px; }
         </style>
     """, unsafe_allow_html=True)
@@ -2417,14 +2416,13 @@ if sector_seleccionado:
     ids_p = [str(p).strip() for p in datos_s.get('Pozos_Sector', '').split(',')] if datos_s.get('Pozos_Sector') else []
 
     mapa_series_nombres = {}
-    series_caudal_sector = [] # Para almacenar las series que miden caudal en el sector
+    series_caudal_sector = []
 
     for k, r in dict_reg.items():
         s_val = r.get('Serie') or r.get('dispositivo') or k
         if s_val and str(s_val).strip().lower() not in ['none', 'n/a', 'null', '0']:
             serie_str = str(s_val).strip()
             mapa_series_nombres[serie_str] = r.get('nombre', f"Punto Control ({serie_str})")
-            # Verificamos si este punto de control registra caudal
             if any('CAUDAL' in str(v).upper() for v in r.get('variables', [])) or 'CAUDAL' in str(k).upper():
                 series_caudal_sector.append(serie_str)
 
@@ -2472,7 +2470,6 @@ if sector_seleccionado:
             """
             df_ultimos = pd.read_sql(q_ultimos_directo, engine_tel)
             if not df_ultimos.empty:
-                # Actualizar también la lista de series de caudal basándonos en BD_MADRE si tienen variable CAUDAL
                 caudales_detectados = df_ultimos[df_ultimos['VARIABLE'].str.upper().str.contains('CAUDAL', na=False)]['DISPOSITIVO'].astype(str).tolist()
                 series_caudal_sector = list(set(series_caudal_sector + caudales_detectados))
 
@@ -2493,12 +2490,10 @@ if sector_seleccionado:
 
     # --- CÁLCULO DINÁMICO DEL MÍNIMO NOCTURNO (22:00 a 06:00 h) ---
     min_nocturno_str = "-"
-    sub_nocturno_str = "Sin datos en horario nocturno"
 
     if series_caudal_sector:
         try:
             series_q_in = "', '".join(series_caudal_sector)
-            # Consultamos los registros de caudal en BD_MADRE
             q_nocturno = f"""
                 SELECT FECHA_HORA_LOGGER AS Fecha, VALOR 
                 FROM BD_MADRE 
@@ -2512,21 +2507,15 @@ if sector_seleccionado:
                 df_noc['FECHA'] = pd.to_datetime(df_noc['Fecha'], errors='coerce')
                 df_noc['VALOR'] = pd.to_numeric(df_noc['VALOR'], errors='coerce')
                 
-                # Filtrar estrictamente horario nocturno de 22:00 a 06:00 horas
                 mask_nocturno = (df_noc['FECHA'].dt.hour >= 22) | (df_noc['FECHA'].dt.hour < 6)
                 df_noc_filtered = df_noc[mask_nocturno].dropna(subset=['VALOR'])
 
                 if not df_noc_filtered.empty:
-                    # Verificar si en algún momento hubo ceros exactos o negativos en el horario nocturno
                     if (df_noc_filtered['VALOR'] == 0).any():
                         min_nocturno_str = "-"
-                        sub_nocturno_str = "Cero detectado • 22:00 - 06:00"
                     else:
                         val_min = df_noc_filtered['VALOR'].min()
-                        fila_min = df_noc_filtered[df_noc_filtered['VALOR'] == val_min].iloc[0]
-                        hora_min = fila_min['FECHA'].strftime('%H:%M')
                         min_nocturno_str = f"{val_min:,.1f} <span style='font-size:0.8rem; font-weight:normal;'>L/s</span>"
-                        sub_nocturno_str = f"Mín. observado • {hora_min} (22h-06h)"
         except Exception:
             pass
 
@@ -2545,7 +2534,7 @@ if sector_seleccionado:
                 fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
-    # --- TARJETAS INDICADORAS ---
+    # --- TARJETAS INDICADORAS (SIN TEXTOS SECUNDARIOS) ---
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(f'''<div class="card-indicador">
@@ -2554,7 +2543,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Eficiencia Física (EF)</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_ef}</p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. U)</p>
         </div>''', unsafe_allow_html=True)
     with c2:
         st.markdown(f'''<div class="card-indicador">
@@ -2563,7 +2551,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Agua No Facturada (ANF)</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_anf}</p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. V)</p>
         </div>''', unsafe_allow_html=True)
     with c3:
         st.markdown(f'''<div class="card-indicador">
@@ -2572,7 +2559,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Dotación</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_dotacion} <span style="font-size:0.8rem; font-weight:normal;">L/hab/d</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. S)</p>
         </div>''', unsafe_allow_html=True)
     with c4:
         st.markdown(f'''<div class="card-indicador">
@@ -2581,7 +2567,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Pérd. Usuario-Mes</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_perd_us_mes} <span style="font-size:0.8rem; font-weight:normal;">m³</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. X)</p>
         </div>''', unsafe_allow_html=True)
     with c5:
         st.markdown(f'''<div class="card-indicador">
@@ -2590,7 +2575,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Fugas por Km</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{val_fugas_km} <span style="font-size:0.8rem; font-weight:normal;">fugas/km</span></p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">Hoja Indicadores (Col. AB)</p>
         </div>''', unsafe_allow_html=True)
     with c6:
         st.markdown(f'''<div class="card-indicador">
@@ -2599,7 +2583,6 @@ if sector_seleccionado:
                 <p class="label-indicador" style="font-size: 13px; margin:0;">Mínimo nocturno</p>
             </div>
             <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{min_nocturno_str}</p>
-            <p class="sub-indicador" style="font-size: 11px; text-align: center;">{sub_nocturno_str}</p>
         </div>''', unsafe_allow_html=True)
     st.write("")
 
