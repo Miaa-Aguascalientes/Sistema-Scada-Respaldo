@@ -2534,7 +2534,7 @@ if sector_seleccionado:
                 fec_nivel_tq_str = f"{fec_str} · En línea"
                 break
 
-    # --- TARJETAS INDICADORAS (SIN TEXTOS SECUNDARIOS) ---
+    # --- TARJETAS INDICADORAS ---
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
         st.markdown(f'''<div class="card-indicador">
@@ -2586,7 +2586,7 @@ if sector_seleccionado:
         </div>''', unsafe_allow_html=True)
     st.write("")
 
-    # --- FILA SUPERIOR: MAPA Y GRÁFICO DE COMPORTAMIENTO HIDRÁULICO -----------------------------------------------------------------------------------------------------------------------------------------
+    # --- FILA SUPERIOR: MAPA Y GRÁFICO DE COMPORTAMIENTO HIDRÁULICO ---
     col_izq, col_der = st.columns([0.7, 1.3])
     
     with col_izq:
@@ -2599,30 +2599,12 @@ if sector_seleccionado:
 
         m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
         
-        folium.TileLayer(
-            tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
-            attr='Google', 
-            name='Vista Satélite', 
-            overlay=False
-        ).add_to(m_sec)
-        
-        folium.TileLayer(
-            tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            attr='Esri',
-            name='Satélite (Esri)',
-            overlay=False,
-            control=True
-        ).add_to(m_sec)
+        folium.TileLayer(tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', attr='Google', name='Vista Satélite', overlay=False).add_to(m_sec)
 
         api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
         folium.TileLayer(
             tiles=f"https://{{s}}.basemaps.cartocdn.com/rastertiles/dark_all/{{z}}/{{x}}/{{y}}.png?key={api_key}",
-            name="Vista Nocturna",
-            attr='&copy; OpenStreetMap contributors &copy; CARTO',
-            subdomains="abcd",
-            max_zoom=20,
-            overlay=False,
-            control=True
+            name="Capa obscura", attr='&copy; CARTO', subdomains="abcd", max_zoom=20, overlay=False, control=True
         ).add_to(m_sec)
 
         capa_sector = folium.FeatureGroup(name="Límite del sector", overlay=True, control=True).add_to(m_sec)
@@ -2864,7 +2846,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR SOLO PUNTOS DE CONTROL DEL SECTOR ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL (SOLO LÍNEAS LIMPIAS) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2911,9 +2893,9 @@ if sector_seleccionado:
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
-                                            yaxis="y1", mode='lines+markers',
+                                            yaxis="y1", 
+                                            mode='lines',  # <-- LÍNEA LIMPIA (Plotly pone los círculos nativos en el hover)
                                             line=dict(width=2, color=color_q),
-                                            marker=dict(size=3, symbol='circle'),
                                             fill='tozeroy',
                                             fillcolor="rgba(138, 203, 245, 0.15)",
                                             hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} L/s<extra></extra>'
@@ -2924,15 +2906,15 @@ if sector_seleccionado:
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
-                                            yaxis="y2", mode='lines+markers',
+                                            yaxis="y2", 
+                                            mode='lines',  # <-- LÍNEA LIMPIA
                                             line=dict(width=2, color=color_p),
-                                            marker=dict(size=3, symbol='circle'),
                                             hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} mca<extra></extra>'
                                         ))
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR SOLO VRPs DEL SECTOR ---
+        # --- 2. GRAFICAR VRPs (SOLO LÍNEAS LIMPIAS) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2977,15 +2959,15 @@ if sector_seleccionado:
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"{nombre_vrp} - {var_label_display}",
-                                        yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
-                                        marker=dict(size=3.5, symbol='circle'),
+                                        yaxis="y1" if is_q_vrp else "y2", 
+                                        mode='lines',  # <-- LÍNEA LIMPIA
                                         line=dict(width=2, color=color_trace_vrp),
                                         hovertemplate=f'<b>{nombre_vrp} - {var_label_display}</b><br>Valor: %{{y:.2f}}<extra></extra>'
                                     ))
             except Exception:
                 pass
 
-        # --- 3. GRAFICAR SOLO PUNTOS CRÍTICOS DEL SECTOR ---
+        # --- 3. GRAFICAR PUNTOS CRÍTICOS (SOLO LÍNEAS LIMPIAS) ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3027,8 +3009,8 @@ if sector_seleccionado:
                                     fig.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_label_display}",
-                                        yaxis="y2", mode='lines+markers',
-                                        marker=dict(size=3.5, symbol='circle'),
+                                        yaxis="y2", 
+                                        mode='lines',  # <-- LÍNEA LIMPIA
                                         line=dict(width=2, color=color_trace_pc_hc),
                                         visible='legendonly',
                                         hovertemplate=f'<b>PC: {domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
@@ -3036,7 +3018,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR SOLO POZOS DEL SECTOR ---
+        # --- 4. GRAFICAR POZOS Y TANQUES (SOLO LÍNEAS LIMPIAS, SIN PERLAS EN TQ) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3089,18 +3071,10 @@ if sector_seleccionado:
                                     vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], 
-                                    y=val_y_series, 
-                                    name=cfg['label'], 
+                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    mode='lines+markers',                 # Habilita los círculos interactivos en el hover
+                                    mode='lines',  # <-- LÍNEA LIMPIA (Elimina los círculos fijos en Nivel TQ)
                                     line=dict(width=2, color=color_base),
-                                    marker=dict(
-                                        size=8,                           # Tamaño del círculo al activarse el hover
-                                        symbol='circle',
-                                        color='rgba(11,26,41,1)',        # Centro con el color de fondo del gráfico (efecto hueco)
-                                        line=dict(width=2, color=color_base) # Borde del círculo con el color exacto de la traza
-                                    ),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
@@ -3108,8 +3082,6 @@ if sector_seleccionado:
                                 ))
             except Exception:
                 pass
-
-# ==================================================================================== grafico de puntos de medicion con dos ejes a la derecha ============================================================================        
 
         delta = pd.Timedelta(minutes=7.5)
         for d in fechas_lineas:
@@ -3120,21 +3092,20 @@ if sector_seleccionado:
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
             margin=dict(l=40, r=20, t=25, b=10), 
-            hovermode="x unified",  # Unifica el hover vertical
+            hovermode="x unified",  # <-- Habilita el hover unificado con los círculos y líneas hacia los ejes nativos
+            legend=dict(
+                orientation="h", 
+                yanchor="bottom", 
+                y=1.04, 
+                x=0.5, 
+                xanchor="center", 
+                font=dict(color="white", size=11),
+                itemwidth=30
+            ),
             xaxis=dict(
-                domain=[0, 0.90], 
-                range=[f_ini_h, f_fin_h], 
-                color="#888888", 
-                showgrid=False, 
-                tickvals=ticks_filtrados, 
-                ticktext=etiquetas_filtradas, 
-                tickangle=0,
-                showspikes=True,          # Línea vertical punteada al hacer hover
-                spikemode='toaxis',
-                spikesnap='cursor',
-                spikecolor='white',
-                spikethickness=1.5,
-                spikedash='dash'
+                domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, 
+                tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0,
+                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='white', spikethickness=1, spikedash='dash'
             ),
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
@@ -3142,10 +3113,7 @@ if sector_seleccionado:
                 color="#00d4ff",
                 showgrid=True, 
                 gridcolor="#16304a",
-                showspikes=True,          # Línea horizontal punteada hacia el eje Y izquierdo
-                spikecolor='#00d4ff',
-                spikethickness=1,
-                spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#00d4ff', spikethickness=1, spikedash='dash'
             ),
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
@@ -3164,10 +3132,7 @@ if sector_seleccionado:
                 ticks="outside",
                 ticklen=6,
                 tickwidth=1,
-                showspikes=True,          # Línea horizontal punteada hacia el eje Y derecho 1
-                spikecolor='#00ff00',
-                spikethickness=1,
-                spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#00ff00', spikethickness=1, spikedash='dash'
             ),
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
@@ -3186,15 +3151,12 @@ if sector_seleccionado:
                 ticks="outside",
                 ticklen=6,
                 tickwidth=1,
-                showspikes=True,          # Línea horizontal punteada hacia el eje Y derecho 2
-                spikecolor='#d400ff',
-                spikethickness=1,
-                spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#d400ff', spikethickness=1, spikedash='dash'
             )
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
     with col_pc:
@@ -3266,10 +3228,9 @@ if sector_seleccionado:
                                         x=df_v_group['FECHA'], 
                                         y=df_v_group['VALOR'], 
                                         name=f"{domicilio_nombre} - {var_label_display}", 
-                                        mode='lines+markers',
+                                        mode='lines',
                                         connectgaps=False,
                                         showlegend=True,
-                                        marker=dict(size=3.5, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
                                         hovertemplate=f'<b>{domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
