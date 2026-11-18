@@ -3051,7 +3051,7 @@ if sector_seleccionado:
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", "y1"),
                     ('presion', f"Pozo {id_p} - P", "y2"),
-                    ('nivel_tanque', "Nivel TQ", "y3")
+                    ('nivel_tanque', f"Nivel TQ - Pozo {id_p}", "y3")
                 ]
                 for key_t, lb, axis_target in conf_pz:
                     tag_v = p_info.get(key_t)
@@ -3130,7 +3130,7 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            xaxis=dict(domain=[0, 0.85], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
@@ -3146,7 +3146,7 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.94, 
+                position=0.88, 
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero",
