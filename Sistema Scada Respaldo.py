@@ -2863,7 +2863,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto) ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto / Área si es Caudal/Q) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2896,7 +2896,7 @@ if sector_seleccionado:
                             for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
                                 df_v_group = df_v_group.sort_values('FECHA')
                                 if df_v_group['VALOR'].notna().any():
-                                    is_caudal = 'CAUDAL' in str(var_name).upper()
+                                    is_caudal = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
                                     
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -2965,7 +2965,7 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
-                                    is_q_vrp = 'CAUDAL' in str(var_name).upper()
+                                    is_q_vrp = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
 
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -3037,7 +3037,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto) ---
+        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto / Área si es Caudal/Q) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3070,6 +3070,8 @@ if sector_seleccionado:
                             if not df_tag.empty:
                                 cfg = mapeo_pozos_config[tag_name]
                                 target_axis = cfg['axis']
+                                label_str = cfg['label']
+                                is_q_pozo = 'Q' in label_str.upper() or 'CAUDAL' in label_str.upper() or target_axis == "y1"
 
                                 if target_axis == "y1": unidad_pc = "L/s"
                                 elif target_axis == "y3": unidad_pc = "m"
@@ -3082,7 +3084,7 @@ if sector_seleccionado:
                                 if target_axis == "y3":
                                     color_base = "#d400ff"
                                     vis_estado = True
-                                elif target_axis == "y1":
+                                elif is_q_pozo:
                                     color_base = "#00d4ff"
                                     vis_estado = 'legendonly'
                                 else:
@@ -3090,12 +3092,12 @@ if sector_seleccionado:
                                     vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
+                                    x=df_tag['FECHA'], y=val_y_series, name=label_str, 
                                     yaxis=target_axis, mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=4, symbol='circle'),
-                                    fill='tozeroy' if (target_axis == "y1") else None,
-                                    fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
+                                    fill='tozeroy' if is_q_pozo else None,
+                                    fillcolor="rgba(0, 212, 255, 0.15)" if is_q_pozo else None,
                                     visible=vis_estado,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
@@ -3217,7 +3219,8 @@ if sector_seleccionado:
                         for d in ticks_pc
                     ]
 
-                    colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
+                    # Paleta de tonos verdes distintos para los puntos críticos
+                    colores_verdes_pc_grafico = ["#00ff88", "#2ecc71", "#1abc9c", "#a3e4d7", "#58d68d"]
                     idx_pc_c = 0
 
                     for pc_key, pc_info in dict_pc_sec.items():
@@ -3229,7 +3232,7 @@ if sector_seleccionado:
                             for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                 df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
                                 if not df_v_group.empty:
-                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
+                                    color_trace_pc = colores_verdes_pc_grafico[idx_pc_c % len(colores_verdes_pc_grafico)]
                                     idx_pc_c += 1
 
                                     var_label_display = str(var_name)
@@ -3237,6 +3240,8 @@ if sector_seleccionado:
                                         var_label_display = "P1" if var_label_display == "Presion1" else "P2"
                                     elif var_label_display == "Caudal1":
                                         var_label_display = "Q1"
+
+                                    is_q_pc = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
 
                                     fig_pc.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], 
@@ -3247,6 +3252,8 @@ if sector_seleccionado:
                                         showlegend=True,
                                         marker=dict(size=4, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
+                                        fill='tozeroy' if is_q_pc else None,
+                                        fillcolor="rgba(46, 204, 113, 0.15)" if is_q_pc else None,
                                         hovertemplate=f'<b>{domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
 
@@ -3274,7 +3281,7 @@ if sector_seleccionado:
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=12)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
+            yaxis=dict(tickformat=".2f", color="#00ff88", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
         st.plotly_chart(fig_pc, use_container_width=True)
 
