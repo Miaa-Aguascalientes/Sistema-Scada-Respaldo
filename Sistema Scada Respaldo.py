@@ -2863,7 +2863,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR PUNTOS DE CONTROL ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2896,9 +2896,7 @@ if sector_seleccionado:
                             for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
                                 df_v_group = df_v_group.sort_values('FECHA')
                                 if df_v_group['VALOR'].notna().any():
-                                    var_upper = str(var_name).upper()
-                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
-                                    is_caudal = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
+                                    is_caudal = 'CAUDAL' in str(var_name).upper()
                                     
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -2925,15 +2923,15 @@ if sector_seleccionado:
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
-                                            yaxis="y2" if not is_tq else "y3", mode='lines+markers',
-                                            line=dict(width=2, color=color_p if not is_tq else "#d400ff"),
+                                            yaxis="y2", mode='lines+markers',
+                                            line=dict(width=2, color=color_p),
                                             marker=dict(size=4, symbol='circle'),
-                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}}<extra></extra>'
+                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} mca<extra></extra>'
                                         ))
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR VRPs ---
+        # --- 2. GRAFICAR VRPs (Línea + Punto) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2967,10 +2965,7 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
-                                    
-                                    var_upper = str(var_name).upper()
-                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
-                                    is_q_vrp = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
+                                    is_q_vrp = 'CAUDAL' in str(var_name).upper()
 
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -2984,14 +2979,12 @@ if sector_seleccionado:
                                         yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
                                         marker=dict(size=4, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
-                                        fill='tozeroy' if is_q_vrp else None,
-                                        fillcolor="rgba(0, 212, 255, 0.15)" if is_q_vrp else None,
                                         hovertemplate=f'<b>{nombre_vrp} - {var_label_display}</b><br>Valor: %{{y:.2f}}<extra></extra>'
                                     ))
             except Exception:
                 pass
 
-        # --- 3. GRAFICAR PUNTOS CRÍTICOS ---
+        # --- 3. GRAFICAR PUNTOS CRÍTICOS (Línea + Punto) ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3042,7 +3035,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR POZOS DEL SECTOR ---
+        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3051,12 +3044,12 @@ if sector_seleccionado:
                 conf_pz = [
                     ('caudal', f"Pozo {id_p} - Q", "y1"),
                     ('presion', f"Pozo {id_p} - P", "y2"),
-                    ('nivel_tanque', f"Nivel TQ - Pozo {id_p}", "y3")
+                    ('nivel_tanque', "Nivel TQ", "y3")
                 ]
                 for key_t, lb, axis_target in conf_pz:
                     tag_v = p_info.get(key_t)
                     if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if str(tag_v) not in tags_agregados_set and str(tag_v) not in tags_pozos_visualizar:
+                        if str(tag_v) not in tags_pozos_visualizar:
                             tags_pozos_visualizar.append(str(tag_v))
                             mapeo_pozos_config[str(tag_v)] = {'label': lb, 'axis': axis_target}
 
@@ -3075,11 +3068,6 @@ if sector_seleccionado:
                             if not df_tag.empty:
                                 cfg = mapeo_pozos_config[tag_name]
                                 target_axis = cfg['axis']
-                                label_str = cfg['label']
-                                
-                                label_upper = label_str.upper()
-                                is_tq = 'TQ' in label_upper or 'TANQUE' in label_upper or 'NIVEL' in label_upper
-                                is_q_pozo = (('Q' in label_upper or 'CAUDAL' in label_upper) and not is_tq) or target_axis == "y1"
 
                                 if target_axis == "y1": unidad_pc = "L/s"
                                 elif target_axis == "y3": unidad_pc = "m"
@@ -3089,10 +3077,10 @@ if sector_seleccionado:
                                 if target_axis == "y2":
                                     val_y_series = val_y_series * 10.0
 
-                                if is_tq:
+                                if target_axis == "y3":
                                     color_base = "#d400ff"
                                     vis_estado = True
-                                elif is_q_pozo:
+                                elif target_axis == "y1":
                                     color_base = "#00d4ff"
                                     vis_estado = 'legendonly'
                                 else:
@@ -3100,12 +3088,12 @@ if sector_seleccionado:
                                     vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=val_y_series, name=label_str, 
+                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
                                     yaxis=target_axis, mode='lines+markers',
                                     line=dict(width=2, color=color_base),
                                     marker=dict(size=4, symbol='circle'),
-                                    fill='tozeroy' if is_q_pozo else None,
-                                    fillcolor="rgba(0, 212, 255, 0.15)" if is_q_pozo else None,
+                                    fill='tozeroy' if (target_axis == "y1") else None,
+                                    fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
                                     hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
                                 ))
@@ -3130,7 +3118,7 @@ if sector_seleccionado:
                 font=dict(color="white", size=11),
                 itemwidth=30
             ),
-            xaxis=dict(domain=[0, 0.85], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
+            xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
             
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
@@ -3146,7 +3134,7 @@ if sector_seleccionado:
                 side="right", 
                 overlaying="y", 
                 anchor="free", 
-                position=0.88, 
+                position=0.94, 
                 color="#00ff00", 
                 showgrid=False,
                 rangemode="tozero",
@@ -3227,7 +3215,7 @@ if sector_seleccionado:
                         for d in ticks_pc
                     ]
 
-                    colores_verdes_pc_grafico = ["#00ff88", "#2ecc71", "#1abc9c", "#a3e4d7", "#58d68d"]
+                    colores_azules = ["#00d4ff", "#8acbf5", "#3399ff", "#1a75ff"]
                     idx_pc_c = 0
 
                     for pc_key, pc_info in dict_pc_sec.items():
@@ -3239,7 +3227,7 @@ if sector_seleccionado:
                             for var_name, df_v_group in df_temp.groupby('VARIABLE'):
                                 df_v_group = df_v_group.sort_values('FECHA').dropna(subset=['VALOR'])
                                 if not df_v_group.empty:
-                                    color_trace_pc = colores_verdes_pc_grafico[idx_pc_c % len(colores_verdes_pc_grafico)]
+                                    color_trace_pc = colores_azules[idx_pc_c % len(colores_azules)]
                                     idx_pc_c += 1
 
                                     var_label_display = str(var_name)
@@ -3247,10 +3235,6 @@ if sector_seleccionado:
                                         var_label_display = "P1" if var_label_display == "Presion1" else "P2"
                                     elif var_label_display == "Caudal1":
                                         var_label_display = "Q1"
-
-                                    var_upper = str(var_name).upper()
-                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
-                                    is_q_pc = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
 
                                     fig_pc.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], 
@@ -3261,8 +3245,6 @@ if sector_seleccionado:
                                         showlegend=True,
                                         marker=dict(size=4, symbol='circle'), 
                                         line=dict(width=2, color=color_trace_pc),
-                                        fill='tozeroy' if is_q_pc else None,
-                                        fillcolor="rgba(46, 204, 113, 0.15)" if is_q_pc else None,
                                         hovertemplate=f'<b>{domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
 
@@ -3290,7 +3272,7 @@ if sector_seleccionado:
             margin=dict(l=40, r=40, t=10, b=10), hovermode="x unified",
             legend=dict(orientation="h", yanchor="bottom", y=1.05, x=0.5, xanchor="center", font=dict(color="white", size=12)),
             xaxis=dict(range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_pc if 'ticks_pc' in locals() else None, ticktext=etiquetas_pc if 'etiquetas_pc' in locals() else None, tickangle=0),
-            yaxis=dict(tickformat=".2f", color="#00ff88", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
+            yaxis=dict(tickformat=".2f", color="#00d4ff", showgrid=True, gridcolor="#16304a", title="Presión (mca)")
         )
         st.plotly_chart(fig_pc, use_container_width=True)
 
@@ -3355,7 +3337,7 @@ if sector_seleccionado:
             opacity: 0.85;
         ">
             <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación y Sistemas</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
         </div>
     """, unsafe_allow_html=True)
 
