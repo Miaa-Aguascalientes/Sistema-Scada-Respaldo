@@ -2863,7 +2863,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto / Área solo si es Caudal/Q y NO TQ) ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2933,7 +2933,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR VRPs (Línea + Punto + Área solo si es Caudal/Q y NO TQ) ---
+        # --- 2. GRAFICAR VRPs ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2991,7 +2991,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 3. GRAFICAR PUNTOS CRÍTICOS (Línea + Punto) ---
+        # --- 3. GRAFICAR PUNTOS CRÍTICOS ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3042,7 +3042,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto / Área solo si es Caudal/Q y NO TQ) ---
+        # --- 4. GRAFICAR POZOS DEL SECTOR ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3271,8 +3271,8 @@ if sector_seleccionado:
                         es_lunes = (d.dayofweek == 0)
                         fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                         fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-    except Exception:
-        pass
+        except Exception:
+            pass
 
         fig_pc.add_hline(
             y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
@@ -3332,7 +3332,7 @@ if sector_seleccionado:
                     <span class="dma-op-label">🎛️ Consigna VRP · catálogo</span>
                     <span class="dma-op-value">30.0 mca</span>
                 </div>
-                <div class="dma-op-row">
+                <div class="d-op-row">
                     <span class="dma-op-label">🟦 Tanque TQ-055 · último</span>
                     <span class="dma-op-value">{texto_nivel_tq}</span>
                 </div>
