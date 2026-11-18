@@ -4606,12 +4606,19 @@ elif tab_activa == "incidencias":
 
                     color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
                     
+                    # Corrección: Si la incidencia sigue activa (En Proceso / Pendiente) y el valor de afectación es 0, 
+                    # forzamos por defecto un 100% de afectación para evitar que aparezca como "EN RECUPERACIÓN" erróneamente.
+                    if estatus_inc in ['EN PROCESO', 'PENDIENTE'] and val_afec == 0:
+                        val_afec = 100.0
+                        color_afec = '#FF0000'
+
                     sectores_agrupados[sector_nombre] = {
                         'pozo_tiempos': [(id_p_inc, tiempo_str)],
                         'max_segundos': segundos_fuera,
                         'colonias': set(nombres_cols),
                         'color_badge': color_afec,
-                        'val_afectacion': val_afec
+                        'val_afectacion': val_afec,
+                        'tiene_activa': (estatus_inc in ['EN PROCESO', 'PENDIENTE'])
                     }
                 else:
                     sec = sectores_agrupados[sector_nombre]
@@ -4619,6 +4626,11 @@ elif tab_activa == "incidencias":
                     if segundos_fuera > sec['max_segundos']:
                         sec['max_segundos'] = segundos_fuera
                     sec['colonias'].update(nombres_cols)
+                    if estatus_inc in ['EN PROCESO', 'PENDIENTE']:
+                        sec['tiene_activa'] = True
+                        if sec['val_afectacion'] == 0:
+                            sec['val_afectacion'] = 100.0
+                            sec['color_badge'] = '#FF0000'
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
@@ -4647,7 +4659,10 @@ elif tab_activa == "incidencias":
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         
-                        if pct_val > 0:
+                        # Si el sector tiene una incidencia activa, JAMAS debe decir En Recuperación
+                        if sec_data.get('tiene_activa', False):
+                            if pct_val == 0:
+                                pct_val = 100
                             pct_str = f"{pct_val}% AFECTACIÓN"
                             if pct_val >= 76:
                                 bg_badge = "#FF0000"
@@ -4658,8 +4673,19 @@ elif tab_activa == "incidencias":
                             else:
                                 bg_badge = "#69ADDD"
                         else:
-                            pct_str = "EN RECUPERACIÓN"
-                            bg_badge = "#8E44AD"  # Color morado solicitado[cite: 6]
+                            if pct_val > 0:
+                                pct_str = f"{pct_val}% AFECTACIÓN"
+                                if pct_val >= 76:
+                                    bg_badge = "#FF0000"
+                                elif pct_val >= 51:
+                                    bg_badge = "#FFFF00"
+                                elif pct_val >= 31:
+                                    bg_badge = "#FFA500"
+                                else:
+                                    bg_badge = "#69ADDD"
+                            else:
+                                pct_str = "EN RECUPERACIÓN"
+                                bg_badge = "#8E44AD"
 
                         st.markdown(f"""
                             <div class="hud-card">
