@@ -2846,7 +2846,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR PUNTOS DE CONTROL (SOLO LÍNEAS LIMPIAS) ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL (CON MARCADORES EN HOVER) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2894,8 +2894,9 @@ if sector_seleccionado:
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
                                             yaxis="y1", 
-                                            mode='lines',  # <-- LÍNEA LIMPIA (Plotly pone los círculos nativos en el hover)
+                                            mode='lines+markers',  # <-- Muestra el círculo exactamente en el cruce del dato al hacer hover
                                             line=dict(width=2, color=color_q),
+                                            marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_q)),
                                             fill='tozeroy',
                                             fillcolor="rgba(138, 203, 245, 0.15)",
                                             hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} L/s<extra></extra>'
@@ -2907,14 +2908,15 @@ if sector_seleccionado:
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
                                             yaxis="y2", 
-                                            mode='lines',  # <-- LÍNEA LIMPIA
+                                            mode='lines+markers',  # <-- Muestra el círculo en el cruce
                                             line=dict(width=2, color=color_p),
+                                            marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_p)),
                                             hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} mca<extra></extra>'
                                         ))
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR VRPs (SOLO LÍNEAS LIMPIAS) ---
+        # --- 2. GRAFICAR VRPs (CON MARCADORES EN HOVER) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2960,14 +2962,15 @@ if sector_seleccionado:
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"{nombre_vrp} - {var_label_display}",
                                         yaxis="y1" if is_q_vrp else "y2", 
-                                        mode='lines',  # <-- LÍNEA LIMPIA
+                                        mode='lines+markers',  # <-- Muestra el círculo en el cruce
                                         line=dict(width=2, color=color_trace_vrp),
+                                        marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_trace_vrp)),
                                         hovertemplate=f'<b>{nombre_vrp} - {var_label_display}</b><br>Valor: %{{y:.2f}}<extra></extra>'
                                     ))
             except Exception:
                 pass
 
-        # --- 3. GRAFICAR PUNTOS CRÍTICOS (SOLO LÍNEAS LIMPIAS) ---
+        # --- 3. GRAFICAR PUNTOS CRÍTICOS (CON MARCADORES EN HOVER) ---
         series_pc_list = [str(pc_info.get('Serie', pc_key)) for pc_key, pc_info in dict_pc_sec.items() if pc_info.get('Serie') or pc_key]
         if dict_pc_sec and series_pc_list:
             try:
@@ -3010,15 +3013,16 @@ if sector_seleccionado:
                                         x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                         name=f"PC: {domicilio_nombre} - {var_label_display}",
                                         yaxis="y2", 
-                                        mode='lines',  # <-- LÍNEA LIMPIA
+                                        mode='lines+markers',  # <-- Muestra el círculo en el cruce
                                         line=dict(width=2, color=color_trace_pc_hc),
+                                        marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_trace_pc_hc)),
                                         visible='legendonly',
                                         hovertemplate=f'<b>PC: {domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
                                     ))
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR POZOS Y TANQUES (SOLO LÍNEAS LIMPIAS, SIN PERLAS EN TQ) ---
+        # --- 4. GRAFICAR POZOS Y TANQUES (CON MARCADORES EN HOVER) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3073,8 +3077,9 @@ if sector_seleccionado:
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    mode='lines',  # <-- LÍNEA LIMPIA (Elimina los círculos fijos en Nivel TQ)
+                                    mode='lines+markers',  # <-- Muestra el círculo exactamente en el cruce del dato
                                     line=dict(width=2, color=color_base),
+                                    marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_base)),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
@@ -3154,7 +3159,6 @@ if sector_seleccionado:
                 showspikes=True, spikemode='toaxis', spikesnap='data', spikecolor='#d400ff', spikethickness=1, spikedash='dash'
             )
         )
-        
         st.plotly_chart(fig, use_container_width=True)
 
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
