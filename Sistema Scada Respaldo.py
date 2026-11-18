@@ -4495,7 +4495,6 @@ elif tab_activa == "incidencias":
                     if not pozos_afectaciones_html:
                         pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
 
-                    # HTML mejorado sin barra desplazadora: texto completamente contenido, ajustado y legible de arriba a abajo
                     html_tooltip = f"""
                     <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 290px; max-width: 290px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
                         <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b>
@@ -4637,12 +4636,14 @@ elif tab_activa == "incidencias":
                     border: 1px solid #1b2a38;
                     border-radius: 5px;
                     padding: 5px 8px;
-                    max-height: 55px;
+                    max-height: 75px;
                     overflow-y: auto;
                     font-size: 10px;
                     color: #b0c4de;
                     margin-top: 3px;
                     line-height: 1.2;
+                    white-space: normal;
+                    word-wrap: break-word;
                 }
                 .colonias-box-hud::-webkit-scrollbar { width: 3px; }
                 .colonias-box-hud::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 3px; }
@@ -4651,6 +4652,25 @@ elif tab_activa == "incidencias":
 
             gdf_sec_geo = get_todos_los_sectores_geo()
             sectores_agrupados = {}
+
+            # Función para obtener directamente las colonias del sector desde Diccionario_sectores
+            @st.cache_data(ttl=60)
+            def get_colonias_del_sector(sec_nombre):
+                if not sec_nombre or str(sec_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
+                    return []
+                engine = get_mysql_telemetria_engine()
+                if engine is None:
+                    return []
+                try:
+                    q_sec = "SELECT Col_atl FROM Diccionario_sectores WHERE TRIM(Sector) = %s"
+                    df_s = pd.read_sql(q_sec, engine, params=(str(sec_nombre).strip(),))
+                    if not df_s.empty and 'Col_atl' in df_s.columns:
+                        val_col = df_s['Col_atl'].iloc[0]
+                        if pd.notnull(val_col) and str(val_col).strip():
+                            return [c.strip() for c in str(val_col).split(',') if c.strip()]
+                except Exception:
+                    pass
+                return []
 
             for _, r_inc in df_actual.iterrows():
                 id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
@@ -4681,7 +4701,7 @@ elif tab_activa == "incidencias":
                 
                 if gdf_r is not None and not gdf_r.empty:
                     sector_nombre = str(gdf_r['Sector'].iloc[0]).strip()
-                    nombres_cols = sorted([c.strip() for c in gdf_r['Col_atl'].dropna().unique() if str(c).strip()])
+                    nombres_cols = get_colonias_del_sector(sector_nombre)
                 else:
                     sector_nombre = "Sin Sector"
                     nombres_cols = []
@@ -4793,19 +4813,7 @@ elif tab_activa == "incidencias":
                     
                     if tarjetas_renderizadas == 0:
                         if filtrar_por_colonia:
-                            encontrada_en_historial = False
-                            for _, r_hist in df_historial.iterrows():
-                                gdf_h = get_geometries(normalizar_id(r_hist['NUM_POZO']))
-                                if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                                    cols_h = [str(c).upper() for c in gdf_h['Col_atl'].dropna().unique()]
-                                    if any(filtrar_por_colonia in ch for ch in cols_h):
-                                        encontrada_en_historial = True
-                                        break
-                            
-                            if encontrada_en_historial:
-                                st.info(f"ℹ️ La colonia '{colonia_seleccionada}' sí estuvo en incidencia, pero ya se restableció (ayer o días anteriores).")
-                            else:
-                                st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
+                            st.warning(f"No hay incidencias activas ni recientes para '{colonia_seleccionada}'.")
                         else:
                             st.info("No hay sectores con colonias registradas afectadas actualmente.")
                 else:
