@@ -3089,16 +3089,12 @@ if sector_seleccionado:
                                     vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
+                                    x=df_tag['FECHA'], 
+                                    y=val_y_series, 
+                                    name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    mode='lines+markers',  # Habilita los puntos interactivos en el hover
+                                    # NO declares 'mode', déjalo por defecto para que la línea esté limpia
                                     line=dict(width=2, color=color_base),
-                                    marker=dict(
-                                        size=8,                            # Tamaño del círculo al hacer hover
-                                        symbol='circle',
-                                        color='rgba(11,26,41,1)',         # Color interior (fondo oscuro del gráfico para que parezca hueco)
-                                        line=dict(width=2, color=color_base) # Borde del círculo con el color exacto de la traza
-                                    ),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
