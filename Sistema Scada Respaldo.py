@@ -3152,7 +3152,7 @@ if sector_seleccionado:
                 ticklen=6,
                 tickwidth=1,
                 showspikes=True, spikemode='toaxis', spikesnap='data', spikecolor='#00ff00', spikethickness=1, spikedash='dash'
-            )
+            ),
         )
         st.plotly_chart(fig, use_container_width=True)
 
