@@ -3119,28 +3119,34 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=20, t=25, b=10), hovermode="x unified", 
-            legend=dict(
-                orientation="h", 
-                yanchor="bottom", 
-                y=1.04, 
-                x=0.5, 
-                xanchor="center", 
-                font=dict(color="white", size=11),
-                itemwidth=30
+            margin=dict(l=40, r=20, t=25, b=10), 
+            hovermode="x unified",  # Unifica el hover vertical
+            xaxis=dict(
+                domain=[0, 0.90], 
+                range=[f_ini_h, f_fin_h], 
+                color="#888888", 
+                showgrid=False, 
+                tickvals=ticks_filtrados, 
+                ticktext=etiquetas_filtradas, 
+                tickangle=0,
+                showspikes=True,          # Línea vertical punteada al hacer hover
+                spikemode='toaxis',
+                spikesnap='cursor',
+                spikecolor='white',
+                spikethickness=1.5,
+                spikedash='dash'
             ),
-            xaxis=dict(domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0),
-            
-            # 1. Eje Caudal (Izquierda) -> Azul
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
                 tickfont=dict(color="#00d4ff"),
                 color="#00d4ff",
                 showgrid=True, 
-                gridcolor="#16304a"
+                gridcolor="#16304a",
+                showspikes=True,          # Línea horizontal punteada hacia el eje Y izquierdo
+                spikecolor='#00d4ff',
+                spikethickness=1,
+                spikedash='dash'
             ),
-            
-            # 2. Eje Presión (Derecha 1) -> Verde con líneas divisorias y "palitos" (ticks) hacia afuera
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3153,14 +3159,16 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#22384d",  # Gris oscuro elegante
-                linewidth=1,          # Delgado
-                ticks="outside",      # Saca los palitos hacia el exterior de la línea
-                ticklen=6,            # Longitud de los palitos
-                tickwidth=1           # Grosor de los palitos
+                linecolor="#22384d",
+                linewidth=1,
+                ticks="outside",
+                ticklen=6,
+                tickwidth=1,
+                showspikes=True,          # Línea horizontal punteada hacia el eje Y derecho 1
+                spikecolor='#00ff00',
+                spikethickness=1,
+                spikedash='dash'
             ),
-            
-            # 3. Eje Nivel Tq (Derecha 2) -> Morado con líneas divisorias y "palitos" (ticks) hacia afuera
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3173,11 +3181,15 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#22384d",  # Gris oscuro elegante
-                linewidth=1,          # Delgado
-                ticks="outside",      # Saca los palitos hacia el exterior de la línea
-                ticklen=6,            # Longitud de los palitos
-                tickwidth=1           # Grosor de los palitos
+                linecolor="#22384d",
+                linewidth=1,
+                ticks="outside",
+                ticklen=6,
+                tickwidth=1,
+                showspikes=True,          # Línea horizontal punteada hacia el eje Y derecho 2
+                spikecolor='#d400ff',
+                spikethickness=1,
+                spikedash='dash'
             )
         )
         st.plotly_chart(fig, use_container_width=True)
