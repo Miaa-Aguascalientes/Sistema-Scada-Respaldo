@@ -3093,8 +3093,14 @@ if sector_seleccionado:
                                     y=val_y_series, 
                                     name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    # NO declares 'mode', déjalo por defecto para que la línea esté limpia
+                                    mode='lines+markers',                 # Habilita los círculos interactivos en el hover
                                     line=dict(width=2, color=color_base),
+                                    marker=dict(
+                                        size=8,                           # Tamaño del círculo al activarse el hover
+                                        symbol='circle',
+                                        color='rgba(11,26,41,1)',        # Centro con el color de fondo del gráfico (efecto hueco)
+                                        line=dict(width=2, color=color_base) # Borde del círculo con el color exacto de la traza
+                                    ),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
