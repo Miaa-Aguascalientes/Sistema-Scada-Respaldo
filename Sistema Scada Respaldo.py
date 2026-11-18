@@ -2588,6 +2588,8 @@ if sector_seleccionado:
     st.write("")
 
     col_izq, col_der = st.columns([0.7, 1.3])
+
+# =========================================================================== INICIO DE MAPA SECTORES ============================================================================================================
     
     with col_izq:
         st.markdown(f"""
@@ -2597,7 +2599,7 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
-        m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360)
+        m_sec = folium.Map(location=[21.8820, -102.2800], zoom_start=12, tiles=None, height=360, attribution_control=False)
         
         folium.TileLayer(
             tiles='https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', 
