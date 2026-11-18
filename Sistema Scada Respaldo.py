@@ -3332,7 +3332,7 @@ if sector_seleccionado:
                     <span class="dma-op-label">🎛️ Consigna VRP · catálogo</span>
                     <span class="dma-op-value">30.0 mca</span>
                 </div>
-                <div class="d-op-row">
+                <div class="dma-op-row">
                     <span class="dma-op-label">🟦 Tanque TQ-055 · último</span>
                     <span class="dma-op-value">{texto_nivel_tq}</span>
                 </div>
