@@ -4404,7 +4404,7 @@ elif tab_activa == "incidencias":
                 try:
                     lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
                     
-                    m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
+                    m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter", attribution_control=False)
 
                     api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
                     folium.TileLayer(
@@ -4649,7 +4649,14 @@ elif tab_activa == "incidencias":
                         
                         if pct_val > 0:
                             pct_str = f"{pct_val}% AFECTACIÓN"
-                            bg_badge = "#FF4B4B" if pct_val > 50 else "#F1C40F"
+                            if pct_val >= 76:
+                                bg_badge = "#FF0000"
+                            elif pct_val >= 51:
+                                bg_badge = "#FFFF00"
+                            elif pct_val >= 31:
+                                bg_badge = "#FFA500"
+                            else:
+                                bg_badge = "#69ADDD"
                         else:
                             pct_str = "EN RECUPERACIÓN"
                             bg_badge = "#3498DB"
@@ -4748,10 +4755,6 @@ elif tab_activa == "incidencias":
             mes_actual = datetime.now().strftime('%B %Y').capitalize()
             default_index = meses.index(mes_actual) if mes_actual in meses else 0
             
-            # Pre-cálculos para saber el comportamiento de paginación antes de pintar las columnas
-            # (Lo manejamos de forma segura para alinear los 4 elementos en una sola hilera)
-            
-            # Definimos las 4 columnas exactas en una sola hilera horizontal
             col_f1, col_f2, col_f3, col_f4 = st.columns(4, gap="medium")
             
             with col_f1:
@@ -4766,7 +4769,6 @@ elif tab_activa == "incidencias":
                 opciones_pozos_hist = ["Todos los pozos"] + lista_pozos_global
                 pozo_hist_sel = st.selectbox("Filtrar por Pozo:", opciones_pozos_hist, key="select_pozo_historial")
 
-            # Determinación de base de datos según si se seleccionó un pozo específico o no
             if pozo_hist_sel != "Todos los pozos":
                 datos_trabajo = df_historial[df_historial['NUM_POZO'].astype(str).str.strip().str.upper() == pozo_hist_sel].copy()
                 modo_pozo_activo = True
@@ -4774,7 +4776,6 @@ elif tab_activa == "incidencias":
                 datos_trabajo = df_historial[df_historial['MES_AÑO'] == mes_sel].copy()
                 modo_pozo_activo = False
 
-            # Aplicar filtro adicional por colonia si está seleccionado
             if colonia_sel != "Todas las colonias":
                 pozos_validos_col = []
                 for _, rh in datos_trabajo.iterrows():
@@ -4788,7 +4789,6 @@ elif tab_activa == "incidencias":
 
             total_registros_calc = len(datos_trabajo)
 
-            # Cuarta columna: Control de Paginación o indicador de vista global de pozo
             with col_f4:
                 if modo_pozo_activo:
                     st.markdown(f"<div style='background-color: rgba(0,212,255,0.1); border: 1px solid #00d4ff; padding: 6px; border-radius: 4px; text-align: center; color: #00d4ff; font-size: 11px; margin-top: 24px; font-weight: bold;'>Modo global pozo (Sin paginación)</div>", unsafe_allow_html=True)
@@ -4802,7 +4802,6 @@ elif tab_activa == "incidencias":
                         st.markdown(f"<div style='font-size:11px; color:#8fa4c0; margin-top: 28px;'>Registros en mes: <b>{total_registros_calc}</b></div>", unsafe_allow_html=True)
                         pagina_actual = 1
 
-            # Tarjeta de cabecera con el indicador de registros integrado
             st.markdown(f"""
                 <style>
                 .historial-header-container {{
@@ -4833,7 +4832,6 @@ elif tab_activa == "incidencias":
                 </div>
             """, unsafe_allow_html=True)
 
-            # Selección de datos paginados vs globales
             if modo_pozo_activo:
                 datos_pagina = datos_trabajo.copy()
             else:
@@ -4905,10 +4903,7 @@ elif tab_activa == "incidencias":
                         df_sectores_mes = df_sectores_mes.sort_values(by='Total', ascending=False).head(5)
                     else:
                         df_sectores_mes = pd.DataFrame({'Sector': ['Sin datos'], 'Total': [0]})
-
-                    colores_pastel = ['#FF4B4B', '#F1C40F', '#00d4ff', '#9B59B6', '#2ECC71']
                     
-                    # Reemplazamos el gráfico circular por el Treemap exacto
                     fig_treemap = px.treemap(
                         df_sectores_mes,
                         path=['Sector'],
