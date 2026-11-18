@@ -4456,7 +4456,6 @@ elif tab_activa == "incidencias":
                     r_sec = gdf_sector.iloc[0]
                     col_atl_val = str(r_sec.get('Col_atl', 'N/A'))
                     
-                    # Obtenemos un diccionario de pozos activos y sus estatus para colorear el tooltip
                     df_todas_inc = get_data()
                     pozos_activos_dict = {}
                     if isinstance(df_todas_inc, pd.DataFrame) and not df_todas_inc.empty:
@@ -4473,12 +4472,9 @@ elif tab_activa == "incidencias":
                             p_val = str(r_sec[p_field]).strip()
                             p_val_norm = normalizar_id(p_val)
                             
-                            # Limpiamos el porcentaje quitando símbolos '%' repetidos si los hubiera
                             raw_a = str(r_sec[a_field]) if a_field in r_sec and pd.notnull(r_sec[a_field]) else "0"
                             a_val = raw_a.replace('%', '').strip()
                             
-                            # Determinamos el color según el estatus de la incidencia activa
-                            # Amarillo = EN PROCESO, Rojo = PENDIENTE, Blanco/Gris = Sin incidencia activa
                             estatus_pozo = pozos_activos_dict.get(p_val_norm, "")
                             if estatus_pozo == 'EN PROCESO':
                                 color_pozo = "#f1c40f" # Amarillo
@@ -4499,12 +4495,17 @@ elif tab_activa == "incidencias":
                     if not pozos_afectaciones_html:
                         pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
 
-                    # HTML con ancho controlado, ajuste de palabras (word-wrap) para evitar desbordes
+                    # HTML mejorado: con contenedor de colonias con max-height, overflow-y y white-space normal para que no se salgan del popup
                     html_tooltip = f"""
-                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 280px; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
+                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 290px; max-width: 290px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
                         <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b>
                         <hr style="margin: 6px 0; border-color: #1f3a5f;">
-                        <div style="margin-bottom: 6px;"><b>Colonias:</b> <span style="color: #b0c4de;">{col_atl_val}</span></div>
+                        <div style="margin-bottom: 6px;">
+                            <b>Colonias:</b> 
+                            <div style="max-height: 75px; overflow-y: auto; white-space: normal; color: #b0c4de; background: rgba(0,0,0,0.3); padding: 4px 6px; border-radius: 4px; margin-top: 2px; border: 1px solid #1b2a38;">
+                                {col_atl_val}
+                            </div>
+                        </div>
                         <div style="margin-bottom: 4px;"><b>Pozos y Afectación:</b></div>
                         {pozos_afectaciones_html}
                     </div>
