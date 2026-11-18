@@ -4413,6 +4413,27 @@ elif tab_activa == "incidencias":
             pass
         return []
 
+    # Función auxiliar para obtener y ordenar alfabéticamente las colonias de un sector
+    @st.cache_data(ttl=60)
+    def get_colonias_del_sector_ordenadas(sec_nombre):
+        if not sec_nombre or str(sec_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
+            return []
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return []
+        try:
+            q_sec = "SELECT Col_atl FROM Diccionario_sectores WHERE TRIM(Sector) = %s"
+            df_s = pd.read_sql(q_sec, engine, params=(str(sec_nombre).strip(),))
+            if not df_s.empty and 'Col_atl' in df_s.columns:
+                val_col = df_s['Col_atl'].iloc[0]
+                if pd.notnull(val_col) and str(val_col).strip():
+                    # Dividimos por coma, limpiamos espacios y ordenamos alfabéticamente
+                    lista_cruda = [c.strip() for c in str(val_col).split(',') if c.strip()]
+                    return sorted(list(set(lista_cruda)))
+        except Exception:
+            pass
+        return []
+
     @st.fragment
     def renderizar_bloque_incidencia(row, index, tipo):
         val = row['NUM_POZO']
@@ -4454,7 +4475,9 @@ elif tab_activa == "incidencias":
                     ).add_to(m)
                     
                     r_sec = gdf_sector.iloc[0]
-                    col_atl_val = str(r_sec.get('Col_atl', 'N/A'))
+                    # Obtenemos las colonias ordenadas alfabéticamente para el mapa
+                    cols_ordenadas_mapa = get_colonias_del_sector_ordenadas(sector_nombre)
+                    col_atl_val = ", ".join(cols_ordenadas_mapa) if cols_ordenadas_mapa else str(r_sec.get('Col_atl', 'N/A'))
                     
                     df_todas_inc = get_data()
                     pozos_activos_dict = {}
@@ -4653,25 +4676,6 @@ elif tab_activa == "incidencias":
             gdf_sec_geo = get_todos_los_sectores_geo()
             sectores_agrupados = {}
 
-            # Función para obtener directamente las colonias del sector desde Diccionario_sectores
-            @st.cache_data(ttl=60)
-            def get_colonias_del_sector(sec_nombre):
-                if not sec_nombre or str(sec_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
-                    return []
-                engine = get_mysql_telemetria_engine()
-                if engine is None:
-                    return []
-                try:
-                    q_sec = "SELECT Col_atl FROM Diccionario_sectores WHERE TRIM(Sector) = %s"
-                    df_s = pd.read_sql(q_sec, engine, params=(str(sec_nombre).strip(),))
-                    if not df_s.empty and 'Col_atl' in df_s.columns:
-                        val_col = df_s['Col_atl'].iloc[0]
-                        if pd.notnull(val_col) and str(val_col).strip():
-                            return [c.strip() for c in str(val_col).split(',') if c.strip()]
-                except Exception:
-                    pass
-                return []
-
             for _, r_inc in df_actual.iterrows():
                 id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
                 inicio_inc = pd.to_datetime(r_inc.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
@@ -4701,7 +4705,7 @@ elif tab_activa == "incidencias":
                 
                 if gdf_r is not None and not gdf_r.empty:
                     sector_nombre = str(gdf_r['Sector'].iloc[0]).strip()
-                    nombres_cols = get_colonias_del_sector(sector_nombre)
+                    nombres_cols = get_colonias_del_sector_ordenadas(sector_nombre)
                 else:
                     sector_nombre = "Sin Sector"
                     nombres_cols = []
@@ -4745,7 +4749,10 @@ elif tab_activa == "incidencias":
                 tarjetas_renderizadas = 0
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
-                        lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
+                        # Usamos get_colonias_del_sector_ordenadas para asegurar orden alfabético estricto
+                        lista_cols_validas = get_colonias_del_sector_ordenadas(sec_name)
+                        if not lista_cols_validas:
+                            lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
                         
                         if not lista_cols_validas:
                             continue
