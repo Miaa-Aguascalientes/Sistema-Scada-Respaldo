@@ -4365,7 +4365,7 @@ elif tab_activa == "incidencias":
         return None
 
     @st.cache_data(ttl=60)
-    def get_geometria_sector(sector_nombre):
+    def get_geometria_sector_completa(sector_nombre):
         if not sector_nombre or str(sector_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
             return None
             
@@ -4375,8 +4375,14 @@ elif tab_activa == "incidencias":
             return None
             
         try:
+            # Seleccionamos todos los campos de pozos y afectaciones del 1 al 10
             query = """
-                SELECT ST_AsText(geom) as geom_wkt, Sector 
+                SELECT ST_AsText(geom) as geom_wkt, Sector, Col_atl, Pozos,
+                       Pozo_1, Afectacion_1, Pozo_2, Afectacion_2,
+                       Pozo_3, Afectacion_3, Pozo_4, Afectacion_4,
+                       Pozo_5, Afectacion_5, Pozo_6, Afectacion_6,
+                       Pozo_7, Afectacion_7, Pozo_8, Afectacion_8,
+                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10
                 FROM Diccionario_sectores 
                 WHERE TRIM(Sector) = %s
             """
@@ -4389,7 +4395,7 @@ elif tab_activa == "incidencias":
                 return gdf.to_crs(epsg=4326)
                 
         except Exception as e:
-            st.error(f"Error en BD al obtener geometría del sector: {e}")
+            st.error(f"Error en BD al obtener geometría completa del sector: {e}")
             
         return None
 
@@ -4413,7 +4419,6 @@ elif tab_activa == "incidencias":
         val = row['NUM_POZO']
         id_pozo_original = str(val).strip().upper() if pd.notna(val) else ""
         
-        # Obtenemos primero los datos de colonias/sector del pozo
         gdf_col = get_geometries(id_pozo_original) if id_pozo_original else None
 
         sector_nombre = "N/A"
@@ -4424,8 +4429,8 @@ elif tab_activa == "incidencias":
             if 'Distrito' in gdf_col.columns and pd.notnull(gdf_col['Distrito'].iloc[0]):
                 distrito_val = str(gdf_col['Distrito'].iloc[0]).strip()
 
-        # Cargamos la geometría del SECTOR desde Diccionario_sectores
-        gdf_sector = get_geometria_sector(sector_nombre)
+        # Cargamos la geometría y datos completos del sector desde Diccionario_sectores
+        gdf_sector = get_geometria_sector_completa(sector_nombre)
 
         st.markdown("""
             <style>
@@ -4450,13 +4455,39 @@ elif tab_activa == "incidencias":
                         subdomains="abcd", max_zoom=20, overlay=False, control=True
                     ).add_to(m)
                     
-                    # Dibujar el polígono del sector
+                    r_sec = gdf_sector.iloc[0]
+                    col_atl_val = str(r_sec.get('Col_atl', 'N/A'))
+                    
+                    # Construir la lista de pozos y sus afectaciones dinámicamente
+                    pozos_afectaciones_html = ""
+                    for i in range(1, 11):
+                        p_field = f'Pozo_{i}'
+                        a_field = f'Afectacion_{i}'
+                        if p_field in r_sec and pd.notnull(r_sec[p_field]) and str(r_sec[p_field]).strip():
+                            p_val = str(r_sec[p_field]).strip()
+                            a_val = str(r_sec[a_field]).strip() if a_field in r_sec and pd.notnull(r_sec[a_field]) else "N/A"
+                            pozos_afectaciones_html += f"<div>• <b>{p_val}:</b> <span style='color: #FF4B4B;'>{a_val}%</span></div>"
+                    
+                    if not pozos_afectaciones_html:
+                        pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
+
+                    html_tooltip = f"""
+                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 8px 12px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 260px; box-shadow: 0 4px 10px rgba(0,0,0,0.6);">
+                        <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b><hr style="margin: 4px 0; border-color: #1f3a5f;">
+                        <div style="margin-bottom: 4px;"><b>Colonias:</b> {col_atl_val}</div>
+                        <div><b>Pozos y Afectación:</b></div>
+                        {pozos_afectaciones_html}
+                    </div>
+                    """
+
+                    # Dibujar polígono del sector con el tooltip completo de hover
                     folium.GeoJson(
                         gdf_sector, 
-                        style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 1.5, 'fillOpacity': 0.3}
+                        style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 1.5, 'fillOpacity': 0.35},
+                        tooltip=folium.Tooltip(html_tooltip, sticky=True)
                     ).add_to(m)
                     
-                    for i, (_, r) in enumerate(gdf_sector.iterrows()):
+                    for _, r in gdf_sector.iterrows():
                         if r.geometry:
                             c = r.geometry.centroid
                             destino = [c.y + 0.001, c.x + 0.001]
@@ -4466,8 +4497,8 @@ elif tab_activa == "incidencias":
                             folium.Marker(
                                 location=destino,
                                 icon=folium.DivIcon(
-                                    icon_size=(200, 30),
-                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: #00d4ff; padding: 3px 10px; border: 1px solid #00d4ff; font-size: 11px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">Sector: {sector_nombre}</div>'
+                                    icon_size=(220, 30),
+                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: #00d4ff; padding: 3px 8px; border: 1px solid #00d4ff; font-size: 10px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">Sector: {sector_nombre}</div>'
                                 )
                             ).add_to(m)
                     
