@@ -4659,13 +4659,13 @@ elif tab_activa == "incidencias":
                                 bg_badge = "#69ADDD"
                         else:
                             pct_str = "EN RECUPERACIÓN"
-                            bg_badge = "#3498DB"
+                            bg_badge = "#8E44AD"  # Color morado solicitado[cite: 6]
 
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                     <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
-                                    <span style="background-color: {bg_badge}; color: #000; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
+                                    <span style="background-color: {bg_badge}; color: #ffffff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
                                     <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
