@@ -4685,15 +4685,21 @@ elif tab_activa == "incidencias":
                                 bg_badge = "#8E44AD"
 
                         # -------------------------------------------------------------
-                        # MEJORA DE CONTRASTE: Texto negro para fondos claros, blanco para morado
+                        # MÁXIMA LEGIBILIDAD: 
+                        # - Fondos claros (rojo, amarillo, naranja, azul): Texto NEGRO extra negrita
+                        # - Fondo morado (En recuperación): Texto BLANCO brillante
+                        # - Tamaño de fuente aumentado a 11px con peso bold (700)
                         # -------------------------------------------------------------
-                        text_color = "#000000" if bg_badge != "#8E44AD" else "#FFFFFF"
+                        if bg_badge == "#8E44AD":
+                            text_color = "#FFFFFF"
+                        else:
+                            text_color = "#000000"
 
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                     <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
-                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
+                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
                                     <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
