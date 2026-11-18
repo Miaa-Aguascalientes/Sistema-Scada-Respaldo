@@ -3103,9 +3103,19 @@ if sector_seleccionado:
                 itemwidth=30
             ),
             xaxis=dict(
-                domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, 
-                tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0,
-                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='white', spikethickness=1, spikedash='dash'
+                domain=[0, 0.90], 
+                range=[f_ini_h, f_fin_h], 
+                color="#888888", 
+                showgrid=False, 
+                tickvals=ticks_filtrados, 
+                ticktext=etiquetas_filtradas, 
+                tickangle=0,
+                showspikes=True,
+                spikemode='across',      # <-- Cruza todo el gráfico de arriba a abajo de manera continua
+                spikesnap='cursor',
+                spikecolor='white',
+                spikethickness=1,
+                spikedash='dash'
             ),
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
