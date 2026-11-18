@@ -3075,11 +3075,12 @@ if sector_seleccionado:
                                     vis_estado = 'legendonly'
 
                                 fig.add_trace(go.Scatter(
-                                    x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
+                                    x=df_tag['FECHA'], 
+                                    y=val_y_series, 
+                                    name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    mode='lines+markers',  # <-- Muestra el círculo exactamente en el cruce del dato
+                                    mode='lines',                         # <-- SOLO LÍNEA LIMPIA (Sin círculos fijos)
                                     line=dict(width=2, color=color_base),
-                                    marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_base)),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
