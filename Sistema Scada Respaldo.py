@@ -4495,14 +4495,14 @@ elif tab_activa == "incidencias":
                     if not pozos_afectaciones_html:
                         pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
 
-                    # HTML mejorado: con contenedor de colonias con max-height, overflow-y y white-space normal para que no se salgan del popup
+                    # HTML mejorado sin barra desplazadora: texto completamente contenido, ajustado y legible de arriba a abajo
                     html_tooltip = f"""
                     <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 290px; max-width: 290px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
                         <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b>
                         <hr style="margin: 6px 0; border-color: #1f3a5f;">
                         <div style="margin-bottom: 6px;">
                             <b>Colonias:</b> 
-                            <div style="max-height: 75px; overflow-y: auto; white-space: normal; color: #b0c4de; background: rgba(0,0,0,0.3); padding: 4px 6px; border-radius: 4px; margin-top: 2px; border: 1px solid #1b2a38;">
+                            <div style="white-space: normal; color: #b0c4de; background: rgba(0,0,0,0.3); padding: 5px 8px; border-radius: 4px; margin-top: 3px; border: 1px solid #1b2a38; line-height: 1.3;">
                                 {col_atl_val}
                             </div>
                         </div>
