@@ -2931,7 +2931,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR VRPs (Línea + Punto) ---
+        # --- 2. GRAFICAR VRPs (Línea + Punto + Área si es Caudal/Q) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2979,6 +2979,8 @@ if sector_seleccionado:
                                         yaxis="y1" if is_q_vrp else "y2", mode='lines+markers',
                                         marker=dict(size=4, symbol='circle'),
                                         line=dict(width=2, color=color_trace_vrp),
+                                        fill='tozeroy' if is_q_vrp else None,
+                                        fillcolor="rgba(0, 212, 255, 0.15)" if is_q_vrp else None,
                                         hovertemplate=f'<b>{nombre_vrp} - {var_label_display}</b><br>Valor: %{{y:.2f}}<extra></extra>'
                                     ))
             except Exception:
