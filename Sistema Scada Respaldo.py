@@ -3111,7 +3111,8 @@ if sector_seleccionado:
 
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
-            margin=dict(l=40, r=20, t=25, b=10), hovermode="x unified", 
+            margin=dict(l=40, r=20, t=25, b=10), 
+            hovermode="x unified",  # Muestra la línea vertical con los puntos unificados al pasar el cursor
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3132,7 +3133,7 @@ if sector_seleccionado:
                 gridcolor="#16304a"
             ),
             
-            # 2. Eje Presión (Derecha 1) -> Verde con líneas divisorias y "palitos" (ticks) hacia afuera
+            # 2. Eje Presión (Derecha 1) -> Verde
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
                 tickfont=dict(color="#00ff00"),
@@ -3145,14 +3146,14 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#22384d",  # Gris oscuro elegante
-                linewidth=1,          # Delgado
-                ticks="outside",      # Saca los palitos hacia el exterior de la línea
-                ticklen=6,            # Longitud de los palitos
-                tickwidth=1           # Grosor de los palitos
+                linecolor="#22384d",
+                linewidth=1,
+                ticks="outside",
+                ticklen=6,
+                tickwidth=1
             ),
             
-            # 3. Eje Nivel Tq (Derecha 2) -> Morado con líneas divisorias y "palitos" (ticks) hacia afuera
+            # 3. Eje Nivel Tq (Derecha 2) -> Morado
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
                 tickfont=dict(color="#d400ff"),
@@ -3165,15 +3166,15 @@ if sector_seleccionado:
                 rangemode="tozero",
                 tickformat="d",
                 showline=True,
-                linecolor="#22384d",  # Gris oscuro elegante
-                linewidth=1,          # Delgado
-                ticks="outside",      # Saca los palitos hacia el exterior de la línea
-                ticklen=6,            # Longitud de los palitos
-                tickwidth=1           # Grosor de los palitos
+                linecolor="#22384d",
+                linewidth=1,
+                ticks="outside",
+                ticklen=6,
+                tickwidth=1
             )
         )
         st.plotly_chart(fig, use_container_width=True)
-
+        
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ------------------------------------------------------------------------------------------------------------------------------------------------------------
     col_pc, col_op = st.columns([1.0, 1.0], gap="medium")
 
