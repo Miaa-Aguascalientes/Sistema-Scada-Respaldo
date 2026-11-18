@@ -4360,7 +4360,36 @@ elif tab_activa == "incidencias":
                 return gdf.to_crs(epsg=4326)
                 
         except Exception as e:
-            st.error(f"Error en BD al obtener geometrías: {e}")
+            st.error(f"Error en BD al obtener geometrías de colonias: {e}")
+            
+        return None
+
+    @st.cache_data(ttl=60)
+    def get_geometria_sector(sector_nombre):
+        if not sector_nombre or str(sector_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
+            return None
+            
+        sec_busqueda = str(sector_nombre).strip()
+        engine = get_mysql_telemetria_engine()
+        if engine is None:
+            return None
+            
+        try:
+            query = """
+                SELECT ST_AsText(geom) as geom_wkt, Sector 
+                FROM Diccionario_sectores 
+                WHERE TRIM(Sector) = %s
+            """
+            df = pd.read_sql(query, engine, params=(sec_busqueda,))
+            
+            if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
+                df['geometry'] = df['geom_wkt'].apply(wkt.loads)
+                gdf = gpd.GeoDataFrame(df, geometry='geometry')
+                gdf.set_crs(epsg=32613, inplace=True)
+                return gdf.to_crs(epsg=4326)
+                
+        except Exception as e:
+            st.error(f"Error en BD al obtener geometría del sector: {e}")
             
         return None
 
@@ -4384,12 +4413,19 @@ elif tab_activa == "incidencias":
         val = row['NUM_POZO']
         id_pozo_original = str(val).strip().upper() if pd.notna(val) else ""
         
-        gdf = get_geometries(id_pozo_original) if id_pozo_original else None
+        # Obtenemos primero los datos de colonias/sector del pozo
+        gdf_col = get_geometries(id_pozo_original) if id_pozo_original else None
 
-        if gdf is not None and not gdf.empty:
-            col_pozo_encontrada = next((c for c in gdf.columns if c.upper() in ['NUM_POZO', 'POZO', 'ID_POZO', 'CVE_POZO', 'SITE', 'SITIO']), None)
-            if col_pozo_encontrada:
-                gdf = gdf[gdf[col_pozo_encontrada].astype(str).str.strip().str.upper() == id_pozo_original]
+        sector_nombre = "N/A"
+        distrito_val = "N/A"
+        if gdf_col is not None and not gdf_col.empty:
+            if 'Sector' in gdf_col.columns and pd.notnull(gdf_col['Sector'].iloc[0]):
+                sector_nombre = str(gdf_col['Sector'].iloc[0]).strip()
+            if 'Distrito' in gdf_col.columns and pd.notnull(gdf_col['Distrito'].iloc[0]):
+                distrito_val = str(gdf_col['Distrito'].iloc[0]).strip()
+
+        # Cargamos la geometría del SECTOR desde Diccionario_sectores
+        gdf_sector = get_geometria_sector(sector_nombre)
 
         st.markdown("""
             <style>
@@ -4400,9 +4436,9 @@ elif tab_activa == "incidencias":
         col1, col2 = st.columns([3, 2], gap="small")
         
         with col1:
-            if gdf is not None and not gdf.empty:
+            if gdf_sector is not None and not gdf_sector.empty:
                 try:
-                    lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                    lat, lon = gdf_sector.geometry.centroid.y.mean(), gdf_sector.geometry.centroid.x.mean()
                     
                     m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter", attribution_control=False)
 
@@ -4414,32 +4450,33 @@ elif tab_activa == "incidencias":
                         subdomains="abcd", max_zoom=20, overlay=False, control=True
                     ).add_to(m)
                     
+                    # Dibujar el polígono del sector
                     folium.GeoJson(
-                        gdf, 
-                        style_function=lambda x: {'fillColor': '#3186cc', 'color': 'white', 'weight': 1, 'fillOpacity': 0.4}
+                        gdf_sector, 
+                        style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 1.5, 'fillOpacity': 0.3}
                     ).add_to(m)
                     
-                    for i, (_, r) in enumerate(gdf.iterrows()):
+                    for i, (_, r) in enumerate(gdf_sector.iterrows()):
                         if r.geometry:
                             c = r.geometry.centroid
                             destino = [c.y + 0.001, c.x + 0.001]
-                            folium.CircleMarker([c.y, c.x], radius=2, color="white", fill=True, fill_color="white").add_to(m)
-                            folium.PolyLine(locations=[[c.y, c.x], destino], color="white", weight=1).add_to(m)
-                            folium.CircleMarker(destino, radius=2, color="white", fill=True, fill_color="white").add_to(m)
+                            folium.CircleMarker([c.y, c.x], radius=3, color="#00d4ff", fill=True, fill_color="#00d4ff").add_to(m)
+                            folium.PolyLine(locations=[[c.y, c.x], destino], color="#00d4ff", weight=1).add_to(m)
+                            folium.CircleMarker(destino, radius=3, color="#00d4ff", fill=True, fill_color="#00d4ff").add_to(m)
                             folium.Marker(
                                 location=destino,
                                 icon=folium.DivIcon(
                                     icon_size=(200, 30),
-                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: white; padding: 2px 8px; border: 1px solid #FFFFFF; font-size: 10px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">{str(r.get("Col_atl", "N/A"))}</div>'
+                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: #00d4ff; padding: 3px 10px; border: 1px solid #00d4ff; font-size: 11px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">Sector: {sector_nombre}</div>'
                                 )
                             ).add_to(m)
                     
                     Fullscreen(position='topright').add_to(m)
-                    st_folium(m, use_container_width=True, height=400, key=f"map_{tipo}_{id_pozo_original}_{index}")
+                    st_folium(m, use_container_width=True, height=400, key=f"map_sector_{id_pozo_original}_{index}")
                 except Exception as e:
-                    st.error(f"Error al renderizar el mapa: {e}")
+                    st.error(f"Error al renderizar el mapa del sector: {e}")
             else:
-                st.warning("Sin datos geográficos disponibles.")
+                st.warning(f"Sin geometría de sector disponible para '{sector_nombre}'.")
 
         with col2:
             st.subheader("Tiempo de Atención")
@@ -4484,18 +4521,9 @@ elif tab_activa == "incidencias":
             minutos = (transcurrido.seconds % 3600) // 60
             st.markdown(f"⏱️ **Duración del evento:** {dias}d {horas}h {minutos}m")
 
-            if gdf is not None and not gdf.empty:
-                sectores = [str(s) for s in gdf['Sector'].unique() if pd.notnull(s)]
-                distritos = [str(d) for d in gdf['Distrito'].unique() if pd.notnull(d)]
-                sector_val = ', '.join(sectores) if sectores else 'N/A'
-                distrito_val = ', '.join(distritos) if distritos else 'N/A'
-            else:
-                sector_val = 'N/A'
-                distrito_val = 'N/A'
-
             responsable_val = row.get('RESPONSABLE', 'N/A')
             col_sec, col_dis, col_res = st.columns(3)
-            with col_sec: st.markdown(f"📍 **Sector:** {sector_val}")
+            with col_sec: st.markdown(f"📍 **Sector:** {sector_nombre}")
             with col_dis: st.markdown(f"🏢 **Distrito:** {distrito_val}")
             with col_res: st.markdown(f"👤 **Responsable:** {responsable_val}")
 
@@ -4684,12 +4712,6 @@ elif tab_activa == "incidencias":
                                 pct_str = "EN RECUPERACIÓN"
                                 bg_badge = "#8E44AD"
 
-                        # -------------------------------------------------------------
-                        # MÁXIMA LEGIBILIDAD: 
-                        # - Fondos claros (rojo, amarillo, naranja, azul): Texto NEGRO extra negrita
-                        # - Fondo morado (En recuperación): Texto BLANCO brillante
-                        # - Tamaño de fuente aumentado a 11px con peso bold (700)
-                        # -------------------------------------------------------------
                         if bg_badge == "#8E44AD":
                             text_color = "#FFFFFF"
                         else:
