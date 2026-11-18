@@ -3271,7 +3271,7 @@ if sector_seleccionado:
                         es_lunes = (d.dayofweek == 0)
                         fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                         fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
-        except Exception:
+    except Exception:
         pass
 
         fig_pc.add_hline(
