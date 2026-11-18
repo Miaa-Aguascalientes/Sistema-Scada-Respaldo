@@ -4684,11 +4684,16 @@ elif tab_activa == "incidencias":
                                 pct_str = "EN RECUPERACIÓN"
                                 bg_badge = "#8E44AD"
 
+                        # -------------------------------------------------------------
+                        # MEJORA DE CONTRASTE: Texto negro para fondos claros, blanco para morado
+                        # -------------------------------------------------------------
+                        text_color = "#000000" if bg_badge != "#8E44AD" else "#FFFFFF"
+
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                     <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
-                                    <span style="background-color: {bg_badge}; color: #ffffff; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
+                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 9px; font-weight: bold; padding: 2px 6px; border-radius: 4px; white-space: nowrap;">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
                                     <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
@@ -4759,7 +4764,6 @@ elif tab_activa == "incidencias":
                 duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
                 ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
                 
-                # Se añadió el campo FECHA_HORA_FIN antes del campo de duración
                 titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | 🏁 Cierre: {fin_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
                 
                 with st.expander(titulo):
