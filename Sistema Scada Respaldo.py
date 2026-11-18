@@ -3077,9 +3077,14 @@ if sector_seleccionado:
                                 fig.add_trace(go.Scatter(
                                     x=df_tag['FECHA'], y=val_y_series, name=cfg['label'], 
                                     yaxis=target_axis, 
-                                    mode='lines+markers',  # <-- Muestra los circulitos
+                                    mode='lines+markers',  # Muestra los circulitos interactivos
                                     line=dict(width=2, color=color_base),
-                                    marker=dict(size=4, symbol='circle'),  # <-- Tamaño visible de las bolitas
+                                    marker=dict(
+                                        size=8,                            # Tamaño óptimo para el hover
+                                        symbol='circle',
+                                        color='rgba(11,26,41,1)',         # Centro transparente con el tono de fondo del gráfico
+                                        line=dict(width=2, color=color_base) # Borde del círculo con el color de la traza
+                                    ),
                                     fill='tozeroy' if (target_axis == "y1") else None,
                                     fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
                                     visible=vis_estado,
