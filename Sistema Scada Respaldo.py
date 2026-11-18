@@ -4606,8 +4606,6 @@ elif tab_activa == "incidencias":
 
                     color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
                     
-                    # Corrección: Si la incidencia sigue activa (En Proceso / Pendiente) y el valor de afectación es 0, 
-                    # forzamos por defecto un 100% de afectación para evitar que aparezca como "EN RECUPERACIÓN" erróneamente.
                     if estatus_inc in ['EN PROCESO', 'PENDIENTE'] and val_afec == 0:
                         val_afec = 100.0
                         color_afec = '#FF0000'
@@ -4659,7 +4657,6 @@ elif tab_activa == "incidencias":
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
                         
-                        # Si el sector tiene una incidencia activa, JAMAS debe decir En Recuperación
                         if sec_data.get('tiene_activa', False):
                             if pct_val == 0:
                                 pct_val = 100
@@ -4747,19 +4744,23 @@ elif tab_activa == "incidencias":
                 estatus = str(row.get('ESTATUS', 'N/A')).upper()
                 diag = str(row.get('DIAGNOSTICO_FALLA', 'N/A'))
                 inicio_raw = pd.to_datetime(row.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                fin_raw = row.get('FECHA_HORA_FIN')
+                fin_raw = row.get('FECHA_HORA_FIN', None)
+                
                 inicio_str = inicio_raw.strftime('%H:%M %d de %B de %Y')
                 
                 if pd.notnull(fin_raw):
                     fin_dt = pd.to_datetime(fin_raw).tz_localize(None).tz_localize(tz_mx)
+                    fin_str = fin_dt.strftime('%H:%M %d de %B de %Y')
                     delta = fin_dt - inicio_raw
                 else:
+                    fin_str = "Activa (Sin cierre)"
                     delta = ahora_mx - inicio_raw
                     
                 duracion_str = f"{delta.days}d {delta.seconds//3600}h {(delta.seconds//60)%60}m"
                 ind = "🟢" if estatus == 'CERRADA' else ("🔴" if estatus == 'PENDIENTE' else "🟡")
                 
-                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
+                # Se añadió el campo FECHA_HORA_FIN antes del campo de duración
+                titulo = f"{ind}  **Sitio: {row.get('NUM_POZO', 'N/A')}** | ⏱️ Inicio: {inicio_str} | 🏁 Cierre: {fin_str} | ⚠️ Falla: {diag} | ⏳ Duración: {duracion_str} | 🛠️ Estado: {estatus}"
                 
                 with st.expander(titulo):
                     renderizar_bloque_incidencia(row, index, "act")
