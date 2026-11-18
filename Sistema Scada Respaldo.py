@@ -3010,15 +3010,22 @@ if sector_seleccionado:
                                         var_label_display = "Q1"
 
                                     fig.add_trace(go.Scatter(
-                                        x=df_v_group['FECHA'], y=df_v_group['VALOR'],
-                                        name=f"PC: {domicilio_nombre} - {var_label_display}",
-                                        yaxis="y2", 
-                                        mode='lines+markers',  # <-- Muestra el círculo en el cruce
-                                        line=dict(width=2, color=color_trace_pc_hc),
-                                        marker=dict(size=7, symbol='circle', color='rgba(11,26,41,1)', line=dict(width=2, color=color_trace_pc_hc)),
-                                        visible='legendonly',
-                                        hovertemplate=f'<b>PC: {domicilio_nombre} - {var_label_display}</b><br>Valor: %{{y:.2f}} mca<extra></extra>'
-                                    ))
+                                    x=df_tag['FECHA'], 
+                                    y=val_y_series, 
+                                    name=cfg['label'], 
+                                    yaxis=target_axis, 
+                                    mode='lines+markers',                 # Activa líneas y puntos sutiles
+                                    line=dict(width=2, color=color_base),
+                                    marker=dict(
+                                        size=2.5,                         # Punto sólido y fino (tamaño 2.5)
+                                        symbol='circle',
+                                        color=color_base                  # Color sólido idéntico al de la línea
+                                    ),
+                                    fill='tozeroy' if (target_axis == "y1") else None,
+                                    fillcolor="rgba(0, 212, 255, 0.15)" if (target_axis == "y1") else None,
+                                    visible=vis_estado,
+                                    hovertemplate='<b>%{fullData.name}</b>: %{y:.2f} ' + unidad_pc + '<extra></extra>'
+                                ))
             except Exception:
                 pass
 
