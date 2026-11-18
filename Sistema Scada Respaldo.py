@@ -3769,9 +3769,11 @@ if tab_activa == "mapa":
 
     with col_mapa:
         st.markdown('<div class="mapa-area">', unsafe_allow_html=True)
+        
         m = folium.Map(
             location=st.session_state.centro_mapa, 
-            zoom_start=st.session_state.zoom_inicial, 
+            zoom_start=st.session_state.zoom_inicial,
+            attribution_control=False,
         )
 
         folium.TileLayer(
@@ -4401,6 +4403,7 @@ elif tab_activa == "incidencias":
             if gdf is not None and not gdf.empty:
                 try:
                     lat, lon = gdf.geometry.centroid.y.mean(), gdf.geometry.centroid.x.mean()
+                    
                     m = folium.Map(location=[lat, lon], zoom_start=13, tiles="CartoDB dark_matter")
 
                     api_key = "cb1_26ji_1_864817f3cb73c0bdbe0daccd"
