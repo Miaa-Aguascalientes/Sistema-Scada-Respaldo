@@ -2863,7 +2863,7 @@ if sector_seleccionado:
         colores_azules_pc = ["#8acbf5", "#0088ff", "#3399ff", "#1a75ff"]
         colores_verdes_pc = ["#73e6b0", "#00ffaa", "#00cc66", "#33ff99"]
 
-        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto / Área si es Caudal/Q) ---
+        # --- 1. GRAFICAR PUNTOS DE CONTROL (Línea + Punto / Área solo si es Caudal/Q y NO TQ) ---
         series_puntos_control = [str(r.get('Serie', k)).strip() for k, r in dict_reg.items() if r.get('Serie') or k]
         if series_puntos_control:
             try:
@@ -2896,7 +2896,9 @@ if sector_seleccionado:
                             for var_name, df_v_group in df_temp_s.groupby('VARIABLE'):
                                 df_v_group = df_v_group.sort_values('FECHA')
                                 if df_v_group['VALOR'].notna().any():
-                                    is_caudal = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
+                                    var_upper = str(var_name).upper()
+                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
+                                    is_caudal = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
                                     
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -2923,15 +2925,15 @@ if sector_seleccionado:
                                         fig.add_trace(go.Scatter(
                                             x=df_v_group['FECHA'], y=df_v_group['VALOR'],
                                             name=f"{nombre_reg} - {var_label_display}",
-                                            yaxis="y2", mode='lines+markers',
-                                            line=dict(width=2, color=color_p),
+                                            yaxis="y2" if not is_tq else "y3", mode='lines+markers',
+                                            line=dict(width=2, color=color_p if not is_tq else "#d400ff"),
                                             marker=dict(size=4, symbol='circle'),
-                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}} mca<extra></extra>'
+                                            hovertemplate=f'<b>{nombre_reg} - {var_label_display}</b>: %{{y:.2f}}<extra></extra>'
                                         ))
             except Exception:
                 pass
 
-        # --- 2. GRAFICAR VRPs (Línea + Punto + Área si es Caudal/Q) ---
+        # --- 2. GRAFICAR VRPs (Línea + Punto + Área solo si es Caudal/Q y NO TQ) ---
         series_vrp_list = [str(v_info.get('Serie', v_key)) for v_key, v_info in dict_vrp_sec.items() if v_info.get('Serie') or v_key]
         if dict_vrp_sec and series_vrp_list:
             try:
@@ -2965,7 +2967,10 @@ if sector_seleccionado:
                                 if not df_v_group.empty:
                                     color_trace_vrp = colores_vrp[idx_vrp_c % len(colores_vrp)]
                                     idx_vrp_c += 1
-                                    is_q_vrp = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
+                                    
+                                    var_upper = str(var_name).upper()
+                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
+                                    is_q_vrp = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
 
                                     var_label_display = str(var_name)
                                     if var_label_display in ["Presion1", "Presion2"]:
@@ -3037,7 +3042,7 @@ if sector_seleccionado:
             except Exception:
                 pass
 
-        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto / Área si es Caudal/Q) ---
+        # --- 4. GRAFICAR POZOS DEL SECTOR (Línea + Punto / Área solo si es Caudal/Q y NO TQ) ---
         tags_pozos_visualizar = []
         mapeo_pozos_config = {}
         for id_p in ids_p:
@@ -3051,7 +3056,7 @@ if sector_seleccionado:
                 for key_t, lb, axis_target in conf_pz:
                     tag_v = p_info.get(key_t)
                     if tag_v and str(tag_v).strip().lower() not in ['0', 'none', 'n/a', 'null']:
-                        if str(tag_v) not in tags_pozos_visualizar:
+                        if str(tag_v) not in tags_agregados_set and str(tag_v) not in tags_pozos_visualizar:
                             tags_pozos_visualizar.append(str(tag_v))
                             mapeo_pozos_config[str(tag_v)] = {'label': lb, 'axis': axis_target}
 
@@ -3071,7 +3076,10 @@ if sector_seleccionado:
                                 cfg = mapeo_pozos_config[tag_name]
                                 target_axis = cfg['axis']
                                 label_str = cfg['label']
-                                is_q_pozo = 'Q' in label_str.upper() or 'CAUDAL' in label_str.upper() or target_axis == "y1"
+                                
+                                label_upper = label_str.upper()
+                                is_tq = 'TQ' in label_upper or 'TANQUE' in label_upper or 'NIVEL' in label_upper
+                                is_q_pozo = (('Q' in label_upper or 'CAUDAL' in label_upper) and not is_tq) or target_axis == "y1"
 
                                 if target_axis == "y1": unidad_pc = "L/s"
                                 elif target_axis == "y3": unidad_pc = "m"
@@ -3081,7 +3089,7 @@ if sector_seleccionado:
                                 if target_axis == "y2":
                                     val_y_series = val_y_series * 10.0
 
-                                if target_axis == "y3":
+                                if is_tq:
                                     color_base = "#d400ff"
                                     vis_estado = True
                                 elif is_q_pozo:
@@ -3219,7 +3227,6 @@ if sector_seleccionado:
                         for d in ticks_pc
                     ]
 
-                    # Paleta de tonos verdes distintos para los puntos críticos
                     colores_verdes_pc_grafico = ["#00ff88", "#2ecc71", "#1abc9c", "#a3e4d7", "#58d68d"]
                     idx_pc_c = 0
 
@@ -3241,7 +3248,9 @@ if sector_seleccionado:
                                     elif var_label_display == "Caudal1":
                                         var_label_display = "Q1"
 
-                                    is_q_pc = 'CAUDAL' in str(var_name).upper() or 'Q' in str(var_name).upper()
+                                    var_upper = str(var_name).upper()
+                                    is_tq = 'TQ' in var_upper or 'TANQUE' in var_upper or 'NIVEL' in var_upper
+                                    is_q_pc = ('CAUDAL' in var_upper or ('Q' in var_upper and not 'TQ' in var_upper)) and not is_tq
 
                                     fig_pc.add_trace(go.Scatter(
                                         x=df_v_group['FECHA'], 
@@ -3263,7 +3272,7 @@ if sector_seleccionado:
                         fig_pc.add_vrect(x0=d - delta_h, x1=d + delta_h, fillcolor="gray", opacity=0.2, layer="below", line_width=0)
                         fig_pc.add_vline(x=d, line_width=1.5, line_dash="dash", line_color="#fffb00" if es_lunes else "white", opacity=0.5, layer="above")
         except Exception:
-            pass
+        pass
 
         fig_pc.add_hline(
             y=30, line_dash="dot", line_color="#ffd700", line_width=1.5,
@@ -3346,7 +3355,7 @@ if sector_seleccionado:
             opacity: 0.85;
         ">
             <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
+            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación y Sistemas</span>
         </div>
     """, unsafe_allow_html=True)
 
