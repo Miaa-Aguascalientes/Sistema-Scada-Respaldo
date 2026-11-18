@@ -4375,7 +4375,6 @@ elif tab_activa == "incidencias":
             return None
             
         try:
-            # Seleccionamos todos los campos de pozos y afectaciones del 1 al 10
             query = """
                 SELECT ST_AsText(geom) as geom_wkt, Sector, Col_atl, Pozos,
                        Pozo_1, Afectacion_1, Pozo_2, Afectacion_2,
@@ -4429,7 +4428,6 @@ elif tab_activa == "incidencias":
             if 'Distrito' in gdf_col.columns and pd.notnull(gdf_col['Distrito'].iloc[0]):
                 distrito_val = str(gdf_col['Distrito'].iloc[0]).strip()
 
-        # Cargamos la geometría y datos completos del sector desde Diccionario_sectores
         gdf_sector = get_geometria_sector_completa(sector_nombre)
 
         st.markdown("""
@@ -4458,29 +4456,60 @@ elif tab_activa == "incidencias":
                     r_sec = gdf_sector.iloc[0]
                     col_atl_val = str(r_sec.get('Col_atl', 'N/A'))
                     
-                    # Construir la lista de pozos y sus afectaciones dinámicamente
+                    # Obtenemos un diccionario de pozos activos y sus estatus para colorear el tooltip
+                    df_todas_inc = get_data()
+                    pozos_activos_dict = {}
+                    if isinstance(df_todas_inc, pd.DataFrame) and not df_todas_inc.empty:
+                        for _, r_inc_act in df_todas_inc.iterrows():
+                            if str(r_inc_act.get('ESTATUS', '')).upper() in ['EN PROCESO', 'PENDIENTE']:
+                                p_num = normalizar_id(r_inc_act.get('NUM_POZO'))
+                                pozos_activos_dict[p_num] = str(r_inc_act.get('ESTATUS', '')).upper()
+
                     pozos_afectaciones_html = ""
                     for i in range(1, 11):
                         p_field = f'Pozo_{i}'
                         a_field = f'Afectacion_{i}'
                         if p_field in r_sec and pd.notnull(r_sec[p_field]) and str(r_sec[p_field]).strip():
                             p_val = str(r_sec[p_field]).strip()
-                            a_val = str(r_sec[a_field]).strip() if a_field in r_sec and pd.notnull(r_sec[a_field]) else "N/A"
-                            pozos_afectaciones_html += f"<div>• <b>{p_val}:</b> <span style='color: #FF4B4B;'>{a_val}%</span></div>"
+                            p_val_norm = normalizar_id(p_val)
+                            
+                            # Limpiamos el porcentaje quitando símbolos '%' repetidos si los hubiera
+                            raw_a = str(r_sec[a_field]) if a_field in r_sec and pd.notnull(r_sec[a_field]) else "0"
+                            a_val = raw_a.replace('%', '').strip()
+                            
+                            # Determinamos el color según el estatus de la incidencia activa
+                            # Amarillo = EN PROCESO, Rojo = PENDIENTE, Blanco/Gris = Sin incidencia activa
+                            estatus_pozo = pozos_activos_dict.get(p_val_norm, "")
+                            if estatus_pozo == 'EN PROCESO':
+                                color_pozo = "#f1c40f" # Amarillo
+                                estado_txt = " (En Proceso)"
+                            elif estatus_pozo == 'PENDIENTE':
+                                color_pozo = "#e74c3c" # Rojo
+                                estado_txt = " (Pendiente)"
+                            else:
+                                color_pozo = "#ffffff" # Blanco normal
+                                estado_txt = ""
+
+                            pozos_afectaciones_html += f"""
+                                <div style="margin-bottom: 2px; color: {color_pozo};">
+                                    • <b>{p_val}:</b> {a_val}% <span style="font-size: 9px; opacity: 0.8;">{estado_txt}</span>
+                                </div>
+                            """
                     
                     if not pozos_afectaciones_html:
                         pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
 
+                    # HTML con ancho controlado, ajuste de palabras (word-wrap) para evitar desbordes
                     html_tooltip = f"""
-                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 8px 12px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 260px; box-shadow: 0 4px 10px rgba(0,0,0,0.6);">
-                        <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b><hr style="margin: 4px 0; border-color: #1f3a5f;">
-                        <div style="margin-bottom: 4px;"><b>Colonias:</b> {col_atl_val}</div>
-                        <div><b>Pozos y Afectación:</b></div>
+                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 280px; max-width: 280px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
+                        <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b>
+                        <hr style="margin: 6px 0; border-color: #1f3a5f;">
+                        <div style="margin-bottom: 6px;"><b>Colonias:</b> <span style="color: #b0c4de;">{col_atl_val}</span></div>
+                        <div style="margin-bottom: 4px;"><b>Pozos y Afectación:</b></div>
                         {pozos_afectaciones_html}
                     </div>
                     """
 
-                    # Dibujar polígono del sector con el tooltip completo de hover
                     folium.GeoJson(
                         gdf_sector, 
                         style_function=lambda x: {'fillColor': '#00d4ff', 'color': '#ffffff', 'weight': 1.5, 'fillOpacity': 0.35},
