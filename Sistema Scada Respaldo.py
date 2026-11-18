@@ -3092,7 +3092,7 @@ if sector_seleccionado:
         fig.update_layout(
             paper_bgcolor='rgba(11,26,41,1)', plot_bgcolor='rgba(11,26,41,1)', height=380, 
             margin=dict(l=40, r=20, t=25, b=10), 
-            hovermode="x unified",  # <-- Habilita el hover unificado con los círculos y líneas hacia los ejes nativos
+            hovermode="x unified", 
             legend=dict(
                 orientation="h", 
                 yanchor="bottom", 
@@ -3103,19 +3103,9 @@ if sector_seleccionado:
                 itemwidth=30
             ),
             xaxis=dict(
-                domain=[0, 0.90], 
-                range=[f_ini_h, f_fin_h], 
-                color="#888888", 
-                showgrid=False, 
-                tickvals=ticks_filtrados, 
-                ticktext=etiquetas_filtradas, 
-                tickangle=0,
-                showspikes=True,
-                spikemode='across',      # <-- Cruza todo el gráfico de arriba a abajo de manera continua
-                spikesnap='cursor',
-                spikecolor='white',
-                spikethickness=1,
-                spikedash='dash'
+                domain=[0, 0.90], range=[f_ini_h, f_fin_h], color="#888888", showgrid=False, 
+                tickvals=ticks_filtrados, ticktext=etiquetas_filtradas, tickangle=0,
+                showspikes=True, spikemode='across', spikesnap='cursor', spikecolor='white', spikethickness=1, spikedash='dash'
             ),
             yaxis=dict(
                 title=dict(text="Caudal (L/s)", font=dict(color="#00d4ff")),
@@ -3123,7 +3113,7 @@ if sector_seleccionado:
                 color="#00d4ff",
                 showgrid=True, 
                 gridcolor="#16304a",
-                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#00d4ff', spikethickness=1, spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='data', spikecolor='#00d4ff', spikethickness=1, spikedash='dash'
             ),
             yaxis2=dict(
                 title=dict(text="Presión (mca)", font=dict(color="#00ff00"), standoff=15), 
@@ -3142,7 +3132,7 @@ if sector_seleccionado:
                 ticks="outside",
                 ticklen=6,
                 tickwidth=1,
-                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#00ff00', spikethickness=1, spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='data', spikecolor='#00ff00', spikethickness=1, spikedash='dash'
             ),
             yaxis3=dict(
                 title=dict(text="Nivel Tq (mts)", font=dict(color="#d400ff"), standoff=15), 
@@ -3161,9 +3151,10 @@ if sector_seleccionado:
                 ticks="outside",
                 ticklen=6,
                 tickwidth=1,
-                showspikes=True, spikemode='toaxis', spikesnap='cursor', spikecolor='#d400ff', spikethickness=1, spikedash='dash'
+                showspikes=True, spikemode='toaxis', spikesnap='data', spikecolor='#d400ff', spikethickness=1, spikedash='dash'
             )
         )
+        
         st.plotly_chart(fig, use_container_width=True)
 
     # --- FILA INFERIOR: PUNTOS CRÍTICOS Y DATOS OPERATIVOS ---
