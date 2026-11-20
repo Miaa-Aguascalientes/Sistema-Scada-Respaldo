@@ -4484,12 +4484,6 @@ elif tab_activa == "incidencias":
 
         gdf_sector = get_geometria_sector_completa(sector_nombre)
 
-        st.markdown("""
-            <style>
-            [data-testid="column"] { padding-left: 0px !important; padding-right: 0px !important; }
-            </style>
-        """, unsafe_allow_html=True)        
-
         col1, col2 = st.columns([3, 2], gap="small")
         
         with col1:
@@ -4541,29 +4535,25 @@ elif tab_activa == "incidencias":
                                 color_pozo = "#ffffff"
                                 estado_txt = ""
 
-                            pozos_afectaciones_html += f"""
-                                <div style="margin-bottom: 2px; color: {color_pozo};">
-                                    • <b>{p_val}:</b> {a_val}% <span style="font-size: 9px; opacity: 0.8;">{estado_txt}</span>
-                                </div>
-                            """
+                            pozos_afectaciones_html += (
+                                f"<div style='margin-bottom: 2px; color: {color_pozo};'>"
+                                f"• <b>{p_val}:</b> {a_val}% <span style='font-size: 9px; opacity: 0.8;'>{estado_txt}</span>"
+                                f"</div>"
+                            )
                     
                     if not pozos_afectaciones_html:
                         pozos_afectaciones_html = f"<div>{str(r_sec.get('Pozos', 'N/A'))}</div>"
 
-                    html_tooltip = f"""
-                    <div style="background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 290px; max-width: 290px; word-wrap: break-word; overflow-wrap: break-word; box-shadow: 0 4px 12px rgba(0,0,0,0.7);">
-                        <b style="color: #00d4ff; font-size: 12px;">Sector: {sector_nombre}</b>
-                        <hr style="margin: 6px 0; border-color: #1f3a5f;">
-                        <div style="margin-bottom: 6px;">
-                            <b>Colonias:</b> 
-                            <div style="white-space: normal; color: #b0c4de; background: rgba(0,0,0,0.3); padding: 5px 8px; border-radius: 4px; margin-top: 3px; border: 1px solid #1b2a38; line-height: 1.3;">
-                                {col_atl_val}
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 4px;"><b>Pozos y Afectación:</b></div>
-                        {pozos_afectaciones_html}
-                    </div>
-                    """
+                    html_tooltip = (
+                        f"<div style='background: rgba(13, 27, 42, 0.95); color: #ffffff; padding: 10px 14px; "
+                        f"border: 1px solid #00d4ff; font-size: 11px; border-radius: 6px; width: 290px;'>"
+                        f"<b style='color: #00d4ff; font-size: 12px;'>Sector: {sector_nombre}</b>"
+                        f"<hr style='margin: 6px 0; border-color: #1f3a5f;'>"
+                        f"<div style='margin-bottom: 6px;'><b>Colonias:</b><br>"
+                        f"<span style='color: #b0c4de;'>{col_atl_val}</span></div>"
+                        f"<div style='margin-bottom: 4px;'><b>Pozos y Afectación:</b></div>"
+                        f"{pozos_afectaciones_html}</div>"
+                    )
 
                     folium.GeoJson(
                         gdf_sector, 
@@ -4582,7 +4572,7 @@ elif tab_activa == "incidencias":
                                 location=destino,
                                 icon=folium.DivIcon(
                                     icon_size=(220, 30),
-                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: #00d4ff; padding: 3px 8px; border: 1px solid #00d4ff; font-size: 10px; font-weight: bold; border-radius: 4px; white-space: nowrap; margin-left: 5px;">Sector: {sector_nombre}</div>'
+                                    html=f'<div style="background: rgba(0, 0, 0, 0.9); color: #00d4ff; padding: 3px 8px; border: 1px solid #00d4ff; font-size: 10px; font-weight: bold; border-radius: 4px; margin-left: 5px;">Sector: {sector_nombre}</div>'
                                 )
                             ).add_to(m)
                     
@@ -4664,10 +4654,10 @@ elif tab_activa == "incidencias":
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
 
         # ==============================================================================
-        # COLUMNA IZQUIERDA: SELECTOR DE COLONIAS Y TARJETAS HUD
+        # COLUMNA IZQUIERDA: SELECTOR DE COLONIAS Y TARJETAS HUD (SIN HTML FLEX FRÁGIL)
         # ==============================================================================
         with col_panel_izq:
-            st.markdown('<div style="color: #00d4ff; font-weight: bold; font-size: 14px; margin-bottom: 8px; letter-spacing: 1px;">// Colonias Afectadas por incidencias</div>', unsafe_allow_html=True)
+            st.markdown("### // Colonias Afectadas por incidencias")
 
             todas_las_colonias_dict = get_todas_las_colonias_diccionario()
             opciones_selectbox = ["🔍"] + todas_las_colonias_dict
@@ -4675,35 +4665,6 @@ elif tab_activa == "incidencias":
             colonia_seleccionada = st.selectbox("Seleccionar o buscar colonia:", opciones_selectbox, key="select_colonia_hud")
             
             filtrar_por_colonia = None if colonia_seleccionada == "🔍" else colonia_seleccionada.strip().upper()
-
-            st.markdown("""
-                <style>
-                .hud-card {
-                    background: linear-gradient(180deg, rgba(13, 27, 42, 0.95) 0%, rgba(6, 14, 24, 1) 100%);
-                    border: 1px solid #1f3a5f;
-                    border-radius: 8px;
-                    padding: 8px 10px;
-                    margin-bottom: 8px;
-                    box-shadow: 0 3px 10px rgba(0,0,0,0.5);
-                }
-                .colonias-box-hud {
-                    background-color: rgba(0, 0, 0, 0.4);
-                    border: 1px solid #1b2a38;
-                    border-radius: 5px;
-                    padding: 5px 8px;
-                    max-height: 75px;
-                    overflow-y: auto;
-                    font-size: 10px;
-                    color: #b0c4de;
-                    margin-top: 3px;
-                    line-height: 1.2;
-                    white-space: normal;
-                    word-wrap: break-word;
-                }
-                .colonias-box-hud::-webkit-scrollbar { width: 3px; }
-                .colonias-box-hud::-webkit-scrollbar-thumb { background: #00d4ff; border-radius: 3px; }
-                </style>
-            """, unsafe_allow_html=True)
 
             gdf_sec_geo = get_todos_los_sectores_geo()
             sectores_agrupados = {}
@@ -4777,7 +4738,7 @@ elif tab_activa == "incidencias":
 
             sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
 
-            with st.container(height=780, border=False):
+            with st.container(height=780, border=True):
                 tarjetas_renderizadas = 0
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
@@ -4795,13 +4756,8 @@ elif tab_activa == "incidencias":
 
                         tarjetas_renderizadas += 1
                         
-                        desglose_pozos = []
-                        for p_id, t_str in sec_data['pozo_tiempos']:
-                            desglose_pozos.append(
-                                f"<span style='white-space: nowrap;'>{p_id}: <b style='color:#ffff00;'>{t_str}</b></span>"
-                            )
-                        
-                        tiempos_html = " <span style='color:#64748b;'>|</span> ".join(desglose_pozos)
+                        desglose_pozos = [f"{p_id}: **{t_str}**" for p_id, t_str in sec_data['pozo_tiempos']]
+                        tiempos_str = " | ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
@@ -4810,52 +4766,20 @@ elif tab_activa == "incidencias":
                             if pct_val == 0:
                                 pct_val = 100
                             pct_str = f"{pct_val}% AFECTACIÓN"
-                            if pct_val >= 76:
-                                bg_badge = "#FF0000"
-                            elif pct_val >= 51:
-                                bg_badge = "#FFFF00"
-                            elif pct_val >= 31:
-                                bg_badge = "#FFA500"
-                            else:
-                                bg_badge = "#69ADDD"
                         else:
                             if pct_val > 0:
                                 pct_str = f"{pct_val}% AFECTACIÓN"
-                                if pct_val >= 76:
-                                    bg_badge = "#FF0000"
-                                elif pct_val >= 51:
-                                    bg_badge = "#FFFF00"
-                                elif pct_val >= 31:
-                                    bg_badge = "#FFA500"
-                                else:
-                                    bg_badge = "#69ADDD"
                             else:
                                 pct_str = "EN RECUPERACIÓN"
-                                bg_badge = "#8E44AD"
 
-                        if bg_badge == "#8E44AD":
-                            text_color = "#FFFFFF"
-                        else:
-                            text_color = "#000000"
-
-                        st.markdown(f"""
-                            <div class="hud-card">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
-                                    <div style="color: #ffffff; font-weight: bold; font-size: 12px; min-width: 0; flex: 1; line-height: 1.35;">
-                                        Sector: <b style="color: #00d4ff;">{sec_name}</b>
-                                        <div style="font-size: 11px; font-weight: normal; color: #e2e8f0; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
-                                            <span>Fuera de op:</span>
-                                            {tiempos_html}
-                                        </div>
-                                    </div>
-                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
-                                </div>
-                                <div style="font-size: 11px; color: #a0aec0;">
-                                    <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
-                                    <div class="colonias-box-hud">{colonias_str}</div>
-                                </div>
-                            </div>
-                        """, unsafe_allow_html=True)
+                        with st.container(border=True):
+                            c_hdr1, c_hdr2 = st.columns([2.4, 1.2])
+                            with c_hdr1:
+                                st.markdown(f"**Sector:** `{sec_name}`")
+                            with c_hdr2:
+                                st.markdown(f"**{pct_str}**")
+                            st.markdown(f"**Fuera de op:** {tiempos_str}")
+                            st.caption(f"**COLONIAS:** {colonias_str}")
                     
                     if tarjetas_renderizadas == 0:
                         if filtrar_por_colonia:
