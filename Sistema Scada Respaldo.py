@@ -4378,7 +4378,6 @@ elif tab_activa == "incidencias":
                 df = df[df.apply(pozo_en_fila, axis=1)].copy()
 
                 if len(df) > 1:
-                    # Si hay múltiples filas, priorizar las que NO sean MORELOS cuando el pozo pertenece a otro sector
                     no_morelos = df[df['Sector'].astype(str).str.strip().str.upper() != 'MORELOS']
                     if not no_morelos.empty and id_busqueda == 'P-021A':
                         df = no_morelos.copy()
@@ -4694,8 +4693,15 @@ elif tab_activa == "incidencias":
         mask_activas = df_final['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])
         mask_cerradas_hoy = (df_final['ESTATUS'].str.upper() == 'CERRADA') & ((f_inicio_norm == hoy) | (f_fin_norm == hoy))
         
-        df_actual = df_final[mask_activas | mask_cerradas_hoy]
+        df_actual = df_final[mask_activas | mask_cerradas_hoy].copy()
         df_historial = df_final[(df_final['ESTATUS'].str.upper() == 'CERRADA') & (f_fin_norm < hoy) & (f_inicio_norm < hoy)].copy()
+
+        # Diccionario estricto solo con incidencias realmente activas (EN PROCESO / PENDIENTE)
+        incidencias_activas_reales = {}
+        for _, r_act in df_actual[df_actual['ESTATUS'].str.upper().isin(['EN PROCESO', 'PENDIENTE'])].iterrows():
+            p_act = normalizar_id(r_act.get('NUM_POZO'))
+            if p_act:
+                incidencias_activas_reales[p_act] = str(r_act.get('ESTATUS', '')).upper()
 
         # --- ESTRUCTURA EN DOS COLUMNAS PRINCIPALES (SUPERIOR) ---
         col_panel_izq, col_panel_der = st.columns([1.1, 2.7], gap="medium")
@@ -4749,7 +4755,7 @@ elif tab_activa == "incidencias":
             for _, r_inc in df_actual.iterrows():
                 id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
                 inicio_inc = pd.to_datetime(r_inc.get('FECHA_HORA_INICIO')).tz_localize(None).tz_localize(tz_mx)
-                estatus_inc = str(r_inc.get('ESTATUS', '')).upper()
+                estatus_inc = str(r_inc.get('ESTATUS', '')).strip().upper()
                 fin_inc = r_inc.get('FECHA_HORA_FIN')
 
                 if estatus_inc == 'CERRADA' and pd.notnull(fin_inc):
@@ -4780,6 +4786,7 @@ elif tab_activa == "incidencias":
                     sector_nombre = "Sin Sector"
                     nombres_cols = []
 
+                # ESTRICTO: Solo EN PROCESO o PENDIENTE van a Fuera de op
                 if estatus_inc in ['EN PROCESO', 'PENDIENTE']:
                     if sector_nombre not in sectores_activos_agrupados:
                         props_sec = {}
@@ -4788,7 +4795,7 @@ elif tab_activa == "incidencias":
                             if not matched.empty:
                                 props_sec = matched.iloc[0].to_dict()
 
-                        color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
+                        color_afec, val_afec = calcular_color_sector(props_sec, incidencias_activas_reales)
                         if val_afec == 0:
                             val_afec = 100.0
                             color_afec = '#FF0000'
@@ -4807,6 +4814,8 @@ elif tab_activa == "incidencias":
                         if segundos_fuera > sec['max_segundos']:
                             sec['max_segundos'] = segundos_fuera
                         sec['colonias'].update(nombres_cols)
+
+                # ESTRICTO: CERRADA nunca entra a sectores_activos_agrupados; va a EN RECUPERACIÓN
                 elif estatus_inc == 'CERRADA':
                     tarjetas_recuperacion.append({
                         'sector': sector_nombre,
