@@ -4330,28 +4330,52 @@ elif tab_activa == "incidencias":
             
         try:
             query = """
-                SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor 
-                FROM Diccionario_colonias 
+                SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector,
+                       Pozo_1, Afectacion_1, Pozo_2, Afectacion_2,
+                       Pozo_3, Afectacion_3, Pozo_4, Afectacion_4,
+                       Pozo_5, Afectacion_5, Pozo_6, Afectacion_6,
+                       Pozo_7, Afectacion_7, Pozo_8, Afectacion_8,
+                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10,
+                       Pozo_11, Afectacion_11, Pozo_12, Afectacion_12
+                FROM Diccionario_sectores 
                 WHERE Pozos = %s 
                    OR Pozos LIKE %s 
                    OR Pozos LIKE %s 
                    OR Pozos LIKE %s
+                   OR %s IN (
+                       UPPER(TRIM(Pozo_1)), UPPER(TRIM(Pozo_2)), UPPER(TRIM(Pozo_3)),
+                       UPPER(TRIM(Pozo_4)), UPPER(TRIM(Pozo_5)), UPPER(TRIM(Pozo_6)),
+                       UPPER(TRIM(Pozo_7)), UPPER(TRIM(Pozo_8)), UPPER(TRIM(Pozo_9)),
+                       UPPER(TRIM(Pozo_10)), UPPER(TRIM(Pozo_11)), UPPER(TRIM(Pozo_12))
+                   )
             """
             p_exacto = id_busqueda
             p_comienza = f"{id_busqueda},%"
             p_medio = f"%, {id_busqueda},%"
             p_termina = f"%, {id_busqueda}"
             
-            df = pd.read_sql(query, engine, params=(p_exacto, p_comienza, p_medio, p_termina))
+            df = pd.read_sql(
+                query,
+                engine,
+                params=(p_exacto, p_comienza, p_medio, p_termina, id_busqueda)
+            )
             
             if not df.empty:
-                def pozo_en_lista(cell_value):
-                    if pd.isna(cell_value):
-                        return False
-                    pozos_en_celda = [p.strip().upper() for p in str(cell_value).replace(';', ',').split(',')]
-                    return id_busqueda in pozos_en_celda
+                def pozo_en_fila(r_fila):
+                    pozos_en_celda = []
+                    if pd.notna(r_fila.get('Pozos')):
+                        pozos_en_celda.extend([
+                            p.strip().upper()
+                            for p in str(r_fila['Pozos']).replace(';', ',').split(',')
+                            if p.strip()
+                        ])
+                    for i in range(1, 13):
+                        val_p = r_fila.get(f'Pozo_{i}')
+                        if pd.notna(val_p) and str(val_p).strip():
+                            pozos_en_celda.append(str(val_p).strip().upper())
+                    return id_busqueda in set(pozos_en_celda)
 
-                df = df[df['Pozos'].apply(pozo_en_lista)]
+                df = df[df.apply(pozo_en_fila, axis=1)]
 
             if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
                 df['geometry'] = df['geom_wkt'].apply(wkt.loads)
@@ -4360,7 +4384,7 @@ elif tab_activa == "incidencias":
                 return gdf.to_crs(epsg=4326)
                 
         except Exception as e:
-            st.error(f"Error en BD al obtener geometrías de colonias: {e}")
+            st.error(f"Error en BD al obtener geometrías desde Diccionario_sectores: {e}")
             
         return None
 
@@ -4381,7 +4405,8 @@ elif tab_activa == "incidencias":
                        Pozo_3, Afectacion_3, Pozo_4, Afectacion_4,
                        Pozo_5, Afectacion_5, Pozo_6, Afectacion_6,
                        Pozo_7, Afectacion_7, Pozo_8, Afectacion_8,
-                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10
+                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10,
+                       Pozo_11, Afectacion_11, Pozo_12, Afectacion_12
                 FROM Diccionario_sectores 
                 WHERE TRIM(Sector) = %s
             """
@@ -4404,16 +4429,20 @@ elif tab_activa == "incidencias":
         if engine is None:
             return []
         try:
-            query = "SELECT DISTINCT Col_atl FROM Diccionario_colonias WHERE Col_atl IS NOT NULL AND Col_atl != ''"
+            query = "SELECT Col_atl FROM Diccionario_sectores WHERE Col_atl IS NOT NULL AND Col_atl != ''"
             df_cols = pd.read_sql(query, engine)
             if not df_cols.empty:
-                lista = sorted([str(c).strip() for c in df_cols['Col_atl'].dropna().unique() if str(c).strip()])
-                return lista
+                colonias_set = set()
+                for val_col in df_cols['Col_atl'].dropna():
+                    for c in str(val_col).split(','):
+                        c_limpia = c.strip()
+                        if c_limpia:
+                            colonias_set.add(c_limpia)
+                return sorted(list(colonias_set))
         except Exception:
             pass
         return []
 
-    # Función auxiliar para obtener y ordenar alfabéticamente las colonias de un sector
     @st.cache_data(ttl=60)
     def get_colonias_del_sector_ordenadas(sec_nombre):
         if not sec_nombre or str(sec_nombre).strip().upper() in ['NAN', 'N/A', 'NONE', 'SIN SECTOR']:
@@ -4427,7 +4456,6 @@ elif tab_activa == "incidencias":
             if not df_s.empty and 'Col_atl' in df_s.columns:
                 val_col = df_s['Col_atl'].iloc[0]
                 if pd.notnull(val_col) and str(val_col).strip():
-                    # Dividimos por coma, limpiamos espacios y ordenamos alfabéticamente
                     lista_cruda = [c.strip() for c in str(val_col).split(',') if c.strip()]
                     return sorted(list(set(lista_cruda)))
         except Exception:
@@ -4446,8 +4474,12 @@ elif tab_activa == "incidencias":
         if gdf_col is not None and not gdf_col.empty:
             if 'Sector' in gdf_col.columns and pd.notnull(gdf_col['Sector'].iloc[0]):
                 sector_nombre = str(gdf_col['Sector'].iloc[0]).strip()
-            if 'Distrito' in gdf_col.columns and pd.notnull(gdf_col['Distrito'].iloc[0]):
-                distrito_val = str(gdf_col['Distrito'].iloc[0]).strip()
+            datos_sec_match = next(
+                (s for s in sectores if str(s.get('sector', '')).strip().upper() == sector_nombre.upper()),
+                None
+            )
+            if datos_sec_match and datos_sec_match.get('Distrito'):
+                distrito_val = str(datos_sec_match['Distrito']).strip()
 
         gdf_sector = get_geometria_sector_completa(sector_nombre)
 
@@ -4475,7 +4507,6 @@ elif tab_activa == "incidencias":
                     ).add_to(m)
                     
                     r_sec = gdf_sector.iloc[0]
-                    # Obtenemos las colonias ordenadas alfabéticamente para el mapa
                     cols_ordenadas_mapa = get_colonias_del_sector_ordenadas(sector_nombre)
                     col_atl_val = ", ".join(cols_ordenadas_mapa) if cols_ordenadas_mapa else str(r_sec.get('Col_atl', 'N/A'))
                     
@@ -4488,7 +4519,7 @@ elif tab_activa == "incidencias":
                                 pozos_activos_dict[p_num] = str(r_inc_act.get('ESTATUS', '')).upper()
 
                     pozos_afectaciones_html = ""
-                    for i in range(1, 11):
+                    for i in range(1, 13):
                         p_field = f'Pozo_{i}'
                         a_field = f'Afectacion_{i}'
                         if p_field in r_sec and pd.notnull(r_sec[p_field]) and str(r_sec[p_field]).strip():
@@ -4500,13 +4531,13 @@ elif tab_activa == "incidencias":
                             
                             estatus_pozo = pozos_activos_dict.get(p_val_norm, "")
                             if estatus_pozo == 'EN PROCESO':
-                                color_pozo = "#f1c40f" # Amarillo
+                                color_pozo = "#f1c40f"
                                 estado_txt = " (En Proceso)"
                             elif estatus_pozo == 'PENDIENTE':
-                                color_pozo = "#e74c3c" # Rojo
+                                color_pozo = "#e74c3c"
                                 estado_txt = " (Pendiente)"
                             else:
-                                color_pozo = "#ffffff" # Blanco normal
+                                color_pozo = "#ffffff"
                                 estado_txt = ""
 
                             pozos_afectaciones_html += f"""
@@ -4559,7 +4590,7 @@ elif tab_activa == "incidencias":
                 except Exception as e:
                     st.error(f"Error al renderizar el mapa del sector: {e}")
             else:
-                st.warning(f"Sin geometría de sector disponible para '{sector_nombre}'.")
+                st.warning(f"Sin geometría de sector disponible en Diccionario_sectores para '{sector_nombre}'.")
 
         with col2:
             st.subheader("Tiempo de Atención")
@@ -4749,7 +4780,6 @@ elif tab_activa == "incidencias":
                 tarjetas_renderizadas = 0
                 if sectores_ordenados:
                     for sec_name, sec_data in sectores_ordenados:
-                        # Usamos get_colonias_del_sector_ordenadas para asegurar orden alfabético estricto
                         lista_cols_validas = get_colonias_del_sector_ordenadas(sec_name)
                         if not lista_cols_validas:
                             lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
@@ -4766,9 +4796,9 @@ elif tab_activa == "incidencias":
                         
                         desglose_pozos = []
                         for p_id, t_str in sec_data['pozo_tiempos']:
-                            desglose_pozos.append(f"{p_id}: <b style='color:#ffff00;'>{t_str}</b>")
+                            desglose_pozos.append(f"<span style='white-space: nowrap;'>{p_id}: <b style='color:#ffff00;'>{t_str}</b></span>")
                         
-                        tiempos_str = " | ".join(desglose_pozos)
+                        tiempos_str = " <span style='color:#64748b;'>|</span> ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
@@ -4807,9 +4837,11 @@ elif tab_activa == "incidencias":
 
                         st.markdown(f"""
                             <div class="hud-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
-                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
+                                    <span style="color: #ffffff; font-weight: bold; font-size: 12px; min-width: 0; flex: 1; line-height: 1.35;">
+                                        Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: <span style="display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle;">{tiempos_str}</span>
+                                    </span>
+                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
                                     <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
@@ -4917,7 +4949,9 @@ elif tab_activa == "incidencias":
                     jp = normalizar_id(rh['NUM_POZO'])
                     gdf_th = get_geometries(jp)
                     if gdf_th is not None and not gdf_th.empty and 'Col_atl' in gdf_th.columns:
-                        cols_h = [str(c).strip().upper() for c in gdf_th['Col_atl'].dropna().unique()]
+                        cols_h = []
+                        for val_ch in gdf_th['Col_atl'].dropna():
+                            cols_h.extend([c.strip().upper() for c in str(val_ch).split(',') if c.strip()])
                         if any(colonia_sel.strip().upper() in ch for ch in cols_h):
                             pozos_validos_col.append(jp)
                 datos_trabajo = datos_trabajo[datos_trabajo['NUM_POZO'].astype(str).str.strip().str.upper().isin(pozos_validos_col)]
@@ -5176,15 +5210,20 @@ elif tab_activa == "incidencias":
                     id_p = normalizar_id(r_hist['NUM_POZO'])
                     gdf_h = get_geometries(id_p)
                     if gdf_h is not None and not gdf_h.empty and 'Col_atl' in gdf_h.columns:
-                        cols_unicas = sorted(gdf_h['Col_atl'].dropna().unique().tolist())
-                        colonias_por_fila.append(", ".join(map(str, cols_unicas)))
+                        cols_unicas = set()
+                        for val_ch in gdf_h['Col_atl'].dropna():
+                            for c in str(val_ch).split(','):
+                                c_limpia = c.strip()
+                                if c_limpia:
+                                    cols_unicas.add(c_limpia)
+                        colonias_por_fila.append(", ".join(sorted(cols_unicas)))
                     else:
                         colonias_por_fila.append("")
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
                 
-                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
-                    
+                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)       
+                
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
