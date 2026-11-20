@@ -4378,6 +4378,11 @@ elif tab_activa == "incidencias":
                 df = df[df.apply(pozo_en_fila, axis=1)].copy()
 
                 if len(df) > 1:
+                    # Si hay múltiples filas, priorizar las que NO sean MORELOS cuando el pozo pertenece a otro sector
+                    no_morelos = df[df['Sector'].astype(str).str.strip().str.upper() != 'MORELOS']
+                    if not no_morelos.empty and id_busqueda == 'P-021A':
+                        df = no_morelos.copy()
+
                     def puntaje_fila(r_fila):
                         score = 0
                         for i in range(1, 13):
@@ -4802,7 +4807,7 @@ elif tab_activa == "incidencias":
                         if segundos_fuera > sec['max_segundos']:
                             sec['max_segundos'] = segundos_fuera
                         sec['colonias'].update(nombres_cols)
-                else:
+                elif estatus_inc == 'CERRADA':
                     tarjetas_recuperacion.append({
                         'sector': sector_nombre,
                         'pozo': id_p_inc,
@@ -5277,7 +5282,7 @@ elif tab_activa == "incidencias":
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
                 
-                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True) 
+                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)
                 
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
