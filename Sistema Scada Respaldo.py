@@ -4797,9 +4797,11 @@ elif tab_activa == "incidencias":
                         
                         desglose_pozos = []
                         for p_id, t_str in sec_data['pozo_tiempos']:
-                            desglose_pozos.append(f"{p_id}: <b style='color:#ffff00;'>{t_str}</b>")
+                            desglose_pozos.append(
+                                f"<span style='white-space: nowrap;'>{p_id}: <b style='color:#ffff00;'>{t_str}</b></span>"
+                            )
                         
-                        tiempos_str = " | ".join(desglose_pozos)
+                        tiempos_html = " <span style='color:#64748b;'>|</span> ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
                         
                         pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
@@ -4838,9 +4840,15 @@ elif tab_activa == "incidencias":
 
                         st.markdown(f"""
                             <div class="hud-card">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <span style="color: #ffffff; font-weight: bold; font-size: 12px;">Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: {tiempos_str}</span>
-                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
+                                    <div style="color: #ffffff; font-weight: bold; font-size: 12px; min-width: 0; flex: 1; line-height: 1.35;">
+                                        Sector: <b style="color: #00d4ff;">{sec_name}</b>
+                                        <div style="font-size: 11px; font-weight: normal; color: #e2e8f0; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                                            <span>Fuera de op:</span>
+                                            {tiempos_html}
+                                        </div>
+                                    </div>
+                                    <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
                                 </div>
                                 <div style="font-size: 11px; color: #a0aec0;">
                                     <div style="margin-top: 2px;"><b>COLONIAS:</b></div>
