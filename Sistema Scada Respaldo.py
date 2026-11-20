@@ -400,16 +400,34 @@ def obtener_historia_7_dias(tag_name):
 def cargar_sectores_poligonos():
     # Obtenemos una conexión fresca
     conn = psycopg2.connect(**st.secrets["postgres"])
-    if not conn: return []
+    if not conn:
+        return []
     try:
         query = """
-            SELECT sector, "Pozos_Sector", 
-                   "Superficie", "Long_Red", "Vol_Prod", "U_Domesticos", 
-                   "U_NoDom", "U_Tot", "Poblacion", "Cons_m3", 
-                   "Faltas_Agua", "Fugas_Tot", "FTC", "FTA", 
-                   "Vol_Medid", "Vol_Fact", "Kwh", "costoKw-hr", 
-                   "Recaudacion", "Dotacion", "Balance_Estimado",
-                   ST_AsGeoJSON(ST_Transform(geom, 4326)) as geo 
+            SELECT fid,
+                   sector,
+                   "Pozos_Sector",
+                   "Cantidad_Pozos",
+                   "AREA",
+                   "USUARIOS",
+                   "USU_DOM",
+                   "POB_2025",
+                   "Q_PROD",
+                   "VOL_PROD-MES",
+                   "LONG_RED",
+                   "CONS_PROM",
+                   "VOL_FACT",
+                   "DOM_A",
+                   "DOM_B",
+                   "DOM_C",
+                   "COMERCIAL",
+                   "FALTAS_AGUA",
+                   "FUGAS",
+                   "DOTACION",
+                   "BAL_VOL",
+                   "EF",
+                   "Balance_Estimado",
+                   ST_AsGeoJSON(ST_Transform(geom, 4326)) AS geo
             FROM "Sectorizacion"."sectores_hidr"
         """
         # Leemos los datos
@@ -419,10 +437,7 @@ def cargar_sectores_poligonos():
         st.error(f"Error al cargar sectores: {e}")
         return []
     finally:
-        # El bloque finally asegura que la conexión se cierre SIEMPRE
-        # al terminar la función, exitosa o fallida.
-        if conn:
-            conn.close()
+        conn.close()
 
 # Función corregida para leer el campo 'geom' directamente
 @st.cache_data(ttl=3600)
