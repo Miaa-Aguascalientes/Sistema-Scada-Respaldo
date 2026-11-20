@@ -4332,7 +4332,7 @@ elif tab_activa == "incidencias":
         try:
             query = """
                 SELECT ST_AsText(geom) as geom_wkt, Pozos, Col_atl, Sector, Distrito, Supervisor 
-                FROM Diccionario_colonias 
+                FROM Diccionario_sectores 
                 WHERE Pozos = %s 
                    OR Pozos LIKE %s 
                    OR Pozos LIKE %s 
