@@ -455,7 +455,8 @@ def get_todos_los_sectores_geo():
                Pozo_3, Afectacion_3, Pozo_4, Afectacion_4, 
                Pozo_5, Afectacion_5, Pozo_6, Afectacion_6, 
                Pozo_7, Afectacion_7, Pozo_8, Afectacion_8, 
-               Pozo_9, Afectacion_9, Pozo_10, Afectacion_10 
+               Pozo_9, Afectacion_9, Pozo_10, Afectacion_10,
+               Pozo_11, Afectacion_11, Pozo_12, Afectacion_12 
         FROM Diccionario_sectores
     """
     try:
@@ -4381,7 +4382,8 @@ elif tab_activa == "incidencias":
                        Pozo_3, Afectacion_3, Pozo_4, Afectacion_4,
                        Pozo_5, Afectacion_5, Pozo_6, Afectacion_6,
                        Pozo_7, Afectacion_7, Pozo_8, Afectacion_8,
-                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10
+                       Pozo_9, Afectacion_9, Pozo_10, Afectacion_10,
+                       Pozo_11, Afectacion_11, Pozo_12, Afectacion_12 
                 FROM Diccionario_sectores 
                 WHERE TRIM(Sector) = %s
             """
