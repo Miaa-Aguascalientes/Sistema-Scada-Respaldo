@@ -4375,7 +4375,26 @@ elif tab_activa == "incidencias":
                             pozos_en_celda.append(str(val_p).strip().upper())
                     return id_busqueda in set(pozos_en_celda)
 
-                df = df[df.apply(pozo_en_fila, axis=1)]
+                df = df[df.apply(pozo_en_fila, axis=1)].copy()
+
+                if len(df) > 1:
+                    def puntaje_fila(r_fila):
+                        score = 0
+                        for i in range(1, 13):
+                            vp = r_fila.get(f'Pozo_{i}')
+                            if pd.notna(vp) and str(vp).strip().upper() == id_busqueda:
+                                score += 10
+                                va = r_fila.get(f'Afectacion_{i}')
+                                if pd.notna(va):
+                                    try:
+                                        if float(str(va).replace('%', '').strip()) > 0:
+                                            score += 5
+                                    except ValueError:
+                                        pass
+                        return score
+
+                    df['_score_pozo'] = df.apply(puntaje_fila, axis=1)
+                    df = df.sort_values(by='_score_pozo', ascending=False).drop(columns=['_score_pozo'])
 
             if not df.empty and 'geom_wkt' in df.columns and df['geom_wkt'].iloc[0] is not None:
                 df['geometry'] = df['geom_wkt'].apply(wkt.loads)
@@ -4460,6 +4479,20 @@ elif tab_activa == "incidencias":
                     return sorted(list(set(lista_cruda)))
         except Exception:
             pass
+        return []
+
+    def extraer_colonias_de_gdf(gdf_obj, sec_nombre):
+        cols_sec = get_colonias_del_sector_ordenadas(sec_nombre)
+        if cols_sec:
+            return cols_sec
+        if gdf_obj is not None and not gdf_obj.empty and 'Col_atl' in gdf_obj.columns:
+            cols_set = set()
+            for val_c in gdf_obj['Col_atl'].dropna():
+                for c in str(val_c).split(','):
+                    c_limpia = c.strip()
+                    if c_limpia:
+                        cols_set.add(c_limpia)
+            return sorted(list(cols_set))
         return []
 
     @st.fragment
@@ -4705,7 +4738,8 @@ elif tab_activa == "incidencias":
             """, unsafe_allow_html=True)
 
             gdf_sec_geo = get_todos_los_sectores_geo()
-            sectores_agrupados = {}
+            sectores_activos_agrupados = {}
+            tarjetas_recuperacion = []
 
             for _, r_inc in df_actual.iterrows():
                 id_p_inc = normalizar_id(r_inc.get('NUM_POZO'))
@@ -4736,110 +4770,131 @@ elif tab_activa == "incidencias":
                 
                 if gdf_r is not None and not gdf_r.empty:
                     sector_nombre = str(gdf_r['Sector'].iloc[0]).strip()
-                    nombres_cols = get_colonias_del_sector_ordenadas(sector_nombre)
+                    nombres_cols = extraer_colonias_de_gdf(gdf_r, sector_nombre)
                 else:
                     sector_nombre = "Sin Sector"
                     nombres_cols = []
 
-                if sector_nombre not in sectores_agrupados:
-                    props_sec = {}
-                    if gdf_sec_geo is not None and not gdf_sec_geo.empty:
-                        matched = gdf_sec_geo[gdf_sec_geo['Sector'].astype(str).str.strip() == sector_nombre]
-                        if not matched.empty:
-                            props_sec = matched.iloc[0].to_dict()
+                if estatus_inc in ['EN PROCESO', 'PENDIENTE']:
+                    if sector_nombre not in sectores_activos_agrupados:
+                        props_sec = {}
+                        if gdf_sec_geo is not None and not gdf_sec_geo.empty:
+                            matched = gdf_sec_geo[gdf_sec_geo['Sector'].astype(str).str.strip() == sector_nombre]
+                            if not matched.empty:
+                                props_sec = matched.iloc[0].to_dict()
 
-                    color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
-                    
-                    if estatus_inc in ['EN PROCESO', 'PENDIENTE'] and val_afec == 0:
-                        val_afec = 100.0
-                        color_afec = '#FF0000'
+                        color_afec, val_afec = calcular_color_sector(props_sec, dic_incidencias_activas)
+                        if val_afec == 0:
+                            val_afec = 100.0
+                            color_afec = '#FF0000'
 
-                    sectores_agrupados[sector_nombre] = {
-                        'pozo_tiempos': [(id_p_inc, tiempo_str)],
-                        'max_segundos': segundos_fuera,
-                        'colonias': set(nombres_cols),
-                        'color_badge': color_afec,
-                        'val_afectacion': val_afec,
-                        'tiene_activa': (estatus_inc in ['EN PROCESO', 'PENDIENTE'])
-                    }
+                        sectores_activos_agrupados[sector_nombre] = {
+                            'pozo_tiempos': [(id_p_inc, tiempo_str)],
+                            'max_segundos': segundos_fuera,
+                            'colonias': set(nombres_cols),
+                            'color_badge': color_afec,
+                            'val_afectacion': val_afec,
+                            'tiene_activa': True
+                        }
+                    else:
+                        sec = sectores_activos_agrupados[sector_nombre]
+                        sec['pozo_tiempos'].append((id_p_inc, tiempo_str))
+                        if segundos_fuera > sec['max_segundos']:
+                            sec['max_segundos'] = segundos_fuera
+                        sec['colonias'].update(nombres_cols)
                 else:
-                    sec = sectores_agrupados[sector_nombre]
-                    sec['pozo_tiempos'].append((id_p_inc, tiempo_str))
-                    if segundos_fuera > sec['max_segundos']:
-                        sec['max_segundos'] = segundos_fuera
-                    sec['colonias'].update(nombres_cols)
-                    if estatus_inc in ['EN PROCESO', 'PENDIENTE']:
-                        sec['tiene_activa'] = True
-                        if sec['val_afectacion'] == 0:
-                            sec['val_afectacion'] = 100.0
-                            sec['color_badge'] = '#FF0000'
+                    tarjetas_recuperacion.append({
+                        'sector': sector_nombre,
+                        'pozo': id_p_inc,
+                        'tiempo_str': tiempo_str,
+                        'max_segundos': segundos_fuera,
+                        'colonias': sorted([c for c in nombres_cols if c]),
+                        'pct_str': "EN RECUPERACIÓN",
+                        'bg_badge': "#8E44AD",
+                        'text_color': "#FFFFFF"
+                    })
 
-            sectores_ordenados = sorted(sectores_agrupados.items(), key=lambda x: x[1]['max_segundos'], reverse=True)
+            tarjetas_a_renderizar = []
+
+            for sec_name, sec_data in sectores_activos_agrupados.items():
+                lista_cols_validas = get_colonias_del_sector_ordenadas(sec_name)
+                if not lista_cols_validas:
+                    lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
+                if not lista_cols_validas:
+                    continue
+
+                pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 100
+                pct_str = f"{pct_val}% AFECTACIÓN"
+                if pct_val >= 76:
+                    bg_badge = "#FF0000"
+                elif pct_val >= 51:
+                    bg_badge = "#FFFF00"
+                elif pct_val >= 31:
+                    bg_badge = "#FFA500"
+                else:
+                    bg_badge = "#69ADDD"
+
+                tarjetas_a_renderizar.append({
+                    'sector': sec_name,
+                    'prefijo_tiempo': "Fuera de op",
+                    'pozo_tiempos': sec_data['pozo_tiempos'],
+                    'max_segundos': sec_data['max_segundos'],
+                    'colonias': lista_cols_validas,
+                    'pct_str': pct_str,
+                    'bg_badge': bg_badge,
+                    'text_color': "#000000"
+                })
+
+            for t_rec in tarjetas_recuperacion:
+                sec_name = t_rec['sector']
+                lista_cols_rec = t_rec['colonias']
+                if not lista_cols_rec:
+                    lista_cols_rec = get_colonias_del_sector_ordenadas(sec_name)
+                if not lista_cols_rec:
+                    continue
+
+                tarjetas_a_renderizar.append({
+                    'sector': sec_name,
+                    'prefijo_tiempo': "Cerrado hoy",
+                    'pozo_tiempos': [(t_rec['pozo'], t_rec['tiempo_str'])],
+                    'max_segundos': t_rec['max_segundos'],
+                    'colonias': lista_cols_rec,
+                    'pct_str': t_rec['pct_str'],
+                    'bg_badge': t_rec['bg_badge'],
+                    'text_color': t_rec['text_color']
+                })
+
+            tarjetas_ordenadas = sorted(tarjetas_a_renderizar, key=lambda x: x['max_segundos'], reverse=True)
 
             with st.container(height=780, border=False):
                 tarjetas_renderizadas = 0
-                if sectores_ordenados:
-                    for sec_name, sec_data in sectores_ordenados:
-                        lista_cols_validas = get_colonias_del_sector_ordenadas(sec_name)
-                        if not lista_cols_validas:
-                            lista_cols_validas = sorted([c for c in sec_data['colonias'] if c])
-                        
-                        if not lista_cols_validas:
-                            continue
-
+                if tarjetas_ordenadas:
+                    for card_item in tarjetas_ordenadas:
+                        lista_cols_validas = card_item['colonias']
                         if filtrar_por_colonia:
                             coincide = any(filtrar_por_colonia in col.upper() for col in lista_cols_validas)
                             if not coincide:
                                 continue
 
                         tarjetas_renderizadas += 1
-                        
+                        sec_name = card_item['sector']
+                        prefijo_t = card_item['prefijo_tiempo']
+                        pct_str = card_item['pct_str']
+                        bg_badge = card_item['bg_badge']
+                        text_color = card_item['text_color']
+
                         desglose_pozos = []
-                        for p_id, t_str in sec_data['pozo_tiempos']:
+                        for p_id, t_str in card_item['pozo_tiempos']:
                             desglose_pozos.append(f"<span style='white-space: nowrap;'>{p_id}: <b style='color:#ffff00;'>{t_str}</b></span>")
-                        
+
                         tiempos_str = " <span style='color:#64748b;'>|</span> ".join(desglose_pozos)
                         colonias_str = ", ".join(lista_cols_validas)
-                        
-                        pct_val = int(sec_data['val_afectacion']) if sec_data['val_afectacion'] > 0 else 0
-                        
-                        if sec_data.get('tiene_activa', False):
-                            if pct_val == 0:
-                                pct_val = 100
-                            pct_str = f"{pct_val}% AFECTACIÓN"
-                            if pct_val >= 76:
-                                bg_badge = "#FF0000"
-                            elif pct_val >= 51:
-                                bg_badge = "#FFFF00"
-                            elif pct_val >= 31:
-                                bg_badge = "#FFA500"
-                            else:
-                                bg_badge = "#69ADDD"
-                        else:
-                            if pct_val > 0:
-                                pct_str = f"{pct_val}% AFECTACIÓN"
-                                if pct_val >= 76:
-                                    bg_badge = "#FF0000"
-                                elif pct_val >= 51:
-                                    bg_badge = "#FFFF00"
-                                elif pct_val >= 31:
-                                    bg_badge = "#FFA500"
-                                else:
-                                    bg_badge = "#69ADDD"
-                            else:
-                                pct_str = "EN RECUPERACIÓN"
-                                bg_badge = "#8E44AD"
-
-                        if bg_badge == "#8E44AD":
-                            text_color = "#FFFFFF"
-                        else:
-                            text_color = "#000000"
 
                         st.markdown(f"""
                             <div class="hud-card">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 4px;">
                                     <span style="color: #ffffff; font-weight: bold; font-size: 12px; min-width: 0; flex: 1; line-height: 1.35;">
-                                        Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; Fuera de op: <span style="display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle;">{tiempos_str}</span>
+                                        Sector: <b style="color: #00d4ff;">{sec_name}</b> &nbsp;&nbsp;|&nbsp;&nbsp; {prefijo_t}: <span style="display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle;">{tiempos_str}</span>
                                     </span>
                                     <span style="background-color: {bg_badge}; color: {text_color}; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{pct_str}</span>
                                 </div>
@@ -5222,7 +5277,7 @@ elif tab_activa == "incidencias":
                 
                 df_tabla['Colonias Afectadas'] = colonias_por_fila
                 
-                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True)       
+                st.dataframe(df_tabla.reset_index(drop=True), use_container_width=True, hide_index=True) 
                 
 # ==============================================================================
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
