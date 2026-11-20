@@ -404,7 +404,7 @@ def cargar_sectores_poligonos():
     try:
         query = """
             SELECT sector, "Pozos_Sector", 
-                   "AREA", "LONG_RED", "VOL_PROD-MES", "U_Domesticos", 
+                   "Superficie", "Long_Red", "Vol_Prod", "U_Domesticos", 
                    "U_NoDom", "U_Tot", "Poblacion", "Cons_m3", 
                    "Faltas_Agua", "Fugas_Tot", "FTC", "FTA", 
                    "Vol_Medid", "Vol_Fact", "Kwh", "costoKw-hr", 
