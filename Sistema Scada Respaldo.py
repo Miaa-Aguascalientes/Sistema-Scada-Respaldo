@@ -410,7 +410,7 @@ def cargar_sectores_poligonos():
                    "Vol_Medid", "Vol_Fact", "Kwh", "costoKw-hr", 
                    "Recaudacion", "Dotacion", "Balance_Estimado",
                    ST_AsGeoJSON(ST_Transform(geom, 4326)) as geo 
-            FROM "Sectorizacion"."Sectores_hidr"
+            FROM "Sectorizacion"."sectores_hidr"
         """
         # Leemos los datos
         df = pd.read_sql(query, conn)
