@@ -426,7 +426,13 @@ def cargar_sectores_poligonos():
                    "DOTACION",
                    "BAL_VOL",
                    "EF",
-                   "Balance_Estimado",
+                   "ANF",
+                   "IMP-FACT_US",
+                   "PERD_US_MES",
+                   "PERD_HAB_DIA",
+                   "NIV_MOROSIDAD",
+                   "FA_USUARIO",
+                   "FUGAS_KM",                 
                    ST_AsGeoJSON(ST_Transform(geom, 4326)) AS geo
             FROM "Sectorizacion"."sectores_hidr"
         """
