@@ -3283,7 +3283,13 @@ if sector_seleccionado:
         st.plotly_chart(fig_pc, use_container_width=True)
 
     with col_op:
-        st.markdown(f"""
+        st.markdown("""
+            <style>
+                .dma-op-grid .dma-op-row {
+                    padding: 0.34rem 0 !important;
+                    font-size: 0.82rem !important;
+                }
+            </style>
             <div style="background: #0b1a29; border: 1px solid #1f4068; padding: 10px 15px; border-radius: 8px 8px 0 0; margin-bottom: 0px;">
                 <p style="color: #ffffff; font-size: 1.05rem; font-weight: bold; margin: 0;">Datos operativos</p>
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
