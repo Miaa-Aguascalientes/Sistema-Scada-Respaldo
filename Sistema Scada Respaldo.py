@@ -3290,6 +3290,42 @@ if sector_seleccionado:
             </div>
         """, unsafe_allow_html=True)
 
+        def _svg_op(kind):
+            s = 'width="15" height="15" viewBox="0 0 24 24" fill="none" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"'
+            c_cyan = "#00d4ff"
+            c_green = "#2ecc71"
+            c_amber = "#ffb020"
+            c_red = "#ff5c5c"
+            c_purple = "#c77dff"
+
+            icons = {
+                "pin": f'<svg {s} stroke="{c_cyan}"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+                "users_group": f'<svg {s} stroke="{c_cyan}"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+                "user": f'<svg {s} stroke="{c_cyan}"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+                "home": f'<svg {s} stroke="{c_cyan}"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+                "building": f'<svg {s} stroke="{c_cyan}"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 7h2m2 0h2M9 11h2m2 0h2M9 15h2m2 0h2"/></svg>',
+                "grid": f'<svg {s} stroke="{c_cyan}"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+                "area": f'<svg {s} stroke="{c_cyan}"><path d="M3 20L20 3v17H3z"/><path d="M7 20V11l9-9"/></svg>',
+                "ruler": f'<svg {s} stroke="{c_cyan}"><path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/></svg>',
+                "hash": f'<svg {s} stroke="{c_cyan}"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>',
+                "well": f'<svg {s} stroke="{c_cyan}"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2"/></svg>',
+                "bolt": f'<svg {s} stroke="{c_cyan}"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+                "cylinder": f'<svg {s} stroke="{c_cyan}"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14a8 3 0 0 0 16 0V5"/></svg>',
+                "chart": f'<svg {s} stroke="{c_cyan}"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+                "receipt": f'<svg {s} stroke="{c_cyan}"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="13" y2="15"/></svg>',
+                "scale": f'<svg {s} stroke="{c_cyan}"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>',
+                "drop": f'<svg {s} stroke="{c_cyan}"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+                "alert_off": f'<svg {s} stroke="{c_red}"><circle cx="12" cy="12" r="9"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+                "wrench": f'<svg {s} stroke="{c_amber}"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>',
+                "currency": f'<svg {s} stroke="{c_green}"><circle cx="12" cy="12" r="9"/><path d="M14.5 9a2.5 2.5 0 0 0-5 0c0 2.5 5 1.5 5 4a2.5 2.5 0 0 1-5 0"/><line x1="12" y1="5.5" x2="12" y2="18.5"/></svg>',
+                "trend_down": f'<svg {s} stroke="{c_amber}"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>',
+                "warning": f'<svg {s} stroke="{c_amber}"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+                "file_check": f'<svg {s} stroke="{c_cyan}"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 15 11 17 15 13"/></svg>',
+                "gauge": f'<svg {s} stroke="{c_cyan}"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>',
+                "tank": f'<svg {s} stroke="{c_purple}"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M4 13h16"/><circle cx="12" cy="8.5" r="1"/></svg>',
+            }
+            return icons.get(kind, icons["drop"])
+
         def _get_val_op(d, *keys):
             if not isinstance(d, dict):
                 return None
@@ -3358,48 +3394,48 @@ if sector_seleccionado:
         fa_usuario_val = _fmt_op(_get_val_op(datos_s, "FA_USUARIO"), decimals=2)
 
         filas_col1 = [
-            ("📍 Distrito", f"Distrito {distrito_val}"),
-            ("👥 Pob. 2025", pob_2025_val),
-            ("👤 Usuarios", usuarios_val),
-            ("🏠 Usu. dom.", usu_dom_val),
-            ("🏢 Comercial", comercial_val),
-            ("🏘️ Dom. A / B / C", f"{dom_a_val}/{dom_b_val}/{dom_c_val}"),
-            ("📐 Área", area_val),
-            ("📏 Long. red", long_red_val),
+            ("pin", "Distrito", f"Distrito {distrito_val}"),
+            ("users_group", "Pob. 2025", pob_2025_val),
+            ("user", "Usuarios", usuarios_val),
+            ("home", "Usu. dom.", usu_dom_val),
+            ("building", "Comercial", comercial_val),
+            ("grid", "Dom. A / B / C", f"{dom_a_val}/{dom_b_val}/{dom_c_val}"),
+            ("area", "Área", area_val),
+            ("ruler", "Long. red", long_red_val),
         ]
 
         filas_col2 = [
-            ("🔢 Cant. pozos", cant_pozos_val),
-            ("🚰 Pozos sector", pozos_sec_val),
-            ("⚡ Q prod.", q_prod_val),
-            ("🛢️ Vol. prod. mes", vol_prod_mes_val),
-            ("📊 Cons. prom.", cons_prom_val),
-            ("🧾 Vol. fact.", vol_fact_val),
-            ("⚖️ Bal. vol.", bal_vol_val),
+            ("hash", "Cant. pozos", cant_pozos_val),
+            ("well", "Pozos sector", pozos_sec_val),
+            ("bolt", "Q prod.", q_prod_val),
+            ("cylinder", "Vol. prod. mes", vol_prod_mes_val),
+            ("chart", "Cons. prom.", cons_prom_val),
+            ("receipt", "Vol. fact.", vol_fact_val),
+            ("scale", "Bal. vol.", bal_vol_val),
            
         ]
 
         filas_col3 = [
-            ("🚫 Faltas agua", faltas_agua_val),
-            ("🔧 Fugas", fugas_val),
-            ("💵 Imp. fact./us.", imp_fact_us_val),
-            ("📉 Pérd. hab./día", perd_hab_dia_val),
-            ("⚠️ Morosidad", niv_morosidad_val),
-            ("📄 FA usuario", fa_usuario_val),
-            ("🟦 TQ-055", f"{texto_nivel_tq} · {fec_nivel_tq_str}"),
+            ("alert_off", "Faltas agua", faltas_agua_val),
+            ("wrench", "Fugas", fugas_val),
+            ("currency", "Imp. fact./us.", imp_fact_us_val),
+            ("trend_down", "Pérd. hab./día", perd_hab_dia_val),
+            ("warning", "Morosidad", niv_morosidad_val),
+            ("file_check", "FA usuario", fa_usuario_val),
+            ("tank", "TQ-055", f"{texto_nivel_tq} · {fec_nivel_tq_str}"),
         ]
 
         html_col1 = "".join(
-            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
-            for lbl, val in filas_col1
+            f'<div class="dma-op-row"><span class="dma-op-label">{_svg_op(ico)}{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for ico, lbl, val in filas_col1
         )
         html_col2 = "".join(
-            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
-            for lbl, val in filas_col2
+            f'<div class="dma-op-row"><span class="dma-op-label">{_svg_op(ico)}{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for ico, lbl, val in filas_col2
         )
         html_col3 = "".join(
-            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
-            for lbl, val in filas_col3
+            f'<div class="dma-op-row"><span class="dma-op-label">{_svg_op(ico)}{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for ico, lbl, val in filas_col3
         )
 
         st.markdown(f"""
