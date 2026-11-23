@@ -2297,64 +2297,39 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    @st.cache_data(ttl=300)
-    def cargar_indicadores_google_sheets():
-        sheet_id = "1Ovj2DZ19Y8H4BtamnVwB71c2dyHC3dyVmau-tMbWre8"
-        gid = "1820360811"
-        url_csv = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+    def _fmt_indicador_postgres(val, decimals=2, integer_only=False):
+        if val is None or (isinstance(val, float) and pd.isna(val)):
+            return "N/D"
+        txt = str(val).strip()
+        if not txt or txt.lower() in ("none", "nan", "nat", "n/d"):
+            return "N/D"
         try:
-            df = pd.read_csv(url_csv)
-            return df
-        except Exception:
-            return pd.DataFrame()
+            num = float(txt.replace("%", "").replace(",", "").strip())
+            if pd.isna(num):
+                return txt
+            if integer_only:
+                return f"{num:,.0f}"
+            return f"{num:,.{decimals}f}"
+        except (ValueError, TypeError):
+            return txt
 
-    df_ind_gs = cargar_indicadores_google_sheets()
+    # 1. EF -> Eficiencia Física (EF)
+    val_ef = _fmt_indicador_postgres(datos_s.get("EF"), decimals=2)
 
-    val_ef = "N/D"
-    val_anf = "N/D"
-    val_dotacion = "N/D"
-    val_perd_us_mes = "N/D"
-    val_fugas_km = "N/D"
+    # 2. ANF -> Agua No Facturada (ANF)
+    raw_anf = datos_s.get("ANF")
+    if raw_anf is None or (isinstance(raw_anf, float) and pd.isna(raw_anf)):
+        raw_anf = datos_s.get("BAL_VOL")
+    val_anf = _fmt_indicador_postgres(raw_anf, decimals=2)
 
-    if not df_ind_gs.empty and df_ind_gs.shape[1] >= 28:
-        sec_buscar = str(sec_val_actual).strip().upper()
-        sec_buscar_limpio = ''.join(c for c in sec_buscar if c.isalnum())
-        
-        fila_encontrada = None
-        for _, row in df_ind_gs.iterrows():
-            val_col_b = str(row.iloc[1]).strip().upper()
-            val_col_b_limpio = ''.join(c for c in val_col_b if c.isalnum())
-            if val_col_b == sec_buscar or val_col_b_limpio == sec_buscar_limpio or (sec_buscar in val_col_b and len(sec_buscar) >= 3):
-                fila_encontrada = row
-                break
-        
-        if fila_encontrada is not None:
-            raw_ef = fila_encontrada.iloc[20]
-            val_ef = str(raw_ef).strip() if pd.notna(raw_ef) else "N/D"
-            
-            raw_anf = fila_encontrada.iloc[21]
-            val_anf = str(raw_anf).strip() if pd.notna(raw_anf) else "N/D"
-            
-            raw_dot = fila_encontrada.iloc[18]
-            if pd.notna(raw_dot):
-                try:
-                    val_dotacion = f"{float(str(raw_dot).replace(',', '')):,.0f}"
-                except ValueError:
-                    val_dotacion = str(raw_dot).strip()
-            
-            raw_perd = fila_encontrada.iloc[23]
-            if pd.notna(raw_perd):
-                try:
-                    val_perd_us_mes = f"{float(str(raw_perd).replace(',', '')):,.2f}"
-                except ValueError:
-                    val_perd_us_mes = str(raw_perd).strip()
-            
-            raw_fugas = fila_encontrada.iloc[27]
-            if pd.notna(raw_fugas):
-                try:
-                    val_fugas_km = f"{float(str(raw_fugas).replace(',', '')):,.2f}"
-                except ValueError:
-                    val_fugas_km = str(raw_fugas).strip()
+    # 3. DOTACION -> Dotación
+    val_dotacion = _fmt_indicador_postgres(datos_s.get("DOTACION"), integer_only=True)
+
+    # 4. PERD_US_MES -> Pérd. Usuario-Mes
+    val_perd_us_mes = _fmt_indicador_postgres(datos_s.get("PERD_US_MES"), decimals=2)
+
+    # 5. FUGAS_KM -> Fugas por Km
+    val_fugas_km = _fmt_indicador_postgres(datos_s.get("FUGAS_KM"), decimals=2)
 
     with st.container(border=True):
         head_col1, head_col2, head_col3 = st.columns([1.5, 5.5, 2.2], gap="medium")
