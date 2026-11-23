@@ -2297,7 +2297,7 @@ if sector_seleccionado:
             'Pozos_Sector': ''
         }
 
-    def _fmt_indicador_postgres(val, decimals=2, integer_only=False):
+    def _fmt_indicador_postgres(val, decimals=2, integer_only=False, is_pct=False):
         if val is None or (isinstance(val, float) and pd.isna(val)):
             return "N/D"
         txt = str(val).strip()
@@ -2308,19 +2308,18 @@ if sector_seleccionado:
             if pd.isna(num):
                 return txt
             if integer_only:
-                return f"{num:,.0f}"
-            return f"{num:,.{decimals}f}"
+                res = f"{num:,.0f}"
+            else:
+                res = f"{num:,.{decimals}f}"
+            return f"{res}%" if is_pct else res
         except (ValueError, TypeError):
-            return txt
+            return txt if (not is_pct or txt.endswith("%")) else f"{txt}%"
 
-    # 1. EF -> Eficiencia Física (EF)
-    val_ef = _fmt_indicador_postgres(datos_s.get("EF"), decimals=2)
+    # 1. EF -> Eficiencia Física (EF) en porcentaje
+    val_ef = _fmt_indicador_postgres(datos_s.get("EF"), decimals=2, is_pct=True)
 
-    # 2. ANF -> Agua No Facturada (ANF)
-    raw_anf = datos_s.get("ANF")
-    if raw_anf is None or (isinstance(raw_anf, float) and pd.isna(raw_anf)):
-        raw_anf = datos_s.get("BAL_VOL")
-    val_anf = _fmt_indicador_postgres(raw_anf, decimals=2)
+    # 2. ANF -> Agua No Facturada (ANF) exclusivamente de la columna ANF, en porcentaje
+    val_anf = _fmt_indicador_postgres(datos_s.get("ANF"), decimals=2, is_pct=True)
 
     # 3. DOTACION -> Dotación
     val_dotacion = _fmt_indicador_postgres(datos_s.get("DOTACION"), integer_only=True)
