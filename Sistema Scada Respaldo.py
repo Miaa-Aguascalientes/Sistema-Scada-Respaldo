@@ -3401,11 +3401,11 @@ if sector_seleccionado:
             ("building", "Comercial", comercial_val),
             ("grid", "Dom. A / B / C", f"{dom_a_val}/{dom_b_val}/{dom_c_val}"),
             ("area", "Área", area_val),
-            ("ruler", "Long. red", long_red_val),
+            
         ]
 
         filas_col2 = [
-            ("hash", "Cant. pozos", cant_pozos_val),
+            ("ruler", "Long. red", long_red_val),
             ("well", "Pozos sector", pozos_sec_val),
             ("bolt", "Q prod.", q_prod_val),
             ("cylinder", "Vol. prod. mes", vol_prod_mes_val),
