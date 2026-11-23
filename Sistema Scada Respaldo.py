@@ -426,7 +426,6 @@ def cargar_sectores_poligonos():
                    "DOTACION",
                    "BAL_VOL",
                    "EF",
-                   "Balance_Estimado",
                    "IMP-FACT_US",
                    "PERD_US-MES",
                    "PERD_HAB-DIA",
