@@ -3289,62 +3289,129 @@ if sector_seleccionado:
                 <p style="color: #888888; font-size: 0.78rem; margin: 2px 0 0 0;">Ficha del sector y últimas lecturas del periodo</p>
             </div>
         """, unsafe_allow_html=True)
-        
-        tomas_activas_val = f"{(datos_s.get('U_Domesticos', 0) + datos_s.get('U_NoDom', 0)):,.0f}".replace(",", ".")
-        long_red_val = f"{datos_s.get('Long_Red', 42.6):,.1f}".replace(",", ".") + " kilómetros"
-        demanda_cat_val = f"{demanda_estimada_val:,.1f}".replace(",", ".") + " L/s" if demanda_estimada_val else "74,2 L/s"
-        
+
+        def _get_val_op(d, *keys):
+            if not isinstance(d, dict):
+                return None
+            norm_map = {}
+            for k, v in d.items():
+                nk = str(k).strip().lower().replace("-", "_").replace(" ", "_")
+                norm_map[nk] = v
+            for k in keys:
+                nk = str(k).strip().lower().replace("-", "_").replace(" ", "_")
+                if nk in norm_map:
+                    val = norm_map[nk]
+                    if val is not None and not (isinstance(val, float) and pd.isna(val)):
+                        return val
+            return None
+
+        def _fmt_op(val, suffix="", decimals=2, integer_only=False):
+            if val is None or (isinstance(val, float) and pd.isna(val)):
+                return "N/D"
+            txt = str(val).strip()
+            if not txt or txt.lower() in ("none", "nan", "nat", "n/d"):
+                return "N/D"
+            try:
+                num = float(txt.replace("%", "").replace(",", "").strip())
+                if pd.isna(num):
+                    return f"{txt}{suffix}"
+                if integer_only:
+                    num_str = f"{num:,.0f}"
+                else:
+                    num_str = f"{num:,.{decimals}f}"
+                return f"{num_str}{suffix}"
+            except (ValueError, TypeError):
+                return f"{txt}{suffix}"
+
+        distrito_val = _get_val_op(datos_s, "Distrito", "DISTRITO") or "Oriente"
+        cant_pozos_val = _fmt_op(_get_val_op(datos_s, "Cantidad_Pozos", "CANTIDAD_POZOS"), integer_only=True)
+        pozos_sec_raw = _get_val_op(datos_s, "Pozos_Sector", "POZOS_SECTOR")
+        pozos_sec_val = str(pozos_sec_raw).strip() if pozos_sec_raw and str(pozos_sec_raw).strip().lower() not in ("none", "nan", "") else "N/D"
+        area_val = _fmt_op(_get_val_op(datos_s, "AREA", "Superficie", "AREA_KM"), suffix=" km²", decimals=2)
+        long_red_raw = _get_val_op(datos_s, "LONG_RED", "Long_Red")
+        long_red_val = _fmt_op(long_red_raw if long_red_raw is not None else 42.6, suffix=" km", decimals=2)
+
+        usuarios_val = _fmt_op(_get_val_op(datos_s, "USUARIOS", "Usuarios"), integer_only=True)
+        usu_dom_raw = _get_val_op(datos_s, "USU_DOM", "U_Domesticos")
+        usu_dom_val = _fmt_op(usu_dom_raw, integer_only=True)
+        pob_2025_raw = _get_val_op(datos_s, "POB_2025", "Poblacion", "POB_TOT_23")
+        pob_2025_val = _fmt_op(pob_2025_raw, integer_only=True)
+
+        q_prod_val = _fmt_op(_get_val_op(datos_s, "Q_PROD"), suffix=" L/s", decimals=2)
+        vol_prod_mes_val = _fmt_op(_get_val_op(datos_s, "VOL_PROD-MES", "VOL_PROD_MES", "Vol_Prod"), suffix=" m³", decimals=2)
+        cons_prom_raw = _get_val_op(datos_s, "CONS_PROM", "Cons_m3", "Demanda")
+        cons_prom_val = _fmt_op(cons_prom_raw if cons_prom_raw is not None else demanda_estimada_val, suffix=" m³", decimals=2)
+        vol_fact_val = _fmt_op(_get_val_op(datos_s, "VOL_FACT", "Vol_Fact"), suffix=" m³", decimals=2)
+        bal_vol_val = _fmt_op(_get_val_op(datos_s, "BAL_VOL", "Balance_Estimado"), suffix=" m³", decimals=2)
+
+        dom_a_val = _fmt_op(_get_val_op(datos_s, "DOM_A"), integer_only=True)
+        dom_b_val = _fmt_op(_get_val_op(datos_s, "DOM_B"), integer_only=True)
+        dom_c_val = _fmt_op(_get_val_op(datos_s, "DOM_C"), integer_only=True)
+        comercial_raw = _get_val_op(datos_s, "COMERCIAL", "U_NoDom")
+        comercial_val = _fmt_op(comercial_raw, integer_only=True)
+
+        faltas_agua_val = _fmt_op(_get_val_op(datos_s, "FALTAS_AGUA"), integer_only=True)
+        fugas_val = _fmt_op(_get_val_op(datos_s, "FUGAS"), integer_only=True)
+        imp_fact_us_val = _fmt_op(_get_val_op(datos_s, "IMP-FACT_US", "IMP_FACT_US"), decimals=2)
+        perd_hab_dia_val = _fmt_op(_get_val_op(datos_s, "PERD_HAB_DIA"), suffix=" L/hab/d", decimals=2)
+        niv_morosidad_val = _fmt_op(_get_val_op(datos_s, "NIV_MOROSIDAD"), suffix="%", decimals=2)
+        fa_usuario_val = _fmt_op(_get_val_op(datos_s, "FA_USUARIO"), decimals=2)
+
+        filas_izq = [
+            ("📍 Distrito", f"Distrito {distrito_val}"),
+            ("👥 Población (POB_2025)", pob_2025_val),
+            ("👤 Usuarios totales", usuarios_val),
+            ("🏠 Usuarios domésticos", usu_dom_val),
+            ("🏢 Comercial", comercial_val),
+            ("🏘️ Doméstico A / B / C", f"{dom_a_val} / {dom_b_val} / {dom_c_val}"),
+            ("📐 Área", area_val),
+            ("📏 Longitud de red", long_red_val),
+            ("🔢 Cantidad de pozos", cant_pozos_val),
+            ("🚰 Pozos del sector", pozos_sec_val),
+            ("💧 Presión mínima ref.", "15.0 mca"),
+            ("🎛️ Consigna VRP · catálogo", "30.0 mca"),
+        ]
+
+        filas_der = [
+            ("⚡ Caudal prod. (Q_PROD)", q_prod_val),
+            ("🛢️ Vol. prod. mes", vol_prod_mes_val),
+            ("📊 Consumo prom. (CONS_PROM)", cons_prom_val),
+            ("🧾 Vol. facturado (VOL_FACT)", vol_fact_val),
+            ("⚖️ Balance vol. (BAL_VOL)", bal_vol_val),
+            ("🚫 Faltas de agua", faltas_agua_val),
+            ("🔧 Fugas", fugas_val),
+            ("💵 Imp. fact. / usuario", imp_fact_us_val),
+            ("📉 Pérd. hab./día", perd_hab_dia_val),
+            ("⚠️ Niv. morosidad", niv_morosidad_val),
+            ("📄 FA usuario", fa_usuario_val),
+            ("🟦 Tanque TQ-055 / Fecha", f"{texto_nivel_tq} ({fec_nivel_tq_str})"),
+        ]
+
+        html_izq = "".join(
+            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for lbl, val in filas_izq
+        )
+        html_der = "".join(
+            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for lbl, val in filas_der
+        )
+
         st.markdown(f"""
-            <div style="background: #0b1a29; border: 1px solid #1f4068; border-top: none; border-radius: 0 0 8px 8px; padding: 14px 18px; height: 382px; display: flex; flex-direction: column; justify-content: space-between;">
-                <div class="dma-op-row">
-                    <span class="dma-op-label">📍 Distrito</span>
-                    <span class="dma-op-value">Distrito {datos_s.get('Distrito', 'Oriente')}</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">🏠 Tomas activas</span>
-                    <span class="dma-op-value">{tomas_activas_val}</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">📏 Longitud de red</span>
-                    <span class="dma-op-value">{long_red_val}</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">🌊 Demanda estimada · catálogo</span>
-                    <span class="dma-op-value">{demanda_cat_val}</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">💧 Presión mínima de referencia</span>
-                    <span class="dma-op-value">15.0 mca</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">🎛️ Consigna VRP · catálogo</span>
-                    <span class="dma-op-value">30.0 mca</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">🟦 Tanque TQ-055 · último</span>
-                    <span class="dma-op-value">{texto_nivel_tq}</span>
-                </div>
-                <div class="dma-op-row">
-                    <span class="dma-op-label">🕒 Fecha del nivel / condición</span>
-                    <span class="dma-op-value">{fec_nivel_tq_str}</span>
-                </div>
+            <div style="
+                background: #0b1a29;
+                border: 1px solid #1f4068;
+                border-top: none;
+                border-radius: 0 0 8px 8px;
+                padding: 12px 18px;
+                min-height: 382px;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0 28px;
+            ">
+                <div>{html_izq}</div>
+                <div>{html_der}</div>
             </div>
         """, unsafe_allow_html=True)
-
-    st.markdown("""
-        <div style="
-            position: relative;
-            margin-top: 35px;
-            margin-bottom: 20px;
-            padding-left: 5px;
-            text-align: left;
-            line-height: 1.25;
-            opacity: 0.85;
-        ">
-            <span style="color: #00d4ff; font-size: 0.75rem; font-weight: 700; font-family: 'Courier New', monospace; display: block;">Dirección de Planeación</span>
-            <span style="color: #ffffff; font-size: 0.65rem; font-weight: 500; font-family: 'Courier New', monospace; display: block;">Subdirección de Tecnología e Innovación</span>
-        </div>
-    """, unsafe_allow_html=True)
 
     st.stop()
     
