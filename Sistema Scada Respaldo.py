@@ -3445,22 +3445,27 @@ if sector_seleccionado:
         )
 
         st.markdown(f"""
-            <div style="
+            <div class="dma-op-grid" style="
                 background: #0b1a29;
                 border: 1px solid #1f4068;
                 border-top: none;
                 border-radius: 0 0 8px 8px;
-                padding: 12px 16px;
-                min-height: 382px;
+                padding: 8px 16px;
+                height: 360px;
+                max-height: 360px;
+                overflow-y: auto;
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
                 gap: 0 22px;
+                align-content: space-between;
             ">
                 <div>{html_col1}</div>
                 <div>{html_col2}</div>
                 <div>{html_col3}</div>
             </div>
         """, unsafe_allow_html=True)
+Si en tu pantalla todavía queda unos píxeles arriba o abajo respecto al borde inferior de Puntos críticos, solo modifica el valor de height: 360px (por ejemplo a 352px o 368px) y el padding: 0.34rem 0 en .dma-op-grid .dma-op-row.   
+image_50ea3c.png
 
     st.stop()
     
