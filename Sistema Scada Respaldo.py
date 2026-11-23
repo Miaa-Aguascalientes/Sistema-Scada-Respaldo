@@ -2317,10 +2317,10 @@ if sector_seleccionado:
             return txt if (not is_pct or txt.endswith("%")) else f"{txt}%"
 
     # 1. EF -> Eficiencia Física (EF) en porcentaje
-    val_ef = _fmt_indicador_postgres(datos_s.get("EF"), decimals=2, is_pct=True)
+    val_ef = _fmt_indicador_postgres(datos_s.get("EF"), decimals=0, is_pct=True)
 
     # 2. ANF -> Agua No Facturada (ANF) exclusivamente de la columna ANF, en porcentaje
-    val_anf = _fmt_indicador_postgres(datos_s.get("ANF"), decimals=2, is_pct=True)
+    val_anf = _fmt_indicador_postgres(datos_s.get("ANF"), decimals=0, is_pct=True)
 
     # 3. DOTACION -> Dotación
     val_dotacion = _fmt_indicador_postgres(datos_s.get("DOTACION"), integer_only=True)
