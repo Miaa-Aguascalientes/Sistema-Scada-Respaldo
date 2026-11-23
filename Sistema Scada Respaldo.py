@@ -3464,8 +3464,6 @@ if sector_seleccionado:
                 <div>{html_col3}</div>
             </div>
         """, unsafe_allow_html=True)
-Si en tu pantalla todavía queda unos píxeles arriba o abajo respecto al borde inferior de Puntos críticos, solo modifica el valor de height: 360px (por ejemplo a 352px o 368px) y el padding: 0.34rem 0 en .dma-op-grid .dma-op-row.   
-image_50ea3c.png
 
     st.stop()
     
