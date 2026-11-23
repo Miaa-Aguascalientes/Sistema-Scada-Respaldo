@@ -410,7 +410,7 @@ def cargar_sectores_poligonos():
                    "Vol_Medid", "Vol_Fact", "Kwh", "costoKw-hr", 
                    "Recaudacion", "Dotacion", "Balance_Estimado",
                    ST_AsGeoJSON(ST_Transform(geom, 4326)) as geo 
-            FROM "Sectorizacion"."Sectores_hidr"
+            FROM "Sectorizacion"."sectores_hidr"
         """
         # Leemos los datos
         df = pd.read_sql(query, conn)
@@ -5899,7 +5899,7 @@ elif tab_activa == "sectores":
                         <p class="label-indicador" style="font-size: 13px; margin:0;">Volumen medido</p>
                     </div>
                     <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{volumen_medido_val:,.0f} <span style="font-size:0.8rem; font-weight:normal;">m³</span></p>
-                    <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Vol_Medid)</p>
+                    <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla sectores_hidr (Vol_Medid)</p>
                 </div>''', unsafe_allow_html=True)
             with c3:
                 st.markdown(f'''<div class="card-indicador">
@@ -5908,7 +5908,7 @@ elif tab_activa == "sectores":
                         <p class="label-indicador" style="font-size: 13px; margin:0;">Demanda estimada</p>
                     </div>
                     <p class="value-indicador" style="font-size: 1.35rem; text-align: center;">{demanda_fmt} <span style="font-size:0.8rem; font-weight:normal;">L/s</span></p>
-                    <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla Sectores_hidr (Cons_m3)</p>
+                    <p class="sub-indicador" style="font-size: 11px; text-align: center;">Tabla sectores_hidr (Cons_m3)</p>
                 </div>''', unsafe_allow_html=True)
             with c4:
                 st.markdown(f'''<div class="card-indicador">
