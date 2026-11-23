@@ -3376,16 +3376,17 @@ if sector_seleccionado:
             ("📊 Cons. prom.", cons_prom_val),
             ("🧾 Vol. fact.", vol_fact_val),
             ("⚖️ Bal. vol.", bal_vol_val),
-            ("🚫 Faltas agua", faltas_agua_val),
+           
         ]
 
         filas_col3 = [
+            ("🚫 Faltas agua", faltas_agua_val),
             ("🔧 Fugas", fugas_val),
             ("💵 Imp. fact./us.", imp_fact_us_val),
             ("📉 Pérd. hab./día", perd_hab_dia_val),
             ("⚠️ Morosidad", niv_morosidad_val),
             ("📄 FA usuario", fa_usuario_val),
-            ("🟦 TQ-055 / Fecha", f"{texto_nivel_tq} · {fec_nivel_tq_str}"),
+            ("🟦 TQ-055", f"{texto_nivel_tq} · {fec_nivel_tq_str}"),
         ]
 
         html_col1 = "".join(
