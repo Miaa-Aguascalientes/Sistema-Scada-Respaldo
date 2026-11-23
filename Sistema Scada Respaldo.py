@@ -3357,43 +3357,48 @@ if sector_seleccionado:
         niv_morosidad_val = _fmt_op(_get_val_op(datos_s, "NIV_MOROSIDAD"), suffix="%", decimals=2)
         fa_usuario_val = _fmt_op(_get_val_op(datos_s, "FA_USUARIO"), decimals=2)
 
-        filas_izq = [
+        filas_col1 = [
             ("📍 Distrito", f"Distrito {distrito_val}"),
-            ("👥 Población (POB_2025)", pob_2025_val),
-            ("👤 Usuarios totales", usuarios_val),
-            ("🏠 Usuarios domésticos", usu_dom_val),
+            ("👥 Pob. 2025", pob_2025_val),
+            ("👤 Usuarios", usuarios_val),
+            ("🏠 Usu. dom.", usu_dom_val),
             ("🏢 Comercial", comercial_val),
-            ("🏘️ Doméstico A / B / C", f"{dom_a_val} / {dom_b_val} / {dom_c_val}"),
+            ("🏘️ Dom. A / B / C", f"{dom_a_val}/{dom_b_val}/{dom_c_val}"),
             ("📐 Área", area_val),
-            ("📏 Longitud de red", long_red_val),
-            ("🔢 Cantidad de pozos", cant_pozos_val),
-            ("🚰 Pozos del sector", pozos_sec_val),
-            ("💧 Presión mínima ref.", "15.0 mca"),
-            ("🎛️ Consigna VRP · catálogo", "30.0 mca"),
+            ("📏 Long. red", long_red_val),
         ]
 
-        filas_der = [
-            ("⚡ Caudal prod. (Q_PROD)", q_prod_val),
+        filas_col2 = [
+            ("🔢 Cant. pozos", cant_pozos_val),
+            ("🚰 Pozos sector", pozos_sec_val),
+            ("⚡ Q prod.", q_prod_val),
             ("🛢️ Vol. prod. mes", vol_prod_mes_val),
-            ("📊 Consumo prom. (CONS_PROM)", cons_prom_val),
-            ("🧾 Vol. facturado (VOL_FACT)", vol_fact_val),
-            ("⚖️ Balance vol. (BAL_VOL)", bal_vol_val),
-            ("🚫 Faltas de agua", faltas_agua_val),
-            ("🔧 Fugas", fugas_val),
-            ("💵 Imp. fact. / usuario", imp_fact_us_val),
-            ("📉 Pérd. hab./día", perd_hab_dia_val),
-            ("⚠️ Niv. morosidad", niv_morosidad_val),
-            ("📄 FA usuario", fa_usuario_val),
-            ("🟦 Tanque TQ-055 / Fecha", f"{texto_nivel_tq} ({fec_nivel_tq_str})"),
+            ("📊 Cons. prom.", cons_prom_val),
+            ("🧾 Vol. fact.", vol_fact_val),
+            ("⚖️ Bal. vol.", bal_vol_val),
+            ("🚫 Faltas agua", faltas_agua_val),
         ]
 
-        html_izq = "".join(
+        filas_col3 = [
+            ("🔧 Fugas", fugas_val),
+            ("💵 Imp. fact./us.", imp_fact_us_val),
+            ("📉 Pérd. hab./día", perd_hab_dia_val),
+            ("⚠️ Morosidad", niv_morosidad_val),
+            ("📄 FA usuario", fa_usuario_val),
+            ("🟦 TQ-055 / Fecha", f"{texto_nivel_tq} · {fec_nivel_tq_str}"),
+        ]
+
+        html_col1 = "".join(
             f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
-            for lbl, val in filas_izq
+            for lbl, val in filas_col1
         )
-        html_der = "".join(
+        html_col2 = "".join(
             f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
-            for lbl, val in filas_der
+            for lbl, val in filas_col2
+        )
+        html_col3 = "".join(
+            f'<div class="dma-op-row"><span class="dma-op-label">{lbl}</span><span class="dma-op-value">{val}</span></div>'
+            for lbl, val in filas_col3
         )
 
         st.markdown(f"""
@@ -3402,14 +3407,15 @@ if sector_seleccionado:
                 border: 1px solid #1f4068;
                 border-top: none;
                 border-radius: 0 0 8px 8px;
-                padding: 12px 18px;
+                padding: 12px 16px;
                 min-height: 382px;
                 display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 0 28px;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0 22px;
             ">
-                <div>{html_izq}</div>
-                <div>{html_der}</div>
+                <div>{html_col1}</div>
+                <div>{html_col2}</div>
+                <div>{html_col3}</div>
             </div>
         """, unsafe_allow_html=True)
 
