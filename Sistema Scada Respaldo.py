@@ -3995,7 +3995,7 @@ if tab_activa == "mapa":
                         opacity_final = 0.25
                     else:
                         border_color_final = '#2980B9'
-                        weight_final = 1
+                        weight_final = 2
                         opacity_final = 0.25
                     return {'fillColor': color_dinamico, 'color': border_color_final, 'weight': weight_final, 'fillOpacity': opacity_final}
 
