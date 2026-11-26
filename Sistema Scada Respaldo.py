@@ -3996,7 +3996,7 @@ if tab_activa == "mapa":
                     else:
                         border_color_final = '#2980B9'
                         weight_final = 1
-                        opacity_final = 0.15
+                        opacity_final = 0.25
                     return {'fillColor': color_dinamico, 'color': border_color_final, 'weight': weight_final, 'fillOpacity': opacity_final}
 
                 def estilo_hover_sector(feature):
