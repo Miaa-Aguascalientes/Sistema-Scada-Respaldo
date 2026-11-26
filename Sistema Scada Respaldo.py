@@ -5748,7 +5748,7 @@ elif tab_activa == "tanques":
         level_data["_segment"] = breaks.cumsum()
         valid = level_data.dropna(subset=["level_m"])
 
-        for _, block in valid.groupby("_segment"):
+        for idx, (_, block) in enumerate(valid.groupby("_segment")):
             multiple_points = len(block) > 1
             fig.add_trace(
                 go.Scatter(
@@ -5759,8 +5759,9 @@ elif tab_activa == "tanques":
                     marker={"color": "#45e3ff", "size": 4, "symbol": "circle", "opacity": 0.85},
                     fill="tozeroy" if multiple_points else None,
                     fillcolor="rgba(0, 212, 255, 0.28)",
-                    name="Nivel",
-                    hovertemplate="<b>%{y:.2f} m</b><br>%{x|%d/%m/%Y %H:%M}<extra></extra>",
+                    name="Nivel TQ",
+                    showlegend=(idx == 0),
+                    hovertemplate="<b>%{y:.2f} m</b><extra></extra>",
                 )
             )
 
@@ -5780,10 +5781,29 @@ elif tab_activa == "tanques":
             paper_bgcolor="rgba(0,0,0,0)",
             font={"color": "#e4edf7", "size": 11},
             showlegend=False,
-            hovermode="closest",
+            hovermode="x unified",
+            hoverlabel={
+                "bgcolor": "rgba(6, 12, 20, 0.95)",
+                "bordercolor": "rgba(70, 95, 120, 0.75)",
+                "font": {"color": "#f0f7ff", "size": 11},
+            },
         )
-        fig.update_xaxes(range=[start, end], gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
-        fig.update_yaxes(gridcolor="rgba(35, 55, 74, 0.6)", zerolinecolor="rgba(35, 55, 74, 0.6)")
+        fig.update_xaxes(
+            range=[start, end],
+            gridcolor="rgba(35, 55, 74, 0.6)",
+            zerolinecolor="rgba(35, 55, 74, 0.6)",
+            showspikes=True,
+            spikemode="across",
+            spikesnap="cursor",
+            spikedash="dash",
+            spikecolor="rgba(195, 212, 230, 0.6)",
+            spikethickness=1,
+        )
+        fig.update_yaxes(
+            gridcolor="rgba(35, 55, 74, 0.6)",
+            zerolinecolor="rgba(35, 55, 74, 0.6)",
+            showspikes=False,
+        )
         return fig
 
     def _render_tank(data, tank, start, end, gap_minutes, key):
