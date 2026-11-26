@@ -515,6 +515,16 @@ def obtener_pozos_con_incidencias_hoy():
         return dic_incidencias
     except Exception as e:
         return {}
+    
+def _obtener_color_estado_inc(info_incidencia, estatus=""):
+    est = str(estatus).strip().upper()
+    if not est and isinstance(info_incidencia, dict):
+        est = str(info_incidencia.get("estatus", info_incidencia.get("estado", ""))).strip().upper()
+    if "EN PROCESO" in est:
+        return "#ffff00"
+    if "PENDIENTE" in est:
+        return "#ff4d4d"
+    return "#ff4d4d"    
 
 def calcular_color_colonia(props, pozos_con_incidencia):
     suma_afectacion = 0.0
@@ -4426,19 +4436,23 @@ if tab_activa == "mapa":
                         dic_incidencias_activas.get(id_rb_con_guion) or
                         dic_incidencias_activas.get(id_rb_sin_guion, {})
                     )
-                    if isinstance(info_incidencia_rb, dict):
-                        diagnostico_falla_rb = info_incidencia_rb.get('diagnostico', info_incidencia_rb.get('motivo', 'FALLA'))
-                        estado_inc_rb = str(info_incidencia_rb.get('estatus', info_incidencia_rb.get('estado', info_incidencia_rb.get('status', '')))).strip().upper()
-                    else:
-                        diagnostico_falla_rb = str(info_incidencia_rb)
-                        estado_inc_rb = ""
+                    diagnostico_falla_rb = (
+                        info_incidencia_rb.get('diagnostico', info_incidencia_rb.get('motivo', 'FALLA'))
+                        if isinstance(info_incidencia_rb, dict)
+                        else str(info_incidencia_rb)
+                    )
 
+                    estado_inc_rb = (
+                        str(info_incidencia_rb.get('estado', info_incidencia_rb.get('estatus', info_incidencia_rb.get('status', '')))).strip().upper()
+                        if isinstance(info_incidencia_rb, dict)
+                        else ""
+                    )
                     if "EN PROCESO" in estado_inc_rb:
                         color_texto_falla_rb = "#ffff00"
                     elif "PENDIENTE" in estado_inc_rb:
                         color_texto_falla_rb = "#ff4d4d"
                     else:
-                        color_texto_falla_rb = _obtener_color_estado_inc(info_incidencia_rb, estado_inc_rb)
+                        color_texto_falla_rb = "#ff4d4d"
 
                     html_globo_incidencia_rb = f"""
                     <style>
@@ -4461,7 +4475,7 @@ if tab_activa == "mapa":
                         <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
                             <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
                             <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_rb}</span>
-                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_rb};">{str(diagnostico_falla_rb).upper()}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_rb};">{diagnostico_falla_rb.upper()}</span>
                             <span class="alerta-parpadeo-inc">⚠️</span>
                         </div>
                     </div>
@@ -4473,6 +4487,7 @@ if tab_activa == "mapa":
                         popup=folium.Popup(html_popup_rb, max_width=350),
                         tooltip=f"⚠️ REBOMBEOS {id_rb} - {diagnostico_falla_rb}"
                     ).add_to(m)
+                    
                 elif ver_rebombeos:
                     if info.get('blink'):
                         folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
