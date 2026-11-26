@@ -5477,8 +5477,85 @@ elif tab_activa == "tanques":
     st.markdown(
         """
         <style>
-        .tq-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; text-transform: uppercase; }
-        .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
+        @keyframes tqPulseIcon {
+            0%, 100% { transform: scale(1); opacity: 0.95; }
+            50% { transform: scale(1.12); opacity: 1; }
+        }
+        @keyframes tqAlertBlink {
+            0%, 100% { transform: translateY(0px) scale(1); opacity: 1; }
+            50% { transform: translateY(-1.5px) scale(1.14); opacity: 0.55; }
+        }
+        @keyframes tqWaveSignal {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 229, 255, 0.45)); }
+            50% { transform: scale(1.10); filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.85)); }
+        }
+        @keyframes tqFloatLevel {
+            0%, 100% { transform: translateY(1px); }
+            50% { transform: translateY(-2px); }
+        }
+        .tq-kpi-card {
+            background: linear-gradient(160deg, rgba(10, 22, 36, 0.96) 0%, rgba(5, 11, 20, 0.98) 100%);
+            border: 1px solid rgba(0, 212, 255, 0.24);
+            border-top: 2px solid rgba(0, 229, 255, 0.55);
+            border-radius: 12px;
+            padding: 11px 13px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .tq-kpi-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 229, 255, 0.65);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 229, 255, 0.16);
+        }
+        .tq-kpi-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .tq-eyebrow {
+            color: #8fa9c2;
+            letter-spacing: .12em;
+            font-size: .64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            line-height: 1.2;
+        }
+        .tq-kpi-icon-wrap {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 1px solid rgba(0, 229, 255, 0.28);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: #00e5ff;
+        }
+        .tq-anim-pulse { animation: tqPulseIcon 2.2s infinite ease-in-out; }
+        .tq-anim-alert { animation: tqAlertBlink 1.1s infinite ease-in-out; color: #ff4d4d; }
+        .tq-anim-signal { animation: tqWaveSignal 1.8s infinite ease-in-out; }
+        .tq-anim-float { animation: tqFloatLevel 2.0s infinite ease-in-out; }
+        .tq-kpi-value {
+            color: #f4f9ff;
+            font-size: clamp(1.25rem, 1.55vw, 1.85rem);
+            font-weight: 750;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            margin: 2px 0 4px;
+            line-height: 1.15;
+            text-shadow: 0 0 14px rgba(0, 212, 255, 0.14);
+        }
+        .tq-kpi-caption {
+            color: #7d99b5;
+            font-size: 0.74rem;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         .tm-card-title { color: #edf3fb; font-size: 1.08rem; font-weight: 700; overflow-wrap: anywhere; line-height: 1.2; }
         .tm-card-title b { margin-right: 6px; color: #00d4ff; font-weight: 800; }
         .tm-card-sub { color: #8fa9c2; font-size: 0.78rem; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
@@ -5581,6 +5658,48 @@ elif tab_activa == "tanques":
             f'color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: 800; '
             f'text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 5px rgba(0,0,0,0.95);">{escape(texto_pct)}</div>'
             f'</div>'
+            f'</div>'
+        )
+
+    def _render_kpi_icon_html(icon_key: str, accent_color: str = "#00e5ff", anim_class: str = "tq-anim-pulse") -> str:
+        icons = {
+            "tanks": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M9 5V3h6v2"/><path d="M4.5 13h15"/>'
+                f'</svg>'
+            ),
+            "alert": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>'
+                f'<line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1" fill="{accent_color}"/>'
+                f'</svg>'
+            ),
+            "wifi": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="19.5" r="1.2" fill="{accent_color}"/>'
+                f'</svg>'
+            ),
+            "capacity": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.66 3.58 3 8 3s8-1.34 8-3V6"/><path d="M4 12c0 1.66 3.58 3 8 3s8-1.34 8-3"/>'
+                f'</svg>'
+            ),
+            "volume": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>'
+                f'</svg>'
+            ),
+            "storage": (
+                f'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{accent_color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
+                f'<path d="M3 15c2.48 0 4.5-1.57 4.5-3.5S5.48 8 3 8"/><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M12 18V9"/><path d="M9 12l3-3 3 3"/>'
+                f'</svg>'
+            ),
+        }
+        svg_markup = icons.get(icon_key, icons["tanks"])
+        border_style = f"border-color: {accent_color}55; background: {accent_color}18;"
+        return (
+            f'<div class="tq-kpi-icon-wrap" style="{border_style}">'
+            f'<span class="{escape(anim_class)}" style="display: inline-flex; align-items: center; justify-content: center;">{svg_markup}</span>'
             f'</div>'
         )
 
@@ -5717,22 +5836,34 @@ elif tab_activa == "tanques":
             else np.nan
         )
 
+        color_alerta = "#ff4d4d" if insufficient_count > 0 else "#38b86b"
+        anim_alerta = "tq-anim-alert" if insufficient_count > 0 else "tq-anim-pulse"
+        color_pct = _obtener_color_tanquesito(percent) if pd.notna(percent) else "#00e5ff"
+
         kpis = [
-            ("TANQUES TOTALES", str(len(summary)), "Registrados", "tq_kpi_1"),
-            ("COMUNICACIÓN <5%", str(insufficient_count), "Sin reporte activo", "tq_kpi_2"),
-            ("% COMUNICACIÓN", _number(communication_pct, " %", 1), "Promedio global", "tq_kpi_3"),
-            ("CAPACIDAD REGULACIÓN", _number(capacity, " m³"), "Capacidad instalada", "tq_kpi_4"),
-            ("VOLUMEN REGULACIÓN", _number(volume, " m³"), "Volumen actual", "tq_kpi_5"),
-            ("% ALMACENAMIENTO", _number(percent, " %", 1), "Nivel de reserva", "tq_kpi_6"),
+            ("TANQUES TOTALES", str(len(summary)), "Registrados", "tanks", "#00e5ff", "tq-anim-pulse", "#f4f9ff"),
+            ("COMUNICACIÓN <5%", str(insufficient_count), "Sin reporte activo", "alert", color_alerta, anim_alerta, color_alerta),
+            ("% COMUNICACIÓN", _number(communication_pct, " %", 1), "Promedio global", "wifi", "#00e5ff", "tq-anim-signal", "#f4f9ff"),
+            ("CAPACIDAD REGULACIÓN", _number(capacity, " m³"), "Capacidad instalada", "capacity", "#63b9df", "tq-anim-pulse", "#f4f9ff"),
+            ("VOLUMEN REGULACIÓN", _number(volume, " m³"), "Volumen actual", "volume", "#00e5ff", "tq-anim-float", "#f4f9ff"),
+            ("% ALMACENAMIENTO", _number(percent, " %", 1), "Nivel de reserva", "storage", color_pct, "tq-anim-float", color_pct),
         ]
 
         cols = st.columns(6)
-        for col, (title, value, caption, key_name) in zip(cols, kpis):
+        for col, (title, value, caption, icon_key, icon_color, anim_cls, val_color) in zip(cols, kpis):
             with col:
-                with st.container(border=True, key=key_name):
-                    st.html(f'<div class="tq-eyebrow">{escape(title)}</div>')
-                    st.html(f'<div class="tq-kpi-value">{escape(value)}</div>')
-                    st.caption(caption)
+                icon_html = _render_kpi_icon_html(icon_key, icon_color, anim_cls)
+                card_html = (
+                    f'<div class="tq-kpi-card" style="border-top-color: {icon_color}88;">'
+                    f'<div class="tq-kpi-top">'
+                    f'<div class="tq-eyebrow">{escape(title)}</div>'
+                    f'{icon_html}'
+                    f'</div>'
+                    f'<div class="tq-kpi-value" style="color: {val_color};">{escape(value)}</div>'
+                    f'<div class="tq-kpi-caption">{escape(caption)}</div>'
+                    f'</div>'
+                )
+                st.markdown(card_html, unsafe_allow_html=True)
 
         st.caption(f"Corte de información: {end:%d/%m/%Y %H:%M}")
 
@@ -5755,10 +5886,10 @@ elif tab_activa == "tanques":
                     x=block["timestamp"],
                     y=block["level_m"],
                     mode="lines+markers" if multiple_points else "markers",
-                    line={"color": "#00d4ff", "width": 1.8},
-                    marker={"color": "#45e3ff", "size": 4, "symbol": "circle", "opacity": 0.85},
+                    line={"color": "#00d4ff", "width": 1.6},
+                    marker={"color": "#45e3ff", "size": 3.5, "symbol": "circle", "opacity": 0.85},
                     fill="tozeroy" if multiple_points else None,
-                    fillcolor="rgba(0, 212, 255, 0.28)",
+                    fillcolor="rgba(0, 212, 255, 0.24)",
                     name="Nivel TQ",
                     showlegend=(idx == 0),
                     hovertemplate="<b>%{y:.2f} m</b><extra></extra>",
@@ -5769,7 +5900,7 @@ elif tab_activa == "tanques":
             y=float(tank_info["max_level_m"]),
             line_color="#ffd18a",
             line_dash="dash",
-            line_width=1.3,
+            line_width=1.2,
         )
 
         fig.update_layout(
@@ -5784,7 +5915,7 @@ elif tab_activa == "tanques":
             hovermode="x unified",
             hoverlabel={
                 "bgcolor": "rgba(6, 12, 20, 0.95)",
-                "bordercolor": "rgba(70, 95, 120, 0.75)",
+                "bordercolor": "rgba(0, 229, 255, 0.5)",
                 "font": {"color": "#f0f7ff", "size": 11},
             },
         )
@@ -5795,8 +5926,8 @@ elif tab_activa == "tanques":
             showspikes=True,
             spikemode="across",
             spikesnap="cursor",
-            spikedash="dash",
-            spikecolor="rgba(195, 212, 230, 0.6)",
+            spikedash="dot",
+            spikecolor="rgba(0, 229, 255, 0.45)",
             spikethickness=1,
         )
         fig.update_yaxes(
@@ -5838,7 +5969,6 @@ elif tab_activa == "tanques":
         max_per_txt = escape(_number(tank.get("max_period"), " m", 2))
         min_per_txt = escape(_number(tank.get("min_period"), " m", 2))
         com_pct_txt = escape(_number(tank.get("communication_pct"), " %", 1))
-        alm_pct_txt = escape(_number(tank.get("storage_pct"), " %", 0))
 
         card_top_html = (
             f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>'
