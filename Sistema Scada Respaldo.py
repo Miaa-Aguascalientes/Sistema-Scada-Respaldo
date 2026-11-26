@@ -4267,6 +4267,11 @@ if tab_activa == "mapa":
                         dic_incidencias_activas.get(id_p_con_guion) or
                         dic_incidencias_activas.get(id_p_sin_guion, {})
                     )
+                    diagnostico_falla = (
+                        info_incidencia_pozo.get('diagnostico', info_incidencia_pozo.get('motivo', 'FALLA'))
+                        if isinstance(info_incidencia_pozo, dict)
+                        else str(info_incidencia_pozo)
+                    )
                     color_texto_falla_pozo = _obtener_color_estado_inc(info_incidencia_pozo)
 
                     html_globo_incidencia = f"""
