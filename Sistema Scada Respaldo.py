@@ -631,25 +631,39 @@ def get_blink_icon(color):
     </style>
     """
 
-def _obtener_color_estado_inc(inc_obj, estado_extra=None):
-    partes = []
-    if estado_extra is not None:
-        partes.append(str(estado_extra))
+@st.cache_data(ttl=60)
+def obtener_pozos_con_incidencias_hoy():
+    engine = get_mysql_scada_engine()
+    if engine is None:
+        return {}
+    try:
+        query = """
+            SELECT NUM_POZO, DIAGNOSTICO_FALLA, ESTATUS 
+            FROM vw_incidencias_en_pozos 
+            WHERE ESTATUS != 'CERRADA'
+        """
+        df_inc = pd.read_sql(query, engine)
+        dic_incidencias = {}
+        for _, row in df_inc.iterrows():
+            val = row['NUM_POZO']
+            if pd.notna(val):
+                id_limpio = str(val).strip().upper()
+                if id_limpio:
+                    diagnostico = str(row['DIAGNOSTICO_FALLA']).strip() if pd.notna(row['DIAGNOSTICO_FALLA']) and str(row['DIAGNOSTICO_FALLA']).strip() else 'Sin diagnóstico'
+                    estatus = str(row['ESTATUS']).strip().upper() if pd.notna(row['ESTATUS']) else ''
+                    payload = {
+                        "diagnostico": diagnostico,
+                        "estatus": estatus
+                    }
+                    id_con_guion = re.sub(r'^([A-Z]+)(\d+)([A-Z]*)$', r'\1-\2\3', id_limpio)
+                    id_sin_guion = id_limpio.replace('-', '')
 
-    if isinstance(inc_obj, dict):
-        partes.extend(str(v) for v in inc_obj.values() if v is not None)
-    elif isinstance(inc_obj, (list, tuple)):
-        partes.extend(str(v) for v in inc_obj if v is not None)
-    else:
-        partes.append(str(inc_obj or ""))
-
-    texto_busqueda = " ".join(partes).upper()
-
-    if "PROCESO" in texto_busqueda:
-        return "#ffff00"
-    if "PENDIENTE" in texto_busqueda:
-        return "#ff4d4d"
-    return "#ff4d4d"
+                    for clave in {id_limpio, id_con_guion, id_sin_guion}:
+                        if clave:
+                            dic_incidencias[clave] = payload
+        return dic_incidencias
+    except Exception as e:
+        return {}
 
 # 3. SECCION -------------------------------------------------------------------------------- 3. CARGA DE DATOS DE DICCIONARIOS -------------------------------------------------------------------------------------------
 
@@ -4272,12 +4286,19 @@ if tab_activa == "mapa":
                         dic_incidencias_activas.get(id_p_con_guion) or
                         dic_incidencias_activas.get(id_p_sin_guion, {})
                     )
-                    diagnostico_falla = (
-                        info_incidencia_pozo.get('diagnostico', info_incidencia_pozo.get('motivo', 'FALLA'))
-                        if isinstance(info_incidencia_pozo, dict)
-                        else str(info_incidencia_pozo)
-                    )
-                    color_texto_falla_pozo = _obtener_color_estado_inc(info_incidencia_pozo)
+                    if isinstance(info_incidencia_pozo, dict):
+                        diagnostico_falla = info_incidencia_pozo.get('diagnostico', info_incidencia_pozo.get('motivo', 'FALLA'))
+                        estatus_inc_pozo = str(info_incidencia_pozo.get('estatus', info_incidencia_pozo.get('estado', ''))).strip().upper()
+                    else:
+                        diagnostico_falla = str(info_incidencia_pozo)
+                        estatus_inc_pozo = ""
+
+                    if "EN PROCESO" in estatus_inc_pozo:
+                        color_texto_falla_pozo = "#ffff00"
+                    elif "PENDIENTE" in estatus_inc_pozo:
+                        color_texto_falla_pozo = "#ff4d4d"
+                    else:
+                        color_texto_falla_pozo = _obtener_color_estado_inc(info_incidencia_pozo, estatus_inc_pozo)
 
                     html_globo_incidencia = f"""
                     <style>
@@ -4300,7 +4321,7 @@ if tab_activa == "mapa":
                         <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
                             <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
                             <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
-                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_pozo};">{diagnostico_falla.upper()}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_pozo};">{str(diagnostico_falla).upper()}</span>
                             <span class="alerta-parpadeo-inc-pozo">⚠️</span>
                         </div>
                     </div>
@@ -4312,6 +4333,7 @@ if tab_activa == "mapa":
                         popup=folium.Popup(html_popup, max_width=450),
                         tooltip=f"⚠️ POZO {id_p} - {diagnostico_falla}"
                     ).add_to(fg_pozos)
+                    
                 elif info.get('blink'):
                     folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup, max_width=450)).add_to(fg_pozos)
                 else:
