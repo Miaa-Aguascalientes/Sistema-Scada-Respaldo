@@ -5479,10 +5479,12 @@ elif tab_activa == "tanques":
         <style>
         .tq-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; text-transform: uppercase; }
         .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
-        .tm-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
-        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; flex: 1; min-width: 0; }
+        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; margin-bottom: 8px; }
         .tm-card-title b { margin-right: 8px; color: #63b9df; }
-        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 8px; margin: 10px 0 4px; }
+        .tm-hero-row { display: flex; align-items: center; gap: 14px; margin: 6px 0 10px; }
+        .tm-hero-lines { display: flex; flex-direction: column; gap: 3px; font-size: 0.86rem; line-height: 1.25; color: #c7d8e8; min-width: 0; }
+        .tm-hero-line strong { color: #f0f7ff; font-weight: 700; font-variant-numeric: tabular-nums; }
+        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 8px; margin: 8px 0 4px; }
         .tm-card-metrics .tm-metric { display: grid; grid-template-rows: auto auto; min-width: 0; }
         .tm-card-metrics .tm-metric span { color: #8fa9c2; font-size: .75rem; line-height: 1.2; }
         .tm-card-metrics .tm-metric strong { color: #f0f7ff; font-size: .88rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; }
@@ -5530,13 +5532,13 @@ elif tab_activa == "tanques":
         color_llenado = _obtener_color_tanquesito(val)
 
         return (
-            f'<div style="position: relative; width: 42px; height: 54px; flex-shrink: 0; '
-            f'background: #04111a; border: 2.5px solid #00d4ff; border-radius: 8px; overflow: hidden;">'
+            f'<div style="position: relative; width: 54px; height: 68px; flex-shrink: 0; '
+            f'background: #04111a; border: 2.5px solid #00d4ff; border-radius: 10px; overflow: hidden;">'
             f'<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {val:.2f}%; '
             f'background: {color_llenado}; transition: height 0.25s ease;"></div>'
             f'<div style="position: relative; z-index: 2; width: 100%; height: 100%; '
             f'display: flex; align-items: center; justify-content: center; '
-            f'color: #ffffff; font-family: sans-serif; font-size: 12px; font-weight: 800; '
+            f'color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: 800; '
             f'text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">{escape(texto_pct)}</div>'
             f'</div>'
         )
@@ -5750,15 +5752,30 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"))
+        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
 
-        header_html = (
-            f'<div class="tm-card-header">'
-            f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>'
+        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"))
+        color_nivel = _obtener_color_tanquesito(tank.get("storage_pct"))
+
+        nivel_actual_txt = escape(_number(tank.get("level_m"), " m", 2))
+        nivel_max_txt = escape(_number(tank.get("max_level_m"), " m", 2))
+        volumen_txt = escape(_number(tank.get("volume_m3"), " m³", 1))
+
+        ts = tank.get("timestamp")
+        lectura_txt = escape(pd.Timestamp(ts).strftime("%d/%m %H:%M")) if pd.notna(ts) else "Sin lectura"
+
+        hero_html = (
+            f'<div class="tm-hero-row">'
             f'{tanquesito_html}'
+            f'<div class="tm-hero-lines">'
+            f'<div class="tm-hero-line">Nivel actual: <strong style="color: {color_nivel};">{nivel_actual_txt}</strong></div>'
+            f'<div class="tm-hero-line">Nivel máx.: <strong>{nivel_max_txt}</strong></div>'
+            f'<div class="tm-hero-line">Volumen: <strong>{volumen_txt}</strong></div>'
+            f'<div class="tm-hero-line" style="color: #8fa9c2; font-size: 0.78rem;">Lectura: {lectura_txt}</div>'
+            f'</div>'
             f'</div>'
         )
-        st.markdown(header_html, unsafe_allow_html=True)
+        st.markdown(hero_html, unsafe_allow_html=True)
 
         metrics_html = f"""
         <div class="tm-card-metrics">
@@ -5926,7 +5943,6 @@ elif tab_activa == "tanques":
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
     renderizar_pestana_tanques()
-
 
 # ==============================================================================
 # PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON DISEÑO DINÁMICO CRUZADO)
