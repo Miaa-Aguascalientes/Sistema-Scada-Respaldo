@@ -5904,10 +5904,10 @@ elif tab_activa == "tanques":
         )
 
         fig.update_layout(
-            yaxis_title="m",
+            yaxis_title="Niv/Tq",
             template="plotly_dark",
             height=220,
-            margin={"l": 30, "r": 10, "t": 8, "b": 25},
+            margin={"l": 46, "r": 10, "t": 8, "b": 25},
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font={"color": "#e4edf7", "size": 11},
