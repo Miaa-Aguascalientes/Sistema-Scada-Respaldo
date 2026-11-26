@@ -5305,7 +5305,7 @@ elif tab_activa == "incidencias":
 # PESTAÑA 3: MIAA TANQUES (INTEGRACIÓN NATIVA Y COMPLETA)
 # ==============================================================================
 elif tab_activa == "tanques":
-    st.markdown('<div class="titulo-superior">SEGUIMIENTO Y MONITOREO A TANQUES PRINCIPALES </div>', unsafe_allow_html=True)
+   
     import numpy as np
     import pandas as pd
     import plotly.graph_objects as go
