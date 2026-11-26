@@ -631,6 +631,21 @@ def get_blink_icon(color):
     </style>
     """
 
+# 2.9. Funcion para el color de los textos en las incidencias del mapa principal
+def _obtener_color_estado_inc(inc_obj):
+    if isinstance(inc_obj, dict):
+        texto_busqueda = " ".join(str(v) for v in inc_obj.values() if v is not None).upper()
+    elif isinstance(inc_obj, (list, tuple)):
+        texto_busqueda = " ".join(str(v) for v in inc_obj if v is not None).upper()
+    else:
+        texto_busqueda = str(inc_obj or "").upper()
+
+    if "PROCESO" in texto_busqueda:
+        return "#ffff00"
+    if "PENDIENTE" in texto_busqueda:
+        return "#ff4d4d"
+    return "#ff4d4d"
+
 # 3. SECCION -------------------------------------------------------------------------------- 3. CARGA DE DATOS DE DICCIONARIOS -------------------------------------------------------------------------------------------
 
 # 3.1 Funcion para optener la base de datos Diccionario_de_pozos  
@@ -4246,30 +4261,12 @@ if tab_activa == "mapa":
                     )
                 ).add_to(fg_pozos)
 
-                if tiene_incidencia_activa:
-                    info_incidencia = (
-                        dic_incidencias_activas.get(id_p_limpio) or 
-                        dic_incidencias_activas.get(id_p_con_guion) or 
-                        dic_incidencias_activas.get(id_p_sin_guion, {})
-                    )
-                    diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA')) if isinstance(info_incidencia, dict) else str(info_incidencia)
-                    
-                    info_incidencia_pozo = (
+                info_incidencia_pozo = (
                         dic_incidencias_activas.get(id_p_limpio) or
                         dic_incidencias_activas.get(id_p_con_guion) or
                         dic_incidencias_activas.get(id_p_sin_guion, {})
                     )
-                    estado_inc_pozo = (
-                        str(info_incidencia_pozo.get('estado', info_incidencia_pozo.get('estatus', info_incidencia_pozo.get('status', '')))).strip().upper()
-                        if isinstance(info_incidencia_pozo, dict)
-                        else ""
-                    )
-                    if "EN PROCESO" in estado_inc_pozo:
-                        color_texto_falla_pozo = "#ffff00"
-                    elif "PENDIENTE" in estado_inc_pozo:
-                        color_texto_falla_pozo = "#ff4d4d"
-                    else:
-                        color_texto_falla_pozo = "#ff4d4d"
+                    color_texto_falla_pozo = _obtener_color_estado_inc(info_incidencia_pozo)
 
                     html_globo_incidencia = f"""
                     <style>
