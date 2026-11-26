@@ -4261,7 +4261,7 @@ if tab_activa == "mapa":
                     )
                 ).add_to(fg_pozos)
 
-                info_incidencia_pozo = (
+                    info_incidencia_pozo = (
                         dic_incidencias_activas.get(id_p_limpio) or
                         dic_incidencias_activas.get(id_p_con_guion) or
                         dic_incidencias_activas.get(id_p_sin_guion, {})
