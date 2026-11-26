@@ -640,7 +640,7 @@ def _obtener_color_estado_inc(inc_obj):
     else:
         texto_busqueda = str(inc_obj or "").upper()
 
-    if "PROCESO" in texto_busqueda:
+    if "EN PROCESO" in texto_busqueda:
         return "#ffff00"
     if "PENDIENTE" in texto_busqueda:
         return "#ff4d4d"
