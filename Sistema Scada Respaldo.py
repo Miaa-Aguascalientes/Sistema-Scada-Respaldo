@@ -5602,8 +5602,6 @@ elif tab_activa == "tanques":
         unsafe_allow_html=True
     )
 
-    st.markdown("<h3 style='color: #00d4ff; margin-bottom: 15px;'>// MONITOREO DE TANQUES DE REGULACIÓN - MIAA</h3>", unsafe_allow_html=True)
-
     # 1. Funciones auxiliares internas de soporte
     def _number(value: float, unit: str = "", decimals: int = 0) -> str:
         if pd.isna(value):
