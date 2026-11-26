@@ -3985,6 +3985,7 @@ if tab_activa == "mapa":
                 gdf_sectores['Info_Colonias'] = lista_colonias_sec_tooltip
 
                 fg_sectores = folium.FeatureGroup(name="Sectores Hidráulicos")
+                
                 def estilo_final_sector(feature):
                     props = feature.get('properties', {})
                     color_dinamico, afectacion_val = calcular_color_sector(props, dic_incidencias_activas)
@@ -3995,7 +3996,7 @@ if tab_activa == "mapa":
                     else:
                         border_color_final = '#2980B9'
                         weight_final = 1
-                        opacity_final = 0.08
+                        opacity_final = 0.15
                     return {'fillColor': color_dinamico, 'color': border_color_final, 'weight': weight_final, 'fillOpacity': opacity_final}
 
                 def estilo_hover_sector(feature):
