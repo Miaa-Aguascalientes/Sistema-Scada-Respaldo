@@ -4301,45 +4301,101 @@ if tab_activa == "mapa":
                 except: continue
 
 # 9.9.  RENDERIZADO DE REBOMBEOS EN EL MAPA PRINCIPAL -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        if ver_rebombeos:
-            for id_rb, info in mapa_rebombeos_dict.items():
-                try:
-                    d = lambda tag: data_scada.get(tag, (0, "N/A"))
-                    is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
-                    
-                    pres, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
-                    ntq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
-                    
-                    v_rb = [d(t) for t in info.get('voltajes_l', [])] if not is_st and info.get('voltajes_l') else [(0.0, "N/A")]*3
-                    a_rb = [d(t) for t in info.get('amperajes_l', [])] if not is_st and info.get('amperajes_l') else [(0.0, "N/A")]*3
+        for id_rb, info in mapa_rebombeos_dict.items():
+            id_rb_limpio = str(id_rb).strip().upper()
+            id_rb_con_guion = re.sub(r'^([A-Z]+)-?(\d+)([A-Z]*)$', r'\1-\2\3', id_rb_limpio)
+            id_rb_sin_guion = id_rb_limpio.replace('-', '')
 
-                    html_popup_rb = f"""
-                <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
-                        <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
-                    </div>
-                    <hr style="border: 0.5px solid #333; margin: 8px 0;">
-                    <div style="font-size: 11px; margin-bottom: 5px;">
-                        🚀 Presión: <b>{pres:.2f} kg</b> <span style="color:#FFFF00; font-size:8px;">{f_p}</span><br>
-                        🔋 Nivel Tanque: <b>{ntq:.2f} m</b> <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
-                    </div>
-                    <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
-                        <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
-                            <th>Fase</th><th>Voltaje</th><th>Amp</th>
-                        </tr>
-                        <tr><td>L1-L2</td><td>{v_rb[0][0]:.0f}V</td><td>{a_rb[0][0]:.1f}A</td></tr>
-                        <tr><td>L2-L3</td><td>{v_rb[1][0]:.0f}V</td><td>{a_rb[1][0]:.1f}A</td></tr>
-                        <tr><td>L1-L3</td><td>{v_rb[2][0]:.0f}V</td><td>{a_rb[2][0]:.1f}A</td></tr>
-                    </table>
+            tiene_incidencia_rb = (
+                id_rb_limpio in dic_incidencias_activas or
+                id_rb_con_guion in dic_incidencias_activas or
+                id_rb_sin_guion in dic_incidencias_activas
+            )
+
+            # Si no está activada la capa de rebombeos y tampoco tiene incidencia activa, se omite
+            if not ver_rebombeos and not tiene_incidencia_rb:
+                continue
+
+            try:
+                d = lambda tag: data_scada.get(tag, (0, "N/A"))
+                is_st = (info.get('status_label') == 'SIN TELEMETRÍA')
+                
+                pres, f_p = d(info['presion']) if not is_st else (0.0, "N/A")
+                ntq, f_t = d(info['nivel_tanque']) if not is_st else (0.0, "N/A")
+                
+                v_rb = [d(t) for t in info.get('voltajes_l', [])] if not is_st and info.get('voltajes_l') else [(0.0, "N/A")]*3
+                a_rb = [d(t) for t in info.get('amperajes_l', [])] if not is_st and info.get('amperajes_l') else [(0.0, "N/A")]*3
+
+                html_popup_rb = f"""
+            <div style="background: #050505; color: white; padding: 12px; border-radius: 10px; width: 300px; border: 2px solid {info['color_final']}; font-family: sans-serif;">
+                <div style="display: flex; justify-content: space-between;">
+                    <b style="color: {info['color_final']}; font-size: 14px;">REBOMBEO: {id_rb}</b>
+                    <span style="font-size: 10px; background: {info['color_final']}; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold;">{info['status_label']}</span>
                 </div>
-                """
-                    
+                <hr style="border: 0.5px solid #333; margin: 8px 0;">
+                <div style="font-size: 11px; margin-bottom: 5px;">
+                    🚀 Presión: <b>{pres:.2f} kg</b> <span style="color:#FFFF00; font-size:8px;">{f_p}</span><br>
+                    🔋 Nivel Tanque: <b>{ntq:.2f} m</b> <span style="color:#FFFF00; font-size:8px;">{f_t}</span>
+                </div>
+                <table style="width: 100%; font-size: 9px; border-collapse: collapse; margin-top: 5px;">
+                    <tr style="color: #00d4ff; border-bottom: 1px solid #333; text-align: left;">
+                        <th>Fase</th><th>Voltaje</th><th>Amp</th>
+                    </tr>
+                    <tr><td>L1-L2</td><td>{v_rb[0][0]:.0f}V</td><td>{a_rb[0][0]:.1f}A</td></tr>
+                    <tr><td>L2-L3</td><td>{v_rb[1][0]:.0f}V</td><td>{a_rb[1][0]:.1f}A</td></tr>
+                    <tr><td>L1-L3</td><td>{v_rb[2][0]:.0f}V</td><td>{a_rb[2][0]:.1f}A</td></tr>
+                </table>
+            </div>
+            """
+
+                if ver_rebombeos:
+                    folium.Marker(
+                        location=info['coord'],
+                        icon=folium.DivIcon(
+                            icon_size=(150, 36),
+                            icon_anchor=(-12, 6),
+                            html=f'<div style="font-size: 9px; font-weight: bold; color: {info["color_final"]}; white-space: nowrap; text-shadow: 1px 1px #000; pointer-events: none;">{id_rb}</div>'
+                        )
+                    ).add_to(m)
+
+                if tiene_incidencia_rb:
+                    info_incidencia_rb = (
+                        dic_incidencias_activas.get(id_rb_limpio) or
+                        dic_incidencias_activas.get(id_rb_con_guion) or
+                        dic_incidencias_activas.get(id_rb_sin_guion, {})
+                    )
+                    diagnostico_falla_rb = (
+                        info_incidencia_rb.get('diagnostico', info_incidencia_rb.get('motivo', 'FALLA'))
+                        if isinstance(info_incidencia_rb, dict)
+                        else str(info_incidencia_rb)
+                    )
+
+                    html_globo_incidencia_rb = f"""
+                    <div style="position: relative; width: 350px; height: 80px; pointer-events: none; font-family: sans-serif;">
+                        <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible;">
+                            <line x1="15" y1="65" x2="75" y2="35" stroke="#ff4d4d" stroke-width="2" />
+                            <circle cx="15" cy="65" r="4" fill="#ffffff" stroke="#ff4d4d" stroke-width="2" />
+                        </svg>
+                        <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
+                            <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
+                            <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_rb}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla_rb.upper()}</span>
+                        </div>
+                    </div>
+                    """
+                    folium.Marker(
+                        location=info['coord'],
+                        icon=folium.DivIcon(icon_size=(350, 80), icon_anchor=(15, 65), html=html_globo_incidencia_rb),
+                        popup=folium.Popup(html_popup_rb, max_width=350),
+                        tooltip=f"⚠️ REBOMBEOS {id_rb} - {diagnostico_falla_rb}"
+                    ).add_to(m)
+                elif ver_rebombeos:
                     if info.get('blink'):
                         folium.Marker(location=info['coord'], icon=folium.DivIcon(html=get_blink_icon(info['color_final'])), popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
                     else:
                         folium.RegularPolygonMarker(location=info['coord'], number_of_sides=4, radius=6, color=info['color_final'], fill=True, fill_color=info['color_final'], popup=folium.Popup(html_popup_rb, max_width=350)).add_to(m)
-                except: continue
+            except:
+                continue
 
 # 9.10. RENDERIZADO DE MACROMEDIDORES EN EL MAPA PRINCIPAL ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         if ver_macromedidores:
