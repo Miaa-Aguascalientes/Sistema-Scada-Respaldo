@@ -631,16 +631,21 @@ def get_blink_icon(color):
     </style>
     """
 
-# 2.9. Funcion para el color de los textos en las incidencias del mapa principal
-def _obtener_color_estado_inc(inc_obj):
-    if isinstance(inc_obj, dict):
-        texto_busqueda = " ".join(str(v) for v in inc_obj.values() if v is not None).upper()
-    elif isinstance(inc_obj, (list, tuple)):
-        texto_busqueda = " ".join(str(v) for v in inc_obj if v is not None).upper()
-    else:
-        texto_busqueda = str(inc_obj or "").upper()
+def _obtener_color_estado_inc(inc_obj, estado_extra=None):
+    partes = []
+    if estado_extra is not None:
+        partes.append(str(estado_extra))
 
-    if "EN PROCESO" in texto_busqueda:
+    if isinstance(inc_obj, dict):
+        partes.extend(str(v) for v in inc_obj.values() if v is not None)
+    elif isinstance(inc_obj, (list, tuple)):
+        partes.extend(str(v) for v in inc_obj if v is not None)
+    else:
+        partes.append(str(inc_obj or ""))
+
+    texto_busqueda = " ".join(partes).upper()
+
+    if "PROCESO" in texto_busqueda:
         return "#ffff00"
     if "PENDIENTE" in texto_busqueda:
         return "#ff4d4d"
