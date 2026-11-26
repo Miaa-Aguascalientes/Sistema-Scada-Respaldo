@@ -4264,7 +4264,7 @@ if tab_activa == "mapa":
                         if isinstance(info_incidencia_pozo, dict)
                         else ""
                     )
-                    if "PROCESO" in estado_inc_pozo:
+                    if "EN PROCESO" in estado_inc_pozo:
                         color_texto_falla_pozo = "#ffff00"
                     elif "PENDIENTE" in estado_inc_pozo:
                         color_texto_falla_pozo = "#ff4d4d"
@@ -4407,7 +4407,7 @@ if tab_activa == "mapa":
                         if isinstance(info_incidencia_rb, dict)
                         else ""
                     )
-                    if "PROCESO" in estado_inc_rb:
+                    if "EN PROCESO" in estado_inc_rb:
                         color_texto_falla_rb = "#ffff00"
                     elif "PENDIENTE" in estado_inc_rb:
                         color_texto_falla_rb = "#ff4d4d"
