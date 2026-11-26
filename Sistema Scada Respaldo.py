@@ -5479,7 +5479,8 @@ elif tab_activa == "tanques":
         <style>
         .tq-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; text-transform: uppercase; }
         .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
-        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
+        .tm-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; flex: 1; min-width: 0; }
         .tm-card-title b { margin-right: 8px; color: #63b9df; }
         .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 8px; margin: 10px 0 4px; }
         .tm-card-metrics .tm-metric { display: grid; grid-template-rows: auto auto; min-width: 0; }
@@ -5497,6 +5498,58 @@ elif tab_activa == "tanques":
         if pd.isna(value):
             return "—"
         return f"{value:,.{decimals}f}{unit}"
+
+    def _obtener_color_tanquesito(porcentaje) -> str:
+        if pd.isna(porcentaje):
+            return "#ff4d4d"
+        try:
+            val = float(porcentaje)
+        except (TypeError, ValueError):
+            return "#ff4d4d"
+        val = max(0.0, min(100.0, val))
+        if val <= 25.0:
+            return "#ff4d4d"
+        elif val < 50.0:
+            return "#ffd000"
+        else:
+            return "#38b86b"
+
+    def _render_tanquesito_html(porcentaje, clip_suffix: str = "0") -> str:
+        sin_dato = pd.isna(porcentaje)
+        if sin_dato:
+            val = 0.0
+            texto_pct = "—"
+        else:
+            try:
+                val = float(porcentaje)
+            except (TypeError, ValueError):
+                val = 0.0
+            val = max(0.0, min(100.0, val))
+            texto_pct = f"{int(round(val))}%"
+
+        color_llenado = _obtener_color_tanquesito(val)
+        alto_total_interno = 48.0
+        alto_llenado = (val / 100.0) * alto_total_interno
+        y_llenado = 3.0 + (alto_total_interno - alto_llenado)
+        clip_id = f"clip-tq-{escape(str(clip_suffix))}"
+
+        return f"""
+        <div style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="42" height="54" viewBox="0 0 42 54" xmlns="http://www.w3.org/2000/svg" style="display: block; overflow: visible;">
+                <defs>
+                    <clipPath id="{clip_id}">
+                        <rect x="3" y="3" width="36" height="48" rx="6" ry="6" />
+                    </clipPath>
+                </defs>
+                <rect x="3" y="3" width="36" height="48" rx="6" ry="6" fill="#04111a" />
+                <g clip-path="url(#{clip_id})">
+                    <rect x="3" y="{y_llenado:.2f}" width="36" height="{alto_llenado:.2f}" fill="{color_llenado}" />
+                </g>
+                <rect x="3" y="3" width="36" height="48" rx="6" ry="6" fill="none" stroke="#00d4ff" stroke-width="2.5" />
+                <text x="21" y="31" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="800" style="text-shadow: 0px 1px 3px rgba(0,0,0,0.95), 0px 0px 4px rgba(0,0,0,0.9);">{escape(texto_pct)}</text>
+            </svg>
+        </div>
+        """
 
     def _render_filters(data, key, catalog, available_start=None, available_end=None):
         first = available_start if available_start is not None else data["timestamp"].min()
@@ -5707,7 +5760,15 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
+        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"), clip_suffix=f"{tank_id}_{key}")
+
+        header_html = f"""
+        <div class="tm-card-header">
+            <div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>
+            {tanquesito_html}
+        </div>
+        """
+        st.html(header_html)
 
         metrics_html = f"""
         <div class="tm-card-metrics">
