@@ -5514,7 +5514,7 @@ elif tab_activa == "tanques":
         else:
             return "#38b86b"
 
-    def _render_tanquesito_html(porcentaje, clip_suffix: str = "0") -> str:
+    def _render_tanquesito_html(porcentaje) -> str:
         sin_dato = pd.isna(porcentaje)
         if sin_dato:
             val = 0.0
@@ -5528,28 +5528,18 @@ elif tab_activa == "tanques":
             texto_pct = f"{int(round(val))}%"
 
         color_llenado = _obtener_color_tanquesito(val)
-        alto_total_interno = 48.0
-        alto_llenado = (val / 100.0) * alto_total_interno
-        y_llenado = 3.0 + (alto_total_interno - alto_llenado)
-        clip_id = f"clip-tq-{escape(str(clip_suffix))}"
 
-        return f"""
-        <div style="display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="42" height="54" viewBox="0 0 42 54" xmlns="http://www.w3.org/2000/svg" style="display: block; overflow: visible;">
-                <defs>
-                    <clipPath id="{clip_id}">
-                        <rect x="3" y="3" width="36" height="48" rx="6" ry="6" />
-                    </clipPath>
-                </defs>
-                <rect x="3" y="3" width="36" height="48" rx="6" ry="6" fill="#04111a" />
-                <g clip-path="url(#{clip_id})">
-                    <rect x="3" y="{y_llenado:.2f}" width="36" height="{alto_llenado:.2f}" fill="{color_llenado}" />
-                </g>
-                <rect x="3" y="3" width="36" height="48" rx="6" ry="6" fill="none" stroke="#00d4ff" stroke-width="2.5" />
-                <text x="21" y="31" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-size="13" font-weight="800" style="text-shadow: 0px 1px 3px rgba(0,0,0,0.95), 0px 0px 4px rgba(0,0,0,0.9);">{escape(texto_pct)}</text>
-            </svg>
-        </div>
-        """
+        return (
+            f'<div style="position: relative; width: 42px; height: 54px; flex-shrink: 0; '
+            f'background: #04111a; border: 2.5px solid #00d4ff; border-radius: 8px; overflow: hidden;">'
+            f'<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {val:.2f}%; '
+            f'background: {color_llenado}; transition: height 0.25s ease;"></div>'
+            f'<div style="position: relative; z-index: 2; width: 100%; height: 100%; '
+            f'display: flex; align-items: center; justify-content: center; '
+            f'color: #ffffff; font-family: sans-serif; font-size: 12px; font-weight: 800; '
+            f'text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">{escape(texto_pct)}</div>'
+            f'</div>'
+        )
 
     def _render_filters(data, key, catalog, available_start=None, available_end=None):
         first = available_start if available_start is not None else data["timestamp"].min()
@@ -5760,15 +5750,15 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"), clip_suffix=f"{tank_id}_{key}")
+        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"))
 
-        header_html = f"""
-        <div class="tm-card-header">
-            <div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>
-            {tanquesito_html}
-        </div>
-        """
-        st.html(header_html)
+        header_html = (
+            f'<div class="tm-card-header">'
+            f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>'
+            f'{tanquesito_html}'
+            f'</div>'
+        )
+        st.markdown(header_html, unsafe_allow_html=True)
 
         metrics_html = f"""
         <div class="tm-card-metrics">
@@ -5936,7 +5926,6 @@ elif tab_activa == "tanques":
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
     renderizar_pestana_tanques()
-
 
 
 # ==============================================================================
