@@ -5479,15 +5479,38 @@ elif tab_activa == "tanques":
         <style>
         .tq-eyebrow { color: #8fa9c2; letter-spacing: .15em; font-size: .67rem; font-weight: 600; text-transform: uppercase; }
         .tq-kpi-value { color: #f0f7ff; font-size: clamp(1.3rem, 1.65vw, 1.95rem); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; margin: 2px 0 4px; }
-        .tm-card-title { color: #edf3fb; font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; margin-bottom: 8px; }
-        .tm-card-title b { margin-right: 8px; color: #63b9df; }
-        .tm-hero-row { display: flex; align-items: center; gap: 14px; margin: 6px 0 10px; }
-        .tm-hero-lines { display: flex; flex-direction: column; gap: 3px; font-size: 0.86rem; line-height: 1.25; color: #c7d8e8; min-width: 0; }
+        .tm-card-title { color: #edf3fb; font-size: 1.08rem; font-weight: 700; overflow-wrap: anywhere; line-height: 1.2; }
+        .tm-card-title b { margin-right: 6px; color: #00d4ff; font-weight: 800; }
+        .tm-card-sub { color: #8fa9c2; font-size: 0.78rem; margin: 2px 0 10px; font-variant-numeric: tabular-nums; }
+        .tm-hero-row { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+        .tm-hero-box {
+            flex: 1;
+            min-width: 0;
+            background: rgba(11, 22, 34, 0.88);
+            border: 1px solid rgba(56, 86, 114, 0.55);
+            border-radius: 10px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            font-size: 0.85rem;
+            line-height: 1.3;
+            color: #c7d8e8;
+        }
         .tm-hero-line strong { color: #f0f7ff; font-weight: 700; font-variant-numeric: tabular-nums; }
-        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; gap: 8px; margin: 8px 0 4px; }
-        .tm-card-metrics .tm-metric { display: grid; grid-template-rows: auto auto; min-width: 0; }
-        .tm-card-metrics .tm-metric span { color: #8fa9c2; font-size: .75rem; line-height: 1.2; }
-        .tm-card-metrics .tm-metric strong { color: #f0f7ff; font-size: .88rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 3px; }
+        .tm-hero-age { color: #8fa9c2; font-size: 0.76rem; margin-top: 2px; font-variant-numeric: tabular-nums; }
+        .tm-card-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; gap: 6px; margin: 6px 0 10px; }
+        .tm-card-metrics .tm-metric {
+            background: rgba(11, 22, 34, 0.82);
+            border: 1px solid rgba(56, 86, 114, 0.5);
+            border-radius: 8px;
+            padding: 6px 8px;
+            display: grid;
+            grid-template-rows: auto auto;
+            min-width: 0;
+        }
+        .tm-card-metrics .tm-metric span { color: #9ab2c9; font-size: .72rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .tm-card-metrics .tm-metric strong { color: #f0f7ff; font-size: .86rem; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         </style>
         """,
         unsafe_allow_html=True
@@ -5530,16 +5553,25 @@ elif tab_activa == "tanques":
             texto_pct = f"{int(round(val))}%"
 
         color_llenado = _obtener_color_tanquesito(val)
+        borde_cian = "#00e5ff"
+        glow_cian = "0 0 8px rgba(0, 229, 255, 0.35)"
 
         return (
-            f'<div style="position: relative; width: 54px; height: 68px; flex-shrink: 0; '
-            f'background: #04111a; border: 2.5px solid #00d4ff; border-radius: 10px; overflow: hidden;">'
+            f'<div style="position: relative; width: 62px; height: 74px; flex-shrink: 0; '
+            f'display: flex; flex-direction: column; align-items: center;">'
+            f'<div style="width: 24px; height: 6px; background: #04111a; '
+            f'border: 2.5px solid {borde_cian}; border-bottom: none; border-radius: 5px 5px 0 0; '
+            f'box-shadow: {glow_cian};"></div>'
+            f'<div style="position: relative; width: 100%; flex: 1; '
+            f'background: #04111a; border: 2.5px solid {borde_cian}; border-radius: 11px; '
+            f'overflow: hidden; box-shadow: {glow_cian};">'
             f'<div style="position: absolute; left: 0; right: 0; bottom: 0; height: {val:.2f}%; '
             f'background: {color_llenado}; transition: height 0.25s ease;"></div>'
             f'<div style="position: relative; z-index: 2; width: 100%; height: 100%; '
             f'display: flex; align-items: center; justify-content: center; '
-            f'color: #ffffff; font-family: sans-serif; font-size: 14px; font-weight: 800; '
-            f'text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">{escape(texto_pct)}</div>'
+            f'color: #ffffff; font-family: sans-serif; font-size: 15px; font-weight: 800; '
+            f'text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 5px rgba(0,0,0,0.95);">{escape(texto_pct)}</div>'
+            f'</div>'
             f'</div>'
         )
 
@@ -5714,10 +5746,10 @@ elif tab_activa == "tanques":
                     x=block["timestamp"],
                     y=block["level_m"],
                     mode="lines+markers" if multiple_points else "markers",
-                    line={"color": "#63b9df", "width": 1.6},
-                    marker={"color": "#63b9df", "size": 4, "symbol": "circle", "opacity": 0.8},
+                    line={"color": "#00d4ff", "width": 1.8},
+                    marker={"color": "#45e3ff", "size": 4, "symbol": "circle", "opacity": 0.85},
                     fill="tozeroy" if multiple_points else None,
-                    fillcolor="rgba(99, 185, 223, 0.2)",
+                    fillcolor="rgba(0, 212, 255, 0.28)",
                     name="Nivel",
                     hovertemplate="<b>%{y:.2f} m</b><br>%{x|%d/%m/%Y %H:%M}<extra></extra>",
                 )
@@ -5727,7 +5759,7 @@ elif tab_activa == "tanques":
             y=float(tank_info["max_level_m"]),
             line_color="#ffd18a",
             line_dash="dash",
-            line_width=1.2,
+            line_width=1.3,
         )
 
         fig.update_layout(
@@ -5752,50 +5784,11 @@ elif tab_activa == "tanques":
         if display_name.startswith(tank_id):
             display_name = display_name[len(tank_id) :].lstrip(" -")
 
-        st.html(f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>')
-
-        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"))
-        color_nivel = _obtener_color_tanquesito(tank.get("storage_pct"))
-
-        nivel_actual_txt = escape(_number(tank.get("level_m"), " m", 2))
-        nivel_max_txt = escape(_number(tank.get("max_level_m"), " m", 2))
-        volumen_txt = escape(_number(tank.get("volume_m3"), " m³", 1))
-
-        ts = tank.get("timestamp")
-        lectura_txt = escape(pd.Timestamp(ts).strftime("%d/%m %H:%M")) if pd.notna(ts) else "Sin lectura"
-
-        hero_html = (
-            f'<div class="tm-hero-row">'
-            f'{tanquesito_html}'
-            f'<div class="tm-hero-lines">'
-            f'<div class="tm-hero-line">Nivel actual: <strong style="color: {color_nivel};">{nivel_actual_txt}</strong></div>'
-            f'<div class="tm-hero-line">Nivel máx.: <strong>{nivel_max_txt}</strong></div>'
-            f'<div class="tm-hero-line">Volumen: <strong>{volumen_txt}</strong></div>'
-            f'<div class="tm-hero-line" style="color: #8fa9c2; font-size: 0.78rem;">Lectura: {lectura_txt}</div>'
-            f'</div>'
-            f'</div>'
-        )
-        st.markdown(hero_html, unsafe_allow_html=True)
-
-        metrics_html = f"""
-        <div class="tm-card-metrics">
-            <div class="tm-metric"><span>Máx. per.</span><strong>{escape(_number(tank['max_period'], ' m', 2))}</strong></div>
-            <div class="tm-metric"><span>Mín. per.</span><strong>{escape(_number(tank['min_period'], ' m', 2))}</strong></div>
-            <div class="tm-metric"><span>% Com.</span><strong>{escape(_number(tank['communication_pct'], ' %', 1))}</strong></div>
-            <div class="tm-metric"><span>% Alm.</span><strong>{escape(_number(tank['storage_pct'], ' %', 0))}</strong></div>
-        </div>
-        """
-        st.html(metrics_html)
-
-        if data["level_m"].notna().any():
-            figure = _build_level_chart(data, tank, start, end, gap_minutes)
-            st.plotly_chart(figure, use_container_width=True, theme=None, key=key, config={"displaylogo": False, "displayModeBar": "hover"})
-        else:
-            st.info("Sin niveles disponibles.")
-
         timestamp = tank["timestamp"]
         if pd.notna(timestamp):
-            elapsed_minutes = max(0, int((end - timestamp).total_seconds() / 60 + 0.5))
+            ts_dt = pd.Timestamp(timestamp)
+            lectura_txt = ts_dt.strftime("%d/%m %H:%M")
+            elapsed_minutes = max(0, int((end - ts_dt).total_seconds() / 60 + 0.5))
             days, rem = divmod(elapsed_minutes, 1440)
             hours, minutes = divmod(rem, 60)
             parts = []
@@ -5804,9 +5797,46 @@ elif tab_activa == "tanques":
             if minutes or not parts: parts.append(f"{minutes}m")
             elapsed_text = " ".join(parts)
         else:
+            lectura_txt = "Sin lectura"
             elapsed_text = "Sin datos"
 
-        st.caption(f"Antigüedad de lectura: {elapsed_text}")
+        tanquesito_html = _render_tanquesito_html(tank.get("storage_pct"))
+        color_estado = _obtener_color_tanquesito(tank.get("storage_pct"))
+
+        nivel_actual_txt = escape(_number(tank.get("level_m"), " m", 2))
+        nivel_max_txt = escape(_number(tank.get("max_level_m"), " m", 2))
+        volumen_txt = escape(_number(tank.get("volume_m3"), " m³", 1))
+
+        card_top_html = (
+            f'<div class="tm-card-title"><b>{escape(tank_id)}</b> {escape(display_name)}</div>'
+            f'<div class="tm-card-sub">Lectura: {escape(lectura_txt)}</div>'
+            f'<div class="tm-hero-row">'
+            f'{tanquesito_html}'
+            f'<div class="tm-hero-box">'
+            f'<div class="tm-hero-line">Nivel actual: <strong style="color: {color_estado};">{nivel_actual_txt}</strong></div>'
+            f'<div class="tm-hero-line">Nivel máx.: <strong>{nivel_max_txt}</strong></div>'
+            f'<div class="tm-hero-line">Volumen: <strong>{volumen_txt}</strong></div>'
+            f'<div class="tm-hero-age">Antigüedad de lectura: {escape(elapsed_text)}</div>'
+            f'</div>'
+            f'</div>'
+        )
+        st.markdown(card_top_html, unsafe_allow_html=True)
+
+        metrics_html = f"""
+        <div class="tm-card-metrics">
+            <div class="tm-metric"><span>Máx. per.</span><strong>{escape(_number(tank['max_period'], ' m', 2))}</strong></div>
+            <div class="tm-metric"><span>Mín. per.</span><strong>{escape(_number(tank['min_period'], ' m', 2))}</strong></div>
+            <div class="tm-metric"><span>% Com.</span><strong>{escape(_number(tank['communication_pct'], ' %', 1))}</strong></div>
+            <div class="tm-metric"><span>% Alm.</span><strong style="color: {color_estado};">{escape(_number(tank['storage_pct'], ' %', 0))}</strong></div>
+        </div>
+        """
+        st.markdown(metrics_html, unsafe_allow_html=True)
+
+        if data["level_m"].notna().any():
+            figure = _build_level_chart(data, tank, start, end, gap_minutes)
+            st.plotly_chart(figure, use_container_width=True, theme=None, key=key, config={"displaylogo": False, "displayModeBar": "hover"})
+        else:
+            st.info("Sin niveles disponibles.")
 
     # 2. Capa de datos optimizada utilizando tus motores existentes
     @st.cache_data(ttl=300, show_spinner=False)
@@ -5943,7 +5973,6 @@ elif tab_activa == "tanques":
                         st.error(f"No fue posible mostrar el tanque {tank_id}.")
 
     renderizar_pestana_tanques()
-
 # ==============================================================================
 # PESTAÑA 4: SECTORES HIDRÁULICOS (CÓDIGO COMPLETO CON DISEÑO DINÁMICO CRUZADO)
 # ==============================================================================
