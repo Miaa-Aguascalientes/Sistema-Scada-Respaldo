@@ -4254,6 +4254,23 @@ if tab_activa == "mapa":
                     )
                     diagnostico_falla = info_incidencia.get('diagnostico', info_incidencia.get('motivo', 'FALLA')) if isinstance(info_incidencia, dict) else str(info_incidencia)
                     
+                    info_incidencia_pozo = (
+                        dic_incidencias_activas.get(id_p_limpio) or
+                        dic_incidencias_activas.get(id_p_con_guion) or
+                        dic_incidencias_activas.get(id_p_sin_guion, {})
+                    )
+                    estado_inc_pozo = (
+                        str(info_incidencia_pozo.get('estado', info_incidencia_pozo.get('estatus', info_incidencia_pozo.get('status', '')))).strip().upper()
+                        if isinstance(info_incidencia_pozo, dict)
+                        else ""
+                    )
+                    if "PROCESO" in estado_inc_pozo:
+                        color_texto_falla_pozo = "#ffff00"
+                    elif "PENDIENTE" in estado_inc_pozo:
+                        color_texto_falla_pozo = "#ff4d4d"
+                    else:
+                        color_texto_falla_pozo = "#ff4d4d"
+
                     html_globo_incidencia = f"""
                     <style>
                         @keyframes parpadeoAlertaIncPozo {{
@@ -4275,7 +4292,7 @@ if tab_activa == "mapa":
                         <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
                             <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
                             <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_p}</span>
-                            <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla.upper()}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_pozo};">{diagnostico_falla.upper()}</span>
                             <span class="alerta-parpadeo-inc-pozo">⚠️</span>
                         </div>
                     </div>
@@ -4385,6 +4402,18 @@ if tab_activa == "mapa":
                         else str(info_incidencia_rb)
                     )
 
+                    estado_inc_rb = (
+                        str(info_incidencia_rb.get('estado', info_incidencia_rb.get('estatus', info_incidencia_rb.get('status', '')))).strip().upper()
+                        if isinstance(info_incidencia_rb, dict)
+                        else ""
+                    )
+                    if "PROCESO" in estado_inc_rb:
+                        color_texto_falla_rb = "#ffff00"
+                    elif "PENDIENTE" in estado_inc_rb:
+                        color_texto_falla_rb = "#ff4d4d"
+                    else:
+                        color_texto_falla_rb = "#ff4d4d"
+
                     html_globo_incidencia_rb = f"""
                     <style>
                         @keyframes parpadeoAlertaInc {{
@@ -4406,7 +4435,7 @@ if tab_activa == "mapa":
                         <div style="position: absolute; top: 0px; left: 75px; display: inline-flex; align-items: center; background: #000000; border: 2px solid #ff4d4d; border-radius: 6px; padding: 4px 8px; white-space: nowrap; box-shadow: 0 4px 8px rgba(0,0,0,0.6); pointer-events: auto;">
                             <span style="font-size: 14px; margin-right: 6px;">🛠️</span>
                             <span style="font-size: 11px; font-weight: bold; color: #ffffff; margin-right: 8px;">{id_rb}</span>
-                            <span style="font-size: 10px; font-weight: bold; color: #ffffff; background: #c0392b; padding: 2px 6px; border-radius: 4px;">{diagnostico_falla_rb.upper()}</span>
+                            <span style="font-size: 10px; font-weight: bold; color: {color_texto_falla_rb};">{diagnostico_falla_rb.upper()}</span>
                             <span class="alerta-parpadeo-inc">⚠️</span>
                         </div>
                     </div>
